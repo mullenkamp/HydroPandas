@@ -16,7 +16,7 @@ from read_write import no_flow
 def array_to_raster(path, array, only_active=True):
     if only_active:
         array[no_flow] = -99
-    output_raster = gdal.GetDriverByName('GTiff').Create(path, 365, 190, 1,
+    output_raster = gdal.GetDriverByName('GTiff').Create(path, array.shape[1], array.shape[0], 1,
                                                          gdal.GDT_Float32)  # Open the file
     geotransform = (1512162.53275, 200, 0, 5214983.5772000002, 0, -200)
     output_raster.SetGeoTransform(geotransform)  # Specify its coordinates
