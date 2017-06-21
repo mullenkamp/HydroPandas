@@ -33,10 +33,10 @@ mtype_dict = {'swl': [100, 'mean', r'E:\ecan\shared\base_data\swl\swl_data.csv']
 
 ### Export parameters
 
-end = '2017-04-30'
+end = '2017-05-21'
 
 server1 = 'SQL2012DEV01'
-database1 = 'Hydro'
+database1 = 'HydstraArchive'
 dtype_dict = {'wtemp': {'site': 'VARCHAR(19)', 'time': 'DATE', 'data': 'NUMERIC(10, 1)', 'qual_code': 'INT'}, 'flow': {'site': 'VARCHAR(19)', 'time': 'DATE', 'data': 'NUMERIC(10, 3)', 'qual_code': 'INT'}, 'precip': {'site': 'VARCHAR(19)', 'time': 'DATE', 'data': 'NUMERIC(10, 1)', 'qual_code': 'INT'}, 'swl': {'site': 'VARCHAR(19)', 'time': 'DATE', 'data': 'NUMERIC(10, 3)', 'qual_code': 'INT'}, 'gwl': {'site': 'VARCHAR(19)', 'time': 'DATE', 'data': 'NUMERIC(10, 3)', 'qual_code': 'INT'}, 'lakel': {'site': 'VARCHAR(19)', 'time': 'DATE', 'data': 'NUMERIC(10, 3)', 'qual_code': 'INT'}}
 
 flow_export = r'E:\ecan\shared\base_data\flow\flow_data.csv'

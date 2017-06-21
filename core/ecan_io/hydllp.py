@@ -163,7 +163,7 @@ class Hydllp(object):
                  dll_path = 'Y:/Hydstra/prod/hyd/sys/run/',
                  ini_path = 'Y:/Hydstra/prod/hyd/',
                  hydllp_filename = 'hydllp.dll',
-                 hyaccess_filename = 'hyaccess.ini',
+                 hyaccess_filename = 'Hyaccess.ini',
                  hyconfig_filename = 'HYCONFIG.INI'):
 
         self._dll_path = dll_path
