@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 from get_str_rch_values import get_stream_duplication_array
 
+# todo some changes in sfr require some changes here.
 
 def streamflow_for_kskps(model_base_path, kstpkpers=None, drn_points=None, str_points=None):
     """
