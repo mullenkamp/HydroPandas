@@ -23,11 +23,13 @@ base_path = r'S:\Surface Water\temp'
 malf_csv = 'malf.csv'
 alf_csv = 'alf.csv'
 days_mis_csv = 'alf_days_mis.csv'
-#min_date_csv = 'min_flow_date.csv'
 
 ## Plotting
 start = '1986-07-01'
 end = '1987-06-30'
+x_period = 'month'
+time_format = '%d-%m-%Y'
+
 flow_sites = 70105
 
 ################################################
@@ -41,7 +43,7 @@ h1 = hydro().get_data(mtypes=mtypes1, sites=sites1, qual_codes=qual_codes)
 ### Flow tools
 
 ## MALF and flow stats
-fstats = h1.stats(mtypes='flow')
+fstats = h1.stats(mtypes=mtypes1)
 fstats
 
 malf1 = h1.malf7d()
@@ -68,7 +70,7 @@ malf4, alfs, mis_alfs, min_mis_alfs, min_date_alf = h1.malf7d(intervals=interval
 ### Flow related
 
 ## hydrograph
-plt1 = h1.plot_hydrograph(flow_sites=flow_sites, x_period='month', time_format='%d-%m-%Y', start=start, end=end)
+plt1 = h1.plot_hydrograph(flow_sites=flow_sites, x_period=x_period, time_format=time_format, start=start, end=end)
 
 
 #################################################
