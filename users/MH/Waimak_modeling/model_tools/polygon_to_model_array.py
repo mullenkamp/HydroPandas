@@ -34,7 +34,7 @@ def geodb_to_model_array(path, shape_name, attribute, alltouched=False):
     return outdata
 
 
-def shape_file_to_model_array(path, attribute, alltouched=False):
+def shape_file_to_model_array(path, attribute, alltouched=False, rows=190, cols=365):
     """
     shape file to vistas array
     :param path: path to shapefile
@@ -45,11 +45,11 @@ def shape_file_to_model_array(path, attribute, alltouched=False):
     source_ds = ogr.Open(path)
     source_layer = source_ds.GetLayer()
 
-    outdata = _layer_to_model_array(source_layer, attribute, alltouched=alltouched)
+    outdata = _layer_to_model_array(source_layer, attribute, alltouched=alltouched, rows=rows,cols=cols)
     return outdata
 
 
-def _layer_to_model_array(source_layer, attribute, alltouched=False):
+def _layer_to_model_array(source_layer, attribute, alltouched=False, cols=365, rows=190):
     """
     hidden function to convert a source layer to a rasterized np array
     :param source_layer: from either function above
@@ -59,9 +59,7 @@ def _layer_to_model_array(source_layer, attribute, alltouched=False):
 
     pixelWidth = pixelHeight = 200  # depending how fine you want your raster
 
-    x_min, y_min = 1512162.53275, 5177083.5772
-    cols = 365
-    rows = 190
+    x_min, y_min = 1512162.53275, 5215083.5772 - 200*rows # was 5177083.5772
 
     target_ds = gdal.GetDriverByName('GTiff').Create('{}/temp.tif'.format(temp_file_dir), cols, rows, 1,
                                                      gdal.GDT_Float64)

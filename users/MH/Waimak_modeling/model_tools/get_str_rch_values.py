@@ -15,7 +15,7 @@ import pandas as pd
 from basic_tools import df_to_array
 from drain_concentration import get_drn_samp_pts_dict
 
-
+# todo these are only for m_strong_vert
 def get_base_str(recalc=False):
     picklepath = '{}/inputs/pickeled_files/base_stream_spd.p'.format(sdp)
 

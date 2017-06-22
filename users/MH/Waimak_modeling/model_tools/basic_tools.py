@@ -15,19 +15,19 @@ import flopy
 from warnings import warn
 from users.MH.Waimak_modeling.supporting_data_path import sdp, get_org_mod_path
 
-pixelWidth = pixelHeight = 200  # depending how fine you want your raster
+def get_model_x_y (rows=190, cols=365):
+    pixelWidth = pixelHeight = 200  # depending how fine you want your raster
 
-x_min, y_min = 1512162.53275, 5177083.5772
-cols = 365
-rows = 190
+    x_min, y_min = 1512162.53275, 5215083.5772 - 200 * rows  # was 5177083.5772
 
-# mid points of the array
-x = np.linspace(x_min + 100, (x_min + 100 + pixelWidth * (cols - 1)), cols)
-y = np.linspace((y_min + 100 + pixelHeight * (rows - 1)), y_min + 100, rows)
+    # mid points of the array
+    x = np.linspace(x_min + 100, (x_min + 100 + pixelWidth * (cols - 1)), cols)
+    y = np.linspace((y_min + 100 + pixelHeight * (rows - 1)), y_min + 100, rows)
 
-model_xs, model_ys = np.meshgrid(x, y)
+    model_xs, model_ys = np.meshgrid(x, y)
+    return model_xs, model_ys
 
-def df_to_array(dataframe, value_to_map, _3d=False):
+def df_to_array(dataframe, value_to_map, _3d=False, kij = (17, 190, 365)):
     """
     maps a dataframe to a model array
     :param dataframe: dataframe with at least keys (k),i,j and value
@@ -35,18 +35,18 @@ def df_to_array(dataframe, value_to_map, _3d=False):
     :param _3d: boolean if true map to a 3d array with kIJ
     :return: array
     """
-
+    layers,rows,cols = kij
     if _3d:
         if not np.in1d(['k','i','j',value_to_map],dataframe.keys()).all():
             raise ValueError('dataframe missing keys')
-        outdata = np.zeros((17,190,365))
+        outdata = np.zeros((layers,rows,cols))
         for i in dataframe.index:
             layer, row, col = dataframe.loc[i,['k','i','j']]
             outdata[layer,row,col] = dataframe.loc[i,value_to_map]
     else:
         if not np.in1d(['i','j',value_to_map],dataframe.keys()).all():
             raise ValueError('dataframe missing keys')
-        outdata = np.zeros((190,365))
+        outdata = np.zeros((rows,cols))
         for i in dataframe.index:
             row, col = dataframe.loc[i,['i','j']]
             outdata[row,col] = dataframe.loc[i,value_to_map]
@@ -67,7 +67,7 @@ def model_where(condition):
 
 
 def get_well_postions(well_nums, screen_handling = 'middle', raise_exct = True, error_log_path=None,
-                      one_val_per_well = False):
+                      one_val_per_well = False): #todo update for new model version
     """
     gets model indexs from a well position
     :param well_nums: value or iterable of well numbers
@@ -196,7 +196,7 @@ def get_well_postions(well_nums, screen_handling = 'middle', raise_exct = True, 
         return layer, row, col
 
 
-def convert_matrix_to_coords(row, col, layer=None, elv_db=None):
+def convert_matrix_to_coords(row, col, layer=None, elv_db=None): #todo update for new model version
     """
     convert from matix indexing to real world coordinates
     :param row:
@@ -205,6 +205,7 @@ def convert_matrix_to_coords(row, col, layer=None, elv_db=None):
     :param elv_db: 3d numpy array of bottom elevation the 0th index is the top layer of the surface of the model
     :return: lon, lat if layer is not specified or lon, lat, elv
     """
+    model_xs, model_ys = get_model_x_y()
     if elv_db is None and layer is not None:
         # below is a pickled nparray of bottoms (with layer 1 top on the top of the stack
         elv_db = calc_elv_db()
@@ -221,7 +222,7 @@ def convert_matrix_to_coords(row, col, layer=None, elv_db=None):
         return lon, lat, elv
 
 
-def calc_elv_db(recalc=False):
+def calc_elv_db(recalc=False): #todo update for new model version
     """
     calculates the elevation database (bottoms with the top of layer one on top or loads pickel
     :param recalc: force recalculates the elv_db from the gns data even if it is not present
@@ -238,7 +239,7 @@ def calc_elv_db(recalc=False):
 
     return elv_db
 
-def convert_coords_to_matix(lon, lat, elv=None, elv_db=None, return_AE=False):
+def convert_coords_to_matix(lon, lat, elv=None, elv_db=None, return_AE=False): #todo update for new model version
     """
     convert from real world coordinates to model indexes by comparing value to center point of array.  Where the value
     is on an edge defaults to top left corner (e.g. row 1, col 1, layer 1)
@@ -250,6 +251,7 @@ def convert_coords_to_matix(lon, lat, elv=None, elv_db=None, return_AE=False):
                       for use with modpath particles
     :return: (row, col) if elv is not presented or (layer, row, col)
     """
+    model_xs, model_ys = get_model_x_y()
     if lon > model_xs[0,:].max() or lon < model_xs[0,:].min():
         raise ValueError('coords not in model domain')
 
@@ -297,7 +299,7 @@ def convert_coords_to_matix(lon, lat, elv=None, elv_db=None, return_AE=False):
         else:
             return layer, row, col
 
-def calc_z_loc(row, col, elv, elv_db=None):
+def calc_z_loc(row, col, elv, elv_db=None): #todo update for new model version
     if elv_db is None:
         # below is a pickled np.array of bottoms (with layer 1 top on the top of the stack)
         elv_db = calc_elv_db()
