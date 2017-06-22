@@ -29,7 +29,8 @@ site_names = ['site', 'site_name', 'site_short_name']
 qual_cols = ['QUALITY', 'TEXT']
 qual_names = ['qual_code', 'qual_name']
 
-mtype_dict = {'swl': [100, 'mean', r'E:\ecan\shared\base_data\swl\swl_data.csv'], 'precip': [10, 'tot', r'E:\ecan\shared\base_data\precip\precip_data.csv'], 'gwl': [110, 'mean', r'E:\ecan\shared\base_data\gwl\gwl_data.csv'], 'lakel': [130, 'mean', r'E:\ecan\shared\base_data\lakel\lakel_data.csv'], 'wtemp': [450, 'mean', r'E:\ecan\shared\base_data\wtemp\wtemp_data.csv']}
+#mtype_dict = {'swl': [100, 'mean', r'E:\ecan\shared\base_data\swl\swl_data.csv'], 'precip': [10, 'tot', r'E:\ecan\shared\base_data\precip\precip_data.csv'], 'gwl': [110, 'mean', r'E:\ecan\shared\base_data\gwl\gwl_data.csv'], 'lakel': [130, 'mean', r'E:\ecan\shared\base_data\lakel\lakel_data.csv'], 'wtemp': [450, 'mean', r'E:\ecan\shared\base_data\wtemp\wtemp_data.csv']}
+mtype_dict = {'swl': [100, 'mean', r'C:\ecan\shared\base_data\swl\swl_data.csv'], 'precip': [10, 'tot', r'C:\ecan\shared\base_data\precip\precip_data.csv'], 'gwl': [110, 'mean', r'C:\ecan\shared\base_data\gwl\gwl_data.csv'], 'lakel': [130, 'mean', r'C:\ecan\shared\base_data\lakel\lakel_data.csv'], 'wtemp': [450, 'mean', r'C:\ecan\shared\base_data\wtemp\wtemp_data.csv']}
 
 ### Export parameters
 
@@ -39,7 +40,7 @@ server1 = 'SQL2012DEV01'
 database1 = 'HydstraArchive'
 dtype_dict = {'wtemp': {'site': 'VARCHAR(19)', 'time': 'DATE', 'data': 'NUMERIC(10, 1)', 'qual_code': 'INT'}, 'flow': {'site': 'VARCHAR(19)', 'time': 'DATE', 'data': 'NUMERIC(10, 3)', 'qual_code': 'INT'}, 'precip': {'site': 'VARCHAR(19)', 'time': 'DATE', 'data': 'NUMERIC(10, 1)', 'qual_code': 'INT'}, 'swl': {'site': 'VARCHAR(19)', 'time': 'DATE', 'data': 'NUMERIC(10, 3)', 'qual_code': 'INT'}, 'gwl': {'site': 'VARCHAR(19)', 'time': 'DATE', 'data': 'NUMERIC(10, 3)', 'qual_code': 'INT'}, 'lakel': {'site': 'VARCHAR(19)', 'time': 'DATE', 'data': 'NUMERIC(10, 3)', 'qual_code': 'INT'}}
 
-flow_export = r'E:\ecan\shared\base_data\flow\flow_data.csv'
+flow_export = r'C:\ecan\shared\base_data\flow\flow_data.csv'
 #precip_export = r'E:\ecan\shared\base_data\precip\precip_data.csv'
 #gwl_export = r'E:\ecan\shared\base_data\gwl\gwl_data.csv'
 #swl_export = r'E:\ecan\shared\base_data\swl\swl_data.csv'
@@ -70,13 +71,13 @@ var2 = var1[var1.var_num.isin(data_vars1)]
 i = 'precip'
 precip = rd_hydstra_by_var(mtype_dict[i][0], end_time=end, data_type=mtype_dict[i][1], export=True, export_path=mtype_dict[i][2], sites_chunk=30)
 
-write_sql(server1, database1, i + '_data', precip.reset_index(), dtype_dict[i])
+write_sql(server1, database1, i + '_data', precip.reset_index(), dtype_dict[i], drop_table=True)
 
 ## swl data
 i = 'swl'
 swl = rd_hydstra_by_var(mtype_dict[i][0], end_time=end, data_type=mtype_dict[i][1], export=True, export_path=mtype_dict[i][2])
 
-write_sql(server1, database1, i + '_data', swl.reset_index(), dtype_dict[i])
+write_sql(server1, database1, i + '_data', swl.reset_index(), dtype_dict[i], drop_table=True)
 
 ## gwl data
 i = 'gwl'
@@ -87,19 +88,19 @@ gwl2.loc[:, 'site'] = gwl2.loc[:, 'site'].str.replace('_', '/')
 gwl3 = gwl2.set_index(['site', 'time'])
 gwl3.to_csv(mtype_dict[i][2])
 
-write_sql(server1, database1, i + '_data', gwl2, dtype_dict[i])
+write_sql(server1, database1, i + '_data', gwl2, dtype_dict[i], drop_table=True)
 
 ## lakel data
 i = 'lakel'
 lakel = rd_hydstra_by_var(mtype_dict[i][0], end_time=end, data_type=mtype_dict[i][1], export=True, export_path=mtype_dict[i][2])
 
-write_sql(server1, database1, i + '_data', lakel.reset_index(), dtype_dict[i])
+write_sql(server1, database1, i + '_data', lakel.reset_index(), dtype_dict[i], drop_table=True)
 
 ## wtemp data
 i = 'wtemp'
 wtemp = rd_hydstra_by_var(mtype_dict[i][0], end_time=end, data_type=mtype_dict[i][1], export=True, export_path=mtype_dict[i][2])
 
-write_sql(server1, database1, i + '_data', wtemp.reset_index(), dtype_dict[i])
+write_sql(server1, database1, i + '_data', wtemp.reset_index(), dtype_dict[i], drop_table=True)
 
 ## Flow data
 flow1 = rd_hydstra_by_var(140, end_time=end, data_type='mean', sites_chunk=26)
@@ -110,7 +111,7 @@ flow2.loc[:, 'data'] = flow2.loc[:, 'data'] * 0.001
 flow = concat([flow1, flow2])
 flow.to_csv(flow_export)
 
-write_sql(server1, database1, i + '_data', flow.reset_index(), dtype_dict[i])
+write_sql(server1, database1, i + '_data', flow.reset_index(), dtype_dict[i], drop_table=True)
 
 
 
