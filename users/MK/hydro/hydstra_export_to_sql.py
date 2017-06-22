@@ -103,6 +103,7 @@ wtemp = rd_hydstra_by_var(mtype_dict[i][0], end_time=end, data_type=mtype_dict[i
 write_sql(server1, database1, i + '_data', wtemp.reset_index(), dtype_dict[i], drop_table=True)
 
 ## Flow data
+i = 'flow'
 flow1 = rd_hydstra_by_var(140, end_time=end, data_type='mean', sites_chunk=26)
 flow2 = rd_hydstra_by_var(143, end_time=end, data_type='mean')
 
