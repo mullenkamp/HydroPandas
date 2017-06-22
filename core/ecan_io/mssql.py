@@ -197,35 +197,38 @@ def rd_squalarc(sites, mtypes=None, from_date=None, to_date=None, convert_dtl=Tr
     #### Convert detection limit values
     if convert_dtl:
         less1 = data['val'].str.match('<')
-        less1.loc[less1.isnull()] = False
-        data2 = data.copy()
-        data2.loc[less1, 'val'] = to_numeric(data.loc[less1, 'val'].str.replace('<', '')) * 0.5
-        if dtl_method in (None, 'standard'):
-            data3 = data2
-        if dtl_method == 'trend':
-            df1 = data2.loc[less1]
-            count1 = data.groupby('parameter')['val'].count()
-            count1.name = 'tot_count'
-            count_dtl = df1.groupby('parameter')['val'].count()
-            count_dtl.name = 'dtl_count'
-            count_dtl_val = df1.groupby('parameter')['val'].nunique()
-            count_dtl_val.name = 'dtl_val_count'
-            combo1 = concat([count1, count_dtl, count_dtl_val], axis=1, join='inner')
-            combo1['dtl_ratio'] = (combo1['dtl_count'] / combo1['tot_count']).round(2)
+        if sum(less1) > 0:
+            less1.loc[less1.isnull()] = False
+            data2 = data.copy()
+            data2.loc[less1, 'val'] = to_numeric(data.loc[less1, 'val'].str.replace('<', '')) * 0.5
+            if dtl_method in (None, 'standard'):
+                data3 = data2
+            if dtl_method == 'trend':
+                df1 = data2.loc[less1]
+                count1 = data.groupby('parameter')['val'].count()
+                count1.name = 'tot_count'
+                count_dtl = df1.groupby('parameter')['val'].count()
+                count_dtl.name = 'dtl_count'
+                count_dtl_val = df1.groupby('parameter')['val'].nunique()
+                count_dtl_val.name = 'dtl_val_count'
+                combo1 = concat([count1, count_dtl, count_dtl_val], axis=1, join='inner')
+                combo1['dtl_ratio'] = (combo1['dtl_count'] / combo1['tot_count']).round(2)
 
-            ## conditionals
-#            param1 = combo1[(combo1['dtl_ratio'] <= 0.4) | (combo1['dtl_ratio'] == 1)]
-#            under_40 = data['parameter'].isin(param1.index)
-            param2 = combo1[(combo1['dtl_ratio'] > 0.4) & (combo1['dtl_val_count'] != 1)]
-            over_40 = data['parameter'].isin(param2.index)
+                ## conditionals
+    #            param1 = combo1[(combo1['dtl_ratio'] <= 0.4) | (combo1['dtl_ratio'] == 1)]
+    #            under_40 = data['parameter'].isin(param1.index)
+                param2 = combo1[(combo1['dtl_ratio'] > 0.4) & (combo1['dtl_val_count'] != 1)]
+                over_40 = data['parameter'].isin(param2.index)
 
-            ## Calc detection limit values
-            data3 = merge(data, combo1['dtl_ratio'].reset_index(), on='parameter', how='left')
-            data3.loc[:, 'val_dtl'] = data2['val']
+                ## Calc detection limit values
+                data3 = merge(data, combo1['dtl_ratio'].reset_index(), on='parameter', how='left')
+                data3.loc[:, 'val_dtl'] = data2['val']
 
-            max_dtl_val = data2[over_40 & less1].groupby('parameter')['val'].transform('max')
-            max_dtl_val.name = 'dtl_val_max'
-            data3.loc[over_40 & less1, 'val_dtl'] = max_dtl_val
+                max_dtl_val = data2[over_40 & less1].groupby('parameter')['val'].transform('max')
+                max_dtl_val.name = 'dtl_val_max'
+                data3.loc[over_40 & less1, 'val_dtl'] = max_dtl_val
+        else:
+            data3 = data
     else:
         data3 = data
 
