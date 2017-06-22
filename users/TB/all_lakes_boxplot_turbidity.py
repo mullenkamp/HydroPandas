@@ -192,7 +192,12 @@ print filename
 plt.figure(figsize=(22, 11))
 sns.set_style("whitegrid")
 sns.set(font_scale=2)  # increase font on axis
-ax = sns.boxplot(data = Turbidity_data, showmeans=True, color='white')
+#ax = sns.boxplot(data = Turbidity_data, showmeans=True, color='white')
+medianprops = dict(linewidth=2.5, color='grey')
+meanpointprops = dict(marker='o', markerfacecolor='red', markersize=12,
+                  linestyle='none')
+ax = sns.boxplot(data = Turbidity_data, medianprops=medianprops, meanprops=meanpointprops, meanline=False,
+               showmeans=True, color='white')
 for item in ax.get_xticklabels():
     item.set_rotation(90)
 plt.ylim(ymin=0, ymax=10)

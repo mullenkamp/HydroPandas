@@ -4,19 +4,6 @@ Created on Mon May 29 11:19:46 2017
 
 @author: TinaB
 """
-
-# -*- coding: utf-8 -*-
-"""
-Created on Fri May 26 13:06:26 2017
-
-@author: TinaB
-"""
-# -*- coding: utf-8 -*-
-"""
-Created on Fri May 19 10:52:03 2017
-
-@author: TinaB
-"""
 ####### Plot seasonal TP boxplot from Squalarc for a number of sites
 ## 19 May 2017
 
@@ -75,7 +62,7 @@ import matplotlib.pyplot as plt
 import numpy
 ##############################################
 ## define path where graphs are saved
-datapath_out = 'C:\\data\\'
+datapath_out = 'C:\\data\\all_lakes\\'
 
 #### Reading squalarc data
 from core.ecan_io import rd_squalarc
@@ -88,14 +75,19 @@ def extract_TP(x):
     
     wq1['parameter'].sort_values().unique().tolist()
 #    wq1['month'] = wq1.date.dt.month
-    wq1['date'] = wq1.date.dt.date    
+    wq1['date'] = wq1.date.dt.date 
    
     # To create numpy float array with TP data, if below DL then assign value 0.1
-    TP_1 = pd.to_numeric(wq1[wq1['parameter'] == 'Total Phosphorus']['val'], errors='coerce') 
+    TP_1 = pd.to_numeric(wq1[wq1['parameter'] == 'Total Phosphorus']['val'], errors='coerce')
     TP_values = TP_1.astype(float).fillna(0.002).values
     TP = numpy.zeros(len(TP_values))
     for i in range (0,len(TP_values)):
-        TP[i] = 1000.0*TP_values[i]                 
+        if ((sitename == 'Sumner') or (sitename == 'Coleridge') or (sitename == 'Benmore_Haldon')) and (TP_values[i] > 0.055): 
+            TP[i] = 2.0            
+        elif ((sitename == 'Marion') and (TP_values[i] > 0.3)):
+             TP[i] = 13.0
+        else:
+            TP[i] = 1000.0*TP_values[i]            
     y = TP
     return y
     
@@ -108,14 +100,17 @@ def extract_TN(x):
     
     wq1['parameter'].sort_values().unique().tolist()
 #    wq1['month'] = wq1.date.dt.month
-    wq1['date'] = wq1.date.dt.date    
+    wq1['date'] = wq1.date.dt.date
    
     # To create numpy float array with TN data, if below DL then assign value 0.1
     TN_1 = pd.to_numeric(wq1[wq1['parameter'] == 'Total Nitrogen']['val'], errors='coerce') 
     TN_values = TN_1.astype(float).fillna(0.005).values
     TN = numpy.zeros(len(TN_values))
     for i in range (0,len(TN_values)):
-        TN[i] = 1000.0*TN_values[i]                 
+        if ((sitename == 'Marion') and (TN_values[i] > 1.3)):
+             TN[i] = 350.0
+        else:
+            TN[i] = 1000.0*TN_values[i]                 
     y = TN
     return y
     
@@ -313,7 +308,7 @@ TP_data = pd.concat([TP_site1, TP_site2, TP_site3, TP_site4, TP_site5, TP_site6,
 
 ### plot lines for mesotrophic and eutrophic thresholds
 ln1x =  [0,1, 5, 10, 20, 30, 38]
-ln1y = [10,10,10,10,10,10,10]
+ln1y = [9,9,9,9,9,9,9]
 
 ln2x =  [0,1, 5, 10, 20, 30, 38]
 ln2y = [20,20,20,20,20,20,20]
@@ -324,7 +319,11 @@ print filename
 plt.figure(figsize=(22, 11))
 sns.set_style("whitegrid")
 sns.set(font_scale=2)  # increase font on axis
-ax = sns.boxplot(data = TP_data, showmeans=True, color='white')
+medianprops = dict(linewidth=2.5, color='grey')
+meanpointprops = dict(marker='o', markerfacecolor='red', markersize=12,
+                  linestyle='none')
+ax = sns.boxplot(data = TP_data, medianprops=medianprops, meanprops=meanpointprops, meanline=False,
+               showmeans=True, color='white')
 for item in ax.get_xticklabels():
     item.set_rotation(90)
 plt.ylim(ymin=0, ymax=60)
@@ -353,7 +352,11 @@ print filename
 plt.figure(figsize=(22, 11))
 sns.set_style("whitegrid")
 sns.set(font_scale=2)  # increase font on axis
-ax = sns.boxplot(data = TN_data, showmeans=True, color='white')
+medianprops = dict(linewidth=2.5, color='grey')
+meanpointprops = dict(marker='o', markerfacecolor='red', markersize=12,
+                  linestyle='none')
+ax = sns.boxplot(data = TN_data, medianprops=medianprops, meanprops=meanpointprops, meanline=False,
+               showmeans=True, color='white')
 for item in ax.get_xticklabels():
     item.set_rotation(90)
 plt.ylim(ymin=0, ymax=1000)
@@ -365,6 +368,7 @@ plt.ylabel('TN in microg/L', fontsize = 22)
 plt.savefig(str(datapath_out)+filename+'.jpg')
 plt.close()
 print 'finished plotting'
+# for polishing plot see https://matplotlib.org/examples/statistics/bxp_demo.html
 
 ########## TN to TP ratio
 
@@ -399,7 +403,8 @@ print filename
 plt.figure(figsize=(22, 11))
 sns.set_style("whitegrid")
 sns.set(font_scale=2)  # increase font on axis
-ax = sns.boxplot(data = TNtoTP, showmeans=True, color='white')
+ax = sns.boxplot(data = TNtoTP,medianprops=medianprops, meanprops=meanpointprops, meanline=False,
+               showmeans=True, color='white')
 for item in ax.get_xticklabels():
     item.set_rotation(90)
 plt.ylim(ymin=0, ymax=100)
@@ -412,6 +417,34 @@ plt.savefig(str(datapath_out)+filename+'.jpg')
 plt.close()
 print 'finished plotting'
 #
+
+#Adrian 2007
+ln1x =  [0,1, 5, 10, 20, 30, 38]
+ln1y = [30,30,30,30,30,30,30]
+
+ln2x =  [0,1, 5, 10, 20, 30, 38]
+ln2y = [15,15,15,15,15,15,15]
+
+
+filename = "all lakes_TNtoTP_old_ratio"
+print 'plotting'
+print filename
+plt.figure(figsize=(22, 11))
+sns.set_style("whitegrid")
+sns.set(font_scale=2)  # increase font on axis
+ax = sns.boxplot(data = TNtoTP, medianprops=medianprops, meanprops=meanpointprops, meanline=False,
+               showmeans=True, color='white')
+for item in ax.get_xticklabels():
+    item.set_rotation(90)
+plt.ylim(ymin=0, ymax=100)
+plt.plot(ln1x,ln1y, 'b-')
+plt.plot(ln2x,ln2y, 'g-')
+plt.tight_layout()
+#plt.xlabel('Lake', fontsize = 22)
+plt.ylabel('TN to TP ratio', fontsize = 22)
+plt.savefig(str(datapath_out)+filename+'.jpg')
+plt.close()
+print 'finished plotting'
 #
 
 
