@@ -27,6 +27,7 @@ def rd_sql(server=None, database=None, table=None, col_names=None, where_col=Non
     from pandas import read_sql, read_csv
     from os.path import join, dirname, realpath
     from core.ecan_io import mssql
+    from numpy import ceil
 
     script_dir = dirname(mssql.__file__)
 
@@ -48,13 +49,20 @@ def rd_sql(server=None, database=None, table=None, col_names=None, where_col=Non
         if col_names is not None:
             if not isinstance(col_names, list):
                 col_names = [col_names]
-            col_stmt = str(col_names).replace('\'', '"')[1:-1]
+            col_stmt = ', '.join(col_names)
         else:
             col_stmt = '*'
 
         if where_col is not None:
             if isinstance(where_col, str) & isinstance(where_val, list):
-                where_stmt = ' WHERE ' + str([where_col]).replace('\'', '"')[1:-1] + ' IN (' + str(where_val)[1:-1] + ')'
+                if len(where_val) > 10000:
+                    raise ValueError('The number of values in where_val cannot be over 10000 (or so). MSSQL limitation. Break them into smaller chunks.')
+#                    n_chunks = int(ceil(len(where_val) * 0.0001))
+#                    lst2 = [str(where_val[i::n_chunks])[1:-1] for i in xrange(n_chunks)]
+#                    in_stmt = (') or ' + where_col + ' IN (').join(lst2)
+#                    where_stmt = ' WHERE ' + where_col + ' IN (' + in_stmt + ')'
+#                else:
+                where_stmt = ' WHERE ' + where_col + ' IN (' + str(where_val)[1:-1] + ')'
             elif isinstance(where_col, dict):
                 where_stmt1 = []
                 for i in where_col:
@@ -66,7 +74,7 @@ def rd_sql(server=None, database=None, table=None, col_names=None, where_col=Non
                         where1 = [where_col[i]]
                     else:
                         where1 = where_col[i]
-                    s1 = str(col1).replace('\'', '"')[1:-1] + ' IN (' + str(where1)[1:-1] + ')'
+                    s1 = col1 + ' IN (' + str(where1)[1:-1] + ')'
                     where_stmt1.append(s1)
                 where_stmt = ' WHERE ' + (' ' + where_op + ' ').join(where_stmt1)
             else:
@@ -98,7 +106,7 @@ def rd_sql(server=None, database=None, table=None, col_names=None, where_col=Non
         if where_col is None:
             stmt2 = 'SELECT ' + geo_col + '.STGeometryN(1).ToString()' + ' FROM ' + table
         else:
-            stmt2 = 'SELECT ' + geo_col + '.STGeometryN(1).ToString()' + ' FROM ' + table + ' WHERE ' + str([where_col]).replace('\'', '"')[1:-1] + ' IN (' + str(where_val)[1:-1] + ')'
+            stmt2 = 'SELECT ' + geo_col + '.STGeometryN(1).ToString()' + ' FROM ' + table + ' WHERE ' + where_col + ' IN (' + str(where_val)[1:-1] + ')'
         df2 = read_sql(stmt2, conn)
         df2.columns = ['geometry']
         geometry = [loads(x) for x in df2.geometry]
@@ -142,8 +150,8 @@ def rd_squalarc(sites, mtypes=None, from_date=None, to_date=None, convert_dtl=Tr
     from core.misc import select_sites
     from geopandas import GeoDataFrame
     from core.spatial import xy_to_gpd, sel_sites_poly
-    from pandas import Series, to_datetime, to_numeric, Timestamp, concat, merge
-    from numpy import nan
+    from pandas import Series, to_datetime, to_numeric, Timestamp, concat, merge, DataFrame
+    from numpy import nan, ceil
 
     #### Read in sites
     sites1 = select_sites(sites)
@@ -161,14 +169,24 @@ def rd_squalarc(sites, mtypes=None, from_date=None, to_date=None, convert_dtl=Tr
         gw_sites_tab.columns = ['site', 'geometry']
         gw_sites2 = sel_sites_poly(gw_sites_tab, sites1).drop('geometry', axis=1)
 
-        sites2 = sw_sites2.site.append(gw_sites2.site)
+        sites2 = sw_sites2.site.append(gw_sites2.site).astype(str).tolist()
     else:
-        sites2 = Series(sites1, name='site')
+        sites2 = Series(sites1, name='site').astype(str).tolist()
 
     #### Extract the rest of the data
-    samples_tab = rd_sql('SQL2012PROD05', 'Squalarc', '"SQL_SAMPLE_METHODS+"', col_names=['Site_ID', 'SAMPLE_NO', 'ME_TYP', 'Collect_Date', 'Collect_Time', 'PA_NAME', 'PARAM_UNITS', 'SRESULT'], where_col='Site_ID', where_val=sites2.astype(str).tolist())
-    samples_tab.columns = ['site', 'sample_id', 'source', 'date', 'time', 'parameter', 'units', 'val']
-    samples_tab.loc[:, 'source'] = samples_tab.loc[:, 'source'].str.lower()
+    if len(sites2) > 10000:
+        n_chunks = int(ceil(len(sites2) * 0.0001))
+        sites3 = [sites2[i::n_chunks] for i in xrange(n_chunks)]
+        samples_tab = DataFrame()
+        for i in sites3:
+            samples_tab1 = rd_sql('SQL2012PROD05', 'Squalarc', '"SQL_SAMPLE_METHODS+"', col_names=['Site_ID', 'SAMPLE_NO', 'ME_TYP', 'Collect_Date', 'Collect_Time', 'PA_NAME', 'PARAM_UNITS', 'SRESULT'], where_col='Site_ID', where_val=i)
+            samples_tab1.columns = ['site', 'sample_id', 'source', 'date', 'time', 'parameter', 'units', 'val']
+            samples_tab1.loc[:, 'source'] = samples_tab1.loc[:, 'source'].str.lower()
+            samples_tab = concat([samples_tab, samples_tab1])
+    else:
+        samples_tab = rd_sql('SQL2012PROD05', 'Squalarc', '"SQL_SAMPLE_METHODS+"', col_names=['Site_ID', 'SAMPLE_NO', 'ME_TYP', 'Collect_Date', 'Collect_Time', 'PA_NAME', 'PARAM_UNITS', 'SRESULT'], where_col='Site_ID', where_val=sites2)
+        samples_tab.columns = ['site', 'sample_id', 'source', 'date', 'time', 'parameter', 'units', 'val']
+        samples_tab.loc[:, 'source'] = samples_tab.loc[:, 'source'].str.lower()
 
     num_test = to_numeric(samples_tab.loc[:, 'time'], 'coerce')
     samples_tab.loc[num_test.isnull(), 'time'] = '0000'
@@ -197,35 +215,38 @@ def rd_squalarc(sites, mtypes=None, from_date=None, to_date=None, convert_dtl=Tr
     #### Convert detection limit values
     if convert_dtl:
         less1 = data['val'].str.match('<')
-        less1.loc[less1.isnull()] = False
-        data2 = data.copy()
-        data2.loc[less1, 'val'] = to_numeric(data.loc[less1, 'val'].str.replace('<', '')) * 0.5
-        if dtl_method in (None, 'standard'):
-            data3 = data2
-        if dtl_method == 'trend':
-            df1 = data2.loc[less1]
-            count1 = data.groupby('parameter')['val'].count()
-            count1.name = 'tot_count'
-            count_dtl = df1.groupby('parameter')['val'].count()
-            count_dtl.name = 'dtl_count'
-            count_dtl_val = df1.groupby('parameter')['val'].nunique()
-            count_dtl_val.name = 'dtl_val_count'
-            combo1 = concat([count1, count_dtl, count_dtl_val], axis=1, join='inner')
-            combo1['dtl_ratio'] = (combo1['dtl_count'] / combo1['tot_count']).round(2)
+        if sum(less1) > 0:
+            less1.loc[less1.isnull()] = False
+            data2 = data.copy()
+            data2.loc[less1, 'val'] = to_numeric(data.loc[less1, 'val'].str.replace('<', '')) * 0.5
+            if dtl_method in (None, 'standard'):
+                data3 = data2
+            if dtl_method == 'trend':
+                df1 = data2.loc[less1]
+                count1 = data.groupby('parameter')['val'].count()
+                count1.name = 'tot_count'
+                count_dtl = df1.groupby('parameter')['val'].count()
+                count_dtl.name = 'dtl_count'
+                count_dtl_val = df1.groupby('parameter')['val'].nunique()
+                count_dtl_val.name = 'dtl_val_count'
+                combo1 = concat([count1, count_dtl, count_dtl_val], axis=1, join='inner')
+                combo1['dtl_ratio'] = (combo1['dtl_count'] / combo1['tot_count']).round(2)
 
-            ## conditionals
-#            param1 = combo1[(combo1['dtl_ratio'] <= 0.4) | (combo1['dtl_ratio'] == 1)]
-#            under_40 = data['parameter'].isin(param1.index)
-            param2 = combo1[(combo1['dtl_ratio'] > 0.4) & (combo1['dtl_val_count'] != 1)]
-            over_40 = data['parameter'].isin(param2.index)
+                ## conditionals
+    #            param1 = combo1[(combo1['dtl_ratio'] <= 0.4) | (combo1['dtl_ratio'] == 1)]
+    #            under_40 = data['parameter'].isin(param1.index)
+                param2 = combo1[(combo1['dtl_ratio'] > 0.4) & (combo1['dtl_val_count'] != 1)]
+                over_40 = data['parameter'].isin(param2.index)
 
-            ## Calc detection limit values
-            data3 = merge(data, combo1['dtl_ratio'].reset_index(), on='parameter', how='left')
-            data3.loc[:, 'val_dtl'] = data2['val']
+                ## Calc detection limit values
+                data3 = merge(data, combo1['dtl_ratio'].reset_index(), on='parameter', how='left')
+                data3.loc[:, 'val_dtl'] = data2['val']
 
-            max_dtl_val = data2[over_40 & less1].groupby('parameter')['val'].transform('max')
-            max_dtl_val.name = 'dtl_val_max'
-            data3.loc[over_40 & less1, 'val_dtl'] = max_dtl_val
+                max_dtl_val = data2[over_40 & less1].groupby('parameter')['val'].transform('max')
+                max_dtl_val.name = 'dtl_val_max'
+                data3.loc[over_40 & less1, 'val_dtl'] = max_dtl_val
+        else:
+            data3 = data
     else:
         data3 = data
 

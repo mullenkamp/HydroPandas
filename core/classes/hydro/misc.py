@@ -21,8 +21,7 @@ def _base_stats_fun(self):
     start.name = 'start_time'
     end = grp1.apply(lambda x: x.last_valid_index()[2])
     end.name = 'end_time'
-    stats = grp1.describe().loc(axis=0)[:, :, ['min', '50%', 'mean', 'max', 'count']].unstack(level=2)
-    stats1 = stats[['min', '50%', 'mean', 'max', 'count']].round(2)
+    stats1 = grp1.describe()[['min', '25%', '50%', '75%', 'mean', 'max', 'count']].round(2)
     out1 = concat([stats1, start, end], axis=1)
     setattr(self, '_base_stats', out1)
 

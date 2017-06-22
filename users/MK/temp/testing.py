@@ -1575,7 +1575,8 @@ t1 = rd_squalarc(sites, mtypes)
 t1 = rd_squalarc(sites)
 t1 = rd_squalarc(sites, from_date=from_date, to_date=to_date)
 
-
+def chunkify(lst,n):
+    return([lst[i::n] for i in xrange(n)])
 
 ##########################
 #### VCSN convert

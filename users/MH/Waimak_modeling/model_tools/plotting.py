@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from read_write import no_flow
-from basic_tools import model_xs, model_ys
+from basic_tools import get_model_x_y
 import flopy
 from m_wraps.base_modflow_wrapper import get_base_mf_ss
 
@@ -22,6 +22,7 @@ def plt_matrix(array, vmin=None, vmax=None, **kwargs):
 
     fig, (ax) = plt.subplots(figsize=(18.5, 9.5))
     ax.set_aspect('equal')
+    model_xs, model_ys = get_model_x_y(array.shape[0],array.shape[1])
     pcm = ax.pcolormesh(model_xs, model_ys, array,
                         cmap='plasma', vmin=vmin, vmax=vmax, **kwargs)
     fig.colorbar(pcm, ax=ax, extend='max')
@@ -69,7 +70,8 @@ def plt_default_map(m, lyr, a=None, plt_grid=False, vmin=None, vmax=None, title=
     return fig, ax, mmap
 
 
-def plt_default_xsection(m, line, a=None, c_step=25, clab=True, map_a=None):  # todo set up if line is a path to shapefile
+def plt_default_xsection(m, line, a=None, c_step=25, clab=True, map_a=None):  # todo set up if line is a path to shapefile #todo needs updating for new model
+    model_xs, model_ys = get_model_x_y()
     fig, (ax, ax2) = plt.subplots(2, 1, figsize=(18.5, 9.5))
     ax.set_aspect('equal')
     mmap = flopy.plot.ModelMap(model=m, layer=0, ax=ax, xul=1512162.53275, yul=5215083.5772)

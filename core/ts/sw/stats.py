@@ -85,7 +85,7 @@ def malf7d(x, w_month='JUN', max_missing=90, malf_min=0.9, intervals=[10, 20, 30
     return_alf -- Should the ALFs and the number of missing days per year be returned in addition to the MALF?\n
     export_path -- The base path for the export files that will be saved.
     """
-    from pandas import DataFrame, Series, to_datetime, concat
+    from pandas import DataFrame, Series, to_datetime
     from core.ts import tsreg
     from os import path
     from numpy import nan
@@ -157,7 +157,7 @@ def malf7d(x, w_month='JUN', max_missing=90, malf_min=0.9, intervals=[10, 20, 30
     mis_min_bool = any(n_days_min < 13)
 
     if mis_min_bool:
-        print('Some sites have significant amounts of missing values near the ALF! Check the DataFrame output for further info.')
+        print('Warning 1 - Some sites have significant amounts of missing values near the ALF! Check the DataFrame output for further info.')
 
     ## determine the number of min days per year within a month of the water year break point
     count_min_day = min_day.apply(lambda x: (x > (mon_day - 30)) & (x < (mon_day + 30))).sum()
@@ -166,7 +166,7 @@ def malf7d(x, w_month='JUN', max_missing=90, malf_min=0.9, intervals=[10, 20, 30
 
     if any(ratio_min_day_bool):
         sites_prob = ratio_min_day[ratio_min_day_bool].index.tolist()
-        print('Site(s) ' + str(sites_prob) + ' have a significant amount of ALFs that fall at the end/beginning of the water year.')
+        print('Warning 2 - Site(s) ' + str(sites_prob) + ' have a significant amount of ALFs that fall at the end/beginning of the water year.')
 
 #    mean_date = min_date.apply(day_june, dayofyear=mon_day_dict[w_month]).mean()
 
