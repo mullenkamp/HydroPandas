@@ -85,7 +85,7 @@ def malf7d(x, w_month='JUN', max_missing=90, malf_min=0.9, intervals=[10, 20, 30
     return_alf -- Should the ALFs and the number of missing days per year be returned in addition to the MALF?\n
     export_path -- The base path for the export files that will be saved.
     """
-    from pandas import DataFrame, Series, to_datetime, concat
+    from pandas import DataFrame, Series, to_datetime
     from core.ts import tsreg
     from os import path
     from numpy import nan

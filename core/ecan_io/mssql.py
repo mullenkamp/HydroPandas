@@ -55,7 +55,8 @@ def rd_sql(server=None, database=None, table=None, col_names=None, where_col=Non
 
         if where_col is not None:
             if isinstance(where_col, str) & isinstance(where_val, list):
-#                if len(where_val) > 1000:
+                if len(where_val) > 10000:
+                    raise ValueError('The number of values in where_val cannot be over 10000 (or so). MSSQL limitation. Break them into smaller chunks.')
 #                    n_chunks = int(ceil(len(where_val) * 0.0001))
 #                    lst2 = [str(where_val[i::n_chunks])[1:-1] for i in xrange(n_chunks)]
 #                    in_stmt = (') or ' + where_col + ' IN (').join(lst2)
