@@ -388,11 +388,13 @@ def get_n_wai_well_list():
 
 
 if __name__ == '__main__':
+    from osgeo import gdal
     test = get_race_data(True)
-    temp = get_original_well_data(True)
-    temp2 = convert_well_data_to_stresspd(temp)
-    temp3 = get_all_well_data(True)
-    temp4 = get_model_well_full_consented(True)
-    temp5 = get_model_well_max_rate(True)
-    print 'done'
+    #temp = get_original_well_data(True)
+    #temp2 = convert_well_data_to_stresspd(temp)
+
+    #temp3 = get_all_well_data(True)
+    #temp4 = get_model_well_full_consented(True)
+    #temp5 = get_model_well_max_rate(True)
+    #print 'done'
 

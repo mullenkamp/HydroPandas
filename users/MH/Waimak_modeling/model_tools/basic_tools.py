@@ -218,7 +218,7 @@ def convert_matrix_to_coords(row, col, layer=None, elv_db=None): #todo update fo
     if layer is None:
         return lon, lat
     else:
-        elv = elv_db[layer:layer + 2, row, col].mean()
+        elv = elv_db[int(layer):int(layer) + 2, int(row), int(col)].mean()
         return lon, lat, elv
 
 

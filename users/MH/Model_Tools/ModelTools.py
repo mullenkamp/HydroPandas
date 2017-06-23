@@ -489,6 +489,18 @@ class ModelTools(object):
 
         # #todo think about adding get stress period data... input the package names and pickle the file if needed so you don't always have to load the thing
 
+    def convert_well_data_to_stresspd(self, well_data_in):
+        # convert a dataframe of well features (x,y,z,flux,type, etc.) to well standard stress period data
+        # do something similar for concentration data?
 
+        # do groupby statistics to sum everything that is in the same layer, col, row
+        g = well_data_in.groupby(['layer', 'row', 'col'])
+        well_ag = g.aggregate({'flux': np.sum}).reset_index()
+
+        outdata = []
+        for i in well_ag.index:
+            outdata.append(list(well_ag.loc[i, ['layer', 'row', 'col', 'flux']]))
+
+        return outdata
 
     #todo think about adding default model_maps
