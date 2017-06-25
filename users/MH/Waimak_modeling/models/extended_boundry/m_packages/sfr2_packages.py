@@ -12,6 +12,9 @@ from users.MH.Waimak_modeling.model_tools.get_str_rch_values import get_base_str
 from users.MH.Waimak_modeling.supporting_data_path import sdp
 import geopandas as gpd
 from copy import deepcopy
+import pickle
+import os
+from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import mt
 
 
 def create_sfr_package(m, version=1, seg_v=1, reach_v=1):
@@ -43,7 +46,7 @@ def _create_sfr_version_1(m, seg_v, reach_v):
                                     const=86400,
                                     dleak=0.0001,  # default, likely ok
                                     ipakcb=740,
-                                    istcb2=0,  # todo check output do I need this
+                                    istcb2=0,
                                     isfropt=1,  # Not using as nstrm >0 therfore no Unsaturated zone flow
                                     nstrail=10,  # not using as no unsaturated zone flow
                                     isuzn=1,  # not using as no unsaturated zone flow
@@ -62,7 +65,7 @@ def _create_sfr_version_1(m, seg_v, reach_v):
                                     tabfiles=False,  # not using
                                     tabfiles_dict=None,  # not using
                                     unit_number=717)
-    0+1
+
 
 def _get_segment_data(seg_v):
     """
@@ -70,7 +73,6 @@ def _get_segment_data(seg_v):
     :param seg_v: the version here to record multiple attempts at the sfr
     :return:
     """
-    #todo add pickle option if slow
     if seg_v == 1:
         seg_data = _seg_data_v1()
     else:
@@ -91,8 +93,13 @@ def _get_reach_data(reach_v):
     return reach_data
 
 
-def _reach_data_v1():
-    #todo add pickle option if slow, it's slow
+def _reach_data_v1(recalc=False):
+    pickle_path = '{}/sfr_reach_v1.p'.format(mt.pickle_dir)
+
+    if os.path.exists(pickle_path) and not recalc:
+        reach_data = pickle.load(open(pickle_path))
+        return reach_data
+
     temp_str_data = _get_base_stream_values()
     outdata = flopy.modflow.ModflowSfr2.get_empty_reach_data(len(temp_str_data.index),default_value=0)
     data_to_pass = {'i': 'i', 'j': 'j', 'k': 'k', 'reach': 'ireach', 'segment': 'iseg', 'slope': 'slope',
@@ -117,11 +124,16 @@ def _reach_data_v1():
         temp_str_data.loc[temp_str_data['segment']==seg, 'width'] = width
     outdata['strhc1'] = temp_str_data.loc[:,'cond']/(outdata['rchlen'] * temp_str_data['width'])
 
-    # todo node is negative and other not used values is this a problem? think about default values
+    pickle.dump(outdata,open(pickle_path,'w'))
     return outdata
 
-def _seg_data_v1():
-    # todo add pickle option as it will likely be slow
+def _seg_data_v1(recalc=False):
+    pickle_path = '{}/sfr_seg_v1.p'.format(mt.pickle_dir)
+
+    if os.path.exists(pickle_path) and not recalc:
+        seg_data = pickle.load(open(pickle_path))
+        return seg_data
+
     seg_data = flopy.modflow.ModflowSfr2.get_empty_segment_data(44, default_value=0)
     seg_data['nseg'] = range(1, 45)
     seg_data['icalc'] = 1
@@ -167,7 +179,7 @@ def _seg_data_v1():
             continue
         segs =  seg_aq_dict[key]
         wdth = aq_data.loc['width',key]
-        seg_data['width1'][np.in1d(seg_data['nseg'],segs)] = wdth #todo ask brioch if abrubt step changes in width will be a problem (I think not)
+        seg_data['width1'][np.in1d(seg_data['nseg'],segs)] = wdth
         seg_data['width2'][np.in1d(seg_data['nseg'],segs)] = wdth
 
     # the cust tributaries are not detailed in the aqualinc report, I'll define these by approximation from areal imagry
@@ -176,6 +188,7 @@ def _seg_data_v1():
 
     # some stream segments are listed in a incorrect order this does not cause a problem; however it can require an
     # extra iteration to converge.
+    pickle.dump(seg_data,open(pickle_path,'w'))
     return seg_data
 
 
