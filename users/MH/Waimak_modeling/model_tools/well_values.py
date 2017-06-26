@@ -278,8 +278,8 @@ def get_all_well_data(recalc=False):
         outdata_final.loc[well, 'well_type'] = well_details_org.WELL_TYPE.loc[well]
 
         # calculate z screens
-        row = outdata_final.loc[well, 'row']
-        col = outdata_final.loc[well, 'col']
+        row = int(outdata_final.loc[well, 'row'])
+        col = int(outdata_final.loc[well, 'col'])
 
         # get screen elevations
         screen_num = well_details_org.loc[well, 'Screens']
@@ -388,11 +388,13 @@ def get_n_wai_well_list():
 
 
 if __name__ == '__main__':
+    from osgeo import gdal
     test = get_race_data(True)
-    temp = get_original_well_data(True)
-    temp2 = convert_well_data_to_stresspd(temp)
-    temp3 = get_all_well_data(True)
-    temp4 = get_model_well_full_consented(True)
-    temp5 = get_model_well_max_rate(True)
-    print 'done'
+    #temp = get_original_well_data(True)
+    #temp2 = convert_well_data_to_stresspd(temp)
+
+    #temp3 = get_all_well_data(True)
+    #temp4 = get_model_well_full_consented(True)
+    #temp5 = get_model_well_max_rate(True)
+    #print 'done'
 
