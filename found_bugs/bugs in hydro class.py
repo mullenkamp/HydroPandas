@@ -4,6 +4,9 @@ Author: matth
 Date Created: 26/06/2017 2:55 PM
 """
 
+###################################
+### Issue 1
+
 from __future__ import division
 from core import env
 from core.classes.hydro import hydro
@@ -22,3 +25,11 @@ if __name__ == '__main__':
     data1 = hydro().get_data(mtypes=['gwl_m'], sites=list(well_details.index), from_date='2008-01-01',
                             to_date='2016-01-01')
     print data1 # this raises an exception as there is likely a record with no-non null values.
+
+### Fixed!
+
+###################################
+
+
+
+
