@@ -8,6 +8,7 @@ from __future__ import division
 from core import env
 from core.classes.hydro import hydro
 from core.ecan_io import rd_sql, sql_db
+import pandas as pd
 
 if __name__ == '__main__':
     well_details_org = rd_sql(**sql_db.wells_db.well_details)

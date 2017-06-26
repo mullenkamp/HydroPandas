@@ -92,15 +92,25 @@ def add_data(self, data, time=None, sites=None, mtypes=None, values=None, dforma
             input1.index.set_levels(to_numeric(input1.index.levels[1], errors='ignore'), level='site', inplace=True)
 
     ### Run additional checks and append to existing data
+    ## Remove data with NaN
+    if any(input1.isnull()):
+        input2 = input1[input1.notnull()].reset_index()
+        input1 = input2.set_index(['mtype', 'site', 'time'])[values]
+
+    ## Check mtypes
     new_mtypes = input1.index.levels[0]
     mtypes_bool = in1d(new_mtypes, all_mtypes.keys())
     if any(~mtypes_bool):
         sel_mtypes = new_mtypes[mtypes_bool]
         input1 = input1.loc(axis=0)[sel_mtypes, :, :]
+
     input1.name = 'data'
+
+    ## Remove base_stats if it exists
     if hasattr(self, '_base_stats'):
         delattr(self, '_base_stats')
 
+    ## Add data to hydro object
     if add:
         if hasattr(self, 'data'):
             setattr(self, 'data', input1.combine_first(self.data).sort_index())
