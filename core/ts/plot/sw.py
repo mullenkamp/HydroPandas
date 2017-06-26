@@ -294,12 +294,12 @@ def multi_yr_barplot(ts1, ts2, col='all', names_dict=None, dtype='flow', fun='me
     plot2.savefig(path.join(export_path, export_name), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
 
-def reg_plot(x, y, freq='day', n_periods=1, fun='mean', min_ratio=0.75, digits=3, x_max=None, y_max=None, export=False, export_path='flow_reg.png'):
+def reg_plot(x, y, freq='day', n_periods=1, fun='mean', min_ratio=0.75, digits=3, x_max=None, y_max=None, logs=False, export=False, export_path='flow_reg.png'):
     """
     Function to plot regressions with confidence intervals.
     """
     from os import path
-    from numpy import nan
+    from numpy import nan, log
     from core.stats.reg import lin_reg
     import seaborn as sns
     from core.ts import w_resample
@@ -313,6 +313,8 @@ def reg_plot(x, y, freq='day', n_periods=1, fun='mean', min_ratio=0.75, digits=3
     xy1 = concat([x1, y1], axis=1, join='inner').dropna()
     col_names = [str(x.columns[0]), str(y.columns[0])]
     xy1.columns = col_names
+    if logs:
+        xy1 = xy1.apply(log)
 
     ### Make regression
     if x_max and y_max is not None:
@@ -329,17 +331,21 @@ def reg_plot(x, y, freq='day', n_periods=1, fun='mean', min_ratio=0.75, digits=3
     sns.set_style("whitegrid")
     sns.set_context('poster')
     fig, ax = plt.subplots(figsize=(15, 10))
-    sns.regplot(x=col_names[0], y=col_names[1], data=xy2.reset_index(), truncate=False, fit_reg=True)
+#    if log_x:
+#        ax.set(xscale="log")
+#    if log_y:
+#        ax.set(yscale="log")
+    sns.regplot(x=col_names[0], y=col_names[1], data=xy2.reset_index(), truncate=False, fit_reg=True, ax=ax)
     x_lim = ax.xaxis.get_view_interval()
     y_lim = ax.yaxis.get_view_interval()
-    if x_max is None:
-        ax.set_xlim(0, x_lim[1])
-    else:
+    if x_max is not None:
         ax.set_xlim(0, x_max)
-    if y_max is None:
-        ax.set_ylim(0, y_lim[1])
-    else:
+#    else:
+#        ax.set_xlim(0, x_lim[1])
+    if y_max is not None:
         ax.set_ylim(0, y_max)
+#    else:
+#        ax.set_ylim(0, y_lim[1])
     plt.xlabel(col_names[0] + ' recorder $(m^{3}/s)$')
     plt.ylabel(col_names[1] + ' recorder $(m^{3}/s)$')
 
