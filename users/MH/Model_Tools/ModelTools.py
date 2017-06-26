@@ -8,6 +8,8 @@ from core import env
 import numpy as np
 import os
 from warnings import warn
+import pickle
+
 
 #todo set up exceptions is required varibles are needed
 
@@ -19,14 +21,14 @@ class ModelTools(object):
     rows = None
     cols = None
     sdp = None
-    no_flow = None
+    _no_flow_calc = None
     temp_file_dir = None
-    elv_path = None
     model_version_name = None
     base_mod_path = None
+    _elv_calculator = None
 
     def __init__(self, model_version_name, sdp=None, ulx=None, uly=None, layers=None, rows=None, cols=None,
-                 grid_space=None, no_flow=None, temp_file_dir=None, elv_path=None, base_mod_path=None):
+                 grid_space=None, no_flow_calc=None, temp_file_dir=None, elv_calculator=None, base_mod_path=None):
         self.ulx = ulx
         self.uly = uly
         self.grid_space = grid_space
@@ -36,14 +38,17 @@ class ModelTools(object):
         self.sdp = sdp
         if not os.path.exists(sdp):
             os.makedirs(sdp)
-        self.no_flow = no_flow
+        self._no_flow_calc = no_flow_calc
         self.temp_file_dir = temp_file_dir
-        self.elv_path = elv_path
         self.model_version_name = model_version_name
         self.pickle_dir = '{}/pickled_files'
+        self.elv_path = '{}/elv_db.p'.format(self.pickle_dir)
         if not os.path.exists(self.pickle_dir):
             os.makedirs(self.pickle_dir)
         self.base_mod_path = base_mod_path
+        self._elv_calculator = elv_calculator
+
+
 
     def get_model_x_y(self):
         pixelWidth = pixelHeight = 200
@@ -212,11 +217,12 @@ class ModelTools(object):
 
         return out_locs
 
-    def array_to_raster(self, path, array, only_active=True):
+    def array_to_raster(self, path, array, no_flow_lyr=None):
         from osgeo import osr, gdal
 
-        if only_active:
-            array[self.no_flow] = -99
+        if no_flow_lyr is not None:
+            no_flow = self.get_no_flow(no_flow_lyr)
+            array[no_flow] = -99
         output_raster = gdal.GetDriverByName('GTiff').Create(path, array.shape[1], array.shape[0], 1,
                                                              gdal.GDT_Float32)  # Open the file
         geotransform = (self.ulx, self.grid_space, 0, self.uly, 0, -self.grid_space)
@@ -243,8 +249,9 @@ class ModelTools(object):
         pcm = ax.pcolormesh(model_xs, model_ys, array,
                             cmap='plasma', vmin=vmin, vmax=vmax, **kwargs)
         fig.colorbar(pcm, ax=ax, extend='max')
-        if self.no_flow is not None:
-            ax.contour(model_xs, model_ys, self.no_flow)
+        if self._no_flow_calc is not None:
+            no_flow = self.get_no_flow(0)
+            ax.contour(model_xs, model_ys, no_flow)
 
         return fig, ax
 
@@ -455,11 +462,25 @@ class ModelTools(object):
         :param recalc: force recalculates the elv_db from the gns data even if it is not present
         :return: elv_db
         """
-        import pickle
-
-        elv_db = pickle.load(open(self.elv_path))
-
+        pickle_path = '{}/elv_dp.p'.format(self.pickle_dir)
+        if os.path.exists(pickle_path) and not recalc:
+            elv_db = pickle.load(open(self.elv_path))
+        else:
+            elv_db = self._elv_calculator()
+            pickle.dump(elv_db,open(pickle_path,'w'))
         return elv_db
+
+    def get_no_flow(self, layer=None, recalc=False):
+        pickle_path = '{}/no_flow.p'.format(self.pickle_dir)
+        if os.path.exists(pickle_path) and not recalc:
+            no_flow = pickle.load(open(pickle_path))
+            return no_flow
+        no_flow = self._no_flow_calc
+        pickle.dump(no_flow,open(pickle_path,'w'))
+        if layer is None:
+            return no_flow
+        else:
+            return no_flow[layer]
 
     def get_base_model(self,recalc=False):
         import flopy

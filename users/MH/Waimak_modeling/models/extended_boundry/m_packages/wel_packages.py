@@ -7,7 +7,7 @@ from __future__ import division
 from core import env
 import flopy
 from users.MH.Waimak_modeling.model_tools.well_values import get_race_data
-from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import mt
+from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import pandas as pd
 
 def create_wel_package(m,wel_version):
@@ -24,7 +24,7 @@ def _get_wel_spd(version): #todo
     s_wai_wells = None #todo
 
     all_wells = pd.concat((races,n_wai_wells,s_wai_wells))
-    out_data = {0: mt.convert_well_data_to_stresspd(all_wells)}
+    out_data = {0: smt.convert_well_data_to_stresspd(all_wells)}
 
 
 

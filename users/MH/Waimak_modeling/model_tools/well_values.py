@@ -278,8 +278,8 @@ def get_all_well_data(recalc=False):
         outdata_final.loc[well, 'well_type'] = well_details_org.WELL_TYPE.loc[well]
 
         # calculate z screens
-        row = outdata_final.loc[well, 'row']
-        col = outdata_final.loc[well, 'col']
+        row = int(outdata_final.loc[well, 'row'])
+        col = int(outdata_final.loc[well, 'col'])
 
         # get screen elevations
         screen_num = well_details_org.loc[well, 'Screens']
