@@ -72,12 +72,12 @@ h2 = h1a.get_data('gwl', sites_gwl)
 
 
 ##########################################
-#### Flow reg
+#### Flow reg - below median
 
 y_sites = list(h2.mtypes_sites['flow_m'])
 x_sites = list(h2.mtypes_sites['flow'])
 
-new1, reg1 = h2.flow_reg(y_sites, x_sites, below_median=True)
+new1, reg1 = h2.flow_reg(y=y_sites, x=x_sites, below_median=True)
 new2, reg2 = h2.flow_reg(y_sites, x_sites, below_median=True, logs=True)
 
 reg1.to_csv(join(reg_base, lin_reg_csv))
@@ -154,6 +154,78 @@ malf_nat.to_csv(join(reg_base, malf_nat_csv))
 
 
 
+
+##########################################
+#### Flow reg - all data
+
+y_sites = list(h2.mtypes_sites['flow_m'])
+x_sites = list(h2.mtypes_sites['flow'])
+
+new1, reg1 = h2.flow_reg(y_sites, x_sites, below_median=False)
+new2, reg2 = h2.flow_reg(y_sites, x_sites, below_median=False, logs=True)
+
+reg1.to_csv(join(reg_base, lin_reg_csv))
+reg2.to_csv(join(reg_base, log_reg_csv))
+new1.to_csv(join(reg_base, lin_reg_flow_csv), pivot=True)
+new2.to_csv(join(reg_base, log_reg_flow_csv), pivot=True)
+h2.to_csv(join(reg_base, base_data_csv), pivot=True)
+
+gwl1 = h2.sel_ts('gwl', pivot=True)
+bad1s = h2.sel_ts('flow_m', 279, pivot=True)
+
+reg9, bad_ts = flow_reg(gwl1, bad1s, below_median=True, make_ts=True)
+reg9.loc[:, 'log'] = False
+
+reg_dict = {387: (65901, True), 389: (66213, False), 66215: (66204, False), 361: (66429, False), 1516: (66213, True), 270: (66417, False), 66409: (66213, True), 370: (66415, False), 343: (66417, False), 253: (65901, True), 1115: (65901, True), 339: (66417, True), 371: (66401, False), 66432: (66401, False)}
+
+new_regs = DataFrame()
+new_flow = DataFrame()
+for i in reg_dict:
+    sited = reg_dict[i]
+    if sited[1]:
+        site_reg = reg2.loc[[i]]
+        site_reg.loc[:, 'log'] = True
+        site_flow = new2.sel_ts('flow', i).reset_index()
+    else:
+        site_reg = reg1.loc[[i]]
+        site_reg.loc[:, 'log'] = False
+        site_flow = new1.sel_ts('flow', i).reset_index()
+    new_regs = concat([new_regs, site_reg])
+    new_flow = concat([new_flow, site_flow])
+
+new_regs1 = concat([new_regs, reg9])
+
+new_flow1 = new_flow.pivot('time', 'site', 'data')
+new_flow2 = concat([new_flow1, bad_ts], axis=1)
+
+new_regs1.to_csv(join(reg_base, combo_reg_csv))
+new_flow2.to_csv(join(reg_base, base_reg_data_csv))
+
+
+
+##########################################
+#### Plot
+
+new3, reg3 = h2.flow_reg(y_sites, x_sites, below_median=False, logs=True, min_obs=12)
+
+stats1 = h2.stats('flow')
+reg2.sort_values('Y_loc')
+reg3.sort_values('Y_loc')
+
+x_site = 66401
+y_site = 66432
+x_max = 1
+y_max = 0.2
+
+h2.plot_reg(x_mtype='flow', x_site=x_site, y_mtype='flow_m', y_site=y_site, logs=False)
+h2.plot_reg(x_mtype='flow', x_site=x_site, y_mtype='flow_m', y_site=y_site, logs=True)
+
+#h2.plot_reg(x_mtype='flow', x_site=x_site, y_mtype='flow_m', y_site=y_site, x_max=x_max, y_max=y_max)
+
+
+new0, reg0 = h2.flow_reg([y_site], [x_site], below_median=False, logs=True)
+reg2[reg2.Y_loc == y_site]
+reg0
 
 #########################################
 #### Testing
