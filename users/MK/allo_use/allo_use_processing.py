@@ -20,7 +20,7 @@ from geopandas import read_file
 max_date_allo = '2016-06-30'
 max_date_use_est = '2015-06-30'
 sql_join_codes = ['swaz_gis', 'catch_gis', 'cwms_gis']
-vcn_grid_shp = r'E:\ecan\shared\GIS_base\vector\NIWA_rain_grid_Canterbury.shp'
+vcn_grid_shp = r'E:\ecan\shared\GIS_base\vector\niwa\NIWA_rain_grid_Canterbury.shp'
 vcn_data_path = 'E:/ecan/shared/base_data/precip/VCN_data'
 
 ## Export
@@ -31,9 +31,9 @@ allo_loc_export_path = r'E:\ecan\shared\GIS_base\vector\allocations\allo_gis.shp
 crc_waps_export_path = 'E:/ecan/shared/base_data/usage/crc_waps.csv'
 allo_gis_csv = 'E:/ecan/shared/base_data/usage/allo_gis.csv'
 
-allo_ts_mon_export = 'E:/ecan/shared/base_data/usage/allo_ts_mon_results.csv'
+allo_ts_mon_export = 'E:/ecan/shared/base_data/usage/allo_ts_mon_results.h5'
 allo_ts_ann_export = 'E:/ecan/shared/base_data/usage/allo_ts_ann_results.csv'
-allo_use_export = 'E:/ecan/shared/base_data/usage/allo_use_ts_mon_results.csv'
+allo_use_export = 'E:/ecan/shared/base_data/usage/allo_use_ts_mon_results.h5'
 use_ros_export_path = 'E:/ecan/shared/base_data/usage/allo_use_ros_mon.csv'
 ann_use_ros_export_path = 'E:/ecan/shared/base_data/usage/allo_use_ros_ann.csv'
 usage_mon_est_export_path = 'E:/ecan/shared/base_data/usage/allo_est_use_mon.h5'
@@ -48,10 +48,10 @@ export_use_daily = 'E:/ecan/shared/base_data/usage/usage_daily.h5'
 #### Load in data when needed
 
 allo = read_csv(allo_export_path)
-allo_ts_mon = read_csv(allo_ts_mon_export)
+allo_ts_mon = read_hdf(allo_ts_mon_export)
 #crc_wap = read_csv(crc_waps_export_path)
 usage = read_hdf(export_use_daily).reset_index()
-allo_use = read_csv(allo_use_export)
+allo_use = read_hdf(allo_use_export)
 allo_gis = read_csv(allo_gis_csv)
 #allo_xy2 = read_file(export_allo_gis)
 vcn_grid = read_file(vcn_grid_shp)[['Data VCN_s', 'Network', 'geometry']]
