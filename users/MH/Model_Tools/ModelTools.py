@@ -41,7 +41,7 @@ class ModelTools(object):
         self._no_flow_calc = no_flow_calc
         self.temp_file_dir = temp_file_dir
         self.model_version_name = model_version_name
-        self.pickle_dir = '{}/pickled_files'
+        self.pickle_dir = '{}/pickled_files'.format(self.sdp)
         self.elv_path = '{}/elv_db.p'.format(self.pickle_dir)
         if not os.path.exists(self.pickle_dir):
             os.makedirs(self.pickle_dir)
@@ -144,10 +144,10 @@ class ModelTools(object):
         """
         model_xs, model_ys = self.get_model_x_y()
         if lon > model_xs[0, :].max() or lon < model_xs[0, :].min():
-            raise ValueError('coords not in model domain')
+            raise AssertionError('coords not in model domain')
 
         if lat > model_ys[:, 0].max() or lat < model_ys[:, :].min():
-            raise ValueError('coords not in model domain')
+            raise AssertionError('coords not in model domain')
 
         layer, row, col = None, None, None
         if elv_db is None and elv is not None:

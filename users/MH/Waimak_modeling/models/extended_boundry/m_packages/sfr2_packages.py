@@ -14,7 +14,7 @@ import geopandas as gpd
 from copy import deepcopy
 import pickle
 import os
-from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import mt
+from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 
 
 def create_sfr_package(m, version=1, seg_v=1, reach_v=1):
