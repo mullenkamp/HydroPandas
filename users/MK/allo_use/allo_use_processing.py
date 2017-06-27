@@ -190,6 +190,39 @@ allo[allo.crc == crc1]
 takes[takes.crc == crc1]
 
 
+### to_date before from_date
+allo0 = allo[allo.status_details.isin(['Terminated - Replaced', 'Issued - Active', 'Terminated - Surrendered', 'Terminated - Expired', 'Terminated - Lapsed', 'Issued - s124 Continuance', 'Terminated - Cancelled'])]
+allo1 = allo0[['crc', 'from_date', 'to_date']].copy().drop_duplicates()
+allo1.loc[:, 'from_date'] = to_datetime(allo1.loc[:, 'from_date'])
+allo1.loc[:, 'to_date'] = to_datetime(allo1.loc[:, 'to_date'])
+
+allo1.loc[:, 'diff'] = (allo1.to_date - allo1.from_date).dt.days
+
+a2 = allo1[allo1['diff'] < -30].sort_values('diff', ascending=False)
+
+a2.to_csv('E:/ecan/shared/base_data/usage/bad_fmDate_toDate.csv', index=False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

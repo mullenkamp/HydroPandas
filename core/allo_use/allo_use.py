@@ -678,13 +678,14 @@ def est_use(allo_use, allo_use_ros, allo_gis, date_col='date', usage_col='mon_us
     allo3.loc[no_usage_index, 'usage_est'] = (allo3.loc[no_usage_index, allo_col] * allo3.loc[no_usage_index, 'usage_ratio_est']).round(2)
 
     ### Merge all of the allo with the recent usage est
-    allo5.loc[dates_index, ['usage_ratio_est', 'usage_est']] = allo3[['usage_ratio_est', 'usage_est']].values
+    allo5.loc[dates_index, 'usage_est'] = allo3['usage_est'].values
+    allo5.loc[dates_index, 'usage_ratio_est'] = allo3['usage_ratio_est'].values
 
     col_names = allo2.columns.tolist()
 #    col_names.extend(['sd1_150', 'usage_ratio_est', 'usage_est'])
     col_names.extend(['usage_ratio_est', 'usage_est'])
 
-    allo_use2 = allo5[col_names]
+    allo_use2 = allo5[col_names].copy()
 
     if export:
         allo_use2.to_hdf(export_path, 'usage_est', mode='w')
@@ -713,7 +714,7 @@ def hist_sd_use(usage_est, allo_gis, vcn_grid2, vcn_data_path, date_col='date', 
     ### Read in data
     vcn_sites = vcn_grid2[vcn_grid2.ecan_id.notnull()]
     vcn_sites_lst = vcn_sites.ecan_id.astype('int32').values
-    vcn_data = rd_vcn(data_dir=vcn_data_path, select=vcn_sites_lst, data_type='ET', export=False)
+    vcn_data = rd_vcn(data_dir=vcn_data_path, select=vcn_sites_lst, data_type='ET')
     vcn_sites2 = vcn_sites[in1d(vcn_sites.ecan_id, vcn_data.columns)].sort_values('ecan_id')
 
     ### Resample the ET series to monthly sums
