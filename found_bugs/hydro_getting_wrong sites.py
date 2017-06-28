@@ -1,0 +1,41 @@
+"""
+coding=utf-8
+Author: matth
+Date Created: 29/06/2017 8:51 AM
+"""
+
+from __future__ import division
+from core import env
+from core.ecan_io import rd_sql, sql_db
+import pandas as pd
+from core.classes.hydro import hydro
+import rasterio
+
+
+def get_mean_water_level():
+    well_details_org = rd_sql(**sql_db.wells_db.well_details)
+    well_details = well_details_org[(well_details_org['WMCRZone'] == 4) | (well_details_org['WMCRZone'] == 7) |
+                                (well_details_org['WMCRZone'] == 8)]  # keep only waimak selwyn and chch zones
+    well_details = well_details[well_details['Well_Status'] == 'AE']
+    well_details = well_details[pd.notnull(well_details['DEPTH'])]
+
+    well_details.loc[:,'WELL_NO'] = [e.strip() for e in well_details.loc[:,'WELL_NO']]
+    well_details = well_details.set_index('WELL_NO')
+    # todo why are missing sites coming up ask mike?
+
+    data = hydro().get_data(mtypes=['gwl_m'], sites=list(well_details.index)).data
+    temp = data.groupby(level=['mtype', 'site']).describe()[['min', '25%', '50%', '75%', 'mean', 'max', 'count']].round(2)
+    sites = list(temp.loc['gwl_m'].index[temp.loc['gwl_m']['count'] >=5])
+
+    data = data.loc['gwl_m',sites].reset_index()
+    data = data.set_index('site')
+    data['month'] = [e.month for e in data.time]
+    data['year'] = [e.year for e in data.time]
+
+
+    out_data = pd.DataFrame(index=set(data.index))
+
+    for well in out_data.index:
+        out_data.loc[well,'nztmx'] = well_details.loc[well,'NZTMX']
+        out_data.loc[well,'nztmy'] = well_details.loc[well,'NZTMY']
+        out_data.loc[well,'depth'] = well_details.loc[well,'DEPTH']
