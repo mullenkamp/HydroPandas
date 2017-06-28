@@ -48,6 +48,10 @@ def _no_flow_calc(): #todo
 
 def _get_constant_heads(): #todo
     # todo think about where to put the constant head boundries
+    # sea surface (north/south wai
+    # te waihuro
+    # model boundry... how many layers for this
+    #return a 3d array (layer, col, row) of constant heads values and np.nan for all others.
     raise NotImplementedError
 
 if __name__ == '__main__':

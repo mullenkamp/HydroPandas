@@ -8,6 +8,7 @@ from core import env
 import flopy
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import numpy as np
+from supporting_scripts import _get_constant_heads
 
 def create_bas_package(m):
 
@@ -24,9 +25,11 @@ def create_bas_package(m):
 
 
 def create_starting_heads():
-    #todo set constant head values
     hds = np.repeat(smt.calc_elv_db()[0][np.newaxis, :, :],
               smt.layers, axis=0),  # set to top of layer 1
-
-    raise NotImplementedError('constant head values have not been done')
+    con_heads = _get_constant_heads()
+    idx = np.isfinite(con_heads)
+    hds[idx] = con_heads[idx]
+    if not all(np.isfinite(hds)):
+        raise ValueError('nan values in starting heads')
     return hds

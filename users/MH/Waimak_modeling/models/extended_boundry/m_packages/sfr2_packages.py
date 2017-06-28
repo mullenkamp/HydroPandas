@@ -94,7 +94,7 @@ def _get_reach_data(reach_v):
 
 
 def _reach_data_v1(recalc=False):
-    pickle_path = '{}/sfr_reach_v1.p'.format(mt.pickle_dir)
+    pickle_path = '{}/sfr_reach_v1.p'.format(smt.pickle_dir)
 
     if os.path.exists(pickle_path) and not recalc:
         reach_data = pickle.load(open(pickle_path))
@@ -128,7 +128,7 @@ def _reach_data_v1(recalc=False):
     return outdata
 
 def _seg_data_v1(recalc=False):
-    pickle_path = '{}/sfr_seg_v1.p'.format(mt.pickle_dir)
+    pickle_path = '{}/sfr_seg_v1.p'.format(smt.pickle_dir)
 
     if os.path.exists(pickle_path) and not recalc:
         seg_data = pickle.load(open(pickle_path))

@@ -71,9 +71,9 @@ class ModelTools(object):
     def model_where(self,condition):
         """
         quick function to return list of model indexes from a np.where style condition assumes that the array in the
-        condition has the shape (i,j,k) or (j,k)
+        condition has the shape (k,i,j,) or (i,j)
         :param condition:
-        :return:
+        :return: return tuples of i,j or kij
         """
         idx = np.where(condition)
         idx2 = [i for i in zip(*idx)]

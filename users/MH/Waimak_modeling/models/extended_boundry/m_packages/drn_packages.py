@@ -16,4 +16,11 @@ def create_drn_package(m,drn_version):
 
 
 def _get_drn_spd(version): #todo
+    # load original drains
+
+    # take away the cust ones (duplication to id from model where)
+    # add the waimakariri drain up above the bridge
+    # add a carpet drain south of the waimakariri to loosely represent the low land streams?  better option?
+
+
     raise NotImplementedError()
