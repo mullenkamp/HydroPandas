@@ -48,6 +48,8 @@ base_data_csv = 'recorded_flows.csv'
 base_reg_data_csv = 'recorded_est_flows.csv'
 nat_data_csv = 'nat_flows.csv'
 
+alf_min_base_csv = 'recorded_alf_min.csv'
+alf_min_nat_csv = 'nat_alf_min.csv'
 
 #### stats
 
@@ -144,16 +146,17 @@ nat_flow.to_csv(join(reg_base, nat_data_csv))
 #### MALFs and stats
 
 stats_base = flow_stats(flow)
-malf_base = malf7d(flow, intervals=[10])
+malf_base, alf_base, alf_mis_base, alf_days_base, alf_min_base = malf7d(flow, intervals=[10], return_alfs=True)
 stats_nat = flow_stats(nat_flow)
-malf_nat = malf7d(nat_flow, intervals=[10])
+malf_nat, alf_nat, alf_mis_nat, alf_days_nat, alf_min_nat = malf7d(nat_flow, intervals=[10], return_alfs=True)
 
 stats_base.to_csv(join(reg_base, stats_base_csv))
 malf_base.to_csv(join(reg_base, malf_base_csv))
 stats_nat.to_csv(join(reg_base, stats_nat_csv))
 malf_nat.to_csv(join(reg_base, malf_nat_csv))
 
-
+alf_min_base.to_csv(join(reg_base, alf_min_base_csv))
+alf_min_nat.to_csv(join(reg_base, alf_min_nat_csv))
 
 
 ##########################################
