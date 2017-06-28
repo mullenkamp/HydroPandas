@@ -13,6 +13,7 @@ from core.classes.hydro import hydro
 from osgeo import gdal
 from users.MH.Waimak_modeling.supporting_data_path import sdp
 import rasterio
+import matplotlib.pyplot as plt
 
 def get_mean_water_level():
     well_details_org = rd_sql(**sql_db.wells_db.well_details)
@@ -48,6 +49,8 @@ def get_mean_water_level():
     for site in overview_data.index:
         overview_data.loc[site,'nztmx'] = well_details.loc[site,'NZTMX']
         overview_data.loc[site,'nztmy'] = well_details.loc[site,'NZTMY']
+        overview_data.loc[site,'depth'] = well_details.loc[site,'DEPTH']
+
         ref_level = well_details.loc[site, 'REFERENCE_RL']
         if pd.isnull(ref_level):  # if there is no reference level assume it is at the ground from DEM
             ground_ref_level = well_details.loc[site, 'GROUND_RL']
@@ -60,6 +63,7 @@ def get_mean_water_level():
                 ref_level = np.nan
         for key in [u'mean', u'std', u'min', u'25%', u'50%', u'75%', u'max']:
             overview_data.loc[site, key] += ref_level
+        overview_data.loc[site,'ref_level'] = ref_level
 
     return overview_data
 
@@ -67,3 +71,15 @@ def get_mean_water_level():
 if __name__ == '__main__':
     test = get_mean_water_level()
     test.to_csv(r"C:\Users\MattH\Downloads\test_mean_water_level.csv")
+
+    #test = pd.read_csv(r"C:\Users\MattH\Downloads\test_mean_water_level.csv")
+    fig, ax = plt.subplots(1,1)
+    sc = ax.scatter(test['ref_level']*-1, test['50%'], c=test['depth'], vmin=0,vmax=100)
+    fig.colorbar(sc)
+
+    fig2, ax2 = plt.subplots(1,1)
+    sc1 = ax2.scatter(test['nztmx'],test['nztmy'],s=test['depth'],c=test['50%']-test['ref_level'])
+    fig2.colorbar(sc1)
+
+
+    print 'dpone'
