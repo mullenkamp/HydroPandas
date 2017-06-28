@@ -439,11 +439,18 @@ def _rd_hydro_mssql(self, server, database, table, mtype, time_col, site_col, da
     else:
         stmt1 = "SELECT " + cols_str + " FROM " + table
 
+    ## Pull out the data from SQL
     conn = connect(server, database=database)
     df = read_sql(stmt1, conn)
     conn.close()
 
+    ## Rename columns
     df.columns = ['site', 'time', 'data']
+
+    ## Remove spaces in site names and duplicate data
+    df.loc[:, 'site'] = df.loc[:, 'site'].str.replace(' ', '')
+    df = df.drop_duplicates(['site', 'time'])
+
     df['mtype'] = mtype
 
     self.add_data(df, 'time', 'site', 'mtype', 'data', 'long')

@@ -2,6 +2,9 @@
 coding=utf-8
 Author: matth
 Date Created: 29/06/2017 8:51 AM
+
+Fixed!!
+
 """
 
 from __future__ import division
@@ -23,7 +26,7 @@ def get_mean_water_level():
     well_details = well_details.set_index('WELL_NO')
     # todo why are missing sites coming up ask mike?
 
-    data = hydro().get_data(mtypes=['gwl_m'], sites=list(well_details.index)).data
+    data = hydro().get_data(mtypes=['gwl_m'], sites=list(well_details.index))
     temp = data.groupby(level=['mtype', 'site']).describe()[['min', '25%', '50%', '75%', 'mean', 'max', 'count']].round(2)
     sites = list(temp.loc['gwl_m'].index[temp.loc['gwl_m']['count'] >=5])
 
@@ -39,3 +42,28 @@ def get_mean_water_level():
         out_data.loc[well,'nztmx'] = well_details.loc[well,'NZTMX']
         out_data.loc[well,'nztmy'] = well_details.loc[well,'NZTMY']
         out_data.loc[well,'depth'] = well_details.loc[well,'DEPTH']
+
+
+gwl_m_dict = {'server': prod_server05, 'db': 'Wells', 'table': 'DTW_READINGS', 'site_col': 'WELL_NO', 'time_col': 'DATE_READ', 'data_col': 'DEPTH_TO_WATER', 'qual_col': None}
+
+t1 = rd_sql(gwl_m_dict['server'], gwl_m_dict['db'], gwl_m_dict['table'], ['WELL_NO', 'DATE_READ', 'DEPTH_TO_WATER'], where_col='WELL_NO', where_val=['L36/0124'])
+t1['WELL_NO'].unique()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

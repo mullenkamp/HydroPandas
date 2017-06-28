@@ -158,7 +158,8 @@ def rd_waps_geo(sites=None):
     index1 = (site_geo.NZTMX > 1300000) & (site_geo.NZTMX < 1700000) & (site_geo.NZTMY > 5000000) & (site_geo.NZTMY < 5400000)
     site_geo0 = site_geo[index1]
     site_geo2 = xy_to_gpd(df=site_geo0, id_col='site', x_col='NZTMX', y_col='NZTMY')
-    site_geo2.loc[:, 'site'] = site_geo2.loc[:, 'site'].str.upper().str.replace(' ', '')
+#    site_geo2.loc[:, 'site'] = site_geo2.loc[:, 'site'].str.upper().str.replace(' ', '')
+#    site_geo2 = site_geo2.drop_duplicates()
     site_geo2.loc[:, 'site'] = to_numeric(site_geo2.loc[:, 'site'], errors='ignore')
 
     return(site_geo2.set_index('site'))
