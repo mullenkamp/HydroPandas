@@ -39,7 +39,7 @@ df3 = rd_squalarc(sites=poly, mtypes=mtypes1, from_date=from_date, to_date=to_da
 #########################################
 ### Save the data
 
-## Export the data as a csv file -- from the dataframe
+## Export the data as a csv file -- from the output dataframe
 df2.to_csv(out_csv, encoding='utf-8', index=False)
 
 ## Export the data as a csv file -- from the original function
