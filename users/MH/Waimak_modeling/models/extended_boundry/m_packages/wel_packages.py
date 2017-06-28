@@ -11,7 +11,6 @@ from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_too
 import pandas as pd
 import numpy as np
 from users.MH.Waimak_modeling.supporting_data_path import sdp
-from core.ecan_io import rd_sql, sql_db
 
 
 def create_wel_package(m, wel_version):
@@ -133,6 +132,7 @@ def _get_s_wai_rivers():
 
     return outdata
 
+    #todo I may add 'losing rivers' as pumping wells
 
 if __name__ == '__main__':
     test = _get_s_wai_wells()

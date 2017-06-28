@@ -4,14 +4,12 @@ Date Created: 20/06/2017 11:59 AM
 """
 
 from __future__ import division
-from core import env
 import flopy
-import numpy as np
 
-from supporting_scripts import _elvdb_calc
+from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 
 def create_dis_package(m):
-    elv_db = _elvdb_calc()
+    elv_db = smt.calc_elv_db()
     dis = flopy.modflow.mfdis.ModflowDis(m,
                                          nlay=17,
                                          nrow=364,
