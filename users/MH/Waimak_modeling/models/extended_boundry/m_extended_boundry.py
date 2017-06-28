@@ -56,8 +56,6 @@ def create_m_extended_boundry(name, dir_path, safe_mode=True, mt3d_link=False, v
     m_packages.create_drn_package(m, drn_version)
     m_packages.create_sfr_package(m, sfr_version, seg_v, reach_v)
 
-    #todo add GHB?
-
     # add simple packages
 
     # solver
@@ -112,9 +110,11 @@ def create_m_extended_boundry(name, dir_path, safe_mode=True, mt3d_link=False, v
 
     # oc
     flopy.modflow.mfoc.ModflowOc(m, ihedfm=0, iddnfm=0, chedfm=None, cddnfm=None, cboufm=None, compact=True,
-                                 stress_period_data={(0, 0): ['save head', 'save drawdown', 'save budget', 'print budget'], (-1, -1): []},
+                                 stress_period_data={(0, 0): ['save head', 'save drawdown',
+                                                              'save budget', 'print budget'],
+                                                     (-1, -1): []},
                                  extension=['oc', 'hds', 'ddn', 'cbc', 'ibo'], unitnumber=[22,30,31,32,33])
-    #todo handle output in name file
+    #todo handle output in name file might be fixed by re-defining oc
 
 
 

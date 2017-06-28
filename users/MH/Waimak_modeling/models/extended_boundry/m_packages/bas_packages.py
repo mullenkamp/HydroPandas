@@ -6,9 +6,8 @@ Date Created: 20/06/2017 11:59 AM
 from __future__ import division
 from core import env
 import flopy
-from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
+from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt, _get_constant_heads
 import numpy as np
-from supporting_scripts import _get_constant_heads
 
 def create_bas_package(m):
 

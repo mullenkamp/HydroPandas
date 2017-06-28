@@ -525,3 +525,8 @@ class ModelTools(object):
         return outdata
 
     #todo think about adding default model_maps
+
+
+    #todo add base map and cross section
+    #todo add elvation check
+    #todo add recalc_pickles
