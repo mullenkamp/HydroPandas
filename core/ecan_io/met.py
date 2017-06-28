@@ -525,9 +525,89 @@ def nc_add_gis(nc, x_coord, y_coord):
     ds2.close()
 
 
+def sel_niwa_vcsn(mtypes, sites, nc_path='Y:/VirtualClimate/vcsn_precip_et_2016-06-06.nc', vcsn_sites_csv=r'Y:\VirtualClimate\GIS\niwa_vcsn_wgs84.csv', id_col='Network', x_col='deg_x', y_col='deg_y', include_sites=False, out_crs=None, netcdf_out=None):
+    """
+    Function to read in the NIWA vcsn netcdf file and output the data as a dataframe.
 
+    mtypes -- A string or list of the measurement types (either 'precip', or 'PET').\n
+    sites -- Either a list of vcsn site names or a polygon of the area of interest.\n
+    nc_path -- The path to the vcsn nc file.\n
+    vcsn_sites_csv -- The csv file that relates the site name to coordinates.\n
+    id_col -- The site name column in vcsn_sites_csv.\n
+    x_col - The x column name in vcsn_sites_csv.\n
+    y_col -- The y column name in vcsn_sites_csv.\n
+    include_sites -- Should the site names be added to the output?\n
+    out_crs -- The crs epsg number for the output coordinates if different than the default WGS85 (e.g. 2193 for NZTM).
+    """
+    from pandas import read_csv, Series, merge
+    from core.spatial import xy_to_gpd, sel_sites_poly, convert_crs
+    from geopandas import read_file
+    from numpy import ndarray
+    from xarray import open_dataset
 
+    mtype_name = {'precip': 'rain', 'PET': 'pe'}
 
+    ### Import and reorganize data
+    vcsn_sites = read_csv(vcsn_sites_csv)[[id_col, x_col, y_col]]
+
+    if isinstance(sites, str):
+        if sites.endswith('.shp'):
+            sites_gpd = xy_to_gpd(id_col, x_col, y_col, vcsn_sites, 4326)
+            poly1 = read_file(sites)
+
+            sites_gpd2 = sites_gpd.to_crs(poly1.crs)
+
+            ### Select sites
+            sites2 = sel_sites_poly(sites_gpd2, poly1)[id_col]
+    elif isinstance(sites, (list, Series, ndarray)):
+        sites2 = sites
+
+    ### Select locations
+    site_loc1 = vcsn_sites[vcsn_sites[id_col].isin(sites2)]
+    site_loc1.columns = ['id', 'x', 'y']
+
+    ### Select mtypes
+    if isinstance(mtypes, str):
+        mtypes1 = [mtype_name[mtypes]]
+    else:
+        mtypes1 = [mtype_name[i] for i in mtypes]
+
+    if include_sites:
+        mtypes1.extend(['site'])
+
+    ### Read and extract data from netcdf files
+    ds1 = open_dataset(nc_path)
+    ds2 = ds1.sel(longitude=site_loc1.x.unique(), latitude=site_loc1.y.unique())
+    ds3 = ds2[mtypes1]
+
+    ### Convert to DataFrame
+    df1 = ds3.to_dataframe().reset_index()
+    df1.rename(columns={'latitude': 'y', 'longitude': 'x'}, inplace=True)
+
+    ### Convert to different crs if needed
+    if out_crs is not None:
+        crs1 = convert_crs(out_crs)
+        new_gpd1 = xy_to_gpd('id', 'x', 'y', site_loc1, 4326)
+        new_gpd2 = new_gpd1.to_crs(crs1)
+        site_loc2 = site_loc1.copy()
+        site_loc2['x_new'] = new_gpd2.geometry.apply(lambda j: j.x)
+        site_loc2['y_new'] = new_gpd2.geometry.apply(lambda j: j.y)
+
+        df2 = merge(df1, site_loc2[['x', 'y', 'x_new', 'y_new']], on=['x', 'y'])
+        df3 = df2.drop(['x', 'y'], axis=1).rename(columns={'x_new': 'x', 'y_new': 'y'})
+        col_order = ['y', 'x', 'time']
+        col_order.extend(mtypes1)
+        df4 = df3[col_order]
+    else:
+        df4 = df1
+
+    ds1.close()
+    ds3.close()
+
+    ### Return
+    if isinstance(netcdf_out, str):
+        ds3.to_netcdf(netcdf_out)
+    return(df4)
 
 
 
