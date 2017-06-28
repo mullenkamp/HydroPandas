@@ -185,9 +185,13 @@ def time_switch(x):
     }.get(x, 'A')
 
 
-def unarchive_dir(folder, ext='zip'):
+def unarchive_dir(folder, ext='zip', rem_original=False):
     """
     Function to unarchive files in all subfolders into those subfolders.
+
+    folder -- The base directory.\n
+    ext -- The archive file extension to be extracted.\n
+    rem_original -- Should the original archive files be removed after extraction?
     """
     import patoolib, fnmatch, os
 
@@ -196,6 +200,8 @@ def unarchive_dir(folder, ext='zip'):
             print(os.path.join(root, filename))
 #            pyunpack.zipfile.ZipFile(os.path.join(root, filename)).extractall(root)
             patoolib.extract_archive(os.path.join(root, filename), outdir=root, interactive=False)
+            if rem_original:
+                os.remove(os.path.join(root, filename))
 
 
 def save_df(df, path_str, index=True, header=True):
