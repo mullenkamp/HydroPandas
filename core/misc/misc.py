@@ -105,7 +105,7 @@ def select_sites(x):
         else:
             x1 = read_csv(x).iloc[:, 0].values
 
-    return(x1)
+    return(x1.copy())
 
 
 def merge_two_dicts(x, y):

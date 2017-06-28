@@ -28,16 +28,16 @@ def sel_sites_poly(pts, poly, buffer_dis=0):
 
     #### Read in data
     if isinstance(pts, GeoDataFrame):
-        gdf_pts = pts
+        gdf_pts = pts.copy()
     elif isinstance(pts, str):
         if pts.endswith('.shp'):
-            gdf_pts = read_file(pts)
+            gdf_pts = read_file(pts).copy()
             gdf_pts.set_index(gdf_pts.columns[0], inplace=True)
     if isinstance(poly, GeoDataFrame):
-        gdf_poly = poly
+        gdf_poly = poly.copy()
     elif isinstance(poly, str):
         if poly.endswith('.shp'):
-            gdf_poly = read_file(poly)
+            gdf_poly = read_file(poly).copy()
             gdf_poly.set_index(gdf_poly.columns[0], inplace=True)
 
     #### Perform vector operations for initial processing
