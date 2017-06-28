@@ -198,7 +198,7 @@ def unarchive_dir(folder, ext='zip'):
             patoolib.extract_archive(os.path.join(root, filename), outdir=root, interactive=False)
 
 
-def save_df(df, path_str, index=True):
+def save_df(df, path_str, index=True, header=True):
     """
     Function to save a dataframe based on the path_str extension. The path_str must  either end in csv or h5.
 
@@ -213,7 +213,7 @@ def save_df(df, path_str, index=True):
     if path1[1] in '.h5':
         df.to_hdf(path_str, 'df', mode='w')
     if path1[1] in '.csv':
-        df.to_csv(path_str, index=index)
+        df.to_csv(path_str, index=index, header=header)
 
 
 

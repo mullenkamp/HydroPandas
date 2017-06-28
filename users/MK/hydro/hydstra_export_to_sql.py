@@ -10,7 +10,7 @@ Must be run in a 32bit python!
 #### Hydstra export improvement
 
 from core.ecan_io import rd_sql, rd_hydstra_by_var, write_sql
-from pandas import concat, to_numeric, read_csv
+from pandas import concat
 
 ### SQL Parameters
 server = 'SQL2012PROD03'
