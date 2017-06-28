@@ -153,11 +153,19 @@ for i in dir2:
 
 
 
-path1 = r'C:\ecan\ftp\niwa\topnet\waimak\RCP2.6\CESM1-CAM5'
+path1 = r'C:\ecan\ftp\niwa\topnet\waimak'
 
 unarchive_dir(path1, 'gz')
 
+folder = path1
+ext = 'gz'
 
+import fnmatch, os
+
+for root, dirs, files in os.walk(folder):
+    for filename in fnmatch.filter(files, '*.' + ext):
+        print(os.path.join(root, filename))
+        os.remove(os.path.join(root, filename))
 
 
 
