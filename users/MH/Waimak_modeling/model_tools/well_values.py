@@ -51,6 +51,26 @@ def get_race_data(recalc = False):
 
     return outdata
 
+def get_nwai_wells():
+    # initalize and load extra data
+    consent_details = pd.read_csv("{}/inputs/wells/allo_gis.csv".format(sdp))
+    consent_details2 = consent_details.set_index('crc')
+    consent_details2 = consent_details2[(consent_details2['status_details']=='Issued - Active') | (consent_details2['status_details']=='Issued - s124 Continuance')]
+
+    n_wai_wells = pd.read_csv("{}/inputs/wells/wells_Final_abstract_12_07.csv".format(sdp))  # data north of waimak (fouad)
+    n_wai_wells = n_wai_wells.drop(['v1'],axis=1)
+    n_wai_wells.columns = ['well','x', 'y', 'z', 'flux']
+    n_wai_wells['type'] = 'well'
+    n_wai_wells['consent'] = None
+
+    for i in n_wai_wells.index:
+        well = n_wai_wells.loc[i,'well']
+
+        cons = tuple(consent_details2[consent_details2['wap']==well].index)
+
+        n_wai_wells.set_value(i, 'consent', cons)
+    return n_wai_wells
+
 def _load_well_bc_data_from_csv_modflow():
     # initalize and load extra data
     consent_details = pd.read_csv("{}/inputs/wells/allo_gis.csv".format(sdp))
@@ -278,8 +298,8 @@ def get_all_well_data(recalc=False):
         outdata_final.loc[well, 'well_type'] = well_details_org.WELL_TYPE.loc[well]
 
         # calculate z screens
-        row = outdata_final.loc[well, 'row']
-        col = outdata_final.loc[well, 'col']
+        row = int(outdata_final.loc[well, 'row'])
+        col = int(outdata_final.loc[well, 'col'])
 
         # get screen elevations
         screen_num = well_details_org.loc[well, 'Screens']

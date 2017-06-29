@@ -22,7 +22,7 @@ def recalc_all_pick_base():
     get_drn_samp_pts_dict(True)
     calc_elv_db(True)
     get_all_well_data(True)
-    get_base_mf_ss(True)
+    get_base_mf_ss(recalc=True)
     get_base_str(True)
     get_base_rch(True)
     get_model_well_full_consented(True)
@@ -35,13 +35,13 @@ def recalc_all_pick_runs():
 
 
 if __name__ == '__main__':
-    run_type = 4
+    run_type = 3
     if run_type == 1:
         recalc_all_pick_base()
     elif run_type == 2:
         recalc_all_pick_runs()
     elif run_type == 3:
-        recalc_all_pick_runs()
         recalc_all_pick_base()
+        recalc_all_pick_runs()
     elif run_type == 4:
-        get_base_mf_ss(True)
+        get_base_mf_ss(recalc=True)

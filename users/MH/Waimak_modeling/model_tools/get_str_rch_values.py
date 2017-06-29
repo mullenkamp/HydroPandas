@@ -29,6 +29,19 @@ def get_base_str(recalc=False):
 
     return base_str
 
+def get_ibound(recalc=False):
+    picklepath = '{}/inputs/pickeled_files/ibound.p'.format(sdp)
+
+    if os.path.exists(picklepath) and not recalc:
+        ibound = pickle.load(open(picklepath))
+        return ibound
+
+    org_m = get_base_mf_ss()
+    ibound = org_m.bas6.ibound.array
+    pickle.dump(ibound, open(picklepath, 'w'))
+
+    return ibound
+
 
 def get_base_seg_data(recalc=False):
     picklepath = '{}/inputs/pickeled_files/base_stream_segments.p'.format(sdp)

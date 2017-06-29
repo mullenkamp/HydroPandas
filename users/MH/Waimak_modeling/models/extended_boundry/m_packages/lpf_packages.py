@@ -66,9 +66,11 @@ def create_lay_prop_package(m, mfv,k_version=1):
     else:
         raise ValueError('unexpected modflow version {}'.format(mfv))
 
-    raise NotImplementedError()
 
 def _get_hk(version=1): #todo
+    # there are pump test data in julians report also k zones defined
+    # extend chch ks southward
+
     raise NotImplementedError()
 
 def _get_vka(version=1): #todo

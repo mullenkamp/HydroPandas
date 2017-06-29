@@ -134,7 +134,7 @@ def rd_site_geo():
     return(site_geo)
 
 
-def rd_squalarc(sites, mtypes=None, from_date=None, to_date=None, convert_dtl=True, dtl_method=None, export=False, export_path='WQ_data.csv'):
+def rd_squalarc(sites, mtypes=None, from_date=None, to_date=None, convert_dtl=False, dtl_method=None, export_path=None):
     """
     Function to read in "squalarc" data. Which is atually stored in the mssql db.
 
@@ -162,12 +162,14 @@ def rd_squalarc(sites, mtypes=None, from_date=None, to_date=None, convert_dtl=Tr
         sw_sites_tab = rd_sql('SQL2012PROD05', 'Squalarc', 'SITES', col_names=['SITE_ID', 'NZTMX', 'NZTMY'])
         sw_sites_tab.columns = ['site', 'NZTMX', 'NZTMY']
         gdf_sw_sites = xy_to_gpd('site', 'NZTMX', 'NZTMY', sw_sites_tab)
-        sw_sites2 = sel_sites_poly(gdf_sw_sites, sites1).drop('geometry', axis=1)
+        sites1a = sites1.to_crs(gdf_sw_sites.crs)
+        sw_sites2 = sel_sites_poly(gdf_sw_sites, sites1a).drop('geometry', axis=1)
 
         ## Groundwater sites
-        gw_sites_tab = rd_sql('SQL2012PROD05', 'GIS', 'vWELLS_NZTM_BASIC', col_names=['WELL_NO'], geo_col=True)
-        gw_sites_tab.columns = ['site', 'geometry']
-        gw_sites2 = sel_sites_poly(gw_sites_tab, sites1).drop('geometry', axis=1)
+        gw_sites_tab = rd_sql('SQL2012PROD05', 'Wells', 'WELL_DETAILS', col_names=['WELL_NO', 'NZTMX', 'NZTMY'])
+        gw_sites_tab.columns = ['site', 'NZTMX', 'NZTMY']
+        gdf_gw_sites = xy_to_gpd('site', 'NZTMX', 'NZTMY', gw_sites_tab)
+        gw_sites2 = sel_sites_poly(gdf_gw_sites, sites1a).drop('geometry', axis=1)
 
         sites2 = sw_sites2.site.append(gw_sites2.site).astype(str).tolist()
     else:
@@ -188,34 +190,38 @@ def rd_squalarc(sites, mtypes=None, from_date=None, to_date=None, convert_dtl=Tr
         samples_tab.columns = ['site', 'sample_id', 'source', 'date', 'time', 'parameter', 'units', 'val']
         samples_tab.loc[:, 'source'] = samples_tab.loc[:, 'source'].str.lower()
 
-    num_test = to_numeric(samples_tab.loc[:, 'time'], 'coerce')
-    samples_tab.loc[num_test.isnull(), 'time'] = '0000'
-    samples_tab.loc[:, 'time'] = samples_tab.loc[:, 'time'].str.replace('.', '')
-#    samples_tab.loc[:, 'time'] = samples_tab.loc[:, 'time'].str.replace('9999', '0000')
-    time1 = to_datetime(samples_tab.time, format='%H%M', errors='coerce')
+    samples_tab2 = samples_tab.copy()
+    num_test = to_numeric(samples_tab2.loc[:, 'time'], 'coerce')
+    samples_tab2.loc[num_test.isnull(), 'time'] = '0000'
+    samples_tab2.loc[:, 'time'] = samples_tab2.loc[:, 'time'].str.replace('.', '')
+#    samples_tab2.loc[:, 'time'] = samples_tab2.loc[:, 'time'].str.replace('9999', '0000')
+    time1 = to_datetime(samples_tab2.time, format='%H%M', errors='coerce')
     time1[time1.isnull()] = Timestamp('2000-01-01 00:00:00')
-    datetime1 = to_datetime(samples_tab.date.dt.date.astype(str) + ' ' + time1.dt.time.astype(str))
-    samples_tab.loc[:, 'date'] = datetime1
-    samples_tab = samples_tab.drop('time', axis=1)
-    samples_tab.loc[samples_tab.val.isnull(), 'val'] = nan
-    samples_tab.loc[samples_tab.val == 'N/A', 'val'] = nan
+    datetime1 = to_datetime(samples_tab2.date.dt.date.astype(str) + ' ' + time1.dt.time.astype(str))
+    samples_tab2.loc[:, 'date'] = datetime1
+    samples_tab2 = samples_tab2.drop('time', axis=1)
+    samples_tab2.loc[samples_tab2.val.isnull(), 'val'] = nan
+    samples_tab2.loc[samples_tab2.val == 'N/A', 'val'] = nan
 
     #### Select within time range
     if isinstance(from_date, str):
-        samples_tab = samples_tab[samples_tab['date'] >= from_date]
+        samples_tab2 = samples_tab2[samples_tab2['date'] >= from_date]
     if isinstance(to_date, str):
-        samples_tab = samples_tab[samples_tab['date'] <= to_date]
+        samples_tab2 = samples_tab2[samples_tab2['date'] <= to_date]
 
     if mtypes is not None:
         mtypes1 = select_sites(mtypes)
-        data = samples_tab[samples_tab.parameter.isin(mtypes1)].reset_index(drop=True)
+        data = samples_tab2[samples_tab2.parameter.isin(mtypes1)].reset_index(drop=True)
     else:
-        data = samples_tab.reset_index(drop=True)
+        data = samples_tab2.reset_index(drop=True)
+
+    #### Correct poorly typed in site names
+    data.loc[:, 'site'] = data.loc[:, 'site'].str.upper().str.replace(' ', '')
 
     #### Convert detection limit values
     if convert_dtl:
         less1 = data['val'].str.match('<')
-        if sum(less1) > 0:
+        if less1.sum() > 0:
             less1.loc[less1.isnull()] = False
             data2 = data.copy()
             data2.loc[less1, 'val'] = to_numeric(data.loc[less1, 'val'].str.replace('<', '')) * 0.5
@@ -251,8 +257,8 @@ def rd_squalarc(sites, mtypes=None, from_date=None, to_date=None, convert_dtl=Tr
         data3 = data
 
     #### Return and export
-    if export:
-        data3.to_csv(export_path, index=False)
+    if isinstance(export_path, str):
+        data3.to_csv(export_path, encoding='utf-8', index=False)
     return(data3)
 
 

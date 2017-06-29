@@ -48,6 +48,9 @@ base_data_csv = 'recorded_flows.csv'
 base_reg_data_csv = 'recorded_est_flows.csv'
 nat_data_csv = 'nat_flows.csv'
 
+alf_min_base_csv = 'recorded_alf_min.csv'
+alf_min_nat_csv = 'nat_alf_min.csv'
+
 #### stats
 
 stats_base_csv  = 'stats_base.csv'
@@ -72,12 +75,12 @@ h2 = h1a.get_data('gwl', sites_gwl)
 
 
 ##########################################
-#### Flow reg
+#### Flow reg - below median
 
 y_sites = list(h2.mtypes_sites['flow_m'])
 x_sites = list(h2.mtypes_sites['flow'])
 
-new1, reg1 = h2.flow_reg(y_sites, x_sites, below_median=True)
+new1, reg1 = h2.flow_reg(y=y_sites, x=x_sites, below_median=True)
 new2, reg2 = h2.flow_reg(y_sites, x_sites, below_median=True, logs=True)
 
 reg1.to_csv(join(reg_base, lin_reg_csv))
@@ -143,16 +146,112 @@ nat_flow.to_csv(join(reg_base, nat_data_csv))
 #### MALFs and stats
 
 stats_base = flow_stats(flow)
-malf_base = malf7d(flow, intervals=[10])
+malf_base, alf_base, alf_mis_base, alf_days_base, alf_min_base = malf7d(flow, intervals=[10], return_alfs=True)
 stats_nat = flow_stats(nat_flow)
-malf_nat = malf7d(nat_flow, intervals=[10])
+malf_nat, alf_nat, alf_mis_nat, alf_days_nat, alf_min_nat = malf7d(nat_flow, intervals=[10], return_alfs=True)
 
 stats_base.to_csv(join(reg_base, stats_base_csv))
 malf_base.to_csv(join(reg_base, malf_base_csv))
 stats_nat.to_csv(join(reg_base, stats_nat_csv))
 malf_nat.to_csv(join(reg_base, malf_nat_csv))
 
+alf_min_base.to_csv(join(reg_base, alf_min_base_csv))
+alf_min_nat.to_csv(join(reg_base, alf_min_nat_csv))
 
+
+##########################################
+#### Flow reg - all data
+
+y_sites = list(h2.mtypes_sites['flow_m'])
+x_sites = list(h2.mtypes_sites['flow'])
+
+new1, reg1 = h2.flow_reg(y_sites, x_sites, below_median=False, min_obs=12)
+new2, reg2 = h2.flow_reg(y_sites, x_sites, below_median=False, logs=True, min_obs=12)
+
+reg1.to_csv(join(reg_base, lin_reg_csv))
+reg2.to_csv(join(reg_base, log_reg_csv))
+new1.to_csv(join(reg_base, lin_reg_flow_csv), pivot=True)
+new2.to_csv(join(reg_base, log_reg_flow_csv), pivot=True)
+h2.to_csv(join(reg_base, base_data_csv), pivot=True)
+
+#gwl1 = h2.sel_ts('gwl', pivot=True)
+#bad1s = h2.sel_ts('flow_m', 279, pivot=True)
+#
+#reg9, bad_ts = flow_reg(gwl1, bad1s, below_median=True, make_ts=True)
+#reg9.loc[:, 'log'] = False
+
+reg_dict = {387: (65901, True), 389: (66213, True), 66215: (66213, True), 361: (66429, False), 1516: (66213, True), 270: (66417, True), 66409: (66417, True), 370: (66415, False), 343: (66417, True), 253: (65901, True), 371: (66401, True), 66432: (66401, True), 279: (65901, True)}
+
+new_regs = DataFrame()
+new_flow = DataFrame()
+for i in reg_dict:
+    sited = reg_dict[i]
+    if sited[1]:
+        site_reg = reg2.loc[[i]]
+        site_reg.loc[:, 'log'] = True
+        site_flow = new2.sel_ts('flow', i).reset_index()
+    else:
+        site_reg = reg1.loc[[i]]
+        site_reg.loc[:, 'log'] = False
+        site_flow = new1.sel_ts('flow', i).reset_index()
+    new_regs = concat([new_regs, site_reg])
+    new_flow = concat([new_flow, site_flow])
+
+#new_regs1 = concat([new_regs, reg9])
+new_regs1 = new_regs.copy()
+
+new_flow1 = new_flow.pivot('time', 'site', 'data')
+#new_flow2 = concat([new_flow1, bad_ts], axis=1)
+new_flow2 = new_flow1.copy()
+
+new_regs1.to_csv(join(reg_base, combo_reg_csv))
+new_flow2.to_csv(join(reg_base, base_reg_data_csv))
+
+
+
+##########################################
+#### Plot
+
+new3, reg3 = h2.flow_reg(y_sites, x_sites, below_median=False, logs=True, min_obs=12)
+
+stats1 = h2.stats('flow')
+reg2.sort_values('Y_loc')
+reg3.sort_values('Y_loc')
+
+x_site = 66401
+y_site = 66432
+x_max = 1
+y_max = 0.2
+
+h2.plot_reg(x_mtype='flow', x_site=x_site, y_mtype='flow_m', y_site=y_site, logs=False)
+h2.plot_reg(x_mtype='flow', x_site=x_site, y_mtype='flow_m', y_site=y_site, logs=True)
+
+#h2.plot_reg(x_mtype='flow', x_site=x_site, y_mtype='flow_m', y_site=y_site, x_max=x_max, y_max=y_max)
+
+
+new0, reg0 = h2.flow_reg([y_site], [x_site], below_median=False, logs=True)
+reg2[reg2.Y_loc == y_site]
+reg0
+
+
+###########################################
+#### Run stream naturalization
+
+## No GW in nat
+
+flow, gaugings, nat_flow, nat_gauge = stream_nat(catch_shp, catch_sites_csv, flow_csv=new_flow2[:end], include_gw=False, export=True, export_rec_flow_path=export_rec_flow_path, export_gauge_flow_path=export_gauge_flow_path)
+
+nat_flow.to_csv(join(reg_base, nat_data_csv))
+
+
+###########################################
+#### MALFs and stats
+
+stats_base = flow_stats(flow)
+stats_nat = flow_stats(nat_flow)
+
+stats_base.to_csv(join(reg_base, stats_base_csv))
+stats_nat.to_csv(join(reg_base, stats_nat_csv))
 
 
 #########################################

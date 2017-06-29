@@ -100,7 +100,9 @@ def combine_chla(x):
     # Don't convert values that are above 0.5, multiply other by 1000 to get microg/L
     chla = numpy.zeros(len(chla_values2))
     for i in range (0,len(chla_values2)):
-        if (chla_values2[i] < 0.19):
+        if ((sitename == 'Marion') and (chla_values2[i] > 0.050)):
+            chla[i] = 2.7
+        elif (chla_values2[i] < 0.19):
             chla[i] = 1000.0*chla_values2[i]
         else:
             chla[i] = chla_values2[i]
@@ -283,7 +285,12 @@ sns.set_style("whitegrid")
 sns.set(font_scale=2)  # increase font on axis
 #ax = sns.boxplot(data = df, showmeans=True, color='white')
 #ax = sns.boxplot(x=sites, y=chla_data, showmeans=True, color='white')
-ax = sns.boxplot(data = chla_data, showmeans=True, color='white')
+medianprops = dict(linewidth=2.5, color='grey')
+meanpointprops = dict(marker='o', markerfacecolor='red', markersize=12,
+                  linestyle='none')
+ax = sns.boxplot(data = chla_data, medianprops=medianprops, meanprops=meanpointprops, meanline=False,
+               showmeans=True, color='white')
+#ax = sns.boxplot(data = chla_data, showmeans=True, color='white')
                  #, line_kws={'xdata': '0,1','ydata': '0,0','color': 'k', 'linestyle':'-', 'linewidth':'5'})
 for item in ax.get_xticklabels():
     item.set_rotation(90)

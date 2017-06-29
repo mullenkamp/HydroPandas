@@ -15,7 +15,7 @@ out_path = r'E:\ecan\local\Projects\requests\zeb\2017-06-22\isotope_data.csv'
 
 #### Extract data
 sites = read_csv(sites_csv)['site']
-sites2 = [sites[i::3] for i in xrange(3)]
+#sites2 = [sites[i::3] for i in xrange(3)]
 
 t1 = rd_squalarc(sites)
 

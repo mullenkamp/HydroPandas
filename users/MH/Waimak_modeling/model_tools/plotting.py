@@ -70,7 +70,7 @@ def plt_default_map(m, lyr, a=None, plt_grid=False, vmin=None, vmax=None, title=
     return fig, ax, mmap
 
 
-def plt_default_xsection(m, line, a=None, c_step=25, clab=True, map_a=None):  # todo set up if line is a path to shapefile #todo needs updating for new model
+def plt_default_xsection(m, line, a=None, c_step=25, clab=True, map_a=None, grid=False):  # todo set up if line is a path to shapefile #todo needs updating for new model
     model_xs, model_ys = get_model_x_y()
     fig, (ax, ax2) = plt.subplots(2, 1, figsize=(18.5, 9.5))
     ax.set_aspect('equal')
@@ -105,6 +105,8 @@ def plt_default_xsection(m, line, a=None, c_step=25, clab=True, map_a=None):  # 
     mc = flopy.plot.ModelCrossSection(ax=ax2, line=line, model=m, xul=1512162.53275, yul=5215083.5772)
     mc.plot_bc('WEL')
     mc.plot_bc('STR')
+    if grid:
+        mc.plot_grid()
     if a is not None:
         pcm = mc.plot_array(a, cmap='plasma', alpha=0.5)
         fig.colorbar(pcm, ax=ax, extend='max')

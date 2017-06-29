@@ -92,15 +92,25 @@ def add_data(self, data, time=None, sites=None, mtypes=None, values=None, dforma
             input1.index.set_levels(to_numeric(input1.index.levels[1], errors='ignore'), level='site', inplace=True)
 
     ### Run additional checks and append to existing data
+    ## Remove data with NaN
+    if any(input1.isnull()):
+        input2 = input1[input1.notnull()].reset_index()
+        input1 = input2.set_index(['mtype', 'site', 'time'])[values]
+
+    ## Check mtypes
     new_mtypes = input1.index.levels[0]
     mtypes_bool = in1d(new_mtypes, all_mtypes.keys())
     if any(~mtypes_bool):
         sel_mtypes = new_mtypes[mtypes_bool]
         input1 = input1.loc(axis=0)[sel_mtypes, :, :]
+
     input1.name = 'data'
+
+    ## Remove base_stats if it exists
     if hasattr(self, '_base_stats'):
         delattr(self, '_base_stats')
 
+    ## Add data to hydro object
     if add:
         if hasattr(self, 'data'):
             setattr(self, 'data', input1.combine_first(self.data).sort_index())
@@ -429,11 +439,18 @@ def _rd_hydro_mssql(self, server, database, table, mtype, time_col, site_col, da
     else:
         stmt1 = "SELECT " + cols_str + " FROM " + table
 
+    ## Pull out the data from SQL
     conn = connect(server, database=database)
     df = read_sql(stmt1, conn)
     conn.close()
 
+    ## Rename columns
     df.columns = ['site', 'time', 'data']
+
+    ## Remove spaces in site names and duplicate data
+    df.loc[:, 'site'] = df.loc[:, 'site'].str.replace(' ', '')
+    df = df.drop_duplicates(['site', 'time'])
+
     df['mtype'] = mtype
 
     self.add_data(df, 'time', 'site', 'mtype', 'data', 'long')

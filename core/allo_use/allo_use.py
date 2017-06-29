@@ -572,7 +572,7 @@ def est_use(allo_use, allo_use_ros, allo_gis, date_col='date', usage_col='mon_us
     allo1 = merge(allo_use, ann_allo, on=join_grp, how='left')
     allo2 = merge(allo1, allo_use_ros.drop(['mon_allo_m3', 'mon_usage_m3'], axis=1), on=join_grp, how='left')
 
-    allo3 = merge(allo2, allo_gis.drop(['geometry', 'max_rate', 'daily_vol', 'cav', 'cav_crc', 'from_date', 'to_date', 'max_rate_1', 'max_rate_c', 'max_rate_w', 'max_vol', 'max_vol_cr', 'return_per'], axis=1), on=['crc', 'take_type', 'allo_block', 'wap'], how='inner')
+    allo3 = merge(allo2, allo_gis.drop(['max_rate', 'daily_vol', 'cav', 'cav_crc', 'from_date', 'to_date', 'max_rate_wap_crc', 'max_rate_crc', 'max_rate_wap', 'max_vol', 'max_vol_crc', 'return_period'], axis=1), on=['crc', 'take_type', 'allo_block', 'wap'], how='inner')
     allo4 = allo3.drop_duplicates(subset=join_grp)
 
     ## Combine annual allo to one column
@@ -585,24 +585,32 @@ def est_use(allo_use, allo_use_ros, allo_gis, date_col='date', usage_col='mon_us
 #    allo_use1['catch'] = floor(allo_use1.catchment_num * 0.0001)
 #    allo_use1.loc[allo_use1.catch == 0, 'catch'] = nan
     allo5.rename(columns={'catch_grp':'catch'}, inplace=True)
-    allo5['usage_ratio_est'] = nan
-    allo5['usage_est'] = nan
+    cols1 = ['crc', date_col, 'take_type', 'use_type', 'allo_block', 'wap', usage_col, allo_col, 'mon_restr_allo_m3', 'catch', 'cwms']
+    allo6 = allo5[cols1].copy()
+    allo6['usage_ratio_est'] = nan
+    allo6['usage_est'] = nan
 
     ##  Index useful years
     dates = date_range(date_start, date_end, freq='M')
-    dates_index = allo5[date_col].isin(dates)
-    allo_use1a = allo5[dates_index]
+    dates_index = allo6[date_col].isin(dates)
+    allo_use1a = allo6[dates_index]
 
     ## Estimate the usage ratio from annual updated allocations
-    allo_use2 = allo_use1a[allo_use1a[usage_col].notnull()]
+    allo_use1b = allo_use1a[allo_use1a[usage_col].notnull()]
 
+    ## Aggregate waps
+    sum1 = allo_use1b.groupby(['crc', 'take_type', 'allo_block', date_col])[[usage_col, allo_col, 'mon_restr_allo_m3']].sum()
+    first1 = allo_use1b.groupby(['crc', 'take_type', 'allo_block', date_col])[['use_type', 'catch', 'cwms']].first()
+    allo_use2 = concat([sum1, first1], axis=1).reset_index()
+
+    ## Calc usage ratio
     allo_use2.loc[:, 'usage_ratio'] = allo_use2[usage_col]/allo_use2[allo_col]
     allo_use2.loc[allo_use2.usage_ratio > 2 ,'usage_ratio'] = nan
 
     ## group by month, use type, and catchment number
     allo_use2_grp = allo_use2[[date_col, 'use_type', 'usage_ratio', 'catch', 'mon_restr_allo_m3']].groupby([date_col, 'use_type', 'catch'])
 
-    allo_use3 = allo_use1a
+    allo_use3 = allo_use1a.copy()
     allo_use3_grp = allo_use3[[date_col, 'use_type', 'catch',  'mon_restr_allo_m3']].groupby([date_col, 'use_type', 'catch'])
 
     ## group by month, use type, and zone
@@ -670,13 +678,14 @@ def est_use(allo_use, allo_use_ros, allo_gis, date_col='date', usage_col='mon_us
     allo3.loc[no_usage_index, 'usage_est'] = (allo3.loc[no_usage_index, allo_col] * allo3.loc[no_usage_index, 'usage_ratio_est']).round(2)
 
     ### Merge all of the allo with the recent usage est
-    allo5.loc[dates_index, ['usage_ratio_est', 'usage_est']] = allo3[['usage_ratio_est', 'usage_est']].values
+    allo5.loc[dates_index, 'usage_est'] = allo3['usage_est'].values
+    allo5.loc[dates_index, 'usage_ratio_est'] = allo3['usage_ratio_est'].values
 
     col_names = allo2.columns.tolist()
 #    col_names.extend(['sd1_150', 'usage_ratio_est', 'usage_est'])
     col_names.extend(['usage_ratio_est', 'usage_est'])
 
-    allo_use2 = allo5[col_names]
+    allo_use2 = allo5[col_names].copy()
 
     if export:
         allo_use2.to_hdf(export_path, 'usage_est', mode='w')
@@ -705,7 +714,7 @@ def hist_sd_use(usage_est, allo_gis, vcn_grid2, vcn_data_path, date_col='date', 
     ### Read in data
     vcn_sites = vcn_grid2[vcn_grid2.ecan_id.notnull()]
     vcn_sites_lst = vcn_sites.ecan_id.astype('int32').values
-    vcn_data = rd_vcn(data_dir=vcn_data_path, select=vcn_sites_lst, data_type='ET', export=False)
+    vcn_data = rd_vcn(data_dir=vcn_data_path, select=vcn_sites_lst, data_type='ET')
     vcn_sites2 = vcn_sites[in1d(vcn_sites.ecan_id, vcn_data.columns)].sort_values('ecan_id')
 
     ### Resample the ET series to monthly sums

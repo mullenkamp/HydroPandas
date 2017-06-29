@@ -18,4 +18,6 @@ def create_rch_package(m, rch_version):
 
 
 def _get_rch(version): #todo
+    # get new rch values for nwai
+    # create rch values for south wai
     raise NotImplementedError()

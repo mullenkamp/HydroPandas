@@ -105,7 +105,7 @@ def select_sites(x):
         else:
             x1 = read_csv(x).iloc[:, 0].values
 
-    return(x1)
+    return(x1.copy())
 
 
 def merge_two_dicts(x, y):
@@ -185,9 +185,13 @@ def time_switch(x):
     }.get(x, 'A')
 
 
-def unarchive_dir(folder, ext='zip'):
+def unarchive_dir(folder, ext='zip', rem_original=False):
     """
     Function to unarchive files in all subfolders into those subfolders.
+
+    folder -- The base directory.\n
+    ext -- The archive file extension to be extracted.\n
+    rem_original -- Should the original archive files be removed after extraction?
     """
     import patoolib, fnmatch, os
 
@@ -196,9 +200,11 @@ def unarchive_dir(folder, ext='zip'):
             print(os.path.join(root, filename))
 #            pyunpack.zipfile.ZipFile(os.path.join(root, filename)).extractall(root)
             patoolib.extract_archive(os.path.join(root, filename), outdir=root, interactive=False)
+            if rem_original:
+                os.remove(os.path.join(root, filename))
 
 
-def save_df(df, path_str, index=True):
+def save_df(df, path_str, index=True, header=True):
     """
     Function to save a dataframe based on the path_str extension. The path_str must  either end in csv or h5.
 
@@ -213,7 +219,7 @@ def save_df(df, path_str, index=True):
     if path1[1] in '.h5':
         df.to_hdf(path_str, 'df', mode='w')
     if path1[1] in '.csv':
-        df.to_csv(path_str, index=index)
+        df.to_csv(path_str, index=index, header=header)
 
 
 
