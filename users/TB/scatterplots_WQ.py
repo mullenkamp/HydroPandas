@@ -116,6 +116,7 @@ def extract_TP(x):
     filename = sitename+'_scatter_TN_'
     df2[['Date','TN']].set_index('Date').plot(style='.', title = sitename)
     plt.legend(frameon=True, facecolor = 'white', framealpha = 1.0)
+    plt.ylabel('TN in microg/L')
     plt.show()
     plt.savefig(str(datapath_out2)+filename+'.jpg')
     plt.close()
@@ -156,6 +157,7 @@ def extract_TP(x):
     filename = sitename+'_scatter_chla_'
     df3[['Date','chla']].set_index('Date').plot(style='.', title = sitename)
     plt.legend(frameon=True, facecolor = 'white', framealpha = 1.0)
+    plt.ylabel('Chla in microg/L')
     plt.show()
     plt.savefig(str(datapath_out3)+filename+'.jpg')
     plt.close()
@@ -173,6 +175,7 @@ def extract_TP(x):
     filename = sitename+'_scatter_Turbidity_'
     df4[['Date','Turbidity']].set_index('Date').plot(style='.', title = sitename)
     plt.legend(frameon=True, facecolor = 'white', framealpha = 1.0)
+    plt.ylabel('TP in microg/L')
     plt.show()
     plt.savefig(str(datapath_out4)+filename+'.jpg')
     plt.close()
