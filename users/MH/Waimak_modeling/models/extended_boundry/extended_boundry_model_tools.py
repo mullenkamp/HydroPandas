@@ -17,7 +17,7 @@ _mt = ModelTools('ex_bd_va', sdp='{}/ex_bd_va_sdp'.format(sdp), ulx=1512162.5327
                  rows=rows, cols=cols, grid_space=200, temp_file_dir=temp_file_dir, base_mod_path=None)
 
 
-def _elvdb_calc():  # todo
+def _elvdb_calc():  # todo, add pickle
     top = gdalOpen("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/tops.tif".format(sdp)).ReadAsArray()
     top[np.isclose(top, -3.40282306074e+038)] = 0
 
@@ -45,25 +45,27 @@ def _get_basement():
     return basement2
 
 
-def _no_flow_calc():  # todo
-    elv_db = _elvdb_calc()
-    basement = _get_basement()
-    constant_heads = _get_constant_heads()
-
-    #todo watch the pockets of no-flow inside the model
-    org_no_flow = gib() #todo is this wise given layering may change
-    no_flow = np.zeros(_mt.layers,_mt.rows,_mt.cols)
-    no_flow[:,:,]
-
-
-    # load original
-    # add on rows via repetition of zeros
+def _no_flow_calc():  # todo, add pickle if it takes long...
+    no_flow = np.zeros((_mt.layers,_mt.rows,_mt.cols))
+    outline = _mt.shape_file_to_model_array("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/new_active_domain.shp".format(sdp),'DN',True)
+    no_flow[np.isfinite(outline)] = 1
     # convert shapefile to array and set all to 1 then add to the active boundry (set all <0 to 1)
-    # set all of those greater than 1 to 1
-    # load constant head cell lines/polygons and set those to -1 load polygons as -1
 
+    # set no flow from boundry
+    tops = _elvdb_calc()[0:_mt.layers-1]
+    if len(tops) != _mt.layers:
+        raise ValueError('wrong number of layers returned')
+    basement = np.repeat(_get_basement()[np.newaxis,:,:], _mt.layers, axis=0)
+    no_flow[basement >= tops] = 0
 
-    raise NotImplementedError
+    #todo check the pockets of no-flow inside the model, and general domain
+
+    # set constant heads  to -1
+    constant_heads = _get_constant_heads()
+    no_flow[np.isfinite(constant_heads)] = -1
+
+    return no_flow
+
 
 
 def _get_constant_heads():
@@ -81,7 +83,7 @@ def _get_constant_heads():
     idx = np.isfinite(waihora)
     outdata[0][idx] = wai_val
 
-    # model boundry (sw)... how many layers for this
+    # todo model boundry (sw)... how many layers for this
     # return a 3d array (layer, col, row) of constant heads values and np.nan for all others.
 
 
@@ -93,10 +95,6 @@ smt = ModelTools(
     cols=cols, grid_space=200, no_flow_calc=_no_flow_calc, temp_file_dir=temp_file_dir, elv_calculator=_elvdb_calc,
     base_mod_path=None
 )
-
-
-
-
 
 
 

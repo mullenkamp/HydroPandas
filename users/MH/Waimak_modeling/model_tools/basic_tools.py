@@ -48,7 +48,7 @@ def df_to_array(dataframe, value_to_map, _3d=False, kij = (17, 190, 365)):
             raise ValueError('dataframe missing keys')
         outdata = np.zeros((rows,cols))
         for i in dataframe.index:
-            row, col = dataframe.loc[i,['i','j']]
+            row, col = dataframe.loc[i,['i','j']].astype(int)
             outdata[row,col] = dataframe.loc[i,value_to_map]
 
     return outdata

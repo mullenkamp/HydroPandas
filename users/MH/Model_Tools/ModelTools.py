@@ -88,18 +88,26 @@ class ModelTools(object):
         :return: array
         """
         if _3d:
+            layval,rowval,colval = 'k','i','j'
             if not np.in1d(['k', 'i', 'j', value_to_map], dataframe.keys()).all():
-                raise ValueError('dataframe missing keys')
+                if np.in1d(['layer', 'row', 'col', value_to_map], dataframe.keys()).all():
+                    layval, rowval, colval = 'layer','row','col'
+                else:
+                    raise ValueError('dataframe missing keys')
             outdata = np.zeros((self.layers, self.rows, self.cols))
             for i in dataframe.index:
-                layer, row, col = dataframe.loc[i, ['k', 'i', 'j']]
+                layer, row, col = dataframe.loc[i, [layval, rowval, colval]]
                 outdata[layer, row, col] = dataframe.loc[i, value_to_map]
         else:
+            rowval, colval = 'i', 'j'
             if not np.in1d(['i', 'j', value_to_map], dataframe.keys()).all():
-                raise ValueError('dataframe missing keys')
+                if np.in1d(['row', 'col', value_to_map], dataframe.keys()).all():
+                    rowval, colval = 'row','col'
+                else:
+                    raise ValueError('dataframe missing keys')
             outdata = np.zeros((self.rows, self.cols))
             for i in dataframe.index:
-                row, col = dataframe.loc[i, ['i', 'j']]
+                row, col = dataframe.loc[i, [rowval, colval]]
                 outdata[row, col] = dataframe.loc[i, value_to_map]
 
         return outdata

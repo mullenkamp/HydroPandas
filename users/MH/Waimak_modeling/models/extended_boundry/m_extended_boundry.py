@@ -43,7 +43,6 @@ def create_m_extended_boundry(name, dir_path, safe_mode=True, mt3d_link=False, v
         k_version = 1
         rch_version = 1
         wel_version = 1
-        drn_version = 1
 
     else:
         raise NotImplementedError('model version {} has not yet been defined'.format(version))
@@ -53,7 +52,7 @@ def create_m_extended_boundry(name, dir_path, safe_mode=True, mt3d_link=False, v
     m_packages.create_lay_prop_package(m, k_version)
     m_packages.create_rch_package(m, rch_version)
     m_packages.create_wel_package(m, wel_version)
-    m_packages.create_drn_package(m, drn_version)
+    m_packages.create_drn_package(m, wel_version=wel_version, reach_version=reach_v)
     m_packages.create_sfr_package(m, sfr_version, seg_v, reach_v)
 
     # add simple packages
