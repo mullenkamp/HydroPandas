@@ -256,7 +256,7 @@ def rd_squalarc(sites, mtypes=None, from_date=None, to_date=None, convert_dtl=Tr
     return(data3)
 
 
-def write_sql(server, database, table, df, dtype_dict, create_table=True):
+def write_sql(server, database, table, df, dtype_dict, create_table=True, drop_table=False):
     """
     Function to write pandas dataframes to mssql server tables. Must have write permissions!
 
@@ -266,7 +266,8 @@ def write_sql(server, database, table, df, dtype_dict, create_table=True):
     table -- The specific table within the database to be written to (str). e.g.: 'flow_data'\n
     df -- Pandas DataFrame.\n
     dtype_dict -- Dictionary of df columns to the associated sql data type (as a string).\n
-    create_table -- Should a new table be created or should it be appended to an existing table?.
+    create_table -- Should a new table be created or should it be appended to an existing table?.\n
+    drop_table -- If the table already exists, should it be dropped?
     """
     from pandas import to_datetime
     from pymssql import connect
@@ -310,6 +311,12 @@ def write_sql(server, database, table, df, dtype_dict, create_table=True):
 
     conn = connect(server, database=database)
     cursor = conn.cursor()
+
+    #### Drop table if it exists
+    if drop_table:
+        drop_stmt = "IF OBJECT_ID(" + str([table])[1:-1] + ", 'U') IS NOT NULL DROP TABLE " + table
+        cursor.execute(drop_stmt)
+        conn.commit()
 
     #### Create table in database
     if create_table:
