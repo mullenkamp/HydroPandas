@@ -76,15 +76,15 @@ def get_mean_water_level():
     out_data.loc[:,'mid_screen_elv'] = out_data.loc[:,'ground_level'] - out_data.loc[:,'mid_screen_depth']
     data2008 = data.loc[data['year'] >= 2008]
     for val, dat in zip(['_2008',''],[data2008, data]):
-        g = dat.loc[(dat.data > -999) | (dat.data < 999)].groupby('site')
+        g = dat.loc[(dat.data > -999) & (dat.data < 999)].groupby('site')
         out_data['h2o_dpth{}'.format(val)] = g.aggregate({'data':np.mean})
 
-        temp = dat.loc[np.in1d(dat['month'],[10,11,12,1,2,3])]
+        temp = dat.loc[(np.in1d(dat['month'],[10,11,12,1,2,3])) & (dat.data > -999) & (dat.data < 999)]
         tempg = temp.groupby('site')
         out_data['h2o_dpth_irr{}'.format(val)] = tempg.aggregate({'data':np.mean})
         out_data['reading_irr{}'.format(val)] = tempg.count().loc[:,'data']
 
-        temp = dat.loc[np.in1d(dat['month'],[4,5,6,7,8,9])]
+        temp = dat.loc[(np.in1d(dat['month'],[4,5,6,7,8,9])) & (dat.data > -999) & (dat.data < 999)]
         tempg = temp.groupby('site')
         out_data['h2o_dpth_non_irr{}'.format(val)] = tempg.aggregate({'data':np.mean})
 
