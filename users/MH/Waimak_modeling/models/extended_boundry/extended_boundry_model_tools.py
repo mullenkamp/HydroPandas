@@ -17,7 +17,7 @@ _mt = ModelTools('ex_bd_va', sdp='{}/ex_bd_va_sdp'.format(sdp), ulx=1512162.5327
                  rows=rows, cols=cols, grid_space=200, temp_file_dir=temp_file_dir, base_mod_path=None)
 
 
-def _elvdb_calc():  # todo
+def _elvdb_calc():  # todo, add pickle
     top = gdalOpen("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/tops.tif".format(sdp)).ReadAsArray()
     top[np.isclose(top, -3.40282306074e+038)] = 0
 
@@ -45,7 +45,7 @@ def _get_basement():
     return basement2
 
 
-def _no_flow_calc():  # todo
+def _no_flow_calc():  # todo, add pickle
     elv_db = _elvdb_calc()
     basement = _get_basement()
     constant_heads = _get_constant_heads()
@@ -81,7 +81,7 @@ def _get_constant_heads():
     idx = np.isfinite(waihora)
     outdata[0][idx] = wai_val
 
-    # model boundry (sw)... how many layers for this
+    # todo model boundry (sw)... how many layers for this
     # return a 3d array (layer, col, row) of constant heads values and np.nan for all others.
 
 
