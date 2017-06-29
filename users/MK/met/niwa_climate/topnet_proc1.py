@@ -5,33 +5,87 @@ Created on Fri Jun 16 11:38:19 2017
 @author: MichaelEK
 """
 
-from xarray import open_dataset, open_mfdataset
+from xarray import open_dataset, open_mfdataset, concat
 from os.path import join
 from core.misc import rd_dir
 from geopandas import read_file
 from core.ecan_io.met import nc_add_gis
 from pandas import to_datetime
+from core.ts.met.topnet import proc_topnet_nc
 
-##############################################
+###########################################
 #### Parameters
 
-base_dir = r'I:\niwa_data\topnet\waimak\RCPpast\BCC-CSM1.1'
-nc1 = 'streamq_daily_average_1972010200_1985123100_utc_topnet_13036997_strahler3-R1.nc'
+base_path = r'I:\niwa_data\topnet\waimak'
+out_path = r'E:\ecan\shared\base_data\niwa\climate_projections\topnet\waimak'
+start_str = 'waimak_topnet'
 
-nc2 = r'I:\niwa_data\topnet\waimak\RCP2.6\BCC-CSM1.1\streamq_daily_average_2011010100_2020123100_utc_topnet_13036997_strahler3-Q1.nc'
+
+##########################################
+#### Process data
+
+proc_topnet_nc(base_path, out_path, start_str)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##############################################
+#### Testing
+
+
+#### Parameters
+
+base_path = r'I:\niwa_data\topnet\waimak\RCP4.5'
+nc1 = 'streamq_daily_average_1972010200_1985123100_utc_topnet_13070003_strahler3-R1.nc'
+
+nc2 = r'I:\niwa_data\topnet\waimak\RCPpast\BCC-CSM1.1\streamq_daily_average_1986010100_1995123100_utc_topnet_13070003_strahler3-R1.nc'
 
 nc3 = r'I:\niwa_data\climate_projections\RCP2.6\BCC-CSM1.1\TotalPrecipCorr_VCSN_BCC-CSM1.1_RCP2.6_2006_2120_south-island_p05_daily_ECan.nc'
 
-rec_shp = r'E:\ecan\shared\GIS_base\vector\MFE_REC_rivers_order_3.shp'
-export_shp1 = r'E:\ecan\shared\projects\climate_change\GIS\vector\waimak_rec1.shp'
+nc4 = r'I:\niwa_data\topnet\waimak\RCPpast\CESM1-CAM5\streamq_daily_average_1972010200_1985123100_utc_topnet_13070003_strahler3-F1.nc'
+
+nc5 = r'I:\niwa_data\topnet\waimak\RCP8.5\BCC-CSM1.1\streamq_daily_average_2021010100_2030123100_utc_topnet_13070003_strahler3-S1.nc'
+
+nc6 = r'I:\niwa_data\topnet\waimak\RCP8.5\BCC-CSM1.1\streamq_daily_average_2011010100_2020123100_utc_topnet_13070003_strahler3-T1.nc'
+
+nc7 = r'I:\niwa_data\topnet\waimak\RCP8.5\GISS-EL-R\streamq_daily_average_2041010100_2050123100_utc_topnet_13070003_strahler3-P1.nc'
+
+nc8 = r'E:\ecan\shared\base_data\niwa\climate_projections\topnet\waimak\RCP6.0\waimak_topnet_RCP6.0_BCC-CSM1.1.nc'
+
+nc9 = r'E:\ecan\shared\base_data\niwa\climate_projections\topnet\waimak\RCP6.0\waimak_topnet_RCP6.0_CESM1-CAM5.nc'
+
+rec_shp = r'E:\ecan\shared\GIS_base\vector\streams\rec_mfe_cant_no_1st_2nd.shp'
+export_shp1 = r'E:\ecan\shared\projects\climate_change\GIS\vector\waimak_rec2.shp'
 
 ##############################################
 #### Read data
 
 rec1 = read_file(rec_shp)
 
-ds1 = open_mfdataset(join(base_dir, nc1))
-ds2 = open_mfdataset(nc2)
+ds1 = open_mfdataset(join(base_path, nc1))
+ds1b = open_mfdataset(nc2)
 ds2.close()
 
 ds1.close()
@@ -55,7 +109,19 @@ nc_add_gis(nc3, x_coord, y_coord)
 
 
 ds1['nrch'] = ds1['rchid']
-ds2 = ds1.drop(['basin_lat', 'basin_lon', 'end_lat', 'end_lon'])
+ds2 = ds1.drop(['basin_lat', 'basin_lon', 'end_lat', 'end_lon', 'rchid', 'time_bnds', 'snwarea_elev_mod', 'snwstor_elev'])
+ds3 = ds2.squeeze('nens')
+ds3['time'] = to_datetime(to_datetime(ds3['time'].data).date)
+
+
+ds1b['nrch'] = ds1b['rchid']
+ds2b = ds1b.drop(['basin_lat', 'basin_lon', 'end_lat', 'end_lon', 'rchid', 'time_bnds', 'snwarea_elev_mod', 'snwstor_elev'])
+ds3b = ds2b.squeeze('nens')
+ds3b['time'] = to_datetime(to_datetime(ds3b['time'].data).date)
+
+
+ds4 = concat([ds3, ds3b], 'time')
+
 
 flow1 = ds2['river_flow_rate_mod'].copy()
 
@@ -72,19 +138,23 @@ time2 = to_datetime(to_datetime(time1).date)
 flow1['time'] = time2.values
 
 
+ds7 = open_dataset(nc4)
+ds7.close()
+
+ds7 = open_dataset(nc5)
+ds7.close()
+
+ds7 = open_dataset(nc8)
+ds7.close()
+
+ds9 = open_dataset(nc9)
+ds9.close()
+
+time1 = to_datetime(ds7.time.data)
+time2 = to_datetime(ds9.time.data)
 
 
-
-
-
-
-
-
-
-
-
-
-
+time2[~time2.isin(time1)]
 
 
 
