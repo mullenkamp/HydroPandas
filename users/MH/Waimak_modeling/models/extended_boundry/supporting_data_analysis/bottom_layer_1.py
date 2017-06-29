@@ -76,15 +76,20 @@ def get_mean_water_level():
     out_data.loc[:,'mid_screen_elv'] = out_data.loc[:,'ground_level'] - out_data.loc[:,'mid_screen_depth']
     data2008 = data.loc[data['year'] >= 2008]
     for val, dat in zip(['_2008',''],[data2008, data]):
-        g = dat.groupby('site')
         temp = dat.loc[np.in1d(dat['month'],[10,11,12,1,2,3])]
         tempg = temp.groupby('site')
-        out_data['h2o_dpth{}'.format(val)] = g.aggregate({'data':np.mean})
+        g2 = dat.loc[(dat.data > -999) | (data.data < 999)].groupby
+        out_data['h2o_dpth{}'.format(val)] = g2.aggregate({'data':np.mean})
+        g = dat.groupby('site')
         out_data['readings{}'.format(val)] = g.count().loc[:,'data']
         out_data['reading_irr{}'.format(val)] = tempg.count().loc[:,'data']
+        g3 = dat.loc[(dat.data <= -999)].groupby
+        out_data['count_dry'] = g3.count().loc[:,'data']
+        g4 = dat.loc[(data.data >= 999)].groupby
+        out_data['count_flowing'] = g4.count().loc[:,'data']
 
-    out_data['h2o_lv_2008'] = out_data.loc[:,'ref_level'] - out_data.loc[:,'h2o_dpth_2008']
-    out_data['h2o_lv'] = out_data.loc[:,'ref_level'] - out_data.loc[:,'h2o_dpth']
+    out_data['h2o_lv_2008'] = out_data.loc[:,'ref_level'] + out_data.loc[:,'h2o_dpth_2008']
+    out_data['h2o_lv'] = out_data.loc[:,'ref_level'] + out_data.loc[:,'h2o_dpth']
 
     out_data['piezo_s_date'] = None
     out_data['seasonal_correction_factor'] = None
@@ -97,7 +102,7 @@ def get_mean_water_level():
 
 if __name__ == '__main__':
     test = get_mean_water_level()
-    test.to_csv(r"C:\Users\MattH\Downloads\test_mean_water_level.csv")
+    test.to_csv(env.sci("Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/water_levels_for_wells.csv"))
 
     #test = pd.read_csv(r"C:\Users\MattH\Downloads\test_mean_water_level.csv")
 
