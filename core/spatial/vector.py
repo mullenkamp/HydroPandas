@@ -53,33 +53,6 @@ def sel_sites_poly(pts, poly, buffer_dis=0):
     return(points2)
 
 
-def sel_sites_poly1(poly_shp, points_shp, buffer_dis=0):
-    """
-    Simple function to select points within a single polygon. Optional buffer.
-    """
-    from geopandas import read_file
-
-    #### Read in data
-    if type(poly_shp) is str:
-        poly1 = read_file(poly_shp)
-        points = read_file(points_shp)
-    else:
-        poly1 = poly_shp
-        points = points_shp
-
-    #### Perform vector operations for initial processing
-    ## Dissolve polygons by id
-    poly2 = poly1.unary_union
-
-    ## Create buffer
-    poly_buff = poly2.buffer(buffer_dis)
-
-    ## Select only the vcn sites within the buffer
-    points2 = points[points.within(poly_buff)]
-
-    return(points2)
-
-
 def pts_poly_join(pts, poly, poly_id_col):
     """
     Simple function to join the attributes of the polygon to the points. Specifically for an ID field in the polygon.
@@ -149,7 +122,7 @@ def xy_to_gpd(id_col, x_col, y_col, df=None, crs=2193):
     from shapely.geometry import Point
     from geopandas import GeoDataFrame
     from core.misc import select_sites
-    from pandas import Series
+    from pandas import Series, Index
     from numpy import ndarray
     from core.spatial import convert_crs
 
@@ -161,7 +134,7 @@ def xy_to_gpd(id_col, x_col, y_col, df=None, crs=2193):
         geometry = [Point(xy) for xy in zip(x1, y1)]
     if isinstance(id_col, str):
         id_data = df[id_col]
-    elif isinstance(id_col, (list, ndarray, Series)):
+    elif isinstance(id_col, (list, ndarray, Series, Index)):
         id_data = id_col
     gpd = GeoDataFrame(id_data, geometry=geometry, crs=convert_crs(crs))
     return(gpd)

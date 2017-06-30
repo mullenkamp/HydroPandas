@@ -8,11 +8,11 @@ Interpolation functions for Met data.
 """
 
 
-def sel_interp_agg(precip, sites, poly, grid_res, data_col, time_col, x_col, y_col, buffer_dis=10000, interp_fun='multiquadric', agg_ts_fun=None, period=None, digits=3, agg_xy=False, output_format='csv', nfiles='many', output_path='precip_interp.csv'):
+def sel_interp_agg(precip, precip_crs, poly, grid_res, data_col, time_col, x_col, y_col, buffer_dis=10000, interp_fun='multiquadric', agg_ts_fun=None, period=None, digits=3, agg_xy=False, output_format=None, nfiles='many', output_path='precip_interp.csv'):
     """
     Function to select the precip sites within a polygon with a certain buffer distance, then interpolate/resample the data at a specific resolution, then output the results.
     precip -- dataframe of time, x, y, and precip.\n
-    sites -- GeoDataFrame of site locations.\n
+    precip_crs -- The crs of the x and y coordinates of the precip dataframe.\n
     poly -- String path of a shapefile polygon.\n
     res -- Resolution in meters of the resampling.\n
     buffer_dis -- Buffer distance of the polygon selection.\n
@@ -30,15 +30,23 @@ def sel_interp_agg(precip, sites, poly, grid_res, data_col, time_col, x_col, y_c
     from geopandas import read_file
     from numpy import tile
     from os import path
+    from pandas import merge
+
+    ### Convert x and y of precip to geodataframe
+    sites0 = precip[[x_col, y_col]].drop_duplicates().reset_index(drop=True)
+    sites = xy_to_gpd(sites0.index, sites0[x_col], sites0[y_col], crs=precip_crs)
+    sites.columns = ['site', 'geometry']
 
     ### Select the locations within the polygon
     poly1 = read_file(poly)
     sites1 = sites.to_crs(poly1.crs)
     sites_sel = sel_sites_poly(sites1, poly, buffer_dis)
-    sites2 = sites[sites.site.isin(sites_sel.site)]
+    sites2 = sites0.loc[sites_sel['site']]
+#    sites3 = precip[precip[x_col].isin(sites2[x_col].unique()) & precip[y_col].isin(sites2[y_col].unique())]
+#    sites2 = sites[sites.site.isin(sites_sel.site)]
 
     ### Select the precip data from the sites
-    precip2 = precip[precip.site.isin(sites2.site)]
+    precip2 = merge(precip, sites2, on=['x', 'y']).dropna()
 
     ### Interpolate grid
     poly_crs = ['+' + str(i) + '=' + str(poly1.crs[i]) for i in poly1.crs]
