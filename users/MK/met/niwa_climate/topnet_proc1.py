@@ -68,7 +68,7 @@ nc4 = r'I:\niwa_data\topnet\waimak\RCPpast\CESM1-CAM5\streamq_daily_average_1972
 
 nc5 = r'I:\niwa_data\topnet\waimak\RCP8.5\BCC-CSM1.1\streamq_daily_average_2021010100_2030123100_utc_topnet_13070003_strahler3-S1.nc'
 
-nc6 = r'I:\niwa_data\topnet\waimak\RCP8.5\BCC-CSM1.1\streamq_daily_average_2011010100_2020123100_utc_topnet_13070003_strahler3-T1.nc'
+nc6 = r'I:\niwa_data\topnet\waimak\RCP6.0\HadGEM2-ES\streamq_daily_average_2081010100_2090123100_utc_topnet_13070003_strahler3-C1.nc'
 
 nc7 = r'I:\niwa_data\topnet\waimak\RCP8.5\GISS-EL-R\streamq_daily_average_2041010100_2050123100_utc_topnet_13070003_strahler3-P1.nc'
 
@@ -143,6 +143,9 @@ ds7.close()
 
 ds7 = open_dataset(nc5)
 ds7.close()
+
+ds6 = open_dataset(nc6)
+ds6.close()
 
 ds7 = open_dataset(nc8)
 ds7.close()

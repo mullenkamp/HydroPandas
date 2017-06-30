@@ -7,7 +7,7 @@ Created on Fri Jun 30 10:42:42 2017
 
 from core.ecan_io import rd_niwa_vcsn, rd_sql
 from core.ts.met.interp import sel_interp_agg
-
+from pandas import merge, concat
 
 #############################################
 ### Parameters
@@ -25,7 +25,7 @@ paw_cols_rename = {'WeightAvgPAW': 'paw'}
 bound_shp = r'S:\Surface Water\backups\MichaelE\Projects\requests\waimak\2017-06-12\waimak_area.shp'
 
 output_precip = r'S:\Surface Water\shared\projects\lsrm\testing\precip_resample1.nc'
-
+output_et = r'S:\Surface Water\shared\projects\lsrm\testing\et_resample1.nc'
 
 ###########################################
 ### Extract data
@@ -43,11 +43,11 @@ precip_et = rd_niwa_vcsn(['precip', 'PET'], bound_shp)
 
 new_rain = sel_interp_agg(precip_et, 4326, bound_shp, 1000, 'rain', 'time', 'x', 'y', agg_ts_fun='sum', period='W', output_path=output_precip)
 
+new_et = sel_interp_agg(precip_et, 4326, bound_shp, 1000, 'pe', 'time', 'x', 'y', agg_ts_fun='sum', period='W', output_path=output_et)
 
+new_rain_et = concat([new_rain, new_et], axis=1)
 
-
-
-
+#ds1 = new_rain_et.to_xarray()
 
 
 
