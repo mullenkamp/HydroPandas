@@ -77,7 +77,7 @@ def grid_interp_ts(df, time_col, x_col, y_col, data_col, grid_res, from_crs=None
     time_df = repeat(time, len(x_int2))
     x_df = tile(x_int2, len(time))
     y_df = tile(y_int2, len(time))
-    new_df = DataFrame({'time': time_df, 'x': x_df, 'y': y_df, 'precip': repeat(0, len(time) * len(x_int2))})
+    new_df = DataFrame({'time': time_df, 'x': x_df, 'y': y_df, data_col: repeat(0, len(time) * len(x_int2))})
 
     new_lst = []
     for t in time:
@@ -86,7 +86,7 @@ def grid_interp_ts(df, time_col, x_col, y_col, data_col, grid_res, from_crs=None
         new_z = grid_resample(x, y, set1.values, x_int, y_int, digits, interp_fun)
         new_lst.extend(new_z.tolist())
         print(t)
-    new_df.loc[:, 'precip'] = new_lst
+    new_df.loc[:, data_col] = new_lst
 
     #### Export results
     return(new_df)
