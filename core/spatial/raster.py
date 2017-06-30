@@ -19,7 +19,7 @@ def grid_interp_ts(df, time_col, x_col, y_col, data_col, grid_res, from_crs=None
     to_crs -- The projection for the output data similar to from_crs.\n
     interp_fun -- The scipy Rbf interpolation function to be applied (see https://docs.scipy.org/doc/scipy-0.16.1/reference/generated/scipy.interpolate.Rbf.html).\n
     agg_ts_fun -- The pandas time series resampling function to resample the data in time (either 'mean' or 'sum'). If None, then no time resampling.\n
-    agg_ts_fun -- The pandas time series code to resample the data in time (i.e. '2H' for two hours).\n
+    period -- The pandas time series code to resample the data in time (i.e. '2H' for two hours).\n
     digits -- the number of digits to round to (int).
     """
     from numpy import arange, meshgrid, tile, repeat
@@ -32,13 +32,27 @@ def grid_interp_ts(df, time_col, x_col, y_col, data_col, grid_res, from_crs=None
 
     #### Create the grids
     df1 = df.copy()
-    time = df1[time_col].unique()
+
+    #### Resample the time series data
+    if agg_ts_fun is not None:
+        df1a = df1.set_index(time_col)
+        if agg_ts_fun == 'sum':
+            df2 = df1a.groupby([TimeGrouper(period), Grouper(y_col), Grouper(x_col)])[data_col].sum().reset_index()
+        elif agg_ts_fun == 'mean':
+            df2 = df1a.groupby([TimeGrouper(period), Grouper(y_col), Grouper(x_col)])[data_col].mean().reset_index()
+        else:
+            raise ValueError("agg_ts_fun should be either 'sum' or 'mean'.")
+        time = df2[time_col].unique()
+    else:
+        df2 = df1
+
+    time = df2[time_col].unique()
 
     if from_crs is None:
-        x = df1.loc[df1[time_col] == time[0], x_col].values
-        y = df1.loc[df1[time_col] == time[0], y_col].values
+        x = df2.loc[df2[time_col] == time[0], x_col].values
+        y = df2.loc[df2[time_col] == time[0], y_col].values
     else:
-        data1 = df1.loc[df1[time_col] == time[0]]
+        data1 = df2.loc[df2[time_col] == time[0]]
         from_crs1 = convert_crs(from_crs, pass_str=True)
         to_crs1 = convert_crs(to_crs, pass_str=True)
         geometry = [Point(xy) for xy in zip(data1[x_col], data1[y_col])]
@@ -57,19 +71,6 @@ def grid_interp_ts(df, time_col, x_col, y_col, data_col, grid_res, from_crs=None
     new_y = arange(min_y, max_y, grid_res)
     x_int, y_int = meshgrid(new_x, new_y)
 
-    #### Resample the time series data
-    if agg_ts_fun is not None:
-        df1a = df1.set_index(time_col)
-        if agg_ts_fun == 'sum':
-            df2 = df1a.groupby([TimeGrouper(period), Grouper(y_col), Grouper(x_col)])[data_col].sum().reset_index()
-        elif agg_ts_fun == 'mean':
-            df2 = df1a.groupby([TimeGrouper(period), Grouper(y_col), Grouper(x_col)])[data_col].mean().reset_index()
-        else:
-            raise ValueError("agg_ts_fun should be either 'sum' or 'mean'.")
-        time = df2[time_col].unique()
-    else:
-        df2 = df1
-
     #### Create new df
     x_int2 = x_int.flatten()
     y_int2 = y_int.flatten()
@@ -78,14 +79,12 @@ def grid_interp_ts(df, time_col, x_col, y_col, data_col, grid_res, from_crs=None
     y_df = tile(y_int2, len(time))
     new_df = DataFrame({'time': time_df, 'x': x_df, 'y': y_df, 'precip': repeat(0, len(time) * len(x_int2))})
 
-    #### Resample the entire surface
-#    df2_new = DataFrame((grid_resample(x, y, df1.loc[i, data_col].values, x_int, y_int) for i in time), index=df2.index)
-
     for t in time:
         set1 = df2.loc[df2[time_col] == t, data_col]
         index = new_df[new_df['time'] == t].index
         new_z = grid_resample(x, y, set1.values, x_int, y_int, digits, interp_fun)
         new_df.loc[index, 'precip'] = new_z
+        print(t)
 
     #### Export results
     return(new_df)

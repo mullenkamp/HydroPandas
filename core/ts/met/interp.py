@@ -8,7 +8,7 @@ Interpolation functions for Met data.
 """
 
 
-def sel_interp_agg(precip, precip_crs, poly, grid_res, data_col, time_col, x_col, y_col, buffer_dis=10000, interp_fun='multiquadric', agg_ts_fun=None, period=None, digits=3, agg_xy=False, output_format=None, nfiles='many', output_path='precip_interp.csv'):
+def sel_interp_agg(precip, precip_crs, poly, grid_res, data_col, time_col, x_col, y_col, buffer_dis=10000, interp_fun='multiquadric', agg_ts_fun=None, period=None, digits=3, agg_xy=False, output_format=None, nfiles='many', output_path=None):
     """
     Function to select the precip sites within a polygon with a certain buffer distance, then interpolate/resample the data at a specific resolution, then output the results.
     precip -- dataframe of time, x, y, and precip.\n
@@ -73,17 +73,18 @@ def sel_interp_agg(precip, precip_crs, poly, grid_res, data_col, time_col, x_col
 
     ### Save results
     path1 = path.splitext(output_path)[0]
-    if 'csv' in output_format:
-        new_precip3.to_csv(path1 + '.csv', header=True)
+    if isinstance(output_path, str):
+        if '.csv' in output_path:
+            new_precip3.to_csv(path1 + '.csv', header=True)
 
-    if 'geotiff' in output_format:
-        df = new_precip3.reset_index()
-        save_geotiff(df=df, data_col=data_col, crs=poly_crs1, x_col=x_col, y_col=y_col, time_col=time_col, nfiles=nfiles, export_path=path1 + '.tif')
+        if '.tif' in output_path:
+            df = new_precip3.reset_index()
+            save_geotiff(df=df, data_col=data_col, crs=poly_crs1, x_col=x_col, y_col=y_col, time_col=time_col, nfiles=nfiles, export_path=path1 + '.tif')
 
-    if 'netcdf' in output_format:
-        ds1 = new_precip3.to_xarray().to_dataset()
-        ds1.attrs['spatial_ref'] = poly_crs1
-        ds1.to_netcdf(path1 + '.nc')
+        if '.nc' in output_path:
+            ds1 = new_precip3.to_xarray().to_dataset()
+            ds1.attrs['spatial_ref'] = poly_crs1
+            ds1.to_netcdf(path1 + '.nc')
 
     return(new_precip3)
 

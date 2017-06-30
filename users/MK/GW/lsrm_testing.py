@@ -24,6 +24,8 @@ paw_cols_rename = {'WeightAvgPAW': 'paw'}
 
 bound_shp = r'S:\Surface Water\backups\MichaelE\Projects\requests\waimak\2017-06-12\waimak_area.shp'
 
+output_precip = r'S:\Surface Water\shared\projects\lsrm\testing\precip_resample1.nc'
+
 
 ###########################################
 ### Extract data
@@ -39,7 +41,7 @@ precip_et = rd_niwa_vcsn(['precip', 'PET'], bound_shp)
 ##########################################
 ### Resample data
 
-new_rain = sel_interp_agg(precip_et, 4326, bound_shp, 1000, 'rain', 'time', 'x', 'y')
+new_rain = sel_interp_agg(precip_et, 4326, bound_shp, 1000, 'rain', 'time', 'x', 'y', agg_ts_fun='sum', period='W', output_path=output_precip)
 
 
 
@@ -47,6 +49,40 @@ new_rain = sel_interp_agg(precip_et, 4326, bound_shp, 1000, 'rain', 'time', 'x',
 
 
 
+
+
+
+
+
+
+
+
+
+##########################################
+### Testing
+
+precip_crs = 4326
+grid_res = 1000
+data_col = 'rain'
+time_col = 'time'
+x_col = 'x'
+y_col = 'y'
+
+
+precip = precip_et.copy()
+poly = bound_shp
+buffer_dis=10000
+interp_fun='multiquadric'
+agg_ts_fun='sum'
+period='W'
+digits=3
+agg_xy=False
+output_format=None
+
+
+df = precip2.copy()
+from_crs=sites.crs
+to_crs=poly_crs1
 
 
 
