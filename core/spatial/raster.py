@@ -22,7 +22,7 @@ def grid_interp_ts(df, time_col, x_col, y_col, data_col, grid_res, from_crs=None
     period -- The pandas time series code to resample the data in time (i.e. '2H' for two hours).\n
     digits -- the number of digits to round to (int).
     """
-    from numpy import arange, meshgrid, tile, repeat
+    from numpy import arange, meshgrid, tile, repeat, array
     from pandas import DataFrame, TimeGrouper, Grouper
     from core.spatial.raster import grid_resample
     from core.spatial.vector import xy_to_gpd
@@ -46,7 +46,7 @@ def grid_interp_ts(df, time_col, x_col, y_col, data_col, grid_res, from_crs=None
     else:
         df2 = df1
 
-    time = df2[time_col].unique()
+    time = df2[time_col].sort_values().unique()
 
     if from_crs is None:
         x = df2.loc[df2[time_col] == time[0], x_col].values
@@ -79,12 +79,14 @@ def grid_interp_ts(df, time_col, x_col, y_col, data_col, grid_res, from_crs=None
     y_df = tile(y_int2, len(time))
     new_df = DataFrame({'time': time_df, 'x': x_df, 'y': y_df, 'precip': repeat(0, len(time) * len(x_int2))})
 
+    new_lst = []
     for t in time:
         set1 = df2.loc[df2[time_col] == t, data_col]
-        index = new_df[new_df['time'] == t].index
+#        index = new_df[new_df['time'] == t].index
         new_z = grid_resample(x, y, set1.values, x_int, y_int, digits, interp_fun)
-        new_df.loc[index, 'precip'] = new_z
+        new_lst.extend(new_z.tolist())
         print(t)
+    new_df.loc[:, 'precip'] = new_lst
 
     #### Export results
     return(new_df)
