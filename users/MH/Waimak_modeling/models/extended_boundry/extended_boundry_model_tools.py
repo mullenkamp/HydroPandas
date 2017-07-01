@@ -45,7 +45,7 @@ def _get_basement():
     return basement2
 
 
-def _no_flow_calc():  # todo, add pickle if it takes long...
+def _no_flow_calc():  # todo, add pickle if it takes long... shouldn't
     no_flow = np.zeros((_mt.layers,_mt.rows,_mt.cols))
     outline = _mt.shape_file_to_model_array("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/new_active_domain.shp".format(sdp),'DN',True)
     no_flow[np.isfinite(outline)] = 1

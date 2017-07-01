@@ -132,7 +132,6 @@ def _get_s_wai_rivers():
 
     return outdata
 
-    #todo I may add 'losing rivers' as pumping wells
 
 if __name__ == '__main__':
     test = _get_s_wai_wells()
