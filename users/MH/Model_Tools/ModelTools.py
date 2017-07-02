@@ -6,6 +6,7 @@ Date Created: 22/06/2017 3:53 PM
 from __future__ import division
 from core import env
 import numpy as np
+import pandas as pd
 import os
 from warnings import warn
 import pickle
@@ -198,30 +199,51 @@ class ModelTools(object):
             else:
                 return layer, row, col
 
-    def get_all_adjacent_cells(self, cell_locs):
+    def get_all_adjacent_cells(self, cell_locs, _3d=False, return_loc=True):
+        """
+        returns indexs for all adjacent cells in list of cell location
+        :param cell_locs: list of cell locations(k,i,j) or (i,j) see below
+        :param _3d: if true requires (k,i,j) and returns all in 3d else returns all in 2d requires input of (i,j)
+        :param return_loc: bool if True include the indicies for the cell
+        :return:
+        """
 
         cell_locs = np.atleast_2d(cell_locs)
 
         out_locs = []
         for loc in cell_locs:
-            out_locs.append(loc)
+            if return_loc:
+                out_locs.append(loc)
 
-            k = loc[0]
-            i = loc[1]
-            j = loc[2]
 
-            if k != 17:
-                out_locs.append((k + 1, i, j))
-            if k != 0:
-                out_locs.append((k - 1, i, j))
-            if i != 190:
-                out_locs.append((k, i + 1, j))
-            if i != 0:
-                out_locs.append((k, i - 1, j))
-            if j != 365:
-                out_locs.append((k, i, j + 1))
-            if j != 0:
-                out_locs.append((k, i, j - 1))
+
+            if _3d:
+                k = loc[0]
+                i = loc[1]
+                j = loc[2]
+                if k != self.layers-1:
+                    out_locs.append((k + 1, i, j))
+                if k != 0:
+                    out_locs.append((k - 1, i, j))
+                if i != self.rows-1:
+                    out_locs.append((k, i + 1, j))
+                if i != 0:
+                    out_locs.append((k, i - 1, j))
+                if j != self.cols-1:
+                    out_locs.append((k, i, j + 1))
+                if j != 0:
+                    out_locs.append((k, i, j - 1))
+            else:
+                i = loc[0]
+                j = loc[1]
+                if i != self.rows-1:
+                    out_locs.append((i + 1, j))
+                if i != 0:
+                    out_locs.append((i - 1, j))
+                if j != self.cols-1:
+                    out_locs.append((i, j + 1))
+                if j != 0:
+                    out_locs.append((i, j - 1))
 
         return out_locs
 
@@ -538,3 +560,43 @@ class ModelTools(object):
     #todo add base map and cross section
     #todo add elvation check
     #todo add recalc_pickles
+
+    def check_layer_overlap(self,required_overlap = 0.50, top=None, bot=None, use_elv_db=False, layer=None,
+                            return_min = False):
+        """
+        check that there is at least a certain ammount of overlap between cells in a layer \
+        (must match model discritation) users must specifiy either (top and bot) or (use_elv_db and layer)
+        :param required_overlap: fraction of over lap to return if retuning boolean array
+        :param top: top array
+        :param bot: bottom array
+        :param use_elv_db: if true use the elevation database
+        :param layer: the layer to assess if using the elvivation database
+        :param return_min: if true retun the minimum overlap
+        :return: either a boolean array or teh array of the minimum fraction overlap
+        """
+        if (top is None or bot is None) and not (use_elv_db and layer is not None):
+            raise ValueError('more arguments need to be specified: requiers either use_elv_db and layer or top and bot')
+
+        if use_elv_db:
+            elv = self.calc_elv_db()
+            top = elv[layer]
+            bot = elv[layer+1]
+
+        if top.shape != (self.rows,self.cols) or bot.shape != (self.rows,self.cols):
+            raise ValueError('top or bottom shape does not match model discritisation')
+        outdata = np.zeros((self.rows,self.cols))
+        for i in range(self.rows):
+            for j in range(self.cols):
+                cell_top = top[i,j]
+                cell_bot = bot[i,j]
+                thickness = cell_top - cell_bot
+                other_cells = self.get_all_adjacent_cells((i,j),return_loc=False)
+                other_tops = np.array([min(top[tuple(e)],cell_top) for e in other_cells])
+                other_bots = np.array([max(bot[tuple(e)],cell_bot) for e in other_cells])
+                other_thick_frac = (other_tops - other_bots) / thickness
+                outdata[i,j] = other_thick_frac.min()
+
+        if not return_min:
+            outdata = outdata < return_min
+
+        return outdata

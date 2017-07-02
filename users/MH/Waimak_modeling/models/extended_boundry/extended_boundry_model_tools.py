@@ -22,9 +22,18 @@ def _elvdb_calc():  # todo, add pickle
     top[np.isclose(top, -3.40282306074e+038)] = 0
 
     basement = _get_basement()
+    bottom_layer1 = gdalOpen("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/layering/base_layer_1.tif".format(sdp)).ReadAsArray()  # todo define this
+    idx = np.isclose(bottom_layer1, -3.40282306074e+038)
+    bottom_layer1[idx] = top[idx] - 10 #set nan values to 10 m thick.  all these are out of the no-flow bound
 
-    bottom_layer1 = None  # todo define this
-
+    #todo delete below after debug
+    no_flow = np.zeros((rows,cols))
+    outline = _mt.shape_file_to_model_array("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/new_active_domain.shp".format(sdp),'DN',True)
+    no_flow[np.isfinite(outline)] = 1
+    test = _mt.check_layer_overlap(top=top,bot=bottom_layer1,return_min=True)
+    test[~no_flow.astype(bool)] = np.nan
+    _mt.plt_matrix(test)
+    #stop of testing things
     # todo build up the layers based on the above
     outdata = None #todo
 
@@ -47,6 +56,7 @@ def _get_basement():
 
 def _no_flow_calc():  # todo, add pickle if it takes long... shouldn't
     no_flow = np.zeros((_mt.layers,_mt.rows,_mt.cols))
+    # todo weird artifact here in
     outline = _mt.shape_file_to_model_array("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/new_active_domain.shp".format(sdp),'DN',True)
     no_flow[np.isfinite(outline)] = 1
     # convert shapefile to array and set all to 1 then add to the active boundry (set all <0 to 1)
@@ -99,6 +109,6 @@ smt = ModelTools(
 
 
 if __name__ == '__main__':
-   _get_basement()
+   _elvdb_calc()
 
    print 'done'

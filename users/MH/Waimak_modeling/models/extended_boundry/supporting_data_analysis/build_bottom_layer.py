@@ -9,7 +9,8 @@ from core import env
 import geopandas as gpd
 
 if __name__ == '__main__':
-    per_to_add = 0.05
+    per_to_add = 0.10
+    min_to_add = 15
     data2 = gpd.read_file(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\Model Grid\model_layering\shp\grid_for_layer1_bot_keep_safe.shp")
     data2.loc[data2.zone=='man-confined','confin'] = -9999
     data = gpd.read_file(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\Model Grid\model_layering\shp\grid_for_layer1_bot_keep_safe_qa.shp")
@@ -19,24 +20,24 @@ if __name__ == '__main__':
         zone = data.loc[i,'zone']
         if zone =='waimak':
             val = data.loc[i,'waimak']
-            adder = val*0.05
-            if adder < 5:
-                adder = 5
+            adder = val*per_to_add
+            if adder < min_to_add:
+                adder = min_to_add
             data.loc[i,'interp'] = val - adder
         elif zone == 'selwyn':
             val = data.loc[i,'selwyn']
-            adder = val*0.05
-            if adder < 5:
-                adder = 5
+            adder = val* per_to_add
+            if adder < min_to_add:
+                adder = min_to_add
             data.loc[i,'interp'] = val - adder
         elif 'conf' in zone:
             val = data.loc[i,'confin']
             data.loc[i,'interp'] = val
         elif zone =='man-inland':
             val = data.loc[i,'manual']
-            adder = val*0.05
-            if adder < 5:
-                adder = 5
+            adder = val*per_to_add
+            if adder < min_to_add:
+                adder = min_to_add
             data.loc[i,'interp'] = val - adder
         else:
             raise ValueError('unexpedted zone {}'.format(zone))

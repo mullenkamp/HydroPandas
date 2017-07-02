@@ -105,7 +105,7 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
 
         drn_data = pd.concat(drn_data, temp)
 
-    # add the waimakariri drain up above the bridge # todo last if there is time
+    # add the waimakariri drain up above the bridge # todo
 
     # check for null grouping
     if any(pd.isnull(drn_data['group'])):
