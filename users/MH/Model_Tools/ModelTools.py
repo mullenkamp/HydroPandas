@@ -191,7 +191,7 @@ class ModelTools(object):
                     raise ValueError(
                         'returns multiple indexes for layer')
                 elif len(layer[0]) == 0:
-                    raise AssertionError('elevation outside of bounds')
+                    raise AssertionError('elevation: {} outside of bounds'.format(elv))
                 layer = layer[0][0]
                 if return_AE:
                     z0 = (top[layer] - elv) / (top[layer] - bottom[layer])
@@ -431,7 +431,7 @@ class ModelTools(object):
                     if len(top) != 1 or len(bottom) != 1:
                         raise ValueError('well: {} incorrect number of screen values'.format(well))
                     if screen_handling == 'middle':
-                        elv = ground_level - (top.iloc[0] + bottom.iloc[0]) / 2  # also from ground level
+                        elv = (top.iloc[0] + bottom.iloc[0]) / 2  # also from ground level
                         layer_temp, row_temp, col_temp = self.convert_coords_to_matix(lon, lat, elv, elv_db)
                     elif screen_handling == 'all':
                         layer_temp = []
@@ -448,7 +448,7 @@ class ModelTools(object):
                         if len(top) != 1 or len(bottom) != 1:
                             raise ValueError('well: {} incorrect number of screen values for screen {}'.format(well, j))
                         if screen_handling == 'middle':
-                            elv = ground_level - (top.iloc[0] + bottom.iloc[0]) / 2  # also from ground level
+                            elv = (top.iloc[0] + bottom.iloc[0]) / 2  # also from ground level
                             lt, row_temp, col_temp = self.convert_coords_to_matix(lon, lat, elv, elv_db)
                             layer_temp.append(lt)
                         elif screen_handling == 'all':

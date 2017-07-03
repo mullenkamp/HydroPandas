@@ -37,29 +37,34 @@ def _get_wel_spd_v1(recalc=False):  # todo add pickle
         races.loc[site, 'row'], races.loc[site, 'col'] = smt.convert_coords_to_matix(races.loc[site, 'x'],
                                                                                      races.loc[site, 'y'])
     races['zone'] = 'n_wai'
+    races = races.set_index('well')
 
     n_wai_wells = get_nwai_wells()
     for site in n_wai_wells.index:
-        temp = smt.convert_coords_to_matix(n_wai_wells.loc[site, ['x', 'y', 'z']], elv_db=elv_db)
+        x,y,z = n_wai_wells.loc[site, ['x', 'y', 'z']]
+        temp = smt.convert_coords_to_matix(x, y, z, elv_db=elv_db)
         n_wai_wells.loc[site, 'layer'], n_wai_wells.loc[site, 'row'], n_wai_wells.loc[site, 'col'] = temp
     n_wai_wells['zone'] = 'n_wai'
+    n_wai_wells = n_wai_wells.set_index('well')
 
-    s_wai_wells = _get_s_wai_wells()
-    temp = smt.get_well_postions(np.array(s_wai_wells['well']), one_val_per_well=True, raise_exct=False)
+    s_wai_wells = _get_s_wai_wells() #todo there are some s_wai wells which do not have data in wells, but do in consents file fix if bored
+    temp = smt.get_well_postions(np.array(s_wai_wells.index), one_val_per_well=True, raise_exct=False)
     s_wai_wells['layer'], s_wai_wells['row'], s_wai_wells['col'] = temp
     no_flow = smt.get_no_flow()
-    for i in s_wai_wells:
+    for i in s_wai_wells.index:
         layer, row, col = s_wai_wells.loc[i, ['layer', 'row', 'col']]
+        if any(pd.isnull([layer,row,col])):
+            continue
         if no_flow[layer, row, col] == 0:  # get rid of non-active wells
             s_wai_wells.loc[i, 'layer'] = np.nan
 
-    s_wai_wells = pd.dropna(subset=['layer', 'row', 'col'])
+    s_wai_wells = s_wai_wells.dropna(subset=['layer', 'row', 'col'])
 
-    s_wai_rivers = _get_s_wai_rivers()
+    s_wai_rivers = _get_s_wai_rivers().set_index('well')
 
     all_wells = pd.concat((races, n_wai_wells, s_wai_wells, s_wai_rivers))
 
-    return all_wells # todo check output
+    return all_wells
 
 
 def _get_s_wai_wells():
@@ -81,13 +86,13 @@ def _get_s_wai_wells():
     allo2.loc[allo2.loc[:, 'from_date'] > end_time, 'from_date'] = None
     idx = (pd.notnull(allo2.loc[:, 'to_date']) & pd.notnull(allo2.loc[:, 'from_date']))
     allo2.loc[idx, 'temp_days'] = (allo2.loc[idx, 'to_date'] - allo2.loc[idx, 'from_date'])
-    allo2['days'] = [e.days for e in allo2.loc[:, 'temp_days']]
+    allo2.loc[:, 'days'] = [e.days for e in allo2.loc[:, 'temp_days']]
 
     # the below appear to be an interal consents marker... and should not be included here as a replacement consent
     # is active at the same time at the consent with negitive number of days
     allo2.loc[allo2.loc[:, 'days'] < 0, 'days'] = 0
 
-    allo2['flux'] = allo2.loc[:, 'cav'] / 365 * allo2.loc[:, 'days'] / (end_time - start_time).days * -1
+    allo2.loc[:,'flux'] = allo2.loc[:, 'cav'] / 365 * allo2.loc[:, 'days'] / (end_time - start_time).days * -1
 
     out_data = allo2.reset_index().groupby('wap').aggregate({'flux': np.sum, 'crc': ','.join})
     out_data['consent'] = [tuple(e.split(',')) for e in out_data.loc[:, 'crc']]
@@ -96,7 +101,7 @@ def _get_s_wai_wells():
 
     out_data['type'] = 'well'
     out_data['zone'] = 's_wai'
-    out_data = out_data.rename(columns={'wap': 'well'})
+    out_data.index.names = ['well']
     out_data.loc[:,'flux'] *= 0.50  # todo start with a 50% scaling factor from CAV come back if time
 
     return out_data
@@ -134,5 +139,5 @@ def _get_s_wai_rivers():
 
 
 if __name__ == '__main__':
-    test = _get_s_wai_wells()
+    test = _get_wel_spd_v1()
     print 'done'
