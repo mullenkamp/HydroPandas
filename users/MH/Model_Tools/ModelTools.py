@@ -43,7 +43,6 @@ class ModelTools(object):
         self.temp_file_dir = temp_file_dir
         self.model_version_name = model_version_name
         self.pickle_dir = '{}/pickled_files'.format(self.sdp)
-        self.elv_path = '{}/elv_db.p'.format(self.pickle_dir)
         if not os.path.exists(self.pickle_dir):
             os.makedirs(self.pickle_dir)
         self.base_mod_path = base_mod_path
@@ -188,9 +187,11 @@ class ModelTools(object):
                 z0 = 0
             else:
                 layer = np.where((top > elv) & (bottom <= elv))
-                if len(layer[0]) != 1:
+                if len(layer[0]) > 1:
                     raise ValueError(
                         'returns multiple indexes for layer')
+                elif len(layer[0]) == 0:
+                    raise AssertionError('elevation outside of bounds')
                 layer = layer[0][0]
                 if return_AE:
                     z0 = (top[layer] - elv) / (top[layer] - bottom[layer])
@@ -266,7 +267,7 @@ class ModelTools(object):
         band.FlushCache()
         band.SetNoDataValue(-99)
 
-    def plt_matrix(self, array, vmin=None, vmax=None, **kwargs):
+    def plt_matrix(self, array, vmin=None, vmax=None, title=None, no_flow_layer=0, **kwargs):
         import matplotlib.pyplot as plt
         if vmax is None:
             vmax = np.nanmax(array)
@@ -274,14 +275,17 @@ class ModelTools(object):
             vmin = np.nanmin(array)
 
         fig, (ax) = plt.subplots(figsize=(18.5, 9.5))
+        if title is not None:
+            ax.set_title(title)
         ax.set_aspect('equal')
         model_xs, model_ys = self.get_model_x_y()
+        if self._no_flow_calc is not None and no_flow_layer is not None:
+            no_flow = self.get_no_flow(no_flow_layer)
+            ax.contour(model_xs, model_ys, no_flow)
+            array[~no_flow.astype(bool)] = np.nan
         pcm = ax.pcolormesh(model_xs, model_ys, array,
                             cmap='plasma', vmin=vmin, vmax=vmax, **kwargs)
         fig.colorbar(pcm, ax=ax, extend='max')
-        if self._no_flow_calc is not None:
-            no_flow = self.get_no_flow(0)
-            ax.contour(model_xs, model_ys, no_flow)
 
         return fig, ax
 
@@ -494,7 +498,7 @@ class ModelTools(object):
         """
         pickle_path = '{}/elv_dp.p'.format(self.pickle_dir)
         if os.path.exists(pickle_path) and not recalc:
-            elv_db = pickle.load(open(self.elv_path))
+            elv_db = pickle.load(open(pickle_path))
         else:
             elv_db = self._elv_calculator()
             pickle.dump(elv_db,open(pickle_path,'w'))
@@ -504,9 +508,9 @@ class ModelTools(object):
         pickle_path = '{}/no_flow.p'.format(self.pickle_dir)
         if os.path.exists(pickle_path) and not recalc:
             no_flow = pickle.load(open(pickle_path))
-            return no_flow
-        no_flow = self._no_flow_calc
-        pickle.dump(no_flow,open(pickle_path,'w'))
+        else:
+            no_flow = self._no_flow_calc()
+            pickle.dump(no_flow,open(pickle_path,'w'))
         if layer is None:
             return no_flow
         else:

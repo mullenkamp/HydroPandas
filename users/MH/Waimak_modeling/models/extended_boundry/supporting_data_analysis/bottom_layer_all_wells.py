@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 
 #todo someday add to core
 
-def get_mean_water_level():
+def get_mean_water_level(min_reading = 2):
     well_details_org = rd_sql(**sql_db.wells_db.well_details)
     well_details = well_details_org[(well_details_org['WMCRZone'] == 4) | (well_details_org['WMCRZone'] == 7) |
                                 (well_details_org['WMCRZone'] == 8)]  # keep only waimak selwyn and chch zones
@@ -35,7 +35,7 @@ def get_mean_water_level():
     data = data.loc['gwl'].reset_index()
     data1 = hydro().get_data(mtypes=['gwl_m'], sites=list(well_details.index)).data
     temp = data1.groupby(level=['mtype', 'site']).describe()[['min', '25%', '50%', '75%', 'mean', 'max', 'count']].round(2)
-    sites = list(temp.loc['gwl_m'].index[temp.loc['gwl_m']['count'] >1])
+    sites = list(temp.loc['gwl_m'].index[temp.loc['gwl_m']['count'] >=min_reading])
 
     data1 = data1.loc['gwl_m',sites].reset_index()
     data = pd.concat((data,data1),axis=0)
@@ -114,8 +114,9 @@ def get_mean_water_level():
 if __name__ == '__main__':
     test = get_mean_water_level()
     test.to_csv(env.sci("Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/water_levels_for_wells_2_plus_readings.csv"))
+    test = get_mean_water_level(1)
+    test.to_csv(env.sci("Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/water_levels_for_wells_1_plus_readings.csv"))
 
-    #test = pd.read_csv(r"C:\Users\MattH\Downloads\test_mean_water_level.csv")
 
 
     print 'dpone'
