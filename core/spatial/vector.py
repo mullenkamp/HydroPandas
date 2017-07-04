@@ -236,11 +236,38 @@ def convert_crs(from_crs, crs_type='proj4', pass_str=False):
     return(crs2)
 
 
+def point_to_poly_apply(geo, side_len):
+    """
+    Function to convert a point to a square polygon. Input is a shapely point. Output is a shapely polygon.
+
+    geo -- A shapely point.\n
+    side_len -- The side length of the square (in the units of geo).
+    """
+    from shapely.geometry import Polygon
+
+    half_side = side_len * 0.5
+    l1 = Polygon([[geo.x + half_side, geo.y + half_side], [geo.x + half_side, geo.y - half_side], [geo.x - half_side, geo.y - half_side], [geo.x - half_side, geo.y + half_side]])
+    return(l1)
 
 
+def points_grid_to_poly(gpd, id_col):
+    """
+    Function to convert a GeoDataFrame of evenly spaced gridded points to square polygons. Output is a GeoDataFrame of the same length as input.
 
+    gpd -- GeoDataFrame of gridded points with an id column.\n
+    id_col -- The id column name.
+    """
+    from geopandas import GeoDataFrame
+    from core.spatial.vector import point_to_poly_apply
+    from pandas import Series
 
+    geo1a = Series(gpd.geometry.apply(lambda j: j.x))
+    geo1b = geo1a.shift()
 
+    side_len = (geo1b - geo1a).abs().min()
+    gpd1 = gpd.apply(lambda j: point_to_poly_apply(j.geometry, side_len=side_len), axis=1)
+    gpd2 = GeoDataFrame(gpd[id_col], geometry=gpd1, crs=gpd.crs)
+    return(gpd2)
 
 
 
