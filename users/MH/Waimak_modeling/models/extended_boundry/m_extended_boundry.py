@@ -41,16 +41,16 @@ def create_m_extended_boundry(name, dir_path, safe_mode=True, mt3d_link=False, v
     if version == 'a':
         sfr_version, seg_v, reach_v = 1, 1, 1
         k_version = 1
-        rch_version = 1
         wel_version = 1
 
     else:
         raise NotImplementedError('model version {} has not yet been defined'.format(version))
 
+    #todo check that these are right
     m_packages.create_dis_package(m)
     m_packages.create_bas_package(m)
     m_packages.create_lay_prop_package(m, k_version)
-    m_packages.create_rch_package(m, rch_version)
+    m_packages.create_rch_package(m)
     m_packages.create_wel_package(m, wel_version)
     m_packages.create_drn_package(m, wel_version=wel_version, reach_version=reach_v)
     m_packages.create_sfr_package(m, sfr_version, seg_v, reach_v)

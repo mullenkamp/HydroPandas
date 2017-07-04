@@ -14,7 +14,7 @@ from sfr2_packages import _get_reach_data
 from wel_packages import get_wel_spd
 
 
-def create_drn_package(m, drn_version, wel_version, reach_version):
+def create_drn_package(m, wel_version, reach_version):
     drn_data = _get_drn_spd(wel_version=wel_version, reach_v=reach_version).loc[:,
                ['k', 'i', 'j', 'elev', 'cond']].to_records(False)
     flopy.modflow.mfdrn.ModflowDrn(m,
@@ -49,7 +49,7 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
         cells = smt.model_where(drn_dict[key])
         drn_to_mark = pd.DataFrame(cells, columns=['i', 'j'], index=range(-1, -len(cells) - 1, -1))
         temp = pd.concat((drn_data, drn_to_mark))
-        dup = temp.duplicated(['row', 'col'], False)
+        dup = temp.duplicated(['i', 'j'], False)
         drn_data.loc[dup.loc[index_to_pass], 'group'] = key
 
     drn_data.loc[np.isclose(drn_data.cond, 585.138611), 'group'] = 'cust_carpet'
@@ -66,8 +66,8 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
 
     # add a carpet drain south of the waimakariri to loosely represent the low land streams
     # only add drains where there are not other model conditions
-    drain_to_add = smt.shape_file_to_model_array()  # todo create a shapefile with indexes 1 for the are s of chch and the otehr for selyn tewai
-    index = np.zeros(smt.rows, smt.cols)
+    drain_to_add = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/s_carpet_drns.shp".format(smt.sdp),'group',alltouched=True)
+    index = np.zeros((smt.rows, smt.cols))
 
     # wel
     temp = smt.df_to_array(get_wel_spd(wel_version), 'k', True)[0]
@@ -93,7 +93,7 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
     drain_to_add[index] = np.nan
 
     top = smt.calc_elv_db()[0]
-    for val, group in zip([], []):  # todo define groups/vals for the different drains
+    for val, group in zip([1,3,2,5,4], ['chch_carpet', 'up_lincoln','down_lincoln', 'up_selwyn', 'down_selwyn']):
         temp = pd.DataFrame(smt.model_where(np.isclose(drain_to_add, val)), columns=['i', 'j'])
         temp['k'] = 0
         temp['zone'] = 's_wai'
@@ -105,13 +105,27 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
 
         drn_data = pd.concat(drn_data, temp)
 
-    # add the waimakariri drain up above the bridge # todo
+    # add the waimakariri drain up above the bridge
+    # set a drain at the top of the ground level
+    drain_to_add = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/upper_waimak_drn.shp".format(smt.sdp), 'ID',
+                                                 alltouched=True)
+    temp = pd.DataFrame(smt.model_where(np.isfinite(drain_to_add)), columns=['i', 'j'])
+    temp['k'] = 0
+    temp['zone'] = 'n_wai'
+    temp['group'] = 'up_waimak'
+    temp['cond'] = 20000
+    for i in temp.index:
+        row, col = temp.loc['i', 'j']
+        temp.loc[i, 'elv'] = top[row, col]
+
+    drn_data = pd.concat(drn_data, temp)
 
     # check for null grouping
+    # todo remove all drains in no-flow boundries or constant head
     if any(pd.isnull(drn_data['group'])):
         raise ValueError('some groups still null')
-    raise NotImplementedError()
 
 
 if __name__ == '__main__':
-    test = _get_drn_spd()
+    test = _get_drn_spd(1,1)
+    print('done')
