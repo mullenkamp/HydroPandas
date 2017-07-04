@@ -17,7 +17,7 @@ def create_rch_package(m):
     rch = flopy.modflow.mfrch.ModflowRch(m,
                                          nrchop=3,
                                          ipakcb=740,
-                                         rech=_get_rch(), #todo check this input
+                                         rech=_get_rch(),
                                          irch=0,
                                          unitnumber=716)
 

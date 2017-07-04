@@ -71,7 +71,7 @@ def _elvdb_calc():
 
     waihora = _mt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/te_waihora.shp".format(_mt.sdp), 'ID', True)
     idx = np.isfinite(waihora)
-    outdata[0][idx] = 1.5 #todo check... set DEM to lake level
+    outdata[0][idx] = 1.5
 
     return outdata
 
@@ -85,7 +85,6 @@ def _get_basement():
 
 def _no_flow_calc():
     no_flow = np.zeros((_mt.rows,_mt.cols))
-    # todo weird artifact here in
     outline = _mt.shape_file_to_model_array("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/new_active_domain.shp".format(sdp),'DN',True)
     no_flow[np.isfinite(outline)] = 1
 
@@ -132,7 +131,7 @@ def _get_constant_heads():
     # sea surface (north/south wai
     first_sea_val = 0.5
     rest_sea_val = 0
-    sea = _mt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/coastal_constant_heads.shp".format(_mt.sdp),'ID',True) #todo build shapefile
+    sea = _mt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/coastal_constant_heads.shp".format(_mt.sdp),'ID',True)
     sea[np.isfinite(sea)] = rest_sea_val
 
     # set east most value to first sea for the north part of the model
