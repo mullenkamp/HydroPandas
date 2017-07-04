@@ -448,7 +448,8 @@ def _rd_hydro_mssql(self, server, database, table, mtype, time_col, site_col, da
     df.columns = ['site', 'time', 'data']
 
     ## Remove spaces in site names and duplicate data
-    df.loc[:, 'site'] = df.loc[:, 'site'].str.replace(' ', '')
+    if isinstance(df.loc[:, 'site'].iloc[0], str):
+        df.loc[:, 'site'] = df.loc[:, 'site'].str.replace(' ', '')
     df = df.drop_duplicates(['site', 'time'])
 
     df['mtype'] = mtype
