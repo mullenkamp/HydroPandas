@@ -108,7 +108,7 @@ class ModelTools(object):
             outdata = np.zeros((self.rows, self.cols))
             for i in dataframe.index:
                 row, col = dataframe.loc[i, [rowval, colval]]
-                outdata[row, col] = dataframe.loc[i, value_to_map]
+                outdata[int(row), int(col)] = dataframe.loc[i, value_to_map]
 
         return outdata
 
@@ -252,8 +252,8 @@ class ModelTools(object):
         from osgeo import osr, gdal
 
         if no_flow_lyr is not None:
-            no_flow = self.get_no_flow(no_flow_lyr)
-            array[no_flow] = -99
+            no_flow = self.get_no_flow(no_flow_lyr).astype(bool)
+            array[~no_flow] = -99
         output_raster = gdal.GetDriverByName('GTiff').Create(path, array.shape[1], array.shape[0], 1,
                                                              gdal.GDT_Float32)  # Open the file
         geotransform = (self.ulx, self.grid_space, 0, self.uly, 0, -self.grid_space)
@@ -280,9 +280,9 @@ class ModelTools(object):
         ax.set_aspect('equal')
         model_xs, model_ys = self.get_model_x_y()
         if self._no_flow_calc is not None and no_flow_layer is not None:
-            no_flow = self.get_no_flow(no_flow_layer)
+            no_flow = self.get_no_flow(no_flow_layer).astype(bool)
             ax.contour(model_xs, model_ys, no_flow)
-            array[~no_flow.astype(bool)] = np.nan
+            array[~no_flow] = np.nan
         pcm = ax.pcolormesh(model_xs, model_ys, array,
                             cmap='plasma', vmin=vmin, vmax=vmax, **kwargs)
         fig.colorbar(pcm, ax=ax, extend='max')
