@@ -10,8 +10,9 @@ import m_packages
 import os
 import shutil
 from users.MH.Waimak_modeling.supporting_data_path import sdp
+from extended_boundry_model_tools import smt
 
-def create_m_extended_boundry(name, dir_path, safe_mode=True, mt3d_link=False, version='a', mfv='mfnwt'):
+def create_m_extended_boundry(name, dir_path, safe_mode=True, mt3d_link=False, version=smt.model_version, mfv='mfnwt'):
     # sort out paths for the model
     name = 'm_ex_bd_v{}-{}'.format(version, name)
     dir_path = '{}/m_ex_bd_v{}-{}'.format(os.path.dirname(dir_path), version, os.path.basename(dir_path))
@@ -39,9 +40,9 @@ def create_m_extended_boundry(name, dir_path, safe_mode=True, mt3d_link=False, v
 
     # add packages
     if version == 'a':
-        sfr_version, seg_v, reach_v = 1, 1, 1
-        k_version = 1
-        wel_version = 1
+        sfr_version, seg_v, reach_v = smt.sfr_version, smt.seg_v, smt.reach_v
+        k_version = smt.k_version
+        wel_version = smt.wel_version
 
     else:
         raise NotImplementedError('model version {} has not yet been defined'.format(version))
