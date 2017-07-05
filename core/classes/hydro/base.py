@@ -57,6 +57,8 @@ class hydro(object):
             if not hasattr(self, '_base_stats'):
                 self._base_stats_fun()
             return(repr(self._base_stats))
+        else:
+            print("There's no data here. Add some in.")
 
 
 
