@@ -12,28 +12,89 @@ from core.classes.hydro import hydro, all_mtypes
 ### Parameters
 
 mtypes1 = 'flow'
+sites1 = [70105, 69607, 69602, 65101, 69505]
+qual_codes = [10, 18, 20, 30]
+
+### From the MSSQL server
+
+h1 = hydro().get_data(mtypes=mtypes1, sites=sites1, qual_codes=qual_codes)
+
+
+#################################################
+#### Load data
+
+### Parameters
+
+mtypes1 = 'flow'
 mtypes2 = 'flow_m'
-mtypes3 = 'swl'
-mtypes4 = 'gwl'
-mtypes5 = 'gwl_m'
-mtypes6 = 'usage'
 sites1 = [70105, 69607, 69602, 65101, 69505]
 sites2 = [66, 137]
-sites3 = ['BT27/5020']
-sites4 = ['J38/0774', 'J38/0874', 'J38/0811', 'I39/0033']
 qual_codes = [10, 18, 20, 30]
-poly = r'S:\Surface Water\backups\MichaelE\Projects\otop\GIS\vector\min_flow\catch1.shp'
 
-### From the MSSQL server (the easy way) - Loads in both the time series data and the geo locations
+### From the MSSQL server
+
+h1 = hydro().get_data(mtypes=mtypes1, sites=sites1, qual_codes=qual_codes)
+h2 = h1.get_data(mtypes=mtypes2, sites=sites2, qual_codes=qual_codes)
+
+
+#################################################
+#### Load data
+
+### Parameters
+
+mtypes1 = 'flow'
+mtypes2 = 'flow_m'
+mtypes3 = 'swl'
+sites1 = [70105, 69607, 69602, 65101, 69505]
+sites2 = [66, 137]
+qual_codes = [10, 18, 20, 30]
+
+### From the MSSQL server
 
 h1 = hydro().get_data(mtypes=mtypes1, sites=sites1, qual_codes=qual_codes)
 h2 = h1.get_data(mtypes=mtypes2, sites=sites2, qual_codes=qual_codes)
 h3 = h2.get_data(mtypes=mtypes3, sites=sites1, qual_codes=qual_codes)
 
+
+#################################################
+#### Load data
+
+### Parameters
+
+mtypes4 = 'gwl'
+mtypes5 = 'gwl_m'
+sites3 = ['BT27/5020']
+qual_codes = [10, 18, 20, 30]
+
+### From the MSSQL server
+
 gwl1 = hydro().get_data(mtypes=mtypes4, sites=sites3, qual_codes=qual_codes)
-gwl2 = hydro().get_data(mtypes=mtypes5, sites=sites3)
+gwl2 = gwl1.get_data(mtypes=mtypes5, sites=sites3)
+
+
+#################################################
+#### Load data
+
+### Parameters
+
+mtypes6 = 'usage'
+sites4 = ['J38/0774', 'J38/0874', 'J38/0811', 'I39/0033']
+qual_codes = [10, 18, 20, 30]
+
+### From the MSSQL server
 
 use1 = hydro().get_data(mtypes=mtypes6, sites=sites4)
+
+
+#################################################
+#### Load data
+
+### Parameters
+
+mtypes1 = 'flow'
+mtypes2 = 'flow_m'
+qual_codes = [10, 18, 20, 30]
+poly = r'S:\Surface Water\backups\MichaelE\Projects\otop\GIS\vector\min_flow\catch1.shp'
 
 ## Find sites based on a polygon shapefile with a 100 m buffer distance (for m_flow)
 h4 = hydro().get_data(mtypes=[mtypes1, mtypes2], sites=poly, buffer_dis=100, qual_codes=qual_codes)
@@ -204,21 +265,6 @@ plt2 = h2.plot_hydrograph(x_period='month', x_n_periods=4, time_format='%Y-%m', 
 ## Regressions
 plt2, reg2 = h2.plot_reg('flow', 69602, 'flow_m', 137)
 reg2
-
-
-
-
-################################################
-#### Fancy stuff ;)
-
-### Use a dictionary of geo attributes to select sites
-geo_dict = {'catch_grp': 701, 'cwms': 'Orari-Temuka-Opihi-Pareora'}
-
-h10 = hydro().get_data(mtypes=mtypes1, sites=geo_dict)
-
-
-
-
 
 
 
