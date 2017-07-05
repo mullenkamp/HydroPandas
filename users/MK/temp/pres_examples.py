@@ -79,7 +79,6 @@ gwl2 = gwl1.get_data(mtypes=mtypes5, sites=sites3)
 
 mtypes6 = 'usage'
 sites4 = ['J38/0774', 'J38/0874', 'J38/0811', 'I39/0033']
-qual_codes = [10, 18, 20, 30]
 
 ### From the MSSQL server
 
@@ -199,9 +198,9 @@ malf5
 ## Only uses gaugings with the regressions...so far
 
 new1, reg = h2.flow_reg(y=[137, 66], buffer_dis=40000)
-malf6 = new1.malf7d()
-new1
 reg
+new1
+malf6 = new1.malf7d()
 malf6
 
 ## Resampling the time series - returning a hydro class object
