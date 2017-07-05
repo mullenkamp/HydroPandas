@@ -137,7 +137,7 @@ malf5
 ## Two gauging sites with a 40 km buffer distance to determine recorder sites
 ## Only uses gaugings with the regressions...so far
 
-new1, reg = h2.flow_reg(y=[137, 66, 70103], buffer_dis=40000)
+new1, reg = h2.flow_reg(y=[137, 66], buffer_dis=40000)
 malf6 = new1.malf7d()
 new1
 reg
@@ -159,21 +159,21 @@ export_nc = r'S:\Surface Water\temp\test_hydro1.nc'
 ### Export a time series csv
 
 ## Only recorders and pivot
-h1.to_csv(export_csv1, mtypes='flow', pivot=True)
+h2.to_csv(export_csv1, mtypes='flow', pivot=True)
 
 ## Only gauging data in long format
-h1.to_csv(export_csv2, mtypes='flow_m')
+h2.to_csv(export_csv2, mtypes='flow_m')
 
 ### Export a shapfile
 
 ## of the gauging sites - combining two functions
-h1.sel(mtypes='flow_m').to_shp(export_shp)
+h2.sel(mtypes='flow_m').to_shp(export_shp)
 
 ## All sites
-h1.to_shp(export_shp)
+h2.to_shp(export_shp)
 
 ### Make an exact copy of the hydro class object as a netcdf file
-h1.to_netcdf(export_nc)
+h2.to_netcdf(export_nc)
 
 
 #### Reading the saved data
@@ -198,6 +198,8 @@ new3.geo_loc
 ## hydrograph
 h3 = h2.sel('flow', 70105, start='2000', end='2002')
 plt1 = h3.plot_hydrograph(70105, x_period='month', time_format='%Y-%m')
+
+plt2 = h2.plot_hydrograph(x_period='month', x_n_periods=4, time_format='%Y-%m', start='2010', end='2011')
 
 ## Regressions
 plt2, reg2 = h2.plot_reg('flow', 69602, 'flow_m', 137)
