@@ -71,9 +71,9 @@ def rd_sql(server=None, database=None, table=None, col_names=None, where_col=Non
                 where_stmt1 = []
                 for i in where_col:
                     if not isinstance(i, list):
-                        col1 = [i.encode('ascii', 'ignore')]
+                        col1 = [str(i)]
                     else:
-                        col1 = [j.encode('ascii', 'ignore') for j in i]
+                        col1 = [str(j) for j in i]
                     if not isinstance(where_col[i], list):
                         if isinstance(where_col[i], str):
                             where1 = [where_col[i].encode('ascii', 'ignore')]
