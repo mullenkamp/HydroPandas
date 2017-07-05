@@ -298,7 +298,7 @@ def get_data(self, mtypes, sites=None, qual_codes=None, from_date=None, to_date=
 
     if not isinstance(mtypes, list):
         if isinstance(mtypes, str):
-            mtypes = [mtypes]
+            mtypes = [str(mtypes)]
         else:
             raise ValueError('mtypes must be a list or a string!')
 
