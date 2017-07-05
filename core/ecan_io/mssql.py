@@ -45,10 +45,13 @@ def rd_sql(server=None, database=None, table=None, col_names=None, where_col=Non
             if dbs_code.where_col.values[0] != 'None':
                 where_col = dbs_code.where_col.values[0]
                 where_val = dbs_code.where_val.values[0].split(', ')
+        else:
+            if (server is None) or (database is None) or (table is None):
+                raise ValueError('Must provide input for server, database, and table.')
 
         if col_names is not None:
             if not isinstance(col_names, list):
-                col_names = [col_names]
+                col_names = [i.encode('ascii', 'ignore') for i in col_names]
             col_stmt = ', '.join(col_names)
         else:
             col_stmt = '*'
@@ -67,13 +70,16 @@ def rd_sql(server=None, database=None, table=None, col_names=None, where_col=Non
                 where_stmt1 = []
                 for i in where_col:
                     if not isinstance(i, list):
-                        col1 = [i]
+                        col1 = [i.encode('ascii', 'ignore')]
                     else:
-                        col1 = i
+                        col1 = [j.encode('ascii', 'ignore') for j in i]
                     if not isinstance(where_col[i], list):
-                        where1 = [where_col[i]]
+                        if isinstance(where_col[i], str):
+                            where1 = [where_col[i].encode('ascii', 'ignore')]
+                        else:
+                            where1 = [where_col[i]]
                     else:
-                        where1 = where_col[i]
+                        where1 = [str(j) for j in where_col[i]]
                     s1 = col1 + ' IN (' + str(where1)[1:-1] + ')'
                     where_stmt1.append(s1)
                 where_stmt = ' WHERE ' + (' ' + where_op + ' ').join(where_stmt1)

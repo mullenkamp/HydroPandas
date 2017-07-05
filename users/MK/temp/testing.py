@@ -2464,6 +2464,12 @@ p1 = data_df2.precip
 sites_xa = sites_df1.to_xarray()
 
 
+##################################################
+### Checks on rd_sql
+
+from core.ecan_io import rd_sql, sql_db
+
+all_readings = rd_sql(col_names=['WELL_NO', 'DATE_READ', 'TIDEDA_FLAG'], where_col='WELL_NO', where_val=[u'BW22/0001', u'BW22/0002', u'BW23/0052', u'BW23/0053', u'BW23/0133', u'BW23/0134', u'BW23/0165', u'BW24/0037', u'BW24/0038', u'BW24/0039'])
 
 
 
