@@ -167,7 +167,14 @@ smt = ModelTools(
     base_mod_path=None
 )
 
+# quick versioning
+model_version = 'a'
 
+if model_version == 'a':
+    smt.model_version = 'a'
+    smt.sfr_version, smt.seg_v, reach_v = 1, 1, 1
+    smt.k_version = 1
+    smt.wel_version = 1
 
 if __name__ == '__main__':
    test = _get_constant_heads()
