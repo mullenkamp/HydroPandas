@@ -27,7 +27,7 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
 
 
     # load original drains
-    drn_data = pd.DataFrame(get_base_drn_cells())
+    drn_data = pd.DataFrame(get_base_drn_cells()) #todo the orginal drain elevations are based off of the reseampeld topo DEM, whihc means theya re as much as +- 8m off
 
     # take away the cust ones (duplication to id from model where)
     drn_dict = get_drn_samp_pts_dict()
@@ -70,7 +70,7 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
     index = np.zeros((smt.rows, smt.cols))
 
     # wel
-    temp = smt.df_to_array(get_wel_spd(wel_version), 'k', True)[0]
+    temp = smt.df_to_array(get_wel_spd(wel_version), 'layer', True)[0]
     temp += 1
     index += temp
 
@@ -122,6 +122,13 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
 
     # check for null grouping
     # todo remove all drains in no-flow boundries or constant head
+    no_flow = smt.get_no_flow()[0]
+    no_flow[no_flow<0]=0
+    idxs = pd.DataFrame(smt.model_where(~no_flow.astype(bool)), columns=['i','j'])
+    temp_df = pd.concat((drn_data, idxs))
+    drn_data = temp_df.loc[~drn_data.duplicated(['i','j'],False)]
+
+
     if any(pd.isnull(drn_data['group'])):
         raise ValueError('some groups still null')
 

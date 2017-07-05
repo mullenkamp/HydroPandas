@@ -89,14 +89,16 @@ class ModelTools(object):
         """
         if _3d:
             layval,rowval,colval = 'k','i','j'
-            if not np.in1d(['k', 'i', 'j', value_to_map], dataframe.keys()).all():
-                if np.in1d(['layer', 'row', 'col', value_to_map], dataframe.keys()).all():
+            if value_to_map not in dataframe.keys():
+                raise ValueError('value to map: {}, not found'.format(value_to_map))
+            if not np.in1d(['k', 'i', 'j'], dataframe.keys()).all():
+                if np.in1d(['layer', 'row', 'col'], dataframe.keys()).all():
                     layval, rowval, colval = 'layer','row','col'
                 else:
                     raise ValueError('dataframe missing keys')
             outdata = np.zeros((self.layers, self.rows, self.cols))
             for i in dataframe.index:
-                layer, row, col = dataframe.loc[i, [layval, rowval, colval]]
+                layer, row, col = dataframe.loc[i, [layval, rowval, colval]].astype(int)
                 outdata[layer, row, col] = dataframe.loc[i, value_to_map]
         else:
             rowval, colval = 'i', 'j'

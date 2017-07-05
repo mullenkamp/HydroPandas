@@ -80,7 +80,7 @@ def _get_segment_data(seg_v):
     return seg_data
 
 
-def _get_reach_data(reach_v):
+def _get_reach_data(reach_v): #todo the elevations are likely wrong re-do from lidar data
     """
     wrapper to get the reach data
     :param reach_v: the version to use here to record multiple attempts at the sfr
