@@ -293,6 +293,9 @@ def get_data(self, mtypes, sites=None, qual_codes=None, from_date=None, to_date=
     buffer_dis -- If sites is a shapefile str, then a buffer distance in meters (str) can be passed.\n
     min_filter -- If mtypes includes 'flow_m', then extract sites with at least the number of gauges (int).
     """
+    from pandas import Series
+    from numpy import ndarray
+
     if not isinstance(mtypes, list):
         if isinstance(mtypes, str):
             mtypes = [mtypes]
@@ -302,6 +305,12 @@ def get_data(self, mtypes, sites=None, qual_codes=None, from_date=None, to_date=
     if isinstance(sites, str):
         if sites.endswith('.shp'):
             sites = read_file(sites)
+    elif isinstance(sites, list):
+        sites = [str(i) for i in sites]
+    elif isinstance(sites, (Series, ndarray)):
+        sites = sites.astype(str)
+    else:
+        raise ValueError('Must pass a str, list, Series, or array to sites.')
 
     ## Get the time series data
     h1 = self.copy()
