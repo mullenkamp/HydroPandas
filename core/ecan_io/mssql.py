@@ -66,7 +66,7 @@ def rd_sql(server=None, database=None, table=None, col_names=None, where_col=Non
 #                    where_stmt = ' WHERE ' + where_col + ' IN (' + in_stmt + ')'
 #                else:
                 where_val = [str(i) for i in where_val]
-                where_stmt = ' WHERE ' + where_col + ' IN (' + str(where_val)[1:-1] + ')'
+                where_stmt = ' WHERE ' + str(where_col) + ' IN (' + str(where_val)[1:-1] + ')'
             elif isinstance(where_col, dict):
                 where_stmt1 = []
                 for i in where_col:
