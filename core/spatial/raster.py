@@ -23,7 +23,7 @@ def grid_interp_ts(df, time_col, x_col, y_col, data_col, grid_res, from_crs=None
     digits -- the number of digits to round to (int).
     """
     from numpy import arange, meshgrid, tile, repeat, array
-    from pandas import DataFrame, TimeGrouper, Grouper
+    from pandas import DataFrame, TimeGrouper, Grouper, to_datetime
     from core.spatial.raster import grid_resample
     from core.spatial.vector import xy_to_gpd
     from core.spatial import convert_crs
@@ -80,7 +80,7 @@ def grid_interp_ts(df, time_col, x_col, y_col, data_col, grid_res, from_crs=None
     new_df = DataFrame({'time': time_df, 'x': x_df, 'y': y_df, data_col: repeat(0, len(time) * len(x_int2))})
 
     new_lst = []
-    for t in time:
+    for t in to_datetime(time):
         set1 = df2.loc[df2[time_col] == t, data_col]
 #        index = new_df[new_df['time'] == t].index
         new_z = grid_resample(x, y, set1.values, x_int, y_int, digits, interp_fun)

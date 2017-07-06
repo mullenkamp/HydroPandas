@@ -22,7 +22,7 @@ def proc_metservice_nc(nc, lat_coord='south_north', lon_coord='west_east', time_
     from os import path
     from numpy import arange
     from pandas import to_datetime
-    from core.ecan_io.met import ACPR_to_rate
+    from core.ts.met import ACPR_to_rate
     from core.spatial.vector import convert_crs
 
     ### Parameters
@@ -86,6 +86,7 @@ def proc_metservice_nc(nc, lat_coord='south_north', lon_coord='west_east', time_
     x5.to_netcdf(new_path)
     x1.close()
     x5.close()
+    return(new_path)
 
 
 def ACPR_to_rate(df, lat_coord='y', lon_coord='x', time_coord='time'):

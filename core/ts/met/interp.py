@@ -8,7 +8,7 @@ Interpolation functions for Met data.
 """
 
 
-def sel_interp_agg(precip, precip_crs, poly, grid_res, data_col, time_col, x_col, y_col, buffer_dis=10000, interp_fun='multiquadric', agg_ts_fun=None, period=None, digits=3, agg_xy=False, output_format=None, nfiles='many', output_path=None):
+def sel_interp_agg(precip, precip_crs, poly, grid_res, data_col, time_col, x_col, y_col, buffer_dis=10000, interp_fun='multiquadric', agg_ts_fun=None, period=None, digits=3, agg_xy=False, nfiles='many', output_path=None):
     """
     Function to select the precip sites within a polygon with a certain buffer distance, then interpolate/resample the data at a specific resolution, then output the results.
     precip -- dataframe of time, x, y, and precip.\n
@@ -18,12 +18,11 @@ def sel_interp_agg(precip, precip_crs, poly, grid_res, data_col, time_col, x_col
     buffer_dis -- Buffer distance of the polygon selection.\n
     interp_fun -- The scipy Rbf interpolation function to be applied (see https://docs.scipy.org/doc/scipy-0.16.1/reference/generated/scipy.interpolate.Rbf.html).\n
     agg_ts_fun -- The pandas time series resampling function to resample the data in time (either 'mean' or 'sum'). If None, then no time resampling.\n
-    agg_ts_fun -- The pandas time series code to resample the data in time (i.e. '2H' for two hours).\n
+    period -- The pandas time series code to resample the data in time (i.e. '2H' for two hours).\n
     digits -- the number of digits to round to (int).\n
     agg_xy -- Should all of the interpolated points within the polygon area be aggregated (mean) to a single time series?\n
-    output_format -- Either a str or list of 'csv', 'geotiff', and/or 'netcdf'.\n
-    nfiles -- If 'geotiff' is in the output_format, then 'one' or 'many' geotiffs to be created.\n
-    output_path -- Full path string where the output should be stored.
+    nfiles -- If output_path is a geotiff, then 'one' or 'many' geotiffs to be created.\n
+    output_path -- Full path string where the output should be stored. The file extension should be one of '.tif' for geotiff, '.nc' for netcdf, or '.csv' for csv.
     """
 
     from core.spatial import sel_sites_poly, grid_interp_ts, xy_to_gpd, save_geotiff
@@ -72,8 +71,8 @@ def sel_interp_agg(precip, precip_crs, poly, grid_res, data_col, time_col, x_col
         new_precip3 = new_precip2.set_index([time_col, x_col, y_col])[data_col]
 
     ### Save results
-    path1 = path.splitext(output_path)[0]
     if isinstance(output_path, str):
+        path1 = path.splitext(output_path)[0]
         if '.csv' in output_path:
             new_precip3.to_csv(path1 + '.csv', header=True)
 

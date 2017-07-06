@@ -136,7 +136,11 @@ def xy_to_gpd(id_col, x_col, y_col, df=None, crs=2193):
         id_data = df[id_col]
     elif isinstance(id_col, (list, ndarray, Series, Index)):
         id_data = id_col
-    gpd = GeoDataFrame(id_data, geometry=geometry, crs=convert_crs(crs))
+    if isinstance(crs, int):
+        crs1 = convert_crs(crs)
+    elif isinstance(crs, str):
+        crs1 = crs
+    gpd = GeoDataFrame(id_data, geometry=geometry, crs=crs1)
     return(gpd)
 
 
