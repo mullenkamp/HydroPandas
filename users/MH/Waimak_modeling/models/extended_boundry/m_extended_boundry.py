@@ -13,7 +13,7 @@ from users.MH.Waimak_modeling.supporting_data_path import sdp
 from extended_boundry_model_tools import smt
 
 def create_m_extended_boundry(name, dir_path, safe_mode=True, mt3d_link=False, version=smt.model_version, mfv='mfnwt'):
-    # sort out paths for the model
+    # sort out paths for the model #todo wrong input
     name = 'm_ex_bd_v{}-{}'.format(version, name)
     dir_path = '{}/m_ex_bd_v{}-{}'.format(os.path.dirname(dir_path), version, os.path.basename(dir_path))
     # remove all previous files in the directory
@@ -120,3 +120,6 @@ def create_m_extended_boundry(name, dir_path, safe_mode=True, mt3d_link=False, v
 
     raise NotImplementedError()
     return m
+
+if __name__ == '__main__':
+    create_m_extended_boundry('test',r'C:\Users\MattH\Desktop\test_dir',safe_mode=False)
