@@ -2465,14 +2465,29 @@ sites_xa = sites_df1.to_xarray()
 
 
 ##################################################
-### Checks on rd_sql
+### Bokeh testing
 
-from core.ecan_io import rd_sql, sql_db
+from bokeh.plotting import figure, output_file, show
+from os.path import join
 
-all_readings = rd_sql(col_names=['WELL_NO', 'DATE_READ', 'TIDEDA_FLAG'], where_col='WELL_NO', where_val=[u'BW22/0001', u'BW22/0002', u'BW23/0052', u'BW23/0053', u'BW23/0133', u'BW23/0134', u'BW23/0165', u'BW24/0037', u'BW24/0038', u'BW24/0039'])
+base_dir = r'E:\ecan\local\Projects\plotting\bokeh'
+html1 = 'lines.html'
 
+# prepare some data
+x = [1, 2, 3, 4, 5]
+y = [6, 7, 2, 4, 5]
 
+# output to static HTML file
+output_file(join(base_dir, html1))
 
+# create a new plot with a title and axis labels
+p = figure(title="simple line example", x_axis_label='x', y_axis_label='y', logo=None)
+
+# add a line renderer with legend and line thickness
+p.line(x, y, legend="Temp.", line_width=2)
+
+# show the results
+show(p)
 
 
 
