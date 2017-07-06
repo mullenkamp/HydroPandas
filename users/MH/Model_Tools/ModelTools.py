@@ -96,7 +96,7 @@ class ModelTools(object):
                     layval, rowval, colval = 'layer','row','col'
                 else:
                     raise ValueError('dataframe missing keys')
-            outdata = np.zeros((self.layers, self.rows, self.cols))
+            outdata = np.zeros((self.layers, self.rows, self.cols))*np.nan
             for i in dataframe.index:
                 layer, row, col = dataframe.loc[i, [layval, rowval, colval]].astype(int)
                 outdata[layer, row, col] = dataframe.loc[i, value_to_map]
@@ -107,7 +107,7 @@ class ModelTools(object):
                     rowval, colval = 'row','col'
                 else:
                     raise ValueError('dataframe missing keys')
-            outdata = np.zeros((self.rows, self.cols))
+            outdata = np.zeros((self.rows, self.cols)) * np.nan
             for i in dataframe.index:
                 row, col = dataframe.loc[i, [rowval, colval]]
                 outdata[int(row), int(col)] = dataframe.loc[i, value_to_map]

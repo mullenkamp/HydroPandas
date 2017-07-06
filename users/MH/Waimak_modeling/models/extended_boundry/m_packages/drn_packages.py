@@ -52,7 +52,7 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
         dup = temp.duplicated(['i', 'j'], False)
         drn_data.loc[dup.loc[index_to_pass], 'group'] = key
 
-    drn_data.loc[np.isclose(drn_data.cond, 585.138611), 'group'] = 'cust_carpet'
+    drn_data.loc[np.isclose(drn_data.cond, 585.138611), 'group'] = 'cust_carpet' #todo do we want to remove the carpet drains in the N part or the model?
     drn_data.loc[np.isclose(drn_data.cond, 5241.530762), 'group'] = 'ash_carpet'
     drn_data.loc[np.isclose(drn_data.cond, 20000.000000), 'group'] = 'chch_carpet'
 
@@ -70,40 +70,38 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
     index = np.zeros((smt.rows, smt.cols))
 
     # wel
-    temp = smt.df_to_array(get_wel_spd(wel_version), 'layer', True)[0]
-    temp += 1
-    index += temp
+    temp = smt.df_to_array(get_wel_spd(wel_version), 'col', True)[0]
+    index[np.isfinite(temp)] = 1
 
     # current drain
-    temp = smt.df_to_array(drn_data, 'k')
-    temp += 1
-    index += temp
+    temp = smt.df_to_array(drn_data, 'j')
+    index[np.isfinite(temp)] = 1
 
     # sfr2
-    temp = smt.df_to_array((pd.DataFrame(_get_reach_data(reach_v), 'k')))
-    temp += 1
-    index += temp
+    temp = smt.df_to_array(pd.DataFrame(_get_reach_data(reach_v)), 'j')
+    index[np.isfinite(temp)] = 1
 
     # constant_head/inactive
     temp = smt.get_no_flow(0)
     temp[temp < 0] = 0
-    index += ~temp.astype(bool)
+    index[~temp.astype(bool)] = 1
 
+    index[np.isnan(index)]=0
     index = index.astype(bool)
     drain_to_add[index] = np.nan
 
     top = smt.calc_elv_db()[0]
-    for val, group in zip([1,3,2,5,4], ['chch_carpet', 'up_lincoln','down_lincoln', 'up_selwyn', 'down_selwyn']):
+    for val, group in zip([1,3,2,5,4], ['chch_carpet', 'up_lincoln','down_lincoln', 'up_selwyn', 'down_selwyn']): #todo this seems like it isn't working
         temp = pd.DataFrame(smt.model_where(np.isclose(drain_to_add, val)), columns=['i', 'j'])
         temp['k'] = 0
         temp['zone'] = 's_wai'
         temp['group'] = group
         temp['cond'] = 20000
         for i in temp.index:
-            row, col = temp.loc['i', 'j']
-            temp.loc[i, 'elv'] = top[row, col]
-
-        drn_data = pd.concat(drn_data, temp)
+            row, col = temp.loc[i, ['i', 'j']]
+            temp.loc[i, 'elv'] = top[row, col] #todo should we inset these drains 1-3m so the conductance becomes the compansatory variable?
+            # todo if inset, bulk inset or sloping inset or by group? e.g. the lower drains are further inset?
+        drn_data = pd.concat((drn_data, temp))
 
     # add the waimakariri drain up above the bridge
     # set a drain at the top of the ground level
@@ -115,24 +113,44 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
     temp['group'] = 'up_waimak'
     temp['cond'] = 20000
     for i in temp.index:
-        row, col = temp.loc['i', 'j']
+        row, col = temp.loc[i,['i', 'j']]
         temp.loc[i, 'elv'] = top[row, col]
 
-    drn_data = pd.concat(drn_data, temp)
+    drn_data = pd.concat((drn_data, temp))
 
     # check for null grouping
-    # todo remove all drains in no-flow boundries or constant head
+    # remove all drains in no-flow boundries or constant head
     no_flow = smt.get_no_flow()[0]
     no_flow[no_flow<0]=0
     idxs = pd.DataFrame(smt.model_where(~no_flow.astype(bool)), columns=['i','j'])
+    drn_data.loc[:,'is_drn'] = True
     temp_df = pd.concat((drn_data, idxs))
-    drn_data = temp_df.loc[~drn_data.duplicated(['i','j'],False)]
-
+    drn_data = temp_df.loc[~temp_df.duplicated(['i','j'],False) & (temp_df.loc[:,'is_drn'])].reset_index()
+    drn_data = drn_data.drop(['elv','is_drn','index'], axis=1)
 
     if any(pd.isnull(drn_data['group'])):
         raise ValueError('some groups still null')
+    return drn_data
 
 
 if __name__ == '__main__':
     test = _get_drn_spd(1,1)
+    test2 = test.loc[np.in1d(test.group, [
+        'ashley_swaz',
+        'cam_swaz',
+        'courtenay_swaz',
+        'greigs_swaz',
+        'kaiapoi_swaz',
+        'kairaki_swaz',
+        'northbrook_swaz',
+        'ohoka_swaz',
+        'other',
+        'saltwater_swaz',
+        'southbrook_swaz',
+        'taranaki_swaz',
+        'up_waimak',
+        'waikuku_swaz',
+        'waimak_drn'
+    ])]
+    smt.plt_matrix(smt.df_to_array(test2,'i'))
     print('done')
