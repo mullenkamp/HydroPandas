@@ -11,9 +11,9 @@ from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_too
 def create_dis_package(m):
     elv_db = smt.calc_elv_db()
     dis = flopy.modflow.mfdis.ModflowDis(m,
-                                         nlay=17,
-                                         nrow=364,
-                                         ncol=365,
+                                         nlay=smt.layers,
+                                         nrow=smt.rows,
+                                         ncol=smt.cols,
                                          nper=1,
                                          delr=200,
                                          delc=200,

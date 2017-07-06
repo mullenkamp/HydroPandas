@@ -76,7 +76,7 @@ def _elvdb_calc():
     return outdata
 
 def _get_basement():
-    basement = gdalOpen("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/basement2.tif".format(sdp)).ReadAsArray()
+    basement = gdalOpen("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/basement2.tif".format(sdp)).ReadAsArray() #todo for some reason this is not working
     basement[np.isclose(basement, 9999999)] = np.nan
     basement = basement[1:,:]
     basement2 = np.concatenate((basement[:,:], np.repeat(basement[:, -1][:, np.newaxis], 33, axis=1)), axis=1)
@@ -172,7 +172,7 @@ model_version = 'a'
 
 if model_version == 'a':
     smt.model_version = 'a'
-    smt.sfr_version, smt.seg_v, reach_v = 1, 1, 1
+    smt.sfr_version, smt.seg_v, smt.reach_v = 1, 1, 1
     smt.k_version = 1
     smt.wel_version = 1
 

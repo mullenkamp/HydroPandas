@@ -11,6 +11,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.m_packages.wel_packages im
 from users.MH.Waimak_modeling.models.extended_boundry.m_packages.drn_packages import _get_drn_spd
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import pandas as pd
+import matplotlib.pyplot as plt
 
 #todo check there is no overlapping bcs, check there are no bcs in constant head/no_flow
 
@@ -32,6 +33,11 @@ def check_no_overlapping_features():
     if any(all_data.duplcated(['i','j','k'])):
         raise ValueError ('There are duplicates')
 
+
+def check_layer_overlap():
+    for i in range(smt.layers):
+        fig, ax = smt.plt_matrix(smt.check_layer_overlap(use_elv_db=True,layer=i,required_overlap=0.50),title='layer {}'.format(i))
+        plt.show(fig)
 
 
 #todo check there is at least 50% cell overlap in all of the layers (check implemented in smt)

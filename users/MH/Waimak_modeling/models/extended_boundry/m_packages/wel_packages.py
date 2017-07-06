@@ -37,7 +37,7 @@ def _get_wel_spd_v1(recalc=False):  # todo add pickle
         races.loc[site, 'row'], races.loc[site, 'col'] = smt.convert_coords_to_matix(races.loc[site, 'x'],
                                                                                      races.loc[site, 'y'])
     races['zone'] = 'n_wai'
-    races = races.set_index('well') # todo scale the boundry flux so that it is the correct value
+    races = races.set_index('well') # todo scale the boundry flux so that it is the correct value races and n pumping wells are fine
 
     n_wai_wells = get_nwai_wells()
     for site in n_wai_wells.index:

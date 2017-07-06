@@ -33,7 +33,7 @@ def get_water_level_data(min_reading = 1):
     data = data.loc['gwl'].reset_index()
     data1 = hydro().get_data(mtypes=['gwl_m'], sites=list(well_details.index)).data
     temp = data1.groupby(level=['mtype', 'site']).describe()[['min', '25%', '50%', '75%', 'mean', 'max', 'count']].round(2)
-    sites = list(temp.loc['gwl_m'].index[temp.loc['gwl_m']['count'] >=min_reading])
+    sites = list(temp.loc['gwl_m'].index[temp.loc['gwl_m']['count'] >= min_reading])
 
     data1 = data1.loc['gwl_m',sites].reset_index()
     data = pd.concat((data,data1),axis=0)
@@ -98,6 +98,7 @@ def get_water_level_data(min_reading = 1):
             out_data['reading_{}'.format(name)] = tempg.count().loc[:,'data']
 
 
+
         g = dat.groupby('site')
         out_data['readings'] = g.count().loc[:,'data']
 
@@ -156,6 +157,10 @@ def get_water_level_data(min_reading = 1):
 
         out_data.loc[:,'dry_percentage'] = (out_data.loc[:,'readings'] - out_data.loc[:,'readings_nondry'])/out_data.loc[:,'readings'] *100
 
+        for name in ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']:
+            out_data['s_factor_{}'.format(name)] = out_data['h2o_dpth_{}'.format(name)] / out_data.loc[:, 'h2o_dpth_mean']
+
+
         out_data.to_csv(env.sci("Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/first_pass_head_targets{}.csv".format(val)))
 
 
@@ -183,10 +188,10 @@ def correct_wl_define_error(outdata):
         # farmer vs ecan
         farm = outdata.loc[well, 'users_error'] = outdata.loc[well,'owner_measured'] * 0.10* outdata.loc['well','h2o_dpth_mean']
         # seasonal bias correction
-        sea = outdata.loc[well, 'scorrection_error'] = None # todo pull from the varience of the seaonsal corrections
+        sea = outdata.loc[well, 'scorrection_error'] = None # todo pull from the varience of the seaonsal corrections and how uneven the sample is
         # DEM error
         if outdata.loc[well,'rl_from_dem']:
-            dem = outdata.loc[well, 'dem_error'] = 10 # based on the 90% uncertainty of the DEM
+            dem = outdata.loc[well, 'dem_error'] = 5 # based on half the 90% uncertainty of the DEM as we exect less uncetatiny in the plains vs the hill country
         else:
             dem = outdata.loc[well, 'dem_error'] = 0.1 # for other casing errors
 
@@ -197,7 +202,7 @@ def correct_wl_define_error(outdata):
             low_rd_err = 0.1 * outdata.loc[well, 'h2o_dpth_mean']
 
         outdata.loc[well, 'low_rd_error'] = low_rd_err
-        outdata.loc[well, 'total_error_m'] = (me + farm + sea + dem + low_rd_err)/(readings)**0.5
+        outdata.loc[well, 'total_error_m'] = dem + sea + (me + farm + low_rd_err)/(readings)**0.5
 
 
 
