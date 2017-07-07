@@ -13,7 +13,7 @@ def sel_interp_agg(precip, precip_crs, poly, grid_res, data_col, time_col, x_col
     Function to select the precip sites within a polygon with a certain buffer distance, then interpolate/resample the data at a specific resolution, then output the results.
     precip -- dataframe of time, x, y, and precip.\n
     precip_crs -- The crs of the x and y coordinates of the precip dataframe.\n
-    poly -- String path of a shapefile polygon.\n
+    poly -- str path of a shapefile polygon or a polygon GeoDataFrame.\n
     res -- Resolution in meters of the resampling.\n
     buffer_dis -- Buffer distance of the polygon selection.\n
     interp_fun -- The scipy Rbf interpolation function to be applied (see https://docs.scipy.org/doc/scipy-0.16.1/reference/generated/scipy.interpolate.Rbf.html).\n
@@ -26,7 +26,7 @@ def sel_interp_agg(precip, precip_crs, poly, grid_res, data_col, time_col, x_col
     """
 
     from core.spatial import sel_sites_poly, grid_interp_ts, xy_to_gpd, save_geotiff
-    from geopandas import read_file
+    from geopandas import read_file, GeoDataFrame, GeoSeries
     from numpy import tile
     from os import path
     from pandas import merge
@@ -37,7 +37,10 @@ def sel_interp_agg(precip, precip_crs, poly, grid_res, data_col, time_col, x_col
     sites.columns = ['site', 'geometry']
 
     ### Select the locations within the polygon
-    poly1 = read_file(poly)
+    if isinstance(poly, (GeoDataFrame, GeoSeries)):
+        poly1 = poly.copy()
+    elif isinstance(poly, str):
+        poly1 = read_file(poly)
     sites1 = sites.to_crs(poly1.crs)
     sites_sel = sel_sites_poly(sites1, poly, buffer_dis)
     sites2 = sites0.loc[sites_sel['site']]

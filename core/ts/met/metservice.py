@@ -140,9 +140,11 @@ def MetS_nc_to_df(nc, lat_coord='y', lon_coord='x', time_coord='time', precip_va
     geometry = [Point(xy) for xy in zip(sites0[lon_coord], sites0[lat_coord])]
     sites = GeoDataFrame(sites0.index, geometry=geometry, crs=proj1)
 
+    start_date = ds.attrs['START_DATE']
+
     ### Return
     ds.close()
-    return(precip, sites)
+    return(precip, sites, start_date)
 
 
 
