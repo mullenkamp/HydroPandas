@@ -105,8 +105,9 @@ def rd_hydstra_db(sites, start_time=0, end_time=0, datasource='A', data_type='me
     varto -- The hydstra conversion data variable (140.00 is flow).\n
     interval -- The frequency of the output data (year, month, day, hour, minute, second, period).\n
     multiplier -- interval frequency.\n
-    min_qual -- The minimum quality code or None (and there is no screening by quality, suggest exporting qual).
-    :param return_qual: if true returns series, qual_series
+    min_qual -- The minimum quality code or None (and there is no screening by quality, suggest exporting qual).\n
+    return_qual -- if true returns series, qual_series.\n
+    sites_chunk -- Number of sites to request to hydllp at one time. Do not change unless you understand what it does.
     """
     from core.ecan_io.hydllp import openHyDb
     from pandas import Timestamp, DataFrame, concat
@@ -434,10 +435,14 @@ class Hydllp(object):
         lst = []
         qual_lst = []
         for i in range(len(j1)):
-            b = to_numeric([f['v'] for f in j1[i]['trace']], errors='coerce')
+            if interval == 'period':
+                site_data = j1[i]['trace']
+            else:
+                site_data = j1[i]['trace'][1:-1]
+            b = to_numeric([f['v'] for f in site_data], errors='coerce')
             if len(b) > 0:
-                time = to_datetime([f['t'] for f in j1[i]['trace']], format='%Y%m%d%H%M%S')
-                qual = to_numeric([f['q'] for f in j1[i]['trace']], errors='coerce')
+                time = to_datetime([f['t'] for f in site_data], format='%Y%m%d%H%M%S')
+                qual = to_numeric([f['q'] for f in site_data], errors='coerce')
                 if min_qual is not None:
                     b[qual > min_qual] = nan
                 series = Series(b, index=time)
