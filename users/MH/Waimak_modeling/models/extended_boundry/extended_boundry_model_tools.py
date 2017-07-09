@@ -10,6 +10,8 @@ from users.MH.Waimak_modeling.supporting_data_path import sdp, temp_file_dir
 from osgeo.gdal import Open as gdalOpen
 import numpy as np
 from users.MH.Waimak_modeling.model_tools.get_str_rch_values import get_ibound as gib
+from monte_carlo_3d_interp import interp_3d_montecarlo
+import pandas as pd
 
 layers, rows, cols = 11, 364, 365
 
@@ -18,13 +20,13 @@ _mt = ModelTools('ex_bd_va', sdp='{}/ex_bd_va_sdp'.format(sdp), ulx=1512162.5327
 
 
 def _elvdb_calc():
-    top = gdalOpen("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/tops.tif".format(sdp)).ReadAsArray()
+    top = gdalOpen("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/tops.tif".format(sdp)).ReadAsArray() #todo resave with Q
     top[np.isclose(top, -3.40282306074e+038)] = 0
 
 
     # bottoms
     # layer 0
-    bot0 = gdalOpen("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/layering/base_layer_1.tif".format(sdp)).ReadAsArray()
+    bot0 = gdalOpen("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/layering/base_layer_1.tif".format(sdp)).ReadAsArray() #todo resave with Q
     idx = np.isclose(bot0, -3.40282306074e+038)
     bot0[idx] = top[idx] - 10 #set nan values to 10 m thick.  all these are out of the no-flow bound
 
@@ -160,6 +162,45 @@ def _get_constant_heads():
     return outdata
 
 
+def create_sw_boundry(): #todo definetly add pickle to this one
+
+    simulations = 10000
+    # 0 identify the sampling points for the boundry (x,y,z) space
+    # the bottom layer should probably be no-flow as I do not have any basis for interpolation
+
+    boundry = _mt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/s_boundry_line.shp".format(_mt.sdp),'ID',True)
+    boundry = boundry.repeat(_mt.layers)
+    elv = _elvdb_calc()
+    basement = _get_basement()
+    tops = elv[0:_mt.layers]
+    if len(tops) != _mt.layers:
+        raise ValueError('wrong number of layers returned')
+    basement = np.repeat(_get_basement()[np.newaxis,:,:], _mt.layers, axis=0)
+    boundry[basement >= tops] = 0
+
+    # set bottom layer to nan we have no values to interpolate off of #todo do we have data for the other layers?
+    boundry[-1,:,:] = np.nan
+    locations = pd.DataFrame(_mt.model_where(np.isfinite(boundry)), columns=['k','i','j'])
+    for cell in locations.index:
+        k, i, j = locations.loc[cell,['k','i','j']]
+        x,y,z = _mt.convert_matrix_to_coords(i,j,k,elv)
+        locations.loc[cell,'x'] = x
+        locations.loc[cell,'y'] = y
+        locations.loc[cell,'z'] = z
+
+
+    # 2 Id the radius of influance (or include in montecarlo approximations) other script #todo
+    # 3 Identify which points to use (and get good coverage) and create PDFs for each of the input points
+    data = None #todo
+
+
+    # 4 run monte calo simulation from the point pdfs to create a pdf for each point on the grid
+    # 1 id which interpolation technique to use (try just eh default of multinomial?)
+    outdata, values = interp_3d_montecarlo(locations, data, method='multiquadric',
+                                           num_sim=simulations, return_values=True) #true for now
+
+
+    raise NotImplementedError
 
 smt = ModelTools(
     'ex_bd_va', sdp='{}/ex_bd_va_sdp'.format(sdp), ulx=1512162.53275, uly=5215083.5772, layers=layers, rows=rows,
@@ -176,7 +217,9 @@ if model_version == 'a':
     smt.k_version = 1
     smt.wel_version = 1
 
+
+
 if __name__ == '__main__':
-   test = _get_constant_heads()
+   test = _get_basement()
 
    print 'done'
