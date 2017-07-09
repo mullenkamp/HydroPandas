@@ -2548,14 +2548,30 @@ p.circle(x,y, radius=radii, fill_color=colors, fill_alpha=0.6, line_color=None)
 show(p)
 
 
+###################################################
+#### ftplib testing
+
+from ftplib import FTP
+from os import path
+
+### Parameters
+dir1 = r'C:\ecan\ftp\metservice\netcdf_combined'
+
+ftp_site = 'ftp1.met.co.nz'
+username = 'wrf_rainfall_time_series'
+password = 'WrfR@1nF@ll'
+
+### Read local files
 
 
+### Read ftp files
+ftp1 = FTP(ftp_site)
+ftp1.login(user=username, passwd=password)
+ftp1.cwd('/netcdf_combined')
+files1 = ftp1.nlst()
 
 
-
-
-
-
+ftp://wrf_rainfall_time_series@ftp1.met.co.nz/netcdf_combined
 
 
 
