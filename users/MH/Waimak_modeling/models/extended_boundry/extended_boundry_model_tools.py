@@ -10,8 +10,9 @@ from users.MH.Waimak_modeling.supporting_data_path import sdp, temp_file_dir
 from osgeo.gdal import Open as gdalOpen
 import numpy as np
 from users.MH.Waimak_modeling.model_tools.get_str_rch_values import get_ibound as gib
-from monte_carlo_3d_interp import interp_3d_montecarlo
 import pandas as pd
+import time
+from pykrige.ok import OrdinaryKriging
 
 layers, rows, cols = 11, 364, 365
 
@@ -20,13 +21,13 @@ _mt = ModelTools('ex_bd_va', sdp='{}/ex_bd_va_sdp'.format(sdp), ulx=1512162.5327
 
 
 def _elvdb_calc():
-    top = gdalOpen("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/tops.tif".format(sdp)).ReadAsArray() #todo resave with Q
+    top = gdalOpen("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/tops.tif".format(sdp)).ReadAsArray()
     top[np.isclose(top, -3.40282306074e+038)] = 0
 
 
     # bottoms
     # layer 0
-    bot0 = gdalOpen("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/layering/base_layer_1.tif".format(sdp)).ReadAsArray() #todo resave with Q
+    bot0 = gdalOpen("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/layering/base_layer_1.tif".format(sdp)).ReadAsArray()
     idx = np.isclose(bot0, -3.40282306074e+038)
     bot0[idx] = top[idx] - 10 #set nan values to 10 m thick.  all these are out of the no-flow bound
 
@@ -78,7 +79,7 @@ def _elvdb_calc():
     return outdata
 
 def _get_basement():
-    basement = gdalOpen("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/basement2.tif".format(sdp)).ReadAsArray() #todo for some reason this is not working
+    basement = gdalOpen("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/basement2.tif".format(sdp)).ReadAsArray()
     basement[np.isclose(basement, 9999999)] = np.nan
     basement = basement[1:,:]
     basement2 = np.concatenate((basement[:,:], np.repeat(basement[:, -1][:, np.newaxis], 33, axis=1)), axis=1)
@@ -156,51 +157,74 @@ def _get_constant_heads():
     for i in range(1,_mt.layers):
         outdata[i][np.isfinite(sea)] = 1
 
-    # todo model boundry (sw)... how many layers for this
+    # todo model boundry? (sw)... how many layers for this
     # return a 3d array (layer, col, row) of constant heads values and np.nan for all others.
 
     return outdata
 
 
 def create_sw_boundry(): #todo definetly add pickle to this one
+    #todo I'm not sure if this is teh best option for our model.
 
-    simulations = 10000
     # 0 identify the sampling points for the boundry (x,y,z) space
     # the bottom layer should probably be no-flow as I do not have any basis for interpolation
 
     boundry = _mt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/s_boundry_line.shp".format(_mt.sdp),'ID',True)
-    boundry = boundry.repeat(_mt.layers)
+    boundry = boundry[np.newaxis,:,:].repeat(_mt.layers, axis = 0)
     elv = _elvdb_calc()
     basement = _get_basement()
     tops = elv[0:_mt.layers]
     if len(tops) != _mt.layers:
         raise ValueError('wrong number of layers returned')
     basement = np.repeat(_get_basement()[np.newaxis,:,:], _mt.layers, axis=0)
-    boundry[basement >= tops] = 0
+    boundry[basement >= tops] = np.nan
 
     # set bottom layer to nan we have no values to interpolate off of #todo do we have data for the other layers?
     boundry[-1,:,:] = np.nan
     locations = pd.DataFrame(_mt.model_where(np.isfinite(boundry)), columns=['k','i','j'])
     for cell in locations.index:
-        k, i, j = locations.loc[cell,['k','i','j']]
-        x,y,z = _mt.convert_matrix_to_coords(i,j,k,elv)
+        k, i, j = locations.loc[cell,['k','i','j']].astype(int)
+        x,y,z = _mt.convert_matrix_to_coords(i, j, k, elv)
         locations.loc[cell,'x'] = x
         locations.loc[cell,'y'] = y
         locations.loc[cell,'z'] = z
 
 
-    # 2 Id the radius of influance (or include in montecarlo approximations) other script #todo
+    # 2 Id the radius of influance (or include in montecarlo approximations) other script looking at the data I chose 10km
     # 3 Identify which points to use (and get good coverage) and create PDFs for each of the input points
-    data = None #todo
+    # the below wells were selected based on a querry of all targets that were within 10 km of the boundry line and
+    # those that had at least 20 readings.  an exception was made for teh deeper wells layers (7-10) where all wells
+    # were included regardless of of the number of readings.  this was done to increase the spatial coverage of deep data
 
+    with open("{}/m_ex_bd_inputs/wells_to_use_for_s_boundry.txt".format(_mt.sdp)) as f:
+        wells = f.readlines()
+    wells = [e.strip() for e in wells]
+
+    all_targets = pd.read_csv(env.sci(
+        "Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/head_targets_2008_offsets.csv"),index_col=0)
+    data = all_targets.loc[wells]
+    data = data.rename(columns={'nztmx':'x', 'nztmy':'y', 'mid_screen_elv':'z', 'h2o_elv_mean':'d', 'total_error_m':'sd'})
+    data = data.dropna(subset=['x','y','d'])
 
     # 4 run monte calo simulation from the point pdfs to create a pdf for each point on the grid
     # 1 id which interpolation technique to use (try just eh default of multinomial?)
-    outdata, values = interp_3d_montecarlo(locations, data, method='multiquadric',
-                                           num_sim=simulations, return_values=True) #true for now
 
+    for i in range(10):
+        print i
+        idx = locations.k == i
+        temp = data.loc[data.layer==i]
+        print len(temp)
+        ok2d = OrdinaryKriging(np.array(temp.x),np.array(temp.y),np.array(temp.d))
 
-    raise NotImplementedError
+        k, s = ok2d.execute('points',np.array(locations.loc[idx,'x']), np.array(locations.loc[idx,'y']))
+
+        locations.loc[idx,'krig_data'] = k.data
+    import matplotlib.pyplot as plt
+    for i in range(10):
+        temp = locations[locations.k==i]
+        plt.scatter(range(len(temp)),temp.krig_data,label=i)
+    plt.legend()
+    return locations #todo check it;s not above top
 
 smt = ModelTools(
     'ex_bd_va', sdp='{}/ex_bd_va_sdp'.format(sdp), ulx=1512162.53275, uly=5215083.5772, layers=layers, rows=rows,
@@ -220,6 +244,8 @@ if model_version == 'a':
 
 
 if __name__ == '__main__':
-   test = _get_basement()
+   start = time.time()
 
-   print 'done'
+   test = create_sw_boundry()
+
+   print('took {} seconds'.format((time.time()-start)))

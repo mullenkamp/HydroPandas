@@ -152,5 +152,12 @@ if __name__ == '__main__':
         'waikuku_swaz',
         'waimak_drn'
     ])]
+    for i in test2.index:
+        row, col = test.loc[i,['i','j']].astype(int)
+        x,y = smt.convert_matrix_to_coords(row,col)
+        test2.loc[i,'nztmx'] = x
+        test2.loc[i,'nztmy'] = y
+
+    test2.to_csv(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\stream_drn_values\drn_points.csv")
     smt.plt_matrix(smt.df_to_array(test2,'i'))
     print('done')

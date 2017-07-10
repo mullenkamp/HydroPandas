@@ -86,10 +86,11 @@ def plot_values(data):
 
 
 if __name__ == '__main__':
-    #calc_target_offset() # already run and it is quite slow
+    calc_target_offset() # already run and it is quite slow
 
     data = pd.read_csv(env.sci(
         "Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/head_targets_2008_offsets.csv"))
-    fig, fig2 = plot_values(data)
+    print(data[data['include_non-gap']].readings.min())
+    fig, fig2 = plot_values(data[data['include_non-gap']])
 
     print('done')
