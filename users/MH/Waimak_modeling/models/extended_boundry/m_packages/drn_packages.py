@@ -128,6 +128,7 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
     drn_data = temp_df.loc[~temp_df.duplicated(['i','j'],False) & (temp_df.loc[:,'is_drn'])].reset_index()
     drn_data = drn_data.drop(['elv','is_drn','index'], axis=1)
 
+    #todo add the ashley estuary
     if any(pd.isnull(drn_data['group'])):
         raise ValueError('some groups still null')
     return drn_data

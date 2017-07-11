@@ -86,7 +86,7 @@ def _get_basement():
     return basement2
 
 
-def _no_flow_calc():
+def _no_flow_calc(): #todo check the intersection with ibounds...
     no_flow = np.zeros((_mt.rows,_mt.cols))
     outline = _mt.shape_file_to_model_array("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/new_active_domain.shp".format(sdp),'DN',True)
     no_flow[np.isfinite(outline)] = 1
@@ -156,6 +156,8 @@ def _get_constant_heads():
     # propogate constant head down as active cells
     for i in range(1,_mt.layers):
         outdata[i][np.isfinite(sea)] = 1
+
+    #todo handle the basement.... so that it is defined and not overwritten by constant heads...
 
     # todo model boundry? (sw)... how many layers for this
     # return a 3d array (layer, col, row) of constant heads values and np.nan for all others.
@@ -246,6 +248,6 @@ if model_version == 'a':
 if __name__ == '__main__':
    start = time.time()
 
-   test = create_sw_boundry()
+   test = _no_flow_calc()
 
    print('took {} seconds'.format((time.time()-start)))
