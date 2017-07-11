@@ -153,7 +153,7 @@ def save_geotiff(df, data_col, crs, x_col='x', y_col='y', time_col=None, nfiles=
     ### Make the rasters
     if time_col is None:
         z = df.set_index([y_col, x_col])[data_col].unstack().values[::-1]
-        new_dataset = ras_open(export_path, 'w', driver='GTiff', height=len(xy1[y_col].unique()), width=len(xy1[x_col].unique()), count=1, dtype=df[data_col].dtype, crs=convert_crs(crs), transform=trans2)
+        new_dataset = ras_open(export_path, 'w', driver='GTiff', height=len(xy1[y_col].unique()), width=len(xy1[x_col].unique()), count=1, dtype=df[data_col].dtype, crs=convert_crs(crs, pass_str=True), transform=trans2)
         new_dataset.write(z, 1)
         new_dataset.close()
     else:
