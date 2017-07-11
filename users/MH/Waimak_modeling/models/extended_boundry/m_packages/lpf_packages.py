@@ -13,9 +13,9 @@ def create_lay_prop_package(m, mfv,k_version=1):
     layer_avg = 0
     chani = -1
     layer_vka = 0
-    hk = _get_hk(k_version)
+    hk = 1 #todo _get_hk(k_version)
     hani = 1
-    vka = _get_vka(k_version)
+    vka = 1 #todo _get_vka(k_version)
     ss = 0
     sy = 0
 

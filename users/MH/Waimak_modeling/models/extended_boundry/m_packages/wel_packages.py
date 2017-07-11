@@ -32,12 +32,14 @@ def get_wel_spd(version):
 
 def _get_wel_spd_v1(recalc=False):  # todo add pickle
     races = get_race_data()
+    # scale races so that they are right (see memo)
+    races.loc[races.type=='boundry_flux','flux'] *= 0.6*86400/races.loc[races.type=='boundry_flux','flux'].sum()
     elv_db = smt.calc_elv_db()
     for site in races.index:
         races.loc[site, 'row'], races.loc[site, 'col'] = smt.convert_coords_to_matix(races.loc[site, 'x'],
                                                                                      races.loc[site, 'y'])
     races['zone'] = 'n_wai'
-    races = races.set_index('well') # todo scale the boundry flux so that it is the correct value races and n pumping wells are fine
+    races = races.set_index('well')
 
     n_wai_wells = get_nwai_wells()
     for site in n_wai_wells.index:
