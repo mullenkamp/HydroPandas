@@ -130,7 +130,12 @@ def _get_s_wai_rivers():
     horo = pd.DataFrame(smt.model_where(rivers[np.newaxis, :, :] == 105), columns=['layer', 'row', 'col'])
     horo['well'] = ['horo{:04d}'.format(e) for e in horo.index]
     # evenly distribute flux from scott thorley 2009 but only including 7/32 of the river in my model
-    horo['flux'] = 0.554 * 86400 / len(horo) * 7 / 32
+    horo['flux'] = 0.554 * 86400 / len(horo) # todo should I include all of this flux? zeb thinks yes
+
+    # the hawkins 0.25 m3/s equally distributed between watsons bridge road and homebush road
+    hawkins = pd.DataFrame(smt.model_where(rivers[np.newaxis, :, :] == 103), columns=['layer', 'row', 'col'])
+    hawkins['well'] = ['hawkins{:04d}'.format(e) for e in hawkins.index]
+    hawkins['flux'] = 0.25 * 86400 / len(hawkins)  # evenly distribute flux from scott and thorley 2009
 
     outdata = pd.concat((waian, selwyn, horo))
     outdata['zone'] = 's_wai'

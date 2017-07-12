@@ -15,8 +15,8 @@ def create_dis_package(m):
                                          nrow=smt.rows,
                                          ncol=smt.cols,
                                          nper=1,
-                                         delr=200,
-                                         delc=200,
+                                         delr=smt.grid_space,
+                                         delc=smt.grid_space,
                                          laycbd=0,
                                          top=elv_db[0],
                                          botm=elv_db[1:],
@@ -27,8 +27,8 @@ def create_dis_package(m):
                                          itmuni=4,
                                          lenuni=2,
                                          unitnumber=719,
-                                         xul=1512162.53275,
-                                         yul=5215083.5772,
+                                         xul=smt.ulx,
+                                         yul=smt.uly,
                                          rotation=0.0,
                                          proj4_str=2193)
 

@@ -172,7 +172,7 @@ class ModelTools(object):
 
         if return_AE:
             x0 = (100 - (model_xs[0, :] - lon)[col]) / 200
-            y0 = (100 - (model_ys[:, 0] - lat)[row]) / 200
+            y0 = (100 - (model_ys[:, 0] - lat)[row]) / 200 # todo implment grid spacing here
 
         if elv is None:
             if return_AE:
@@ -334,7 +334,7 @@ class ModelTools(object):
         if not os.path.exists(self.temp_file_dir):
             os.makedirs(self. temp_file_dir)
 
-        pixelWidth = pixelHeight = 200  # depending how fine you want your raster
+        pixelWidth = pixelHeight = self.grid_space  # depending how fine you want your raster
 
         x_min, y_min = self.ulx, self.uly - self.grid_space * self.rows
 

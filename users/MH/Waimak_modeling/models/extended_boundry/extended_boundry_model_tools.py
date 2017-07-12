@@ -24,6 +24,11 @@ def _elvdb_calc():
     top = gdalOpen("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/tops.tif".format(sdp)).ReadAsArray()
     top[np.isclose(top, -3.40282306074e+038)] = 0
 
+    # quickly smooth the dem near the top of the waimakariri (that gorge)
+    top_smooth = gdalOpen("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/layering/DEM_smoother.tif".format(sdp)).ReadAsArray()
+    top_smooth[np.isclose(top_smooth, -3.40282306074e+038)] = 0
+    top += top_smooth/2 #todo this is a first pass could be better
+
 
     # bottoms
     # layer 0
@@ -46,16 +51,17 @@ def _elvdb_calc():
     thicknesses = {  #todo check verticle offset of targets, particularly vertical gradient targets
         # these values came from the median thickness from the GNS model in the confined zone
         # (defined by the extent of the ashely and chch formation)  this is a bit loose but decent given time
-        'ricc': 15, #todo may need to smooth this layer inland? it may be worth making this layer non-uniform
+        'ricc': 15,
         'brom': 15,
         'lin': 25,
         'heath': 15,
-        'bur': 15, #todo this could pose a problem for the steep sections of the model layering
+        'bur': 15,
         'shirl': 15,
         'wainoni': 20,
         # seems to be target (though with minimal data) in two groups 1 from 20-30 the other from 40-80
         'deep_divide1': 40, #this one was carefully thought about to ensure that there was the potential to grab targets (assuming no changes in the above layers)
         'deep_divide2': 40 #todo this captures our deepest wells but means no targets in teh bottom of the model.
+        #todo above does not capture all wells (there are a couple of slippery folks that need to be added!
     }
     outdata = np.zeros((len(layer_names)+3,_mt.rows,_mt.cols))
     outdata[0] = top
@@ -112,24 +118,14 @@ def _no_flow_calc(): #todo check the intersection with ibounds...
     #set constant heads  to -1
     constant_heads = _get_constant_heads()
     no_flow[np.isfinite(constant_heads)] = -1
-
-
-
+    no_flow[(np.isclose(constant_heads, -999))] = 1
 
     return no_flow
-
 
 
 def _get_constant_heads():
 
     outdata = np.zeros((_mt.layers, _mt.rows, _mt.cols))*np.nan
-    # te waihura
-    # te waihora is defined at the 2m contour from the DEM around the lake to ensure that no weirdness happens when we
-    # set the DEM to 1.5 m MSL
-    wai_val = 1.5
-    waihora = _mt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/te_waihora.shp".format(_mt.sdp), 'ID', True)
-    idx = np.isfinite(waihora)
-    outdata[0][idx] = wai_val
 
     # sea surface (north/south wai
     first_sea_val = 0.5
@@ -155,12 +151,13 @@ def _get_constant_heads():
     outdata[0][np.isfinite(sea)] = sea[np.isfinite(sea)]
     # propogate constant head down as active cells
     for i in range(1,_mt.layers):
-        outdata[i][np.isfinite(sea)] = 1
+        outdata[i][np.isfinite(sea)] = -999
 
-    #todo handle the basement.... so that it is defined and not overwritten by constant heads...
-
-    # todo model boundry? (sw)... how many layers for this
-    # return a 3d array (layer, col, row) of constant heads values and np.nan for all others.
+    tops = _elvdb_calc()[0:_mt.layers]
+    if len(tops) != _mt.layers:
+        raise ValueError('wrong number of layers returned')
+    basement = np.repeat(_get_basement()[np.newaxis,:,:], _mt.layers, axis=0)
+    outdata[basement >= tops] = np.nan
 
     return outdata
 
@@ -247,7 +244,7 @@ if model_version == 'a':
 
 if __name__ == '__main__':
    start = time.time()
-
-   test = _no_flow_calc()
+   no_flow = _no_flow_calc()
+   cheads = _get_constant_heads()
 
    print('took {} seconds'.format((time.time()-start)))
