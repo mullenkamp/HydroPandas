@@ -34,6 +34,12 @@ To install Python:
         Flopy: Run and interact with modflow models
             pip install flopy
 
+     Other packages that we're playing with:
+     pykriging n-dimentional kriging for python pip install pykriging
+     mayavi - 3d visualisation in python (used for some pykriging functions) pip install mayavi
+     pykrige - another kriging module pip install pykrige
+
+
 Integrated development editor:
     Matt H prefers Pycharm community edition because it has some very handy tricks, chat with Matt about these
     capabilities:

@@ -2471,9 +2471,15 @@ from bokeh.plotting import figure, output_file, show
 from os.path import join
 
 base_dir = r'S:\Surface Water\backups\MichaelE\Projects\plotting\bokeh'
+base_dir = r'E:\ecan\local\Projects\plotting\bokeh'
 html1 = 'lines.html'
 html2 = 'log_lines.html'
 html3 = 'color_scatter.html'
+html4 = "linked_panning.html"
+html5 = "linked_brushing.html"
+html6 = "stocks.html"
+svg6 = "stocks.svg"
+png6 = 'stocks.png'
 
 # prepare some data
 x = [1, 2, 3, 4, 5]
@@ -2521,7 +2527,6 @@ show(p)
 
 
 import numpy as np
-
 from bokeh.plotting import figure, output_file, show
 
 # prepare some data
@@ -2529,9 +2534,7 @@ N = 4000
 x = np.random.random(size=N) * 100
 y = np.random.random(size=N) * 100
 radii = np.random.random(size=N) * 1.5
-colors = [
-    "#%02x%02x%02x" % (int(r), int(g), 150) for r, g in zip(50+2*x, 30+2*y)
-]
+colors = ["#%02x%02x%02x" % (int(r), int(g), 150) for r, g in zip(50+2*x, 30+2*y)]
 
 # output to static HTML file (with CDN resources)
 output_file(join(base_dir, html3), title="color_scatter.py example", mode="cdn")
@@ -2546,6 +2549,117 @@ p.circle(x,y, radius=radii, fill_color=colors, fill_alpha=0.6, line_color=None)
 
 # show the results
 show(p)
+
+
+########
+import numpy as np
+
+from bokeh.layouts import gridplot
+from bokeh.plotting import figure, output_file, show
+
+# prepare some data
+N = 100
+x = np.linspace(0, 4*np.pi, N)
+y0 = np.sin(x)
+y1 = np.cos(x)
+y2 = np.sin(x) + np.cos(x)
+
+# output to static HTML file
+output_file(join(base_dir, html4))
+
+# create a new plot
+s1 = figure(width=250, plot_height=250, title=None)
+s1.circle(x, y0, size=10, color="navy", alpha=0.5)
+
+# NEW: create a new plot and share both ranges
+s2 = figure(width=250, height=250, x_range=s1.x_range, y_range=s1.y_range, title=None)
+s2.triangle(x, y1, size=10, color="firebrick", alpha=0.5)
+
+# NEW: create a new plot and share only one range
+s3 = figure(width=250, height=250, x_range=s1.x_range, title=None)
+s3.square(x, y2, size=10, color="olive", alpha=0.5)
+
+# NEW: put the subplots in a gridplot
+p = gridplot([[s1, s2, s3]], toolbar_location=None)
+
+# show the results
+show(p)
+
+
+##############
+import numpy as np
+from bokeh.plotting import *
+from bokeh.models import ColumnDataSource
+
+# prepare some date
+N = 300
+x = np.linspace(0, 4*np.pi, N)
+y0 = np.sin(x)
+y1 = np.cos(x)
+
+# output to static HTML file
+output_file(join(base_dir, html5))
+
+# NEW: create a column data source for the plots to share
+source = ColumnDataSource(data=dict(x=x, y0=y0, y1=y1))
+
+TOOLS = "pan,wheel_zoom,box_zoom,reset,save,box_select,lasso_select"
+
+# create a new plot and add a renderer
+left = figure(tools=TOOLS, width=350, height=350, title=None)
+left.circle('x', 'y0', source=source)
+
+# create another new plot and add a renderer
+right = figure(tools=TOOLS, width=350, height=350, title=None)
+right.circle('x', 'y1', source=source)
+
+# put the subplots in a gridplot
+p = gridplot([[left, right]])
+
+# show the results
+show(p)
+
+
+###################
+import numpy as np
+
+from bokeh.plotting import figure, output_file, show
+from bokeh.sampledata.stocks import AAPL
+from scipy.signal import fftconvolve
+from bokeh.io import export_svgs, export_png
+
+# prepare some data
+aapl = np.array(AAPL['adj_close'])
+aapl_dates = np.array(AAPL['date'], dtype=np.datetime64)
+
+window_size = 10
+window = np.ones(window_size)/float(window_size)
+aapl_avg = fftconvolve(aapl, window, 'same')
+
+# output to static HTML file
+output_file(join(base_dir, html6), title="stocks.py example")
+
+# create a new plot with a a datetime axis type
+p = figure(width=1800, height=800, x_axis_type="datetime")
+
+# add renderers
+p.circle(aapl_dates, aapl, size=4, color='darkgrey', alpha=0.2, legend='close')
+p.line(aapl_dates, aapl_avg, color='navy', legend='avg')
+
+# NEW: customize by setting attributes
+p.title.text = "AAPL One-Month Average"
+p.legend.location = "top_left"
+p.grid.grid_line_alpha=0
+p.xaxis.axis_label = 'Date'
+p.yaxis.axis_label = 'Price'
+p.ygrid.band_fill_color="olive"
+p.ygrid.band_fill_alpha = 0.1
+
+# show the results
+show(p)
+p.output_backend = 'svg'
+export_svgs(p, filename=join(base_dir, svg6))
+export_png(p, filename=join(base_dir, png6))
 
 
 ###################################################
@@ -2570,46 +2684,196 @@ ftp1.login(user=username, passwd=password)
 ftp1.cwd('/netcdf_combined')
 files1 = ftp1.nlst()
 
+####################################################
+### Export rainfall sites for metservice
 
-ftp://wrf_rainfall_time_series@ftp1.met.co.nz/netcdf_combined
+from core.ecan_io import rd_sql
 
+server = 'SQL2012PROD03'
+db = 'MetConnect'
+table = 'RainFallPredictionSites'
 
+out_csv = r'E:\ecan\shared\base_data\metservice\metservice_sites.csv'
 
-
-
-
-
-
-
-
-
-
-
+rsites = rd_sql(server, db, table)
+rsites.to_csv(out_csv, index=False)
 
 
+#################################################
+#### Interpolation testing
+
+from core.ts.met.metservice import proc_metservice_nc, MetS_nc_to_df
+from core.ts.met.interp import sel_interp_agg
+from geopandas import read_file
+from pandas import to_datetime, concat
+import numpy as np
+from scipy.interpolate import griddata
+
+### Parameters
+
+nc = r'E:\ecan\shared\base_data\metservice\testing\nz8kmN-NCEP_2_2017050918.00.nc'
+point_shp = r'E:\ecan\shared\base_data\metservice\catch_del\MetConnect_rf_sites.shp'
+
+time_col = 'time'
+y_col = 'y'
+x_col = 'x'
+data_col = 'precip'
+digits = 2
+from_crs=None
+to_crs=None
+interp_fun='multiquadric'
+agg_ts_fun=None
+period=None
+point_site_col = 'SITENUMBER'
+
+## preprocess the nc file to save it as a proper nc file
+new_nc = proc_metservice_nc(nc)
+
+## extract the data from the new nc file
+precip, sites, start_date = MetS_nc_to_df(new_nc)
+
+df = precip.copy()
+
+from_crs = sites.crs
+
+def grid_interp_ts(df, time_col, x_col, y_col, data_col, from_crs, point_shp, point_site_col, to_crs=None, interp_fun='multiquadric', agg_ts_fun=None, period=None, digits=3):
+    """
+    Function to take a dataframe of z values and interate through and resample both in time and space. Returns a DataFrame structured like df.
+
+    df -- DataFrame containing four columns as shown in the below parameters.\n
+    time_col -- The time column name (str).\n
+    x_col -- The x column name (str).\n
+    y_col -- The y column name (str).\n
+    data_col -- The data column name (str).\n
+    from_crs -- The projection info for the input data (either a proj4 str or epsg int).\n
+    point_shp -- Path to shapefile of points to be interpolated (str).\n
+    point_site_col -- The column name of the site names/numbers of the point_shp (str).\n
+    to_crs -- The projection for the output data similar to from_crs.\n
+    interp_fun -- The scipy Rbf interpolation function to be applied (see https://docs.scipy.org/doc/scipy-0.16.1/reference/generated/scipy.interpolate.Rbf.html).\n
+    agg_ts_fun -- The pandas time series resampling function to resample the data in time (either 'mean' or 'sum'). If None, then no time resampling.\n
+    period -- The pandas time series code to resample the data in time (i.e. '2H' for two hours).\n
+    digits -- the number of digits to round to (int).
+    """
+    from numpy import arange, meshgrid, tile, repeat, array
+    from pandas import DataFrame, TimeGrouper, Grouper, to_datetime
+    from core.spatial.raster import grid_resample
+    from core.spatial.vector import xy_to_gpd
+    from core.spatial import convert_crs
+    from shapely.geometry import Point
+    from geopandas import GeoDataFrame, read_file
+
+    #### Read in points
+    points = read_file(point_shp)[[point_site_col, 'geometry']]
+    to_crs1 = points.crs
+
+    #### Create the grids
+    df1 = df.copy()
+
+    #### Resample the time series data
+    if agg_ts_fun is not None:
+        df1a = df1.set_index(time_col)
+        if agg_ts_fun == 'sum':
+            df2 = df1a.groupby([TimeGrouper(period), Grouper(y_col), Grouper(x_col)])[data_col].sum().reset_index()
+        elif agg_ts_fun == 'mean':
+            df2 = df1a.groupby([TimeGrouper(period), Grouper(y_col), Grouper(x_col)])[data_col].mean().reset_index()
+        else:
+            raise ValueError("agg_ts_fun should be either 'sum' or 'mean'.")
+        time = df2[time_col].unique()
+    else:
+        df2 = df1
+
+    time = df2[time_col].sort_values().unique()
+
+    #### Convert input data to crs of points shp
+    data1 = df2.loc[df2[time_col] == time[0]]
+    from_crs1 = convert_crs(from_crs, pass_str=True)
+
+
+    if to_crs is not None:
+        to_crs1 = convert_crs(to_crs, pass_str=True)
+        points = points.to_crs(to_crs1)
+    geometry = [Point(xy) for xy in zip(data1[x_col], data1[y_col])]
+    gpd = GeoDataFrame(data1.index, geometry=geometry, crs=from_crs1)
+    gpd1 = gpd.to_crs(crs=to_crs1)
+    x = gpd1.geometry.apply(lambda p: p.x).round(digits).values
+    y = gpd1.geometry.apply(lambda p: p.y).round(digits).values
+
+    #### Prepare the x and y of the points geodataframe
+
+
+    max_x = x.max()
+    min_x = x.min()
+
+    max_y = y.max()
+    min_y = y.min()
+
+    new_x = arange(min_x, max_x, grid_res)
+    new_y = arange(min_y, max_y, grid_res)
+    x_int, y_int = meshgrid(new_x, new_y)
+
+    #### Create new df
+    x_int2 = x_int.flatten()
+    y_int2 = y_int.flatten()
+    time_df = repeat(time, len(x_int2))
+    x_df = tile(x_int2, len(time))
+    y_df = tile(y_int2, len(time))
+    new_df = DataFrame({'time': time_df, 'x': x_df, 'y': y_df, data_col: repeat(0, len(time) * len(x_int2))})
+
+    new_lst = []
+    for t in to_datetime(time):
+        set1 = df2.loc[df2[time_col] == t, data_col]
+#        index = new_df[new_df['time'] == t].index
+        new_z = grid_resample(x, y, set1.values, x_int, y_int, digits, interp_fun)
+        new_lst.extend(new_z.tolist())
+        print(t)
+    new_df.loc[:, data_col] = new_lst
+
+    #### Export results
+    return(new_df)
 
 
 
 
+def func(x, y):
+    return x*(1-x)*np.cos(4*np.pi*x) * np.sin(4*np.pi*y**2)**2
 
 
+grid_x, grid_y = np.mgrid[0:1:10000j, 0:1:20000j]
+
+points1 = np.random.rand(1000, 2)
+values = func(points[:,0], points[:,1])
+
+grid_z2 = griddata(points1, values, (grid_x, grid_y), method='cubic')
+
+import matplotlib.pyplot as plt
+plt.imshow(grid_z2.T, extent=(0,1,0,1), origin='lower')
+plt.title('Cubic')
+plt.gcf().set_size_inches(6, 6)
+plt.show()
+
+x1 = np.array([0.2, 0.4, 0.5, 0.7, 0.7, 0.8])
+y1 = np.array([0.3, 0.4, 0.35, 0.35, 0.7, 0.8])
+
+grid_z3 = griddata(points, values, (x1, y1), method='cubic')
 
 
+xy = np.column_stack((x, y))
+z = set1.values
+
+x_new = points.geometry.apply(lambda p: p.x).round(digits).values
+y_new = points.geometry.apply(lambda p: p.y).round(digits).values
+xy_new = np.column_stack((x_new, y_new))
+
+grid_z4 = griddata(xy, z, xy_new, method='cubic').round(2)
 
 
+set2 = df2.loc[df2[time_col] == t, ['x', 'y', 'precip']]
 
+gpd5 = xy_to_gpd('precip', 'x', 'y', set2, from_crs)
 
+gpd5.to_file(r'E:\ecan\shared\base_data\metservice\catch_del\test1.shp')
 
-
-
-
-
-
-
-
-
-
-
+save_geotiff(set2, 'precip', from_crs, x_col='x', y_col='y', time_col=None, export_path=r'E:\ecan\shared\base_data\metservice\catch_del\test2.tif', grid_res=8000)
 
 
 
