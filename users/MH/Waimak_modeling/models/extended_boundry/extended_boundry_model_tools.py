@@ -12,7 +12,7 @@ import numpy as np
 from users.MH.Waimak_modeling.model_tools.get_str_rch_values import get_ibound as gib
 import pandas as pd
 import time
-from pykrige.ok import OrdinaryKriging
+import os
 
 layers, rows, cols = 11, 364, 365
 
@@ -48,7 +48,7 @@ def _elvdb_calc():
         'deep_divide1',
         'deep_divide2'
     ]
-    thicknesses = {  #todo check verticle offset of targets, particularly vertical gradient targets
+    thicknesses = {
         # these values came from the median thickness from the GNS model in the confined zone
         # (defined by the extent of the ashely and chch formation)  this is a bit loose but decent given time
         'ricc': 15,
@@ -61,7 +61,7 @@ def _elvdb_calc():
         # seems to be target (though with minimal data) in two groups 1 from 20-30 the other from 40-80
         'deep_divide1': 40, #this one was carefully thought about to ensure that there was the potential to grab targets (assuming no changes in the above layers)
         'deep_divide2': 40 #todo this captures our deepest wells but means no targets in teh bottom of the model.
-        #todo above does not capture all wells (there are a couple of slippery folks that need to be added!
+
     }
     outdata = np.zeros((len(layer_names)+3,_mt.rows,_mt.cols))
     outdata[0] = top
@@ -92,7 +92,7 @@ def _get_basement():
     return basement2
 
 
-def _no_flow_calc(): #todo check the intersection with ibounds...
+def _no_flow_calc():
     no_flow = np.zeros((_mt.rows,_mt.cols))
     outline = _mt.shape_file_to_model_array("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/new_active_domain.shp".format(sdp),'DN',True)
     no_flow[np.isfinite(outline)] = 1
@@ -111,9 +111,21 @@ def _no_flow_calc(): #todo check the intersection with ibounds...
     if len(tops) != _mt.layers:
         raise ValueError('wrong number of layers returned')
     basement = np.repeat(_get_basement()[np.newaxis,:,:], _mt.layers, axis=0)
-    no_flow[basement >= tops] = 0
+    buffer = np.array([5,5,5,5,5,5,5,5,10,10,10]) # set all within buffer to no flow
+    no_flow[basement+buffer[:, np.newaxis, np.newaxis] >= tops] = 0
 
-    #todo check the pockets of no-flow inside the model, and general domain
+    # fix the pockets of no-flow inside the model, and general domain
+    no_flow_clip = np.zeros((smt.rows,smt.cols))*np.nan
+    for i in range(smt.layers):
+        shp_path = (env.sci("Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and "
+                                      "optimisation/stream_drn_values/no flow rasters/noflowpockets_"
+                                      "layer{:02d}.shp".format(i)))
+        if os.path.exists(shp_path):
+            temp = smt.shape_file_to_model_array(shp_path,'Id',True)
+            no_flow_clip[np.isfinite(temp)] = 0
+
+        no_flow[i][np.isfinite(no_flow_clip)] = 0
+
 
     #set constant heads  to -1
     constant_heads = _get_constant_heads()
@@ -157,73 +169,11 @@ def _get_constant_heads():
     if len(tops) != _mt.layers:
         raise ValueError('wrong number of layers returned')
     basement = np.repeat(_get_basement()[np.newaxis,:,:], _mt.layers, axis=0)
-    outdata[basement >= tops] = np.nan
+    buffer = np.array([5,5,5,5,5,5,5,5,10,10,10]) # set all within buffer to no flow
+    outdata[basement+buffer[:, np.newaxis, np.newaxis] >= tops] = np.nan
 
     return outdata
 
-
-def create_sw_boundry(): #todo definetly add pickle to this one
-    #todo I'm not sure if this is teh best option for our model.
-
-    # 0 identify the sampling points for the boundry (x,y,z) space
-    # the bottom layer should probably be no-flow as I do not have any basis for interpolation
-
-    boundry = _mt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/s_boundry_line.shp".format(_mt.sdp),'ID',True)
-    boundry = boundry[np.newaxis,:,:].repeat(_mt.layers, axis = 0)
-    elv = _elvdb_calc()
-    basement = _get_basement()
-    tops = elv[0:_mt.layers]
-    if len(tops) != _mt.layers:
-        raise ValueError('wrong number of layers returned')
-    basement = np.repeat(_get_basement()[np.newaxis,:,:], _mt.layers, axis=0)
-    boundry[basement >= tops] = np.nan
-
-    # set bottom layer to nan we have no values to interpolate off of #todo do we have data for the other layers?
-    boundry[-1,:,:] = np.nan
-    locations = pd.DataFrame(_mt.model_where(np.isfinite(boundry)), columns=['k','i','j'])
-    for cell in locations.index:
-        k, i, j = locations.loc[cell,['k','i','j']].astype(int)
-        x,y,z = _mt.convert_matrix_to_coords(i, j, k, elv)
-        locations.loc[cell,'x'] = x
-        locations.loc[cell,'y'] = y
-        locations.loc[cell,'z'] = z
-
-
-    # 2 Id the radius of influance (or include in montecarlo approximations) other script looking at the data I chose 10km
-    # 3 Identify which points to use (and get good coverage) and create PDFs for each of the input points
-    # the below wells were selected based on a querry of all targets that were within 10 km of the boundry line and
-    # those that had at least 20 readings.  an exception was made for teh deeper wells layers (7-10) where all wells
-    # were included regardless of of the number of readings.  this was done to increase the spatial coverage of deep data
-
-    with open("{}/m_ex_bd_inputs/wells_to_use_for_s_boundry.txt".format(_mt.sdp)) as f:
-        wells = f.readlines()
-    wells = [e.strip() for e in wells]
-
-    all_targets = pd.read_csv(env.sci(
-        "Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/head_targets_2008_offsets.csv"),index_col=0)
-    data = all_targets.loc[wells]
-    data = data.rename(columns={'nztmx':'x', 'nztmy':'y', 'mid_screen_elv':'z', 'h2o_elv_mean':'d', 'total_error_m':'sd'})
-    data = data.dropna(subset=['x','y','d'])
-
-    # 4 run monte calo simulation from the point pdfs to create a pdf for each point on the grid
-    # 1 id which interpolation technique to use (try just eh default of multinomial?)
-
-    for i in range(10):
-        print i
-        idx = locations.k == i
-        temp = data.loc[data.layer==i]
-        print len(temp)
-        ok2d = OrdinaryKriging(np.array(temp.x),np.array(temp.y),np.array(temp.d))
-
-        k, s = ok2d.execute('points',np.array(locations.loc[idx,'x']), np.array(locations.loc[idx,'y']))
-
-        locations.loc[idx,'krig_data'] = k.data
-    import matplotlib.pyplot as plt
-    for i in range(10):
-        temp = locations[locations.k==i]
-        plt.scatter(range(len(temp)),temp.krig_data,label=i)
-    plt.legend()
-    return locations #todo check it;s not above top
 
 smt = ModelTools(
     'ex_bd_va', sdp='{}/ex_bd_va_sdp'.format(sdp), ulx=1512162.53275, uly=5215083.5772, layers=layers, rows=rows,

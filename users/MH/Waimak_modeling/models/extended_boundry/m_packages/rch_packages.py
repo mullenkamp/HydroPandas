@@ -35,7 +35,7 @@ def _get_rch(): #todo if mike gets dave scott running before this model is done,
     scaled_old_rch[part_zones==4] = old_rch[part_zones==4] # do not scale waimak
     scaled_old_rch[part_zones==7] = old_rch[part_zones==7] * 190/1000/365/old_rch[part_zones==7].mean()
     scaled_old_rch[part_zones==8] = old_rch[part_zones==8] * 270/1000/365/old_rch[part_zones==8].mean()
-
+    #todo break up rch in chch_west melton
     # create rch values for south wai
     """use homogeneous rate of 270 mm/year based on Williams 2010 (modified from White 2008)
     estimate of 23.8 m³/s for 276,000 ha Te Waihora catchment area.

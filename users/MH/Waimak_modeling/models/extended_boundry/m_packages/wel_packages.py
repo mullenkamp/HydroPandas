@@ -11,6 +11,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_too
 import pandas as pd
 import numpy as np
 from users.MH.Waimak_modeling.supporting_data_path import sdp
+from core.ecan_io import rd_sql, sql_db
 
 
 def create_wel_package(m, wel_version):
@@ -49,7 +50,7 @@ def _get_wel_spd_v1(recalc=False):  # todo add pickle
     n_wai_wells['zone'] = 'n_wai'
     n_wai_wells = n_wai_wells.set_index('well')
 
-    s_wai_wells = _get_s_wai_wells() #todo there are some s_wai wells which do not have data in wells, but do in consents file fix if bored
+    s_wai_wells = _get_s_wai_wells()  # there are some s_wai wells which do not have data in wells, but do in consents file fix if bored
     temp = smt.get_well_postions(np.array(s_wai_wells.index), one_val_per_well=True, raise_exct=False)
     s_wai_wells['layer'], s_wai_wells['row'], s_wai_wells['col'] = temp
     no_flow = smt.get_no_flow()
@@ -65,6 +66,14 @@ def _get_wel_spd_v1(recalc=False):  # todo add pickle
     s_wai_rivers = _get_s_wai_rivers().set_index('well')
 
     all_wells = pd.concat((races, n_wai_wells, s_wai_wells, s_wai_rivers))
+
+    well_details = rd_sql(**sql_db.wells_db.well_details)
+    well_details = well_details.set_index('WELL_NO')
+    for well in all_wells.index:
+        try:
+            all_wells.loc[well, 'aq_name'] = well_details.loc[well,'AQUIFER_NAME']
+        except KeyError:
+            pass
 
     return all_wells
 
@@ -104,7 +113,7 @@ def _get_s_wai_wells():
     out_data['type'] = 'well'
     out_data['zone'] = 's_wai'
     out_data.index.names = ['well']
-    out_data.loc[:,'flux'] *= 0.50  # todo start with a 50% scaling factor from CAV come back if time
+    out_data.loc[:,'flux'] *= 0.50  # start with a 50% scaling factor from CAV come back if time
 
     return out_data
 
@@ -130,7 +139,7 @@ def _get_s_wai_rivers():
     horo = pd.DataFrame(smt.model_where(rivers[np.newaxis, :, :] == 105), columns=['layer', 'row', 'col'])
     horo['well'] = ['horo{:04d}'.format(e) for e in horo.index]
     # evenly distribute flux from scott thorley 2009 but only including 7/32 of the river in my model
-    horo['flux'] = 0.554 * 86400 / len(horo) # todo should I include all of this flux? zeb thinks yes
+    horo['flux'] = 0.554 * 86400 / len(horo)
 
     # the hawkins 0.25 m3/s equally distributed between watsons bridge road and homebush road
     hawkins = pd.DataFrame(smt.model_where(rivers[np.newaxis, :, :] == 103), columns=['layer', 'row', 'col'])

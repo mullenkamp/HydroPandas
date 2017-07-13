@@ -12,6 +12,7 @@ from users.MH.Waimak_modeling.model_tools import get_drn_samp_pts_dict, get_base
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 from sfr2_packages import _get_reach_data
 from wel_packages import get_wel_spd
+import geopandas as gpd
 
 
 def create_drn_package(m, wel_version, reach_version):
@@ -141,7 +142,39 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
     drn_data.loc[:,'is_drn'] = True
     temp_df = pd.concat((drn_data, idxs))
     drn_data = temp_df.loc[~temp_df.duplicated(['i','j'],False) & (temp_df.loc[:,'is_drn'])].reset_index()
-    drn_data = drn_data.drop(['elv','is_drn','index'], axis=1)
+    drn_data = drn_data.drop(['is_drn','index'], axis=1)
+
+    # add new shapefile drn elevations keep the lower of the new or the old - 2
+    # with the exception of upper waimak drn which is 0 for some reason
+    man_drn_data = gpd.read_file(env.sci("Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/stream_drn_values/updated_drains_MH.shp"))
+
+    elv = smt.calc_elv_db()
+    for i in man_drn_data.index:
+        row, col = man_drn_data.loc[i,['i','j']]
+        cell_elv = elv[0,row,col]
+        old = man_drn_data.loc[i,'elev']
+        new = man_drn_data.loc[i,'Elev_use']
+
+        if man_drn_data.loc[i,'group'] == 'up_waimak': # do not inset upper waimak drains
+            el_to_use = new
+            if el_to_use > cell_elv:
+                el_to_use = cell_elv
+        else:
+            if old > new - 2: #inset all new drain elv 2 m
+                el_to_use = new - 2
+            else:
+                el_to_use = old
+
+            if el_to_use > cell_elv - 2:
+                el_to_use = cell_elv - 2
+
+        man_drn_data.loc[i,'elev_to_use'] = el_to_use
+
+    # set new elevations note there will be acouple of cells that weren't linked due to a labeling problem... just the way it's going to be
+    man_drn_data = man_drn_data.set_index('Field1')
+    drn_data.loc[man_drn_data.index,'elev'] = man_drn_data.loc[:,'elev_to_use']
+
+    #todo check that no drain cells are below the bottom of layer 1 and re-set carpet drain elevations chekc all
 
     #todo add the ashley estuary and remove any carpet drains that overlap
     drain_to_add = smt.shape_file_to_model_array('', 'ID', alltouched=True) #todo create shapefile
@@ -158,6 +191,7 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
     if (drn_data.loc[idx,'group'] != 'ash_carpet').any():
         raise ValueError('{} groups overlapping ashley estuary, consider'.format(set(np.array(drn_data.loc[idx,'group']))))
     drn_data = drn_data.loc[~idx] #todo test this and above
+    #todo make suree that there are no drns above the surface in the ashely esturary
 
 
 
@@ -191,6 +225,5 @@ if __name__ == '__main__':
         test2.loc[i,'nztmx'] = x
         test2.loc[i,'nztmy'] = y
 
-    test2.to_csv(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\stream_drn_values\drn_points.csv")
     smt.plt_matrix(smt.df_to_array(test2,'i'))
     print('done')
