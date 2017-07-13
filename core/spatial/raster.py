@@ -5,7 +5,7 @@ Raster and spatial interpolation functions.
 
 
 
-def grid_interp_ts(df, time_col, x_col, y_col, data_col, grid_res, from_crs=None, to_crs=2193, interp_fun='multiquadric', agg_ts_fun=None, period=None, digits=3):
+def grid_interp_ts(df, time_col, x_col, y_col, data_col, grid_res, from_crs=None, to_crs=2193, interp_fun='cubic', agg_ts_fun=None, period=None, digits=3):
     """
     Function to take a dataframe of z values and interate through and resample both in time and space. Returns a DataFrame structured like df.
 
@@ -22,13 +22,12 @@ def grid_interp_ts(df, time_col, x_col, y_col, data_col, grid_res, from_crs=None
     period -- The pandas time series code to resample the data in time (i.e. '2H' for two hours).\n
     digits -- the number of digits to round to (int).
     """
-    from numpy import arange, meshgrid, tile, repeat, array
+    from numpy import arange, meshgrid, tile, repeat, column_stack
     from pandas import DataFrame, TimeGrouper, Grouper, to_datetime
-    from core.spatial.raster import grid_resample
-    from core.spatial.vector import xy_to_gpd
     from core.spatial import convert_crs
     from shapely.geometry import Point
     from geopandas import GeoDataFrame
+    from scipy.interpolate import griddata
 
     #### Create the grids
     df1 = df.copy()
@@ -61,6 +60,8 @@ def grid_interp_ts(df, time_col, x_col, y_col, data_col, grid_res, from_crs=None
         x = gpd1.geometry.apply(lambda p: p.x).round(digits).values
         y = gpd1.geometry.apply(lambda p: p.y).round(digits).values
 
+    xy = column_stack((x, y))
+
     max_x = x.max()
     min_x = x.min()
 
@@ -74,6 +75,7 @@ def grid_interp_ts(df, time_col, x_col, y_col, data_col, grid_res, from_crs=None
     #### Create new df
     x_int2 = x_int.flatten()
     y_int2 = y_int.flatten()
+    xy_int = column_stack((x_int2, y_int2))
     time_df = repeat(time, len(x_int2))
     x_df = tile(x_int2, len(time))
     y_df = tile(y_int2, len(time))
@@ -83,13 +85,27 @@ def grid_interp_ts(df, time_col, x_col, y_col, data_col, grid_res, from_crs=None
     for t in to_datetime(time):
         set1 = df2.loc[df2[time_col] == t, data_col]
 #        index = new_df[new_df['time'] == t].index
-        new_z = grid_resample(x, y, set1.values, x_int, y_int, digits, interp_fun)
+        new_z = griddata(xy, set1.values, xy_int, method=interp_fun).round(digits)
         new_lst.extend(new_z.tolist())
         print(t)
     new_df.loc[:, data_col] = new_lst
 
     #### Export results
-    return(new_df)
+    return(new_df[new_df[data_col].notnull()])
+
+
+#def grid_resample(x, y, z, xy_int, digits=3, method='multiquadric'):
+#    """
+#    Function to interpolate and resample a set of x, y, z values.
+#    """
+#    from scipy.interpolate import Rbf
+#
+#    interp1 = Rbf(x, y, z, function=method)
+#    z_int = interp1(xy_int).round(digits)
+#    z_int[z_int < 0] = 0
+#
+#    z_int2 = z_int.flatten()
+#    return(z_int2)
 
 
 def grid_resample(x, y, z, x_int, y_int, digits=3, method='multiquadric'):
