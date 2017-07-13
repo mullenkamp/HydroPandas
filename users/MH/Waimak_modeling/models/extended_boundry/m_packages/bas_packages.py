@@ -27,7 +27,7 @@ def create_starting_heads():
     hds = np.repeat(smt.calc_elv_db()[0][np.newaxis, :, :],
               smt.layers, axis=0),  # set to top of layer 1
     con_heads = _get_constant_heads()
-    idx = np.isfinite(con_heads)
+    idx = (np.isfinite(con_heads)) & (~(np.isclose(con_heads,-999)))
     hds[idx] = con_heads[idx]
     if not all(np.isfinite(hds)):
         raise ValueError('nan values in starting heads')

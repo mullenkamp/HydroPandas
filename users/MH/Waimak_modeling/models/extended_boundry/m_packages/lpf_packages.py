@@ -9,7 +9,7 @@ import flopy
 import numpy as np
 
 def create_lay_prop_package(m, mfv,k_version=1):
-    layer_type = np.array([1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    layer_type = np.array([1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]) #todo do these make sense?
     layer_avg = 0
     chani = -1
     layer_vka = 0

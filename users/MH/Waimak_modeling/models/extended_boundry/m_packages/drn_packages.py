@@ -53,7 +53,7 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
         drn_data.loc[dup.loc[index_to_pass], 'group'] = key
 
     drn_data.loc[np.isclose(drn_data.cond, 585.138611), 'group'] = 'cust_carpet' #todo do we want to remove the carpet drains in the N part or the model?
-    drn_data.loc[np.isclose(drn_data.cond, 5241.530762), 'group'] = 'ash_carpet'
+    drn_data.loc[np.isclose(drn_data.cond, 5241.530762), 'group'] = 'ash_carpet' #todo these are not all right look at options
     drn_data.loc[np.isclose(drn_data.cond, 20000.000000), 'group'] = 'chch_carpet'
 
     # todo the below is a shitty catch all... fix at somepoint
@@ -63,6 +63,22 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
     # define zone
     drn_data['zone'] = 'n_wai'  # here this represents the old model
     drn_data.loc[np.in1d(drn_data['group'], ['chch_swaz', 'chch_carpet']), 'zone'] = 's_wai'
+
+    # te waihura
+    # te waihora is defined at the 2m contour from the DEM around the lake to ensure that no weirdness happens when we
+    # set the DEM to 1.5 m MSL
+    wai_val = 1.5
+    waihora = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/te_waihora.shp".format(smt.sdp), 'ID', True)
+    temp = smt.get_no_flow(0)
+    temp[temp < 0] = 0
+    waihora[~temp.astype(bool)] = np.nan
+    temp = pd.DataFrame(smt.model_where(np.isfinite(waihora)), columns=['i', 'j'])
+    temp['k'] = 0
+    temp['zone'] = 's_wai'
+    temp['group'] = 'waihora'
+    temp['cond'] = 30000
+    temp['elev'] = wai_val
+    drn_data = pd.concat((drn_data, temp)).reset_index().drop('index',axis=1)
 
     # add a carpet drain south of the waimakariri to loosely represent the low land streams
     # only add drains where there are not other model conditions
@@ -91,7 +107,7 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
     drain_to_add[index] = np.nan
 
     top = smt.calc_elv_db()[0]
-    for val, group in zip([1,3,2,5,4], ['chch_carpet', 'up_lincoln','down_lincoln', 'up_selwyn', 'down_selwyn']): #todo this seems like it isn't working
+    for val, group in zip([1,3,2,5,4], ['chch_carpet', 'up_lincoln','down_lincoln', 'up_selwyn', 'down_selwyn']):
         temp = pd.DataFrame(smt.model_where(np.isclose(drain_to_add, val)), columns=['i', 'j'])
         temp['k'] = 0
         temp['zone'] = 's_wai'
@@ -99,8 +115,7 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
         temp['cond'] = 20000
         for i in temp.index:
             row, col = temp.loc[i, ['i', 'j']]
-            temp.loc[i, 'elv'] = top[row, col] #todo should we inset these drains 1-3m so the conductance becomes the compansatory variable?
-            # todo if inset, bulk inset or sloping inset or by group? e.g. the lower drains are further inset?
+            temp.loc[i, 'elev'] = top[row, col]
         drn_data = pd.concat((drn_data, temp))
 
     # add the waimakariri drain up above the bridge
@@ -114,7 +129,7 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
     temp['cond'] = 20000
     for i in temp.index:
         row, col = temp.loc[i,['i', 'j']]
-        temp.loc[i, 'elv'] = top[row, col]
+        temp.loc[i, 'elev'] = top[row, col]
 
     drn_data = pd.concat((drn_data, temp))
 
@@ -127,6 +142,24 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
     temp_df = pd.concat((drn_data, idxs))
     drn_data = temp_df.loc[~temp_df.duplicated(['i','j'],False) & (temp_df.loc[:,'is_drn'])].reset_index()
     drn_data = drn_data.drop(['elv','is_drn','index'], axis=1)
+
+    #todo add the ashley estuary and remove any carpet drains that overlap
+    drain_to_add = smt.shape_file_to_model_array('', 'ID', alltouched=True) #todo create shapefile
+    drain_to_add = pd.DataFrame(smt.model_where(np.isfinite(drain_to_add)), columns=['i','j'])
+    drain_to_add['k'] = 0
+    drain_to_add['zone'] = 'n_wai'
+    drain_to_add['group'] = 'ashley_estuary'
+    drain_to_add['cond'] = 20000
+    drain_to_add['elev'] = 0 #todo define
+
+    drn_data = pd.concat((drn_data,drain_to_add))
+    idx = drn_data.duplicated(subset=['i','j'], keep='last') #todo I could make this a more complicated index if there is overlap
+
+    if (drn_data.loc[idx,'group'] != 'ash_carpet').any():
+        raise ValueError('{} groups overlapping ashley estuary, consider'.format(set(np.array(drn_data.loc[idx,'group']))))
+    drn_data = drn_data.loc[~idx] #todo test this and above
+
+
 
     if any(pd.isnull(drn_data['group'])):
         raise ValueError('some groups still null')
