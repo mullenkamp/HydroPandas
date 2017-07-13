@@ -2703,12 +2703,12 @@ rsites.to_csv(out_csv, index=False)
 #### Interpolation testing
 
 from core.ts.met.metservice import proc_metservice_nc, MetS_nc_to_df
-from core.ts.met.interp import sel_interp_agg
+from core.ts.met.interp import poly_interp_agg
 from geopandas import read_file
 from pandas import to_datetime, concat
 import numpy as np
 from scipy.interpolate import griddata
-from core.spatial import sel_sites_poly
+from core.spatial import sel_sites_poly, point_interp_ts
 
 
 ### Parameters
@@ -2756,121 +2756,7 @@ output1 = grid_interp_ts(df, time_col, x_col, y_col, data_col, grid_res, from_cr
 t1 = output1.groupby('time')['precip'].sum().idxmax()
 
 
-
-
-
-def grid_interp_ts(df, time_col, x_col, y_col, data_col, from_crs, point_shp=None, point_site_col=None, grid_res=None, to_crs=None, interp_fun='multiquadric', agg_ts_fun=None, period=None, digits=3):
-    """
-    Function to take a dataframe of z values and interate through and resample both in time and space. Returns a DataFrame structured like df.
-
-    df -- DataFrame containing four columns as shown in the below parameters.\n
-    time_col -- The time column name (str).\n
-    x_col -- The x column name (str).\n
-    y_col -- The y column name (str).\n
-    data_col -- The data column name (str).\n
-    from_crs -- The projection info for the input data (either a proj4 str or epsg int).\n
-    point_shp -- Path to shapefile of points to be interpolated (str).\n
-    point_site_col -- The column name of the site names/numbers of the point_shp (str).\n
-    to_crs -- The projection for the output data similar to from_crs.\n
-    interp_fun -- The scipy Rbf interpolation function to be applied (see https://docs.scipy.org/doc/scipy-0.16.1/reference/generated/scipy.interpolate.Rbf.html).\n
-    agg_ts_fun -- The pandas time series resampling function to resample the data in time (either 'mean' or 'sum'). If None, then no time resampling.\n
-    period -- The pandas time series code to resample the data in time (i.e. '2H' for two hours).\n
-    digits -- the number of digits to round to (int).
-    """
-    from numpy import arange, meshgrid, tile, repeat, array, column_stack
-    from pandas import DataFrame, TimeGrouper, Grouper, to_datetime
-    from core.spatial.raster import grid_resample
-    from core.spatial.vector import xy_to_gpd
-    from core.spatial import convert_crs
-    from shapely.geometry import Point
-    from geopandas import GeoDataFrame, read_file
-
-    #### Read in points
-    if isinstance(point_shp, str) & isinstance(point_site_col, str):
-        points = read_file(point_shp)[[point_site_col, 'geometry']]
-        to_crs1 = points.crs
-    elif not (isinstance(grid_res, (float, int)) & isinstance(to_crs, (str, float, int))):
-        raise ValueError('point_shp and point_site_col must be defined as a str or grid_res must be defined as an int or float and to_crs defined.')
-
-    #### Create the grids
-    df1 = df.copy()
-
-    #### Resample the time series data
-    if agg_ts_fun is not None:
-        df1a = df1.set_index(time_col)
-        if agg_ts_fun == 'sum':
-            df2 = df1a.groupby([TimeGrouper(period), Grouper(y_col), Grouper(x_col)])[data_col].sum().reset_index()
-        elif agg_ts_fun == 'mean':
-            df2 = df1a.groupby([TimeGrouper(period), Grouper(y_col), Grouper(x_col)])[data_col].mean().reset_index()
-        else:
-            raise ValueError("agg_ts_fun should be either 'sum' or 'mean'.")
-        time = df2[time_col].unique()
-    else:
-        df2 = df1
-
-    time = df2[time_col].sort_values().unique()
-
-    #### Convert input data to crs of points shp
-    data1 = df2.loc[df2[time_col] == time[0]]
-    from_crs1 = convert_crs(from_crs, pass_str=True)
-
-    if to_crs is not None:
-        to_crs1 = convert_crs(to_crs, pass_str=True)
-        points = points.to_crs(to_crs1)
-    geometry = [Point(xy) for xy in zip(data1[x_col], data1[y_col])]
-    gpd = GeoDataFrame(data1.index, geometry=geometry, crs=from_crs1)
-    gpd1 = gpd.to_crs(crs=to_crs1)
-    x = gpd1.geometry.apply(lambda p: p.x).round(digits).values
-    y = gpd1.geometry.apply(lambda p: p.y).round(digits).values
-
-    x1 = tile(x, len(time))
-    y1 = tile(y, len(time))
-    time_int = df2[time_col].values.astype('int64') / 10**11
-    val1 = df2[data_col].values
-
-    xyt = column_stack((x1, y1, time_int))
-    xy = column_stack((x, y))
-    #### Prepare the x and y of the points geodataframe
-
-
-
-
-    max_x = x.max()
-    min_x = x.min()
-
-    max_y = y.max()
-    min_y = y.min()
-
-    new_x = arange(min_x, max_x, grid_res)
-    new_y = arange(min_y, max_y, grid_res)
-    x_int, y_int = meshgrid(new_x, new_y)
-    xy_int = column_stack((x_int.flatten(), y_int.flatten()))
-
-    xyt5 = column_stack((tile(test1[0], len(time)), tile(test1[1], len(time)), time.astype('int64') / 10**11))
-
-    z4 = griddata(xyt, val1, xyt5)
-
-
-    #### Create new df
-    x_int2 = x_int.flatten()
-    y_int2 = y_int.flatten()
-    time_df = repeat(time, len(x_int2))
-    x_df = tile(x_int2, len(time))
-    y_df = tile(y_int2, len(time))
-    new_df = DataFrame({'time': time_df, 'x': x_df, 'y': y_df, data_col: repeat(0, len(time) * len(x_int2))})
-
-    new_lst = []
-    for t in to_datetime(time):
-        set1 = df2.loc[df2[time_col] == t, data_col]
-#        index = new_df[new_df['time'] == t].index
-        new_z = grid_resample(x, y, set1.values, x_int, y_int, digits, interp_fun)
-        new_lst.extend(new_z.tolist())
-        print(t)
-    new_df.loc[:, data_col] = new_lst
-
-    #### Export results
-    return(new_df)
-
+new_point_df = point_interp_ts(df, time_col, x_col, y_col, data_col, point_shp, point_site_col, from_crs, to_crs, interp_fun, agg_ts_fun=None, period=None, digits=2)
 
 
 
