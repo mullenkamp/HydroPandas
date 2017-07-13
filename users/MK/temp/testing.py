@@ -2708,11 +2708,14 @@ from geopandas import read_file
 from pandas import to_datetime, concat
 import numpy as np
 from scipy.interpolate import griddata
+from core.spatial import sel_sites_poly
+
 
 ### Parameters
 
 nc = r'E:\ecan\shared\base_data\metservice\testing\nz8kmN-NCEP_2_2017050918.00.nc'
 point_shp = r'E:\ecan\shared\base_data\metservice\catch_del\MetConnect_rf_sites.shp'
+poly = r'E:\ecan\shared\base_data\metservice\testing\study_area.shp'
 
 time_col = 'time'
 y_col = 'y'
@@ -2721,10 +2724,14 @@ data_col = 'precip'
 digits = 2
 from_crs=None
 to_crs=None
-interp_fun='multiquadric'
+interp_fun='cubic'
 agg_ts_fun=None
 period=None
 point_site_col = 'SITENUMBER'
+grid_res = 1000
+to_crs=2193
+
+test1 = np.array([156914, 5210595])
 
 ## preprocess the nc file to save it as a proper nc file
 new_nc = proc_metservice_nc(nc)
@@ -2736,7 +2743,23 @@ df = precip.copy()
 
 from_crs = sites.crs
 
-def grid_interp_ts(df, time_col, x_col, y_col, data_col, from_crs, point_shp, point_site_col, to_crs=None, interp_fun='multiquadric', agg_ts_fun=None, period=None, digits=3):
+poly1 = read_file(poly).to_crs(from_crs)
+
+sites2 = sel_sites_poly(sites, poly1, 10000)
+
+df = precip.loc[precip.site.isin(sites2.site)]
+
+t = df.groupby('time')['precip'].sum().idxmax()
+
+output1 = grid_interp_ts(df, time_col, x_col, y_col, data_col, grid_res, from_crs, to_crs, interp_fun='cubic', agg_ts_fun=None, period=None, digits=digits)
+
+t1 = output1.groupby('time')['precip'].sum().idxmax()
+
+
+
+
+
+def grid_interp_ts(df, time_col, x_col, y_col, data_col, from_crs, point_shp=None, point_site_col=None, grid_res=None, to_crs=None, interp_fun='multiquadric', agg_ts_fun=None, period=None, digits=3):
     """
     Function to take a dataframe of z values and interate through and resample both in time and space. Returns a DataFrame structured like df.
 
@@ -2754,7 +2777,7 @@ def grid_interp_ts(df, time_col, x_col, y_col, data_col, from_crs, point_shp, po
     period -- The pandas time series code to resample the data in time (i.e. '2H' for two hours).\n
     digits -- the number of digits to round to (int).
     """
-    from numpy import arange, meshgrid, tile, repeat, array
+    from numpy import arange, meshgrid, tile, repeat, array, column_stack
     from pandas import DataFrame, TimeGrouper, Grouper, to_datetime
     from core.spatial.raster import grid_resample
     from core.spatial.vector import xy_to_gpd
@@ -2763,8 +2786,11 @@ def grid_interp_ts(df, time_col, x_col, y_col, data_col, from_crs, point_shp, po
     from geopandas import GeoDataFrame, read_file
 
     #### Read in points
-    points = read_file(point_shp)[[point_site_col, 'geometry']]
-    to_crs1 = points.crs
+    if isinstance(point_shp, str) & isinstance(point_site_col, str):
+        points = read_file(point_shp)[[point_site_col, 'geometry']]
+        to_crs1 = points.crs
+    elif not (isinstance(grid_res, (float, int)) & isinstance(to_crs, (str, float, int))):
+        raise ValueError('point_shp and point_site_col must be defined as a str or grid_res must be defined as an int or float and to_crs defined.')
 
     #### Create the grids
     df1 = df.copy()
@@ -2788,7 +2814,6 @@ def grid_interp_ts(df, time_col, x_col, y_col, data_col, from_crs, point_shp, po
     data1 = df2.loc[df2[time_col] == time[0]]
     from_crs1 = convert_crs(from_crs, pass_str=True)
 
-
     if to_crs is not None:
         to_crs1 = convert_crs(to_crs, pass_str=True)
         points = points.to_crs(to_crs1)
@@ -2798,7 +2823,16 @@ def grid_interp_ts(df, time_col, x_col, y_col, data_col, from_crs, point_shp, po
     x = gpd1.geometry.apply(lambda p: p.x).round(digits).values
     y = gpd1.geometry.apply(lambda p: p.y).round(digits).values
 
+    x1 = tile(x, len(time))
+    y1 = tile(y, len(time))
+    time_int = df2[time_col].values.astype('int64') / 10**11
+    val1 = df2[data_col].values
+
+    xyt = column_stack((x1, y1, time_int))
+    xy = column_stack((x, y))
     #### Prepare the x and y of the points geodataframe
+
+
 
 
     max_x = x.max()
@@ -2810,6 +2844,12 @@ def grid_interp_ts(df, time_col, x_col, y_col, data_col, from_crs, point_shp, po
     new_x = arange(min_x, max_x, grid_res)
     new_y = arange(min_y, max_y, grid_res)
     x_int, y_int = meshgrid(new_x, new_y)
+    xy_int = column_stack((x_int.flatten(), y_int.flatten()))
+
+    xyt5 = column_stack((tile(test1[0], len(time)), tile(test1[1], len(time)), time.astype('int64') / 10**11))
+
+    z4 = griddata(xyt, val1, xyt5)
+
 
     #### Create new df
     x_int2 = x_int.flatten()
@@ -2838,9 +2878,9 @@ def func(x, y):
     return x*(1-x)*np.cos(4*np.pi*x) * np.sin(4*np.pi*y**2)**2
 
 
-grid_x, grid_y = np.mgrid[0:1:10000j, 0:1:20000j]
+grid_x, grid_y = np.mgrid[0:1:100j, 0:1:200j]
 
-points1 = np.random.rand(1000, 2)
+points = np.random.rand(1000, 2)
 values = func(points[:,0], points[:,1])
 
 grid_z2 = griddata(points1, values, (grid_x, grid_y), method='cubic')
@@ -2874,6 +2914,134 @@ gpd5 = xy_to_gpd('precip', 'x', 'y', set2, from_crs)
 gpd5.to_file(r'E:\ecan\shared\base_data\metservice\catch_del\test1.shp')
 
 save_geotiff(set2, 'precip', from_crs, x_col='x', y_col='y', time_col=None, export_path=r'E:\ecan\shared\base_data\metservice\catch_del\test2.tif', grid_res=8000)
+
+from time import time
+
+interp1 = Rbf(x, y, z)
+z_int = interp1(x_int, y_int)
+
+s1 = time()
+z6 = grid_resample(x, y, z, x_int, y_int, digits=2, method='cubic')
+e1 = time()
+rdf_t = e1 - s1
+
+s1 = time()
+z7 = griddata(xy, z, xy_int, method='cubic').round(2)
+e1 = time()
+griddata_t = e1 - s1
+
+rdf_t/griddata_t
+
+
+
+########
+### More testing
+
+import numpy as np
+from numpy import pi
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+%matplotlib inline
+from scipy.interpolate import (
+    LinearNDInterpolator, RectBivariateSpline,
+    RegularGridInterpolator, CloughTocher2DInterpolator, SmoothBivariateSpline)
+from scipy.ndimage import map_coordinates
+#from dolointerpolation import MultilinearInterpolator
+# Tweak how images are plotted with imshow
+mpl.rcParams['image.interpolation'] = 'none' # no interpolation
+mpl.rcParams['image.origin'] = 'lower' # origin at lower left corner
+mpl.rcParams['image.cmap'] = 'RdBu_r'
+
+def f_2d(x,y):
+    '''a function with 2D input to interpolate on [0,1]'''
+    twopi = 2*pi
+    return np.exp(-x)*np.cos(x*2*pi)*np.sin(y*2*pi)
+
+def f_3d(x,y,z):
+    '''a function with 3D input to interpolate on [0,1]'''
+    twopi = 2*pi
+    return np.sin(x*2*pi)*np.sin(y*2*pi)*np.sin(z*2*pi)
+
+
+Ndata = 50
+xgrid = np.linspace(0,1, Ndata)
+ygrid = np.linspace(0,1, Ndata+1) # use a slighly different size to check differences
+zgrid = np.linspace(0,1, Ndata+2)
+
+f_2d_grid = f_2d(xgrid.reshape(-1,1), ygrid)
+
+plt.imshow(f_2d_grid.T)
+plt.title(u'image of a 2D function ({}² pts)'.format(Ndata));
+
+f_2d_grid.shape
+
+f_3d_grid = f_3d(xgrid.reshape(-1,1,1), ygrid.reshape(1,-1,1), zgrid)
+f_3d_grid.shape
+
+# Define the grid to interpolate on :
+Ninterp = 1000
+xinterp = np.linspace(0,1, Ninterp)
+yinterp = np.linspace(0,1, Ninterp+1) # use a slighly different size to check differences
+zinterp = np.linspace(0,1, 5) # small dimension to avoid size explosion
+
+
+#### Test 1
+
+# Build data for the interpolator
+points_x, points_y = np.broadcast_arrays(xgrid.reshape(-1,1), ygrid)
+points = np.vstack((points_x.flatten(), points_y.flatten())).T
+values = f_2d_grid.flatten()
+
+x_int1, y_int1 = np.meshgrid(xinterp, yinterp)
+
+%timeit f_2d_interp = LinearNDInterpolator(points, values)
+f_2d_interp = LinearNDInterpolator(points, values)
+
+%timeit f_2d_interp = CloughTocher2DInterpolator(points, values)
+f_2d_interp = CloughTocher2DInterpolator(points, values)
+
+# Evaluate
+%timeit f_2d_interp(xinterp.reshape(-1,1), yinterp)
+
+xy_int = np.column_stack((x_int1.flatten(), y_int1.flatten()))
+
+
+
+
+#### Test 2
+
+# Prepare the coordinates to evaluate the array on :
+points_x, points_y = np.broadcast_arrays(xinterp.reshape(-1,1), yinterp)
+coord = np.vstack((points_x.flatten()*(len(xgrid)-1) , # a weird formula !
+                   points_y.flatten()*(len(ygrid)-1)))
+coord.shape
+
+f_2d_interp = map_coordinates(f_2d_grid, coord, order=1)
+
+
+a = np.arange(20.).reshape((5, 4))
+a[4][3] = np.nan
+
+map_coordinates(a, [[0.5, 3], [2, 1.99]], order=1, mode='nearest')
+
+
+#### Test 4
+points_x, points_y = np.broadcast_arrays(xgrid.reshape(-1,1), ygrid)
+points = np.vstack((points_x.flatten(), points_y.flatten())).T
+values = f_2d_grid.flatten()
+
+x_int1, y_int1 = np.meshgrid(xinterp, yinterp)
+
+%timeit spline1 = SmoothBivariateSpline(points_x.flatten(), points_y.flatten(), values, kx=2, ky=2)
+spline1 = SmoothBivariateSpline(points_x.flatten(), points_y.flatten(), values, kx=2, ky=2)
+
+spline1([0.5, 1], [0.5, 1])
+
+spline1(x_int1.flatten()[:1000], y_int1.flatten()[:1000])
+
+
+
+
 
 
 
