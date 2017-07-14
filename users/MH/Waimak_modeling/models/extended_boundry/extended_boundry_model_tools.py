@@ -82,6 +82,10 @@ def _elvdb_calc():
     idx = np.isfinite(waihora)
     outdata[0][idx] = 1.5
 
+    temp_path = env.sci("Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/stream_drn_values/ashley estuary.shp")
+    ash_est = smt.shape_file_to_model_array(temp_path, 'ID', alltouched=True)
+    outdata[0][np.isfinite(ash_est)] = 1.2
+
     return outdata
 
 def _get_basement():

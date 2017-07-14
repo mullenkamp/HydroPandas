@@ -126,6 +126,18 @@ def _reach_data_v1(recalc=False):
     outdata['strhc1'] = temp_str_data.loc[:,'cond']/(outdata['rchlen'] * temp_str_data['width'])
 
     outdata['strtop'] = np.array(get_reach_elv())
+
+    elv = smt.calc_elv_db()
+    temp = pd.DataFrame(outdata)
+    str_tops = smt.df_to_array(temp,'strtop')
+    if any((str_tops > elv[0]).flatten()):
+        raise ValueError('drains with elevation above surface')
+
+    if any((str_tops-1 <= elv[1]).flatten()): #todo some of the cust is quite thin (check)
+        raise ValueError('drains below layer 1')
+
+    #todo write a check for stream data above ground surface or below bot layer 1
+
     pickle.dump(outdata,open(pickle_path,'w'))
     return outdata
 
