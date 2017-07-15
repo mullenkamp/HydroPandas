@@ -199,7 +199,7 @@ def nc_add_gis(nc, x_coord, y_coord):
     ds2.close()
 
 
-def rd_niwa_vcsn(mtypes, sites, nc_path='Y:/VirtualClimate/vcsn_precip_et_2016-06-06.nc', vcsn_sites_csv=r'Y:\VirtualClimate\GIS\niwa_vcsn_wgs84.csv', id_col='Network', x_col='deg_x', y_col='deg_y', include_sites=False, out_crs=None, netcdf_out=None):
+def rd_niwa_vcsn(mtypes, sites, nc_path='Y:/VirtualClimate/vcsn_precip_et_2016-06-06.nc', vcsn_sites_csv=r'Y:\VirtualClimate\GIS\niwa_vcsn_wgs84.csv', id_col='Network', x_col='deg_x', y_col='deg_y', buffer_dis=0, include_sites=False, out_crs=None, netcdf_out=None):
     """
     Function to read in the NIWA vcsn netcdf file and output the data as a dataframe.
 
@@ -232,7 +232,7 @@ def rd_niwa_vcsn(mtypes, sites, nc_path='Y:/VirtualClimate/vcsn_precip_et_2016-0
             sites_gpd2 = sites_gpd.to_crs(poly1.crs)
 
             ### Select sites
-            sites2 = sel_sites_poly(sites_gpd2, poly1)[id_col]
+            sites2 = sel_sites_poly(sites_gpd2, poly1, buffer_dis)[id_col]
     elif isinstance(sites, (list, Series, ndarray)):
         sites2 = sites
 

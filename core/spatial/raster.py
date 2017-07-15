@@ -86,6 +86,7 @@ def grid_interp_ts(df, time_col, x_col, y_col, data_col, grid_res, from_crs=None
         set1 = df2.loc[df2[time_col] == t, data_col]
 #        index = new_df[new_df['time'] == t].index
         new_z = griddata(xy, set1.values, xy_int, method=interp_fun).round(digits)
+        new_z[new_z < 0] = 0
         new_lst.extend(new_z.tolist())
         print(t)
     new_df.loc[:, data_col] = new_lst
@@ -180,6 +181,7 @@ def point_interp_ts(df, time_col, x_col, y_col, data_col, point_shp, point_site_
     for t in to_datetime(time):
         set1 = df2.loc[df2[time_col] == t, data_col]
         new_z = griddata(xy, set1.values, xy_int, method=interp_fun).round(digits)
+        new_z[new_z < 0] = 0
         new_lst.extend(new_z.tolist())
         print(t)
     new_df.loc[:, data_col] = new_lst

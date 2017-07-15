@@ -138,7 +138,7 @@ def xy_to_gpd(id_col, x_col, y_col, df=None, crs=2193):
         id_data = id_col
     if isinstance(crs, int):
         crs1 = convert_crs(crs)
-    elif isinstance(crs, str):
+    elif isinstance(crs, (str, dict)):
         crs1 = crs
     gpd = GeoDataFrame(id_data, geometry=geometry, crs=crs1)
     return(gpd)
@@ -268,7 +268,8 @@ def points_grid_to_poly(gpd, id_col):
     geo1a = Series(gpd.geometry.apply(lambda j: j.x))
     geo1b = geo1a.shift()
 
-    side_len = (geo1b - geo1a).abs().min()
+    side_len1 = (geo1b - geo1a).abs()
+    side_len = side_len1[side_len1 > 0].min()
     gpd1 = gpd.apply(lambda j: point_to_poly_apply(j.geometry, side_len=side_len), axis=1)
     gpd2 = GeoDataFrame(gpd[id_col], geometry=gpd1, crs=gpd.crs)
     return(gpd2)
