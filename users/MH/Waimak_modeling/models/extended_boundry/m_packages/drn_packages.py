@@ -18,11 +18,12 @@ import geopandas as gpd
 def create_drn_package(m, wel_version, reach_version):
     drn_data = _get_drn_spd(wel_version=wel_version, reach_v=reach_version).loc[:,
                ['k', 'i', 'j', 'elev', 'cond']].to_records(False)
+    drn_data = drn_data.astype(flopy.modflow.ModflowDrn.get_default_dtype())
+
     flopy.modflow.mfdrn.ModflowDrn(m,
                                    ipakcb=740,
                                    stress_period_data={0: drn_data},
                                    unitnumber=710)
-
 
 def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
 

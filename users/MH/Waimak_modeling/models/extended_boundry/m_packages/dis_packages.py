@@ -30,7 +30,7 @@ def create_dis_package(m):
                                          xul=smt.ulx,
                                          yul=smt.uly,
                                          rotation=0.0,
-                                         proj4_str=2193)
+                                         proj4_str='EPSG:2193')
 
 
 

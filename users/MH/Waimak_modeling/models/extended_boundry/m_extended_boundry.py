@@ -42,8 +42,8 @@ def create_m_extended_boundry(name, dir_path, safe_mode=True, mt3d_link=False, v
     # add packages
     if version == 'a':
         sfr_version, seg_v, reach_v = smt.sfr_version, smt.seg_v, smt.reach_v
-        k_version = smt.k_version
         wel_version = smt.wel_version
+        k_version = smt.k_version
 
     else:
         raise NotImplementedError('model version {} has not yet been defined'.format(version))
@@ -51,7 +51,7 @@ def create_m_extended_boundry(name, dir_path, safe_mode=True, mt3d_link=False, v
     #todo check that these are right
     m_packages.create_dis_package(m)
     m_packages.create_bas_package(m)
-    m_packages.create_lay_prop_package(m, k_version)
+    m_packages.create_lay_prop_package(m, mfv,k_version)
     m_packages.create_rch_package(m)
     m_packages.create_wel_package(m, wel_version)
     m_packages.create_drn_package(m, wel_version=wel_version, reach_version=reach_v)
@@ -115,11 +115,11 @@ def create_m_extended_boundry(name, dir_path, safe_mode=True, mt3d_link=False, v
                                                               'save budget', 'print budget'],
                                                      (-1, -1): []},
                                  extension=['oc', 'hds', 'ddn', 'cbc', 'ibo'], unitnumber=[22,30,31,32,33])
-    #todo handle output in name file might be fixed by re-defining oc
+    #todo handle output in name file might be fixed by defining oc
 
+    m.write_name_file()
 
-
-    raise NotImplementedError()
+    print'done'
     return m
     #todo double check all things!!!
 if __name__ == '__main__':
