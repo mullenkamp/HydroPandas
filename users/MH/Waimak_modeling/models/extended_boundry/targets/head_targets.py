@@ -52,6 +52,7 @@ def get_water_level_data(min_reading=1):
         out_data.loc[well, 'nztmx'] = well_details.loc[well, 'NZTMX']
         out_data.loc[well, 'nztmy'] = well_details.loc[well, 'NZTMY']
         out_data.loc[well, 'depth'] = well_details.loc[well, 'DEPTH']
+        out_data.loc[well,'aq_name'] = well_details.loc[well, 'AQUIFER_NAME']
         qarrl = out_data.loc[well, 'qar_rl'] = well_details.loc[well, 'QAR_RL']
         out_data.loc[well, 'rl_from_dem'] = False
 
@@ -201,15 +202,15 @@ def define_error(outdata):
         else:
             dem = outdata.loc[well, 'dem_error'] = 0.1  # for other casing errors
 
-        low_rd_err = 0 #todo think about this the depth doesn't seem right as you get up to a 30m varience
+        low_rd_err = 0
         if readings < 20:
-            low_rd_err = 15 #todo could do a couple of options based on depth
+            low_rd_err = 15
 
         outdata.loc[well, 'low_rd_error'] = low_rd_err
         outdata.loc[well, 'total_error_m'] = dem + sea + (me + farm + low_rd_err) / (readings) ** 0.5
 
     idx = ((outdata.loc[:,'samp_time_var']<=0.1) & (outdata.loc[:, 'dem_error'] < 5) &
-           (outdata.loc[:, 'readings'] > 20) & (outdata.loc[:,'total_error_m']<=2)) #todo check this
+           (outdata.loc[:, 'readings'] > 20) & (outdata.loc[:,'total_error_m']<=2))
 
     outdata.loc[idx,'include_non-gap'] = True
 

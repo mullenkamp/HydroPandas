@@ -15,6 +15,7 @@ from copy import deepcopy
 import pickle
 import os
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
+from stream_elvs import get_reach_elv
 
 
 def create_sfr_package(m, version=1, seg_v=1, reach_v=1):
@@ -80,7 +81,7 @@ def _get_segment_data(seg_v):
     return seg_data
 
 
-def _get_reach_data(reach_v): #todo the elevations are likely wrong re-do from lidar data
+def _get_reach_data(reach_v):
     """
     wrapper to get the reach data
     :param reach_v: the version to use here to record multiple attempts at the sfr
@@ -123,6 +124,19 @@ def _reach_data_v1(recalc=False):
     for seg, width in zip(seg_data['nseg'],seg_data['width1']):
         temp_str_data.loc[temp_str_data['segment']==seg, 'width'] = width
     outdata['strhc1'] = temp_str_data.loc[:,'cond']/(outdata['rchlen'] * temp_str_data['width'])
+
+    outdata['strtop'] = np.array(get_reach_elv())
+
+    elv = smt.calc_elv_db()
+    temp = pd.DataFrame(outdata)
+    str_tops = smt.df_to_array(temp,'strtop')
+    if any((str_tops > elv[0]).flatten()):
+        raise ValueError('drains with elevation above surface')
+
+    if any((str_tops-1 <= elv[1]).flatten()): #todo some of the cust is quite thin (check)
+        raise ValueError('drains below layer 1')
+
+    #todo write a check for stream data above ground surface or below bot layer 1
 
     pickle.dump(outdata,open(pickle_path,'w'))
     return outdata
@@ -297,5 +311,11 @@ def _define_reach_length(reach_data, mode='cornering'):
     return wrd
 
 if __name__ == '__main__':
-    test = pd.DataFrame(_reach_data_v1())
-    print test
+    test = pd.DataFrame(_reach_data_v1(True)) #todo check this is not below base of layer 1
+    elv = smt.calc_elv_db()
+    for i in test.index:
+        row, col = test.loc[i,['i','j']].astype(int)
+        if any(test.loc[i,['strtop']] + 1 < elv[1,row,col]):
+            print test.loc[i,['iseg','ireach']]
+            print 'str_top: {}, bot_layer 1 elv: {} top layer 1 elv {}'.format(test.loc[i,'strtop'], elv[1,row,col],elv[0,row,col])
+

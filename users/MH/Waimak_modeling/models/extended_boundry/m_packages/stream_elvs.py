@@ -150,10 +150,10 @@ def get_reach_elv():
      44:new, #todo has problems
      }
 
-    plot = True # hold over to check stuff
+    plot = False # hold over to check stuff
     if plot:
         for seg in set(data.iseg):
-            if seg not in [37]:
+            if seg not in [3]:
                 continue
             temp = data.loc[data.iseg==seg]
             if seg_dict[seg] =='new':
@@ -213,7 +213,6 @@ def get_reach_elv():
                 if up_bot < top:
                     print('segment{} top: {}, upseg: {} upbot: {}'.format(seg,top,us,up_bot))
 
-    print 'done'
     return data.loc[:,'elev_to_use']
 
 

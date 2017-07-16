@@ -12,6 +12,7 @@ from users.MH.Waimak_modeling.model_tools import get_drn_samp_pts_dict, get_base
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 from sfr2_packages import _get_reach_data
 from wel_packages import get_wel_spd
+import geopandas as gpd
 
 
 def create_drn_package(m, wel_version, reach_version):
@@ -27,7 +28,7 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
 
 
     # load original drains
-    drn_data = pd.DataFrame(get_base_drn_cells()) #todo the orginal drain elevations are based off of the reseampeld topo DEM, whihc means theya re as much as +- 8m off
+    drn_data = pd.DataFrame(get_base_drn_cells())
 
     # take away the cust ones (duplication to id from model where)
     drn_dict = get_drn_samp_pts_dict()
@@ -40,7 +41,7 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
     drn_data = drn_data.loc[idx]
     drn_data['group'] = None
 
-    # define grouping #todo chat with brioch about this/targets... might want to change grouping for current drains
+    # define grouping
     index_to_pass = drn_data.index
     for key in drn_dict:
         if ('str' in key or 'swaz' not in key or key == 'num7drain_swaz') and key not in ['waimak_drn', '']:
@@ -52,14 +53,32 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
         dup = temp.duplicated(['i', 'j'], False)
         drn_data.loc[dup.loc[index_to_pass], 'group'] = key
 
-    drn_data.loc[np.isclose(drn_data.cond, 585.138611), 'group'] = 'cust_carpet' #todo do we want to remove the carpet drains in the N part or the model?
-    drn_data.loc[np.isclose(drn_data.cond, 5241.530762), 'group'] = 'ash_carpet' #todo these are not all right look at options
-    drn_data.loc[np.isclose(drn_data.cond, 20000.000000), 'group'] = 'chch_carpet'
+    carpet_groups = np.array(pd.read_table('{}/m_ex_bd_inputs/drncpt_3group.txt'.format(smt.sdp),
+                                           delim_whitespace=True, header=None))
+    carpet_groups = carpet_groups[np.isfinite(carpet_groups)].reshape((190,365))
+    carpet_groups[np.isclose(carpet_groups, 0)] = np.nan
+    for i in drn_data.index:
+        row, col = drn_data.loc[i,['i','j']]
+        drn_data.loc[i,'temp_carpet_group'] = carpet_groups[row,col]
+
+    # todo do we want to remove the carpet drains in the N part or the model?
+    if drn_data.loc[drn_data['temp_carpet_group'].notnull(),'group'].notnull().any():
+        raise ValueError('carpet index yeilds non-carpet drain')
+    drn_data.loc[np.isclose(drn_data.temp_carpet_group, 98), 'group'] = 'cust_carpet'
+    drn_data.loc[np.isclose(drn_data.temp_carpet_group, 97), 'group'] = 'ash_carpet'
+    drn_data.loc[np.isclose(drn_data.temp_carpet_group, 99), 'group'] = 'chch_carpet'
+
+    # re-set carpet drains to layer top
+    top = smt.calc_elv_db()[0]
+    for i in drn_data.loc[np.in1d(drn_data.group,['cust_carpet', 'ash_carpet', 'chch_carpet'])].index:
+        row, col = drn_data.loc[i,['i','j']]
+        drn_data.loc[i,'elev'] = top[row, col]
 
     # todo the below is a shitty catch all... fix at somepoint
     drn_data.loc[drn_data[
                      'group'].isnull(), 'group'] = 'other'  # this catches a few drain cells that we're not super interested in
 
+    # todo could also define a target group column (from brioch's shapefile), which would help things
     # define zone
     drn_data['zone'] = 'n_wai'  # here this represents the old model
     drn_data.loc[np.in1d(drn_data['group'], ['chch_swaz', 'chch_carpet']), 'zone'] = 's_wai'
@@ -141,25 +160,78 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
     drn_data.loc[:,'is_drn'] = True
     temp_df = pd.concat((drn_data, idxs))
     drn_data = temp_df.loc[~temp_df.duplicated(['i','j'],False) & (temp_df.loc[:,'is_drn'])].reset_index()
-    drn_data = drn_data.drop(['elv','is_drn','index'], axis=1)
+    drn_data = drn_data.drop(['is_drn','index', 'temp_carpet_group'], axis=1)
 
-    #todo add the ashley estuary and remove any carpet drains that overlap
-    drain_to_add = smt.shape_file_to_model_array('', 'ID', alltouched=True) #todo create shapefile
+    # add new shapefile drn elevations keep the lower of the new or the old - 2
+    # with the exception of upper waimak drn which is 0 for some reason
+    man_drn_data = gpd.read_file(env.sci("Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/stream_drn_values/updated_drains_MH.shp"))
+
+    elv = smt.calc_elv_db()
+    for i in man_drn_data.index:
+        row, col = man_drn_data.loc[i,['i','j']]
+        cell_elv = elv[0,row,col]
+        old = man_drn_data.loc[i,'elev']
+        new = man_drn_data.loc[i,'Elev_use']
+
+        if man_drn_data.loc[i,'group'] == 'up_waimak': # do not inset upper waimak drains
+            el_to_use = new
+            if el_to_use > cell_elv:
+                el_to_use = cell_elv
+        else:
+            if old > new - 2: #inset all new drain elv 2 m
+                el_to_use = new - 2
+            else:
+                el_to_use = old
+
+            if el_to_use > cell_elv - 2:
+                el_to_use = cell_elv - 2
+
+        man_drn_data.loc[i,'elev_to_use'] = el_to_use
+
+    # set new elevations note there will be acouple of cells that weren't linked due to a labeling problem... just the way it's going to be
+    man_drn_data = man_drn_data.set_index(['i','j'])
+    drn_data = drn_data.set_index(['i','j'])
+    from copy import deepcopy #todo DADB
+    for_test = deepcopy(drn_data) #todo DADB
+    drn_data.loc[man_drn_data.index,'elev'] = man_drn_data.loc[:,'elev_to_use']
+    drn_data = drn_data.reset_index()
+
+
+    # fix elevation of a couple of chch and other swaz
+    for i in drn_data.loc[np.in1d(drn_data.group,['chch_swaz','other'])].index:
+        row, col = drn_data.loc[i,['i','j']]
+        cell_elv = elv[0,row,col]
+        old = drn_data.loc[i, 'elev']
+        if cell_elv-2 < old:
+            drn_data.loc[i,'elev'] = cell_elv - 2
+
+    # add the ashley estuary and remove any carpet drains that overlap
+    temp_path = env.sci("Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/stream_drn_values/ashley estuary.shp")
+    drain_to_add = smt.shape_file_to_model_array(temp_path, 'ID', alltouched=True)
     drain_to_add = pd.DataFrame(smt.model_where(np.isfinite(drain_to_add)), columns=['i','j'])
     drain_to_add['k'] = 0
     drain_to_add['zone'] = 'n_wai'
     drain_to_add['group'] = 'ashley_estuary'
     drain_to_add['cond'] = 20000
-    drain_to_add['elev'] = 0 #todo define
+    drain_to_add['elev'] = 1.14
 
     drn_data = pd.concat((drn_data,drain_to_add))
-    idx = drn_data.duplicated(subset=['i','j'], keep='last') #todo I could make this a more complicated index if there is overlap
+    idx = drn_data.duplicated(subset=['i','j'], keep='last')
 
     if (drn_data.loc[idx,'group'] != 'ash_carpet').any():
         raise ValueError('{} groups overlapping ashley estuary, consider'.format(set(np.array(drn_data.loc[idx,'group']))))
-    drn_data = drn_data.loc[~idx] #todo test this and above
+    drn_data = drn_data.loc[~idx]
+    drn_data = drn_data.reset_index(drop=True)
 
 
+    # check that no drain cells are below the bottom of layer 1 or above ground!
+    elv = smt.calc_elv_db()
+    drn_elv = smt.df_to_array(drn_data,'elev')
+    if any((drn_elv > elv[0]).flatten()):
+        raise ValueError('drains with elevation above surface')
+
+    if any((drn_elv <= elv[1]).flatten()): #todo some of the ohoka is quite thin (check)
+        raise ValueError('drains below layer 1')
 
     if any(pd.isnull(drn_data['group'])):
         raise ValueError('some groups still null')
@@ -191,6 +263,5 @@ if __name__ == '__main__':
         test2.loc[i,'nztmx'] = x
         test2.loc[i,'nztmy'] = y
 
-    test2.to_csv(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\stream_drn_values\drn_points.csv")
     smt.plt_matrix(smt.df_to_array(test2,'i'))
     print('done')

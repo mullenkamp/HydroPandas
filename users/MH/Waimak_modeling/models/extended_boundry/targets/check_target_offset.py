@@ -86,7 +86,7 @@ def plot_values(data):
 
 
 if __name__ == '__main__':
-    #calc_target_offset() # already run and it is quite slow
+    calc_target_offset() # already run and it is quite slow
     #todo fix target for those that we have a better DEM-Nicole
     data = pd.read_csv(env.sci(
         "Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/head_targets_2008_offsets.csv"))
