@@ -8,7 +8,8 @@ Script to process the metservice netcdf files.
 """
 
 from core.ts.met.metservice import proc_metservice_nc, MetS_nc_to_df
-from core.ts.met.interp import sel_interp_agg
+from core.ts.met.interp import poly_interp_agg
+from core.spatial import sel_sites_poly, point_interp_ts
 from geopandas import read_file
 from pandas import to_datetime, concat
 
