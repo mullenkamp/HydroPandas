@@ -11,7 +11,7 @@ from pandas import merge, concat, to_datetime, DataFrame
 from geopandas import read_file, GeoDataFrame, overlay
 from core.spatial.vector import xy_to_gpd, points_grid_to_poly
 from shapely.geometry import Point, Polygon
-from numpy import tile, nan, exp, full
+from numpy import tile, nan, exp, full, arange, array
 from time import time
 
 #############################################
@@ -156,7 +156,41 @@ input1 = merge(new_rain_et.reset_index(), poly_data1.reset_index(), on='site', h
 
 ## Remove irrigation parameters during non-irrigation times
 
-input1.loc[~input1.time.dt.month.isin(irr_mons), ['irr_eff', 'irr_trig', 'irr_area_ratio']] = nan
+input1.loc[~input1.time.dt.month.isin(irr_mons), ['irr_eff', 'irr_trig']] = nan
+
+## Prepare individual variables
+# Input variables
+paw_val = input1['paw'].values
+irr_area_ratio_val = input1['irr_area_ratio'].copy()
+irr_area_ratio_val[irr_area_ratio_val.isnull()] = 0
+
+irr_paw_val = paw_val * irr_area_ratio_val.values
+non_irr_paw_val = paw_val - irr_paw_val
+irr_paw_val[irr_paw_val <= 0 ] = nan
+non_irr_paw_val[non_irr_paw_val <= 0 ] = nan
+
+irr_rain_val = input1[rain_name].values * irr_area_ratio_val.values
+non_irr_rain_val = input1[rain_name].values - irr_rain_val
+
+irr_pet_val = input1[pet_name].values * irr_area_ratio_val.values
+non_irr_pet_val = input1[pet_name].values - irr_pet_val
+
+irr_eff_val = input1['irr_eff'].values
+irr_trig_val = input1['irr_trig'].values
+
+time_index = arange(len(input1)).reshape(len(all_times), len(poly_data1))
+
+# Initial conditions
+w_irr = irr_paw_val[time_index[0]].copy()
+w_non_irr = non_irr_paw_val[time_index[0]].copy()
+
+# Output variables
+out_w_irr = full(len(irr_eff_val), nan)
+out_w_non_irr = out_w_irr.copy()
+
+out_irr_drainage = out_w_irr.copy()
+out_non_irr_drainage = out_w_irr.copy()
+
 
 ## Run checks on the input data
 
@@ -211,46 +245,50 @@ end1 = time()
 end1 - start1
 
 #########################################################
-### Run the model
+#### Run the model
 
 print('Run the LSR model')
 
-paw_val = poly_data1['paw'].values
-irr_eff_val = poly_data1['irr_eff'].values
-irr_trig_val = poly_data1['irr_trig'].values
-irr_area_ratio_val = poly_data1['irr_area_ratio']
-irr_area_ratio_val[irr_area_ratio_val.isnull()] = 0
+for i in time_index:
+    ### Irrigation
+    i_irr_paw = irr_paw_val[i]
+    w_irr = w_irr + irr_rain_val[i] - irr_pet_val[i]
+    w_irr[w_irr < 0] = 0
+    irr_drainge_bool = w_irr > i_irr_paw
+    if any(irr_drainge_bool):
+        temp_irr_draiange = w_irr[irr_drainge_bool] - i_irr_paw[irr_drainge_bool]
+        out_irr_drainage[i[irr_drainge_bool]] = temp_irr_draiange
+        w_irr[irr_drainge_bool] = i_irr_paw[irr_drainge_bool]
+    out_w_irr[i] = w_irr
+    irr_paw_ratio = w_irr/i_irr_paw
+    irr_trig_bool = irr_paw_ratio <= irr_trig_val[i]
+    if any(irr_trig_bool):
+        diff_paw = i_irr_paw[irr_trig_bool] - w_irr[irr_trig_bool]
+        irr_drainage = diff_paw/irr_eff_val[i][irr_trig_bool] - diff_paw
+        out_irr_drainage[i[irr_trig_bool]] = irr_drainage
+        w_irr[irr_trig_bool] = i_irr_paw[irr_trig_bool].copy()
 
-irr_paw_val = paw_val * irr_area_ratio_val.values
-non_irr_paw_val = paw_val - irr_paw_val
-
-grp1 = input1[['time', rain_name, pet_name]].groupby('time')
-
-for name, group in grp1:
-    print(name)
-    print(group)
-
-
-non_irr_w = paw_val
-
-group = grp1.get_group(time1)
-
-rain1 = group[rain_name].values
-pet1 = group[pet_name].values
-
-
-non_irr_w1 = non_irr_w + rain1 - pet1 - 100
-
-
-new_w1[new_w1 < 0] = 0
-paw_ratio = new_w1/group['paw'].values
-irr_trig_bool = paw_ratio <= group['irr_trig'].values
-if any(irr_trig_bool):
-    diff_paw = (group['paw'].values - new_w1) * group['irr_area_ratio'].values
-    irr_drainage = diff_paw/group['irr_eff'].values - diff_paw
+    # Non-irrigation
+    i_non_irr_paw = non_irr_paw_val[i]
+    w_non_irr = w_non_irr + non_irr_rain_val[i] - non_irr_pet_val[i]
+    w_non_irr[w_non_irr < 0] = 0
+    non_irr_drainge_bool = w_non_irr > i_non_irr_paw
+    if any(non_irr_drainge_bool):
+        temp_non_irr_draiange = w_non_irr[non_irr_drainge_bool] - i_non_irr_paw[non_irr_drainge_bool]
+        out_non_irr_drainage[i[non_irr_drainge_bool]] = temp_non_irr_draiange
+        w_non_irr[non_irr_drainge_bool] = i_non_irr_paw[non_irr_drainge_bool]
+    out_w_non_irr[i] = w_non_irr
 
 
+### Put results into dataframe
 
+output1 = input1.copy()
+output1.loc[:, 'irr_paw'] = irr_paw_val.round(2)
+output1.loc[:, 'w_irr'] = out_w_irr.round(2)
+output1.loc[:, 'irr_drainage'] = out_irr_drainage.round(2)
+output1.loc[:, 'non_irr_paw'] = non_irr_paw_val.round(2)
+output1.loc[:, 'w_non_irr'] = out_w_non_irr.round(2)
+output1.loc[:, 'non_irr_drainage'] = out_non_irr_drainage.round(2)
 
 
 
@@ -308,7 +346,7 @@ output_shp2 = r'E:\ecan\shared\projects\lsrm\gis\sites_poly.shp'
 sites_poly.to_file(output_shp2)
 
 
-
+output1[output1['non_irr_drainage'].notnull()]
 
 
 
