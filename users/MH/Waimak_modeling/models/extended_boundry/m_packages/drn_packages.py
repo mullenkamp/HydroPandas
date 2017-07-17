@@ -13,6 +13,8 @@ from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_too
 from sfr2_packages import _get_reach_data
 from wel_packages import get_wel_spd
 import geopandas as gpd
+import os
+import pickle
 
 
 def create_drn_package(m, wel_version, reach_version):
@@ -25,7 +27,11 @@ def create_drn_package(m, wel_version, reach_version):
                                    stress_period_data={0: drn_data},
                                    unitnumber=710)
 
-def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
+def _get_drn_spd(reach_v, wel_version,recalc=False):
+    pickle_path = '{}/drain_spd.p'.format(smt.pickle_dir)
+    if os.path.exists(pickle_path) and not recalc:
+        drn_data = pickle.load(open(pickle_path))
+        return drn_data
 
 
     # load original drains
@@ -192,8 +198,6 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
     # set new elevations note there will be acouple of cells that weren't linked due to a labeling problem... just the way it's going to be
     man_drn_data = man_drn_data.set_index(['i','j'])
     drn_data = drn_data.set_index(['i','j'])
-    from copy import deepcopy #todo DADB
-    for_test = deepcopy(drn_data) #todo DADB
     drn_data.loc[man_drn_data.index,'elev'] = man_drn_data.loc[:,'elev_to_use']
     drn_data = drn_data.reset_index()
 
@@ -231,11 +235,13 @@ def _get_drn_spd(reach_v, wel_version):  # todo add pickle at some point
     if any((drn_elv > elv[0]).flatten()):
         raise ValueError('drains with elevation above surface')
 
-    if any((drn_elv <= elv[1]).flatten()): #todo some of the ohoka is quite thin (check)
+    if any((drn_elv <= elv[1]).flatten()):
         raise ValueError('drains below layer 1')
 
     if any(pd.isnull(drn_data['group'])):
         raise ValueError('some groups still null')
+
+    pickle.dump(drn_data,open(pickle_path,'w'))
     return drn_data
 
 

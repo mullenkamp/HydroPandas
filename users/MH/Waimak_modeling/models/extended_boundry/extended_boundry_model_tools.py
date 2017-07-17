@@ -198,7 +198,5 @@ if model_version == 'a':
 
 if __name__ == '__main__':
    start = time.time()
-   no_flow = _no_flow_calc()
-   cheads = _get_constant_heads()
 
    print('took {} seconds'.format((time.time()-start)))

@@ -23,27 +23,32 @@ def check_no_overlapping_features():
     no_flow = smt.get_no_flow()
     no_flow[no_flow<0]=0
     no_flow = pd.DataFrame(smt.model_where(~no_flow.astype(bool)), columns=['k','i','j'])
-
+    no_flow['bc_type'] = 'no_flow'
 
     sfr_data = pd.DataFrame(_get_reach_data(smt.reach_v))
+    sfr_data['bc_type'] = 'sfr'
 
-    well_data = get_wel_spd(smt.wel_version)
-    well_data = well_data.rename({'row':'i', 'col':'j','layer': 'k'})
+    well_data = get_wel_spd(smt.wel_version).rename(columns={'row':'i','col':'j', 'layer':'k'})
+    well_data['bc_type'] = 'well'
 
     drn_data = _get_drn_spd(smt.reach_v,smt.wel_version)
+    drn_data['bc_type'] = 'drn'
+    drn_data = drn_data.loc[~drn_data.group.str.contains('carpet')] # don't worry about carpet drains
 
     all_data = pd.concat((no_flow,sfr_data,well_data,drn_data))
 
-    if any(all_data.duplcated(['i','j','k'])):
+    if any(all_data.duplicated(['i','j','k'],keep=False)):
         raise ValueError ('There are duplicate boundry conditions')
 
 def check_layer_overlap():
     for i in range(smt.layers):
-        fig, ax = smt.plt_matrix(smt.check_layer_overlap(use_elv_db=True,layer=i,required_overlap=0.50),title='layer {}'.format(i))
+        fig, ax = smt.plt_matrix(smt.check_layer_overlap(use_elv_db=True,layer=i,required_overlap=0.50),title='layer {}'.format(i),vmax=2,vmin=-2,no_flow_layer=i)
         plt.show(fig)
 
 def check_elv_db():
+    no_flow = smt.get_no_flow(0)
     elv = smt.calc_elv_db()
+    elv[~(np.repeat(no_flow[np.newaxis,:,:].astype(bool),smt.layers,axis=0))] = np.nan
     tops = elv[0:-1]
     bots = elv[1:]
     if any((bots>tops).flatten()):
@@ -151,4 +156,8 @@ def check_elevations_spatially():
 #spot check all text files
 
 if __name__ == '__main__':
-    check_no_overlapping_features()
+    check_no_overlapping_features() #there are quite some
+    #check_layer_overlap()
+    check_elv_db()
+    check_noflow_overlap()
+    check_null_spd()
