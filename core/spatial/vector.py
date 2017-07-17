@@ -24,7 +24,7 @@ def sel_sites_poly(pts, poly, buffer_dis=0):
     poly -- A GeoDataFrame of polygons with the site names as the index. Or a shapefile with the first column as the site names.\n
     buffer_dis -- Distance in coordinate system units for a buffer around the polygon.
     """
-    from geopandas import read_file, GeoDataFrame
+    from geopandas import read_file, GeoDataFrame, GeoSeries
 
     #### Read in data
     if isinstance(pts, GeoDataFrame):
@@ -33,7 +33,7 @@ def sel_sites_poly(pts, poly, buffer_dis=0):
         if pts.endswith('.shp'):
             gdf_pts = read_file(pts).copy()
             gdf_pts.set_index(gdf_pts.columns[0], inplace=True)
-    if isinstance(poly, GeoDataFrame):
+    if isinstance(poly, (GeoDataFrame, GeoSeries)):
         gdf_poly = poly.copy()
     elif isinstance(poly, str):
         if poly.endswith('.shp'):
