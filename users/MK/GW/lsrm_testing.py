@@ -11,13 +11,13 @@ from pandas import merge, concat, to_datetime, DataFrame
 from geopandas import read_file, GeoDataFrame, overlay
 from core.spatial.vector import xy_to_gpd, points_grid_to_poly
 from shapely.geometry import Point, Polygon
-from numpy import tile, nan, exp, full, arange, array
+from numpy import tile, nan, exp, full, arange, array, seterr
 from time import time
 
 #############################################
-### Parameters
+#### Parameters
 
-start1 = time()
+### Reading data
 server1 = 'SQL2012PROD05'
 db1 = 'GIS'
 tab_irr = 'AQUALINC_NZTM_IRRIGATED_AREA_20160629'
@@ -32,6 +32,7 @@ irr_cols_rename = {'type': 'irr_type'}
 paw_cols = ['PAW_MID']
 paw_cols_rename = {'PAW_MID': 'paw'}
 
+### input data processing
 rain_name = 'rain'
 pet_name = 'pe'
 
@@ -40,12 +41,18 @@ agg_ts_fun = 'sum'
 buffer_dis = 10000
 grid_res = 1000
 crs = 4326
+interp_fun = 'cubic'
+
 min_irr_area_ratio = 0.01
 
 irr_mons = [10, 11, 12, 1, 2, 3, 4]
 
-irr_eff_dict = {'Drip/micro': 1, 'Unknown': 0.8, 'dryland': 0, 'Gun': 0.8, 'Pivot': 0.8, 'K-line/Long lateral': 0.8, 'Rotorainer': 0.8, 'Solid set': 0.8}
-irr_trig_dict = {'Drip/micro': 0.7, 'Unknown': 0.5, 'dryland': 0, 'Gun': 0.5, 'Pivot': 0.5, 'K-line/Long lateral': 0.5, 'Rotorainer': 0.5, 'Solid set': 0.5}
+irr_eff_dict = {'Drip/micro': 1, 'Unknown': 0.8, 'Gun': 0.8, 'Pivot': 0.8, 'K-line/Long lateral': 0.8, 'Rotorainer': 0.8, 'Solid set': 0.8}
+irr_trig_dict = {'Drip/micro': 0.7, 'Unknown': 0.5, 'Gun': 0.5, 'Pivot': 0.5, 'K-line/Long lateral': 0.5, 'Rotorainer': 0.5, 'Solid set': 0.5}
+
+### Model parameters
+A = 6
+
 
 #bound_shp = r'S:\Surface Water\backups\MichaelE\Projects\requests\waimak\2017-06-12\waimak_area.shp'
 bound_shp = r'E:\ecan\shared\projects\lsrm\gis\waipara.shp'
@@ -88,10 +95,9 @@ bound = read_file(bound_shp)
 
 print('Process the input data for the LSR model')
 
+new_rain = poly_interp_agg(precip_et, crs, bound_shp, rain_name, 'time', 'x', 'y', buffer_dis, grid_res, interp_fun=interp_fun, agg_ts_fun=agg_ts_fun, period=time_agg, output_path=output_precip)
 
-new_rain = poly_interp_agg(precip_et, crs, bound_shp, rain_name, 'time', 'x', 'y', buffer_dis, grid_res, agg_ts_fun=agg_ts_fun, period=time_agg, output_path=output_precip)
-
-new_et = poly_interp_agg(precip_et, crs, bound_shp, pet_name, 'time', 'x', 'y', buffer_dis, grid_res, agg_ts_fun=agg_ts_fun', period=time_agg, output_path=output_et)
+new_et = poly_interp_agg(precip_et, crs, bound_shp, pet_name, 'time', 'x', 'y', buffer_dis, grid_res, interp_fun=interp_fun, agg_ts_fun=agg_ts_fun, period=time_agg, output_path=output_et)
 
 new_rain_et = concat([new_rain, new_et], axis=1)
 
@@ -107,7 +113,6 @@ all_times = new_rain_et.index.levels[0]
 new_rain_et.loc[:, 'site'] = tile(grid1.index, len(all_times))
 
 ## Convert points to polygons
-
 sites_poly = points_grid_to_poly(grid2, 'site')
 
 ## process polygon data
@@ -119,7 +124,6 @@ paw2 = paw1[paw1.intersects(sites_poly.unary_union)]
 paw3 = paw2[paw2.paw.notnull()]
 
 # Overlay intersection
-
 irr4 = overlay(irr3, sites_poly, how='intersection')
 paw4 = overlay(paw3, sites_poly, how='intersection')
 
@@ -151,11 +155,9 @@ poly_data1.columns = ['paw', 'irr_eff', 'irr_trig', 'irr_area_ratio']
 poly_data1.loc[poly_data1['irr_area_ratio'] < min_irr_area_ratio, ['irr_eff', 'irr_trig', 'irr_area_ratio']] = nan
 
 ## Combine time series with polygon data
-
 input1 = merge(new_rain_et.reset_index(), poly_data1.reset_index(), on='site', how='left')
 
 ## Remove irrigation parameters during non-irrigation times
-
 input1.loc[~input1.time.dt.month.isin(irr_mons), ['irr_eff', 'irr_trig']] = nan
 
 ## Prepare individual variables
@@ -239,27 +241,32 @@ if input1['irr_area_ratio'].dtype != float:
     raise ValueError('irr_area_ratio variable must be a float dtype')
 
 
-
-
-end1 = time()
-end1 - start1
-
 #########################################################
 #### Run the model
 
 print('Run the LSR model')
 
+seterr(invalid='ignore')
+
 for i in time_index:
-    ### Irrigation
+
+    ### Irrigation bucket
     i_irr_paw = irr_paw_val[i]
-    w_irr = w_irr + irr_rain_val[i] - irr_pet_val[i]
+
+    ## Calc AET and perform the initial water balance
+    irr_aet_val = AET(irr_pet_val[i], A, w_irr, i_irr_paw)
+    w_irr = w_irr + irr_rain_val[i] - irr_aet_val
     w_irr[w_irr < 0] = 0
+
+    ## Check and calc the GW drainage from excessive precip
     irr_drainge_bool = w_irr > i_irr_paw
     if any(irr_drainge_bool):
         temp_irr_draiange = w_irr[irr_drainge_bool] - i_irr_paw[irr_drainge_bool]
         out_irr_drainage[i[irr_drainge_bool]] = temp_irr_draiange
         w_irr[irr_drainge_bool] = i_irr_paw[irr_drainge_bool]
     out_w_irr[i] = w_irr
+
+    ## Check and calc drainage from irrigation if w is below trigger
     irr_paw_ratio = w_irr/i_irr_paw
     irr_trig_bool = irr_paw_ratio <= irr_trig_val[i]
     if any(irr_trig_bool):
@@ -268,10 +275,15 @@ for i in time_index:
         out_irr_drainage[i[irr_trig_bool]] = irr_drainage
         w_irr[irr_trig_bool] = i_irr_paw[irr_trig_bool].copy()
 
-    # Non-irrigation
+    ### Non-irrigation bucket
     i_non_irr_paw = non_irr_paw_val[i]
-    w_non_irr = w_non_irr + non_irr_rain_val[i] - non_irr_pet_val[i]
+
+    ## Calc AET and perform the initial water balance
+    non_irr_aet_val = AET(non_irr_pet_val[i], A, w_non_irr, i_non_irr_paw)
+    w_non_irr = w_non_irr + non_irr_rain_val[i] - non_irr_aet_val
     w_non_irr[w_non_irr < 0] = 0
+
+    ## Check and calc the GW drainage from excessive precip
     non_irr_drainge_bool = w_non_irr > i_non_irr_paw
     if any(non_irr_drainge_bool):
         temp_non_irr_draiange = w_non_irr[non_irr_drainge_bool] - i_non_irr_paw[non_irr_drainge_bool]
@@ -290,63 +302,14 @@ output1.loc[:, 'non_irr_paw'] = non_irr_paw_val.round(2)
 output1.loc[:, 'w_non_irr'] = out_w_non_irr.round(2)
 output1.loc[:, 'non_irr_drainage'] = out_non_irr_drainage.round(2)
 
+#######################################################
+#### Output data
 
 
 
 
-##########################################
-### Testing
-
-end1 = time()
-end1 - start1
 
 
-%timeit diff_paw * (1/group['irr_eff'].values - 1)
-%timeit diff_paw/group['irr_eff'].values - diff_paw
-
-precip_crs = 4326
-grid_res = 1000
-data_col = 'rain'
-time_col = 'time'
-x_col = 'x'
-y_col = 'y'
-
-
-precip = precip_et.copy()
-poly = bound_shp
-buffer_dis=10000
-interp_fun='cubic'
-agg_ts_fun='sum'
-period='W'
-digits=2
-agg_xy=False
-output_format=None
-
-gpd = grid2.copy()
-id_col = 'site'
-
-df = precip2.copy()
-from_crs=sites.crs
-to_crs=poly_crs1
-
-
-grid1 = new_rain_et.loc[to_datetime('1972-01-02')].reset_index()[['x', 'y']]
-grid2 = xy_to_gpd(grid1.index, 'x', 'y', grid1)
-
-
-
-grid2.to_file(output_shp)
-
-output_shp1 = r'E:\ecan\shared\projects\lsrm\gis\sites1.shp'
-
-sites.to_file(output_shp1)
-
-output_shp2 = r'E:\ecan\shared\projects\lsrm\gis\sites_poly.shp'
-
-sites_poly.to_file(output_shp2)
-
-
-output1[output1['non_irr_drainage'].notnull()]
 
 
 
