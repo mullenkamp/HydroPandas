@@ -6,7 +6,7 @@ Date Created: 4/07/2017 1:28 PM
 
 from __future__ import division
 from core import env
-from users.MH.Waimak_modeling.models.extended_boundry.m_packages.sfr2_packages import _get_reach_data
+from users.MH.Waimak_modeling.models.extended_boundry.m_packages.sfr2_packages import _get_reach_data, _get_segment_data
 from users.MH.Waimak_modeling.models.extended_boundry.m_packages.wel_packages import get_wel_spd
 from users.MH.Waimak_modeling.models.extended_boundry.m_packages.drn_packages import _get_drn_spd
 from users.MH.Waimak_modeling.models.extended_boundry.m_packages.rch_packages import _get_rch
@@ -14,6 +14,11 @@ from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_too
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.colors import from_levels_and_colors
+import os
+from PyPDF2 import PdfFileMerger
+
+
 
 #todo a lot of this could go into model tools (maybe)
 
@@ -79,85 +84,281 @@ def check_null_spd():
         raise ValueError('null data in recharge spd')
 
 
-# todo use this to make an automatic appendix
-# todo make a model tools function to make said appendix
-# todo make this an exicutable
-# todo check out http://pbpython.com/pdf-reports.html for automatic reporting or pd.DataFrame.plot() should be able to only plot the table
 # todo check out https://stackoverflow.com/questions/3444645/merge-pdf-files for pdf joining
-# less manual checks/good to report to the group
-#todo save plots and create a textfile for the tables ect so that I can just pop it into the memo
-#todo link the below with the above into one mega function
 
-# plots of cell overlap spatially...
+def create_digital_appendix(root_dir,dpi):
+    base_dir = '{}/individual_pdfs'.format(root_dir)
+    if not os.path.exists(base_dir):
+        os.makedirs(base_dir)
+
+    paths = []
+    paths.extend(check_well_loc_discharge(base_dir,dpi))
+    paths.extend(check_drain_locations(base_dir,dpi))
+    paths.extend(check_sfr_locations(base_dir,dpi))
+    paths.extend(check_rch_spatially(base_dir,dpi))
+    paths.extend(check_elevations_spatially(base_dir,dpi))
+
+
 
 # #locations of wells
-def check_well_loc_discharge():
-    # plot location layer by layer
-    # plot location vs, flux
-    # plot location of races
-    # plot location of steams in the model
-    # print zonal budgets (CWMS Zones/sub-zones)
-    raise NotImplementedError
+def check_well_loc_discharge(base_dir,dpi):
+    paths = []
+    org_well = get_wel_spd(smt.wel_version)
+    wells = org_well.loc[org_well.type=='well']
+    races = org_well.loc[org_well.type=='race']
+    rivers = org_well.loc[org_well.type=='river']
+    boundry_flux = org_well.loc[org_well.type=='boundry_flux']
 
-#locations of drains -- none below layer 0
-def check_drain_locations():
-    # check no non-layer 0 drains
-    # plt drains group by group
-    # plt drains target group by target group
-    raise NotImplementedError
-#locations of streams -- none below layer 0 #check segment data / check influx data
-def check_sfr_locations():
-    # check no streams in layers 1+
-    # plot streams by group
-    # plot streams by target group
-    # plot stream flow targets
-    # plot segments
-    # plot stream slope
-    # plot stream width
-    # plot stream length
+    # waimak = 4, chch_wm = 7, selwyn=8
+    zones = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/cwms_zones.shp".format(smt.sdp), 'ZONE_CODE')
+    # 1 = ashley, 2 = eyre, 3 = cust
+    sub_zones = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/Sub_cwms_zones.shp".format(smt.sdp),'id_num')
+    flux_stats = pd.DataFrame(index=['Ashley sub-zone', 'Cust sub-zone', 'Eyre sub-zone','Waimakariri CWMS',
+                                     'CHCH-WM CWMS','Selwyn CWMS'],
+                              columns=['pumping wells', 'WILS race losses', 'Losing Reaches', 'Boundary Flux'])
+    for flux, name in zip([wells, races, rivers, boundry_flux], ['pumping wells', 'WILS race losses', 'Losing Reaches', 'Boundary Flux']):
+        flux_array = smt.df_to_array(flux,'flux')
+        for zone_id, zone_name in zip([1, 3, 2,
+                                       4, 7, 8],
+                                      ['Ashley sub-zone', 'Cust sub-zone', 'Eyre sub-zone',
+                                       'Waimakariri CWMS', 'CHCH-WM CWMS','Selwyn CWMS']):
+            if zone_id > 3:
+                id_matrix = zones
+            else:
+                id_matrix = sub_zones
+
+            flux_stats.loc[zone_name,name] = np.nansum(flux_array[np.isclose(id_matrix,zone_id)])
+    flux_stats = flux_stats/86400
+    fig,ax = plt.subplots(1,1,figsize=(14, 4.5))
+    ax.axis('tight')
+    ax.axis('off')
+    ax.table(cellText=flux_stats.values,
+              rowLabels=flux_stats.index,
+              colLabels=flux_stats.columns,
+              cellLoc='center', rowLoc='center',
+              loc='center')
+    ax.set_title('fluxes by zone negative numbers equate to flux out of the model')
+    path = '{}/well_table.png'.format(base_dir)
+    fig.savefig(path,dpi=dpi)
+    paths.append(path)
+    plt.close(fig)
+
+
+    # plots
+    cmap, norm = from_levels_and_colors([-1, 0, 1,2], ['blue', 'black', 'white'])
+    x,y =np.meshgrid(np.arange(0,smt.cols),np.arange(0,-smt.rows,-1))
+    for layer in range(smt.layers):
+        temp = wells.loc[wells.layer==layer]
+        no_flow = smt.get_no_flow(layer)
+        fig,ax = plt.subplots(1,1,figsize=(18.5, 9.5))
+        ax.set_aspect('equal')
+        ax.pcolormesh(x,y,no_flow,cmap=cmap,norm=norm)
+        ax.scatter(temp.col+0.5,-1*temp.row-0.5,c='r')
+        ax.set_title('pumping wells in layer {}'.format(layer+1))
+        path = '{}/pumping_wells{}.png'.format(base_dir,layer)
+        fig.savefig(path,dpi=dpi)
+        paths.append(path)
+        plt.close(fig)
+
+    fig,ax = plt.subplots(1,1,figsize=(18.5, 9.5))
+    no_flow = smt.get_no_flow(0)
+    ax.set_aspect('equal')
+    ax.pcolormesh(x, y, no_flow, cmap=cmap, norm=norm)
+    ax.scatter(races.col+0.5,-1*races.row-0.5, c='y',label='WILLS Races')
+    ax.scatter(boundry_flux.col+0.5,-1*boundry_flux.row-0.5, c='g', label='N boundary flux')
+    ax.scatter(rivers.col+0.5,-1*rivers.row-0.5, c='purple',label='losing rivers')
+    ax.set_title('other well boundary conditions')
+    ax.legend()
+    path = '{}/well_types.png'.format(base_dir)
+    fig.savefig(path,dpi=dpi)
+    paths.append(path)
+    plt.close(fig)
+
+
+    return paths
+
+def check_drain_locations(base_dir,dpi):
+    paths = []
+    drn_data = _get_drn_spd(smt.reach_v,smt.wel_version)
+    cmap, norm = from_levels_and_colors([-1, 0, 1,2], ['blue', 'black', 'white'])
+    cmap2, norm2 = from_levels_and_colors([1, 2], ['gold'])
+    x, y = smt.get_model_x_y()
+    for group in set(drn_data.group):
+        temp = smt.df_to_array(drn_data.loc[drn_data.group == group],'k')
+        temp[np.isfinite(temp)] = 1
+        fig, ax = plt.subplots(1, 1, figsize=(18.5, 9.5))
+        no_flow = smt.get_no_flow(0)
+        ax.set_aspect('equal')
+        ax.pcolormesh(x, y, no_flow, cmap=cmap, norm=norm)
+        ax.pcolormesh(x, y, np.ma.masked_invalid(temp), cmap=cmap2,norm=norm2)
+        ax.set_title('{} drains'.format(group))
+        path = '{}/{}drains.png'.format(base_dir, group)
+        fig.savefig(path,dpi=dpi)
+        paths.append(path)
+        plt.close(fig)
+
+    return paths
+
+def check_sfr_locations(base_dir,dpi):
+    paths = []
+    str_data = pd.DataFrame(_get_reach_data(smt.reach_v))
+    seg_data = pd.DataFrame(_get_segment_data(smt.seg_v)).set_index('nseg')
+    str_data.loc[:, 'flow'] = 0
+    for i in str_data.index:
+        if str_data.loc[i,'ireach'] == 1:
+            str_data.loc[i,'flow'] = seg_data.loc[str_data.loc[i, 'iseg'],'flow']
+
+    str_temp=smt.df_to_array(str_data,'flow')
+
+
+    cmap, norm = from_levels_and_colors([-1, 0, 1,2], ['blue', 'black', 'white'])
+    cmap2, norm2 = from_levels_and_colors([0, 1,99999999], ['green', 'fuchsia'])
+    x,y =np.meshgrid(np.arange(0,smt.cols),np.arange(0,-smt.rows,-1))
+    fig, ax = plt.subplots(1, 1, figsize=(18.5, 9.5))
+    no_flow = smt.get_no_flow(0)
+    ax.set_aspect('equal')
+    ax.pcolormesh(x[:190,:], y[:190,:], no_flow[:190,:], cmap=cmap, norm=norm)
+    ax.pcolormesh(x[:190,:],y[:190,:], np.ma.masked_invalid(str_temp)[:190,:],cmap=cmap2, norm=norm2)
+    ax.set_title('stream reaches, pink represents surface water influx')
+    path = '{}/streams.png'.format(base_dir)
+    fig.savefig(path,dpi=dpi)
+    paths.append(path)
+    plt.close(fig)
+
+
+    # belop has not been saved
     # plot up/downstream segments
-    # plot influxes
-    # make plots of segment vs ground
-    # table of stream segment data (inflow/ roughness/ width
+    str_segs = smt.df_to_array(str_data,'iseg')
+    outseg_data = seg_data.reset_index().set_index('outseg')
 
-    raise NotImplementedError
+
+    cmap3, norm3 = from_levels_and_colors([-1, 2], ['green'])
+    cmap4, norm4 = from_levels_and_colors([-1, 2], ['fuchsia'])
+
+    for seg in set(str_data.iseg):
+        try:
+            outsegs = np.atleast_1d(outseg_data.loc[seg,'nseg'])
+        except KeyError:
+            outsegs = None
+
+        fig, ax = plt.subplots(1, 1, figsize=(18.5, 9.5))
+        ax.set_aspect('equal')
+        ax.pcolormesh(x[:190, :], y[:190, :], no_flow[:190, :], cmap=cmap, norm=norm)
+        current_stream_idx = np.where(str_segs==seg)
+        current_stream = np.zeros((smt.rows,smt.cols))*np.nan
+        current_stream[current_stream_idx] = 1
+
+        ax.pcolormesh(x[:190, :], y[:190, :], np.ma.masked_invalid(current_stream)[:190, :], cmap=cmap3, norm=norm3)
+        if outsegs is not None:
+            tribs = np.zeros((smt.rows,smt.cols))*np.nan
+            for outseg in outsegs:
+                tribs_idx = np.where(np.isclose(str_segs,outseg))
+                tribs[tribs_idx] = 1
+            ax.pcolormesh(x[:190, :], y[:190, :], np.ma.masked_invalid(tribs)[:190, :], cmap=cmap4, norm=norm4)
+
+        ax.set_title('stream reaches, outflow stream segement is green tributaries are pink')
+
+    return paths
 
 #rch spatially
-def check_rch_spatially():
+def check_rch_spatially(base_dir,dpi):
+    paths = []
     # plot rch spatially
-    # print zones of rch (CWMS zones/sub-zones)
-    raise NotImplementedError
-#check ibound
-def check_ibound_spatially():
-    # plot ibound for each layer
-    raise NotImplementedError
+    rch = _get_rch()
+    cmap, norm = from_levels_and_colors([-1, 0, 1,2], ['blue', 'black', 'white'])
+    x,y =np.meshgrid(np.arange(0,smt.cols),np.arange(0,-smt.rows,-1))
+    fig,ax = plt.subplots(1,1,figsize=(18.5, 9.5))
+    no_flow = smt.get_no_flow(0)
+    ax.set_aspect('equal')
+    ax.pcolormesh(x, y, no_flow, cmap=cmap, norm=norm)
+    rch[no_flow<=0]=np.nan
+    pcm = ax.pcolormesh(x,y,np.ma.masked_invalid(rch)*1000,cmap='plasma')
+    ax.set_title('recharge, mm/day')
+    fig.colorbar(pcm, ax=ax, extend='max')
+    path = '{}/rch.png'.format(base_dir)
+    fig.savefig(path,dpi=dpi)
+    paths.append(path)
+    plt.close(fig)
 
-#check constant heads
-def check_constant_heads_spatially():
-    # plot all constant heads
-    raise NotImplementedError
-
+    return paths
 
 #check elevations
-def check_elevations_spatially():
-    # plot 5m contours of each layer in the database
+def check_elevations_spatially(base_dir,dpi):
+    paths = []
+    # plot 5m contours of base of each layer in the database
+    elv = smt.calc_elv_db()
+    cmap, norm = from_levels_and_colors([-1, 0, 1,2], ['blue', 'black', 'white'])
+    x,y =np.meshgrid(np.arange(0,smt.cols),np.arange(0,-smt.rows,-1))
+    for i in range(smt.layers+1):
+        if i ==0:
+            layer = 0
+            title = 'top'
+            step = 20
+        else:
+            layer = i-1
+            title = 'bottom of layer {}'.format(i)
+            step = 10
+        if i==11:
+            step=20
+        fig, ax = plt.subplots(1, 1, figsize=(18.5, 9.5))
+        no_flow = smt.get_no_flow(layer)
+        ax.set_aspect('equal')
+        levels = np.arange(np.nanmin(elv[i]), np.nanmax(elv[i]), step)
+        levels = [int(np.round(e)) for e in levels]
+        ct = ax.contour(x,y,elv[i], colors='k', levels=levels)
+        ax.set_title(title)
+        ax.clabel(ct, fontsize=9, inline=1, fmt='%3.0f')
+        ax.pcolormesh(x, y, no_flow, cmap=cmap, norm=norm, alpha=0.7)
+        path = '{}/elv{}.png'.format(base_dir,i)
+        fig.savefig(path,dpi=dpi)
+        paths.append(path)
+        plt.close(fig)
 
-    # plot 5m contours of thickness for each layer
-    raise NotImplementedError
 
-#todo other semi-manual checks
-#check wells are in teh right aquifer
-#check target wells are in the right aquifer
-#check starting heads, particularyly constant heads
-#check bottom of layer 1 does not pool anything
-#check package implementation
-#check output
-#run flopy check
-#spot check all text files
+    # plot 5m contours of thickness for layer 0 and 10
+    fig, ax = plt.subplots(1, 1, figsize=(18.5, 9.5))
+    no_flow = smt.get_no_flow(0)
+    ax.set_aspect('equal')
+    thick = elv[0]-elv[1]
+    levels = np.arange(np.nanmin(thick), np.nanmax(thick), 10)
+    levels = [int(np.round(e)) for e in levels]
+    ct = ax.contour(x, y, thick, colors='k', levels=levels)
+    ax.set_title('layer 1 thickness')
+    ax.clabel(ct, fontsize=9, inline=1, fmt='%3.0f')
+    ax.pcolormesh(x, y, no_flow, cmap=cmap, norm=norm, alpha=0.7)
+    path = '{}/layer1 thickness.png'.format(base_dir)
+    fig.savefig(path,dpi=dpi)
+    paths.append(path)
+    plt.close(fig)
+
+
+    fig, ax = plt.subplots(1, 1, figsize=(18.5, 9.5))
+    no_flow = smt.get_no_flow(10)
+    ax.set_aspect('equal')
+    thick = elv[10]-elv[11]
+    levels = np.arange(np.nanmin(thick), np.nanmax(thick), 20)
+    levels = [int(np.round(e)) for e in levels]
+    ct = ax.contour(x, y, thick, colors='k', levels=levels)
+    ax.set_title('layer 11 thickness')
+    ax.clabel(ct, fontsize=9, inline=1, fmt='%3.0f')
+    ax.pcolormesh(x, y, no_flow, cmap=cmap, norm=norm, alpha=0.7)
+    path = '{}/layer11thick.png'.format(base_dir)
+    fig.savefig(path,dpi=dpi)
+    paths.append(path)
+    plt.close(fig)
+
+    return paths
+# todo other semi-manual checks
+# check wells are in teh right aquifer
+# check target wells are in the right aquifer
+# move wells to the right location
+# check starting heads, particularyly constant heads
 
 if __name__ == '__main__':
-    check_no_overlapping_features() #there are quite some
-    #check_layer_overlap()
-    check_elv_db()
-    check_noflow_overlap()
-    check_null_spd()
+    create_digital_appendix(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\digital_appendix",None)
+    #check_no_overlapping_features() #todo there are quite some
+    #check_layer_overlap() #passed
+    #check_elv_db() #passed
+    #check_noflow_overlap() #passed
+    #check_null_spd() #passed
+
