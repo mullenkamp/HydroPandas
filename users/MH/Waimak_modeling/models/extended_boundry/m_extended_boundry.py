@@ -48,7 +48,6 @@ def create_m_extended_boundry(name, dir_path, safe_mode=True, mt3d_link=False, v
     else:
         raise NotImplementedError('model version {} has not yet been defined'.format(version))
 
-    #todo check that these are right
     m_packages.create_dis_package(m)
     m_packages.create_bas_package(m)
     m_packages.create_lay_prop_package(m, mfv,k_version)
@@ -115,12 +114,10 @@ def create_m_extended_boundry(name, dir_path, safe_mode=True, mt3d_link=False, v
                                                               'save budget', 'print budget'],
                                                      (-1, -1): []},
                                  extension=['oc', 'hds', 'ddn', 'cbc', 'ibo'], unitnumber=[22,30,31,32,33])
-    #todo handle output in name file might be fixed by defining oc
 
-    m.write_name_file()
-
-    print'done'
     return m
-    #todo double check all things!!!
 if __name__ == '__main__':
-    create_m_extended_boundry('test',r'C:\Users\MattH\Desktop\test_dir',safe_mode=False)
+    m = create_m_extended_boundry('rough_version',r'C:\Users\MattH\Desktop\ecan_rough_version',safe_mode=False,mt3d_link=True)
+    m.write_name_file()
+    m.write_input()
+    m.check()

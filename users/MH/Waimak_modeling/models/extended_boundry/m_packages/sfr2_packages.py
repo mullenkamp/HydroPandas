@@ -131,12 +131,11 @@ def _reach_data_v1(recalc=False):
     temp = pd.DataFrame(outdata)
     str_tops = smt.df_to_array(temp,'strtop')
     if any((str_tops > elv[0]).flatten()):
-        raise ValueError('drains with elevation above surface')
+        raise ValueError('streams with elevation above surface')
 
-    if any((str_tops-1 <= elv[1]).flatten()): #todo some of the cust is quite thin (check)
-        raise ValueError('drains below layer 1')
+    if any((str_tops-1 <= elv[1]).flatten()):
+        raise ValueError('streams below layer 1')
 
-    #todo write a check for stream data above ground surface or below bot layer 1
 
     pickle.dump(outdata,open(pickle_path,'w'))
     return outdata
@@ -311,7 +310,7 @@ def _define_reach_length(reach_data, mode='cornering'):
     return wrd
 
 if __name__ == '__main__':
-    test = pd.DataFrame(_reach_data_v1(True)) #todo check this is not below base of layer 1
+    test = pd.DataFrame(_reach_data_v1(True))
     elv = smt.calc_elv_db()
     for i in test.index:
         row, col = test.loc[i,['i','j']].astype(int)

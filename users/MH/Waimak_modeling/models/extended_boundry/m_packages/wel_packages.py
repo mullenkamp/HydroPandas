@@ -12,6 +12,8 @@ import pandas as pd
 import numpy as np
 from users.MH.Waimak_modeling.supporting_data_path import sdp
 from core.ecan_io import rd_sql, sql_db
+import os
+import pickle
 
 
 def create_wel_package(m, wel_version):
@@ -31,7 +33,12 @@ def get_wel_spd(version):
     return outdata
 
 
-def _get_wel_spd_v1(recalc=False):  # todo add pickle
+def _get_wel_spd_v1(recalc=False):  #todo check wells in proper layer/aquifer
+    pickle_path = '{}/well_spd.p'.format(smt.pickle_dir)
+    if os.path.exists(pickle_path) and not recalc:
+        well_data = pickle.load(open(pickle_path))
+        return well_data
+
     races = get_race_data()
     # scale races so that they are right (see memo)
     races.loc[races.type=='boundry_flux','flux'] *= 0.6*86400/races.loc[races.type=='boundry_flux','flux'].sum()
@@ -75,6 +82,7 @@ def _get_wel_spd_v1(recalc=False):  # todo add pickle
         except KeyError:
             pass
 
+    pickle.dump(all_wells,open(pickle_path,'w'))
     return all_wells
 
 
