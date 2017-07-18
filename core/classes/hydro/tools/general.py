@@ -47,6 +47,7 @@ def stats(self, mtypes=None, sites=None, below_median=False):
     below_median -- Specific for the 'flow' stats.
     """
     from core.ts.sw.stats import flow_stats
+    from core.ts.met.met_stats import precip_stats
 
     if isinstance(mtypes, str):
         if mtypes == 'flow':
@@ -54,6 +55,11 @@ def stats(self, mtypes=None, sites=None, below_median=False):
             if data.index.inferred_freq != 'D':
                 data = data.resample('D').mean()
             stats1 = flow_stats(data, below_median=below_median)
+            return(stats1)
+        if mtypes == 'precip':
+            data = self.sel_ts(mtypes=['precip'], sites=sites)
+            data.index = data.index.droplevel('mtype')
+            stats1 = precip_stats(data)
             return(stats1)
 
 

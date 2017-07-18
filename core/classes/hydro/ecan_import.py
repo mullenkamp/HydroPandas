@@ -18,6 +18,8 @@ dw_db = 'DataWarehouse'
 
 flow_dict = {'server': prod_server03, 'db': dw_db, 'table': 'F_HY_Flow_Data', 'site_col': 'SiteNo', 'time_col': 'DateTime', 'data_col': 'Value', 'qual_col': 'QualityCode'}
 
+precip_dict = {'server': prod_server03, 'db': dw_db, 'table': 'F_HY_Precip_data', 'site_col': 'site', 'time_col': 'time', 'data_col': 'data', 'qual_col': 'qual_code'}
+
 swl_dict = {'server': prod_server03, 'db': dw_db, 'table': 'F_HY_SWL_data', 'site_col': 'site', 'time_col': 'time', 'data_col': 'data', 'qual_col': 'qual_code'}
 
 gwl_dict = {'server': prod_server03, 'db': dw_db, 'table': 'F_HY_GWL_data', 'site_col': 'site', 'time_col': 'time', 'data_col': 'data', 'qual_col': 'qual_code'}
@@ -276,9 +278,9 @@ def _rd_henry(self, sites, from_date=None, to_date=None, agg_day=True, min_filte
 #### The big GET!
 
 #mtypes_sql_dict = {'flow': flow_dict, 'flow_tel': _rd_hydrotel, 'flow_m': _rd_henry, 'swl_tel': _rd_hydrotel, 'swl': swl_dict, 'gwl_tel': _rd_hydrotel, 'gwl': gwl_dict, 'gwl_m': gwl_m_dict, 'usage': (wus_usage_dict, usage_dict)}
-mtypes_sql_dict = {'flow': flow_dict, 'flow_m': _rd_henry, 'swl': swl_dict, 'gwl': gwl_dict, 'gwl_m': gwl_m_dict, 'usage': (wus_usage_dict, usage_dict)}
+mtypes_sql_dict = {'flow': flow_dict, 'flow_m': _rd_henry, 'swl': swl_dict, 'gwl': gwl_dict, 'gwl_m': gwl_m_dict, 'usage': (wus_usage_dict, usage_dict), 'precip': precip_dict}
 
-geo_loc_dict = {'flow': rd_sw_rain_geo, 'flow_m': rd_sw_rain_geo, 'swl': rd_sw_rain_geo, 'gwl': rd_waps_geo, 'gwl_m': rd_waps_geo, 'usage': rd_waps_geo}
+geo_loc_dict = {'flow': rd_sw_rain_geo, 'flow_m': rd_sw_rain_geo, 'swl': rd_sw_rain_geo, 'gwl': rd_waps_geo, 'gwl_m': rd_waps_geo, 'usage': rd_waps_geo, 'precip': rd_sw_rain_geo}
 
 
 def get_data(self, mtypes, sites=None, qual_codes=None, from_date=None, to_date=None, buffer_dis=0):
