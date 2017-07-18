@@ -18,19 +18,10 @@ from time import time
 #### Parameters
 
 ### Reading data
-server1 = 'SQL2012PROD05'
-db1 = 'GIS'
-tab_irr = 'AQUALINC_NZTM_IRRIGATED_AREA_20160629'
-#tab_paw = 'vLANDCARE_NZTM_Smap_Consents'
-tab_paw = 'LAND_NZTM_NEWZEALANDFUNDAMENTALSOILS'
+irr_type_dict = {'server': 'SQL2012PROD05', 'database': 'GIS', 'table': 'AQUALINC_NZTM_IRRIGATED_AREA_20160629', 'column': 'type'}
+paw_dict = {'server': 'SQL2012PROD05', 'database': 'GIS', 'table': 'LAND_NZTM_NEWZEALANDFUNDAMENTALSOILS', 'column': 'PAW_MID'}
 
-irr_cols = ['type']
-irr_cols_rename = {'type': 'irr_type'}
-#paw_cols = ['WeightAvgPAW']
-#paw_cols_rename = {'WeightAvgPAW': 'paw'}
-
-paw_cols = ['PAW_MID']
-paw_cols_rename = {'PAW_MID': 'paw'}
+bound_shp = r'E:\ecan\shared\projects\lsrm\gis\waipara.shp'
 
 ### input data processing
 rain_name = 'rain'
@@ -53,14 +44,9 @@ irr_trig_dict = {'Drip/micro': 0.7, 'Unknown': 0.5, 'Gun': 0.5, 'Pivot': 0.5, 'K
 ### Model parameters
 A = 6
 
-
-#bound_shp = r'S:\Surface Water\backups\MichaelE\Projects\requests\waimak\2017-06-12\waimak_area.shp'
-bound_shp = r'E:\ecan\shared\projects\lsrm\gis\waipara.shp'
-
-output_precip = r'S:\Surface Water\shared\projects\lsrm\testing\precip_resample1.nc'
-output_et = r'S:\Surface Water\shared\projects\lsrm\testing\et_resample1.nc'
-
-output_shp = r'E:\ecan\shared\projects\lsrm\gis\waipara_sites.shp'
+### Output parameters
+output_csv = r'E:\ecan\shared\projects\lsrm\output_waipara1.csv'
+output_shp = r'E:\ecan\shared\projects\lsrm\output_waipara1.shp'
 
 ##########################################
 ### Functions
@@ -79,11 +65,30 @@ def AET(pet, A, paw_now, paw_max):
 
 print('Read in the input data')
 
-irr1 = rd_sql(server1, db1, tab_irr, irr_cols, geo_col=True)
-irr1.rename(columns=irr_cols_rename, inplace=True)
+if not all([isinstance(irr_type_dict, dict), isinstance(paw_dict, dict)]):
+    raise TypeError("'irr_type_dict' and 'paw_dict' must be dictionaries.")
 
-paw1 = rd_sql(server1, db1, tab_paw, paw_cols, geo_col=True)
-paw1.rename(columns=paw_cols_rename, inplace=True)
+if 'column' in irr_type_dict.keys():
+    if not isinstance(irr_type_dict['column'], str):
+        raise TypeError("The key 'column' must be a string.")
+else:
+    raise TypeError("The key 'column' must be in the dictionaries.")
+
+if 'shp' in irr_type_dict.keys():
+    if not isinstance(irr_type_dict['shp'], str):
+        raise TypeError("If 'shp' is in the dict, then it must be a string path to a shapefile.")
+    irr1 = read_file(irr_type_dict['shp'])[[irr_type_dict['column'], 'geometry']]
+elif isinstance(irr_type_dict, dict):
+    irr1 = rd_sql(irr_type_dict['server'], irr_type_dict['database'], irr_type_dict['table'], [irr_type_dict['column']], geo_col=True)
+irr1.rename(columns={irr_type_dict['column']: 'irr_type'}, inplace=True)
+
+if 'shp' in paw_dict.keys():
+    if not isinstance(paw_dict['shp'], str):
+        raise TypeError("If 'shp' is in the dict, then it must be a string path to a shapefile.")
+    paw1 = read_file(paw_dict['shp'])[[paw_dict['column'], 'geometry']]
+elif isinstance(paw_dict, dict):
+    paw1 = rd_sql(paw_dict['server'], paw_dict['database'], paw_dict['table'], [paw_dict['column']], geo_col=True)
+paw1.rename(columns={paw_dict['column']: 'paw'}, inplace=True)
 
 precip_et = rd_niwa_vcsn(['precip', 'PET'], bound_shp, buffer_dis=buffer_dis)
 
@@ -95,9 +100,11 @@ bound = read_file(bound_shp)
 
 print('Process the input data for the LSR model')
 
-new_rain = poly_interp_agg(precip_et, crs, bound_shp, rain_name, 'time', 'x', 'y', buffer_dis, grid_res, interp_fun=interp_fun, agg_ts_fun=agg_ts_fun, period=time_agg, output_path=output_precip)
+seterr(invalid='ignore')
 
-new_et = poly_interp_agg(precip_et, crs, bound_shp, pet_name, 'time', 'x', 'y', buffer_dis, grid_res, interp_fun=interp_fun, agg_ts_fun=agg_ts_fun, period=time_agg, output_path=output_et)
+new_rain = poly_interp_agg(precip_et, crs, bound_shp, rain_name, 'time', 'x', 'y', buffer_dis, grid_res, grid_res, interp_fun=interp_fun, agg_ts_fun=agg_ts_fun, period=time_agg)
+
+new_et = poly_interp_agg(precip_et, crs, bound_shp, pet_name, 'time', 'x', 'y', buffer_dis, grid_res, grid_res, interp_fun=interp_fun, agg_ts_fun=agg_ts_fun, period=time_agg)
 
 new_rain_et = concat([new_rain, new_et], axis=1)
 
@@ -124,8 +131,13 @@ paw2 = paw1[paw1.intersects(sites_poly.unary_union)]
 paw3 = paw2[paw2.paw.notnull()]
 
 # Overlay intersection
-irr4 = overlay(irr3, sites_poly, how='intersection')
-paw4 = overlay(paw3, sites_poly, how='intersection')
+sites_poly1 = overlay(sites_poly, bound, how='intersection')[['site', 'geometry']]
+sites_poly2 = sites_poly1.dissolve('site')
+sites_poly2.crs = sites_poly.crs
+sites_poly_area = sites_poly2.area.round(2)
+
+irr4 = overlay(irr3, sites_poly2.reset_index(), how='intersection')
+paw4 = overlay(paw3, sites_poly2.reset_index(), how='intersection')
 
 irr4['area'] = irr4.geometry.area.round()
 irr5 = irr4[irr4.area >= 1]
@@ -133,29 +145,33 @@ irr5 = irr4[irr4.area >= 1]
 paw4['area'] = paw4.geometry.area.round()
 paw5 = paw4[(paw4.area >= 1) & (paw4.paw > 0)]
 
-# Aggregate by site weighted by area
-grid_area = grid_res**2
+# Aggregate by site weighted by area to estimate a volume
 paw_area1 = paw5[['paw', 'site', 'area']].copy()
-paw_area1.loc[:, 'paw_area'] = paw_area1['paw'] * paw_area1['area']
-paw6 = (paw_area1.groupby('site')['paw_area'].sum() / grid_area).round(1)
+paw_area1.loc[:, 'paw_vol'] = paw_area1['paw'] * paw_area1['area']
+paw6 = ((paw_area1.groupby('site')['paw_vol'].sum() / paw_area1.groupby('site')['area'].sum()) * sites_poly_area).round()
 
 site_irr_area = irr5.groupby('site')['area'].sum()
 irr_eff1 = irr5.replace({'irr_type': irr_eff_dict})
-irr_eff1.loc[:, 'irr_area'] = irr_eff1['irr_type'] * irr_eff1['area']
-irr_eff2 = (irr_eff1.groupby('site')['irr_area'].sum() / site_irr_area).round(3)
+irr_eff1.loc[:, 'irr_eff'] = irr_eff1['irr_type'] * irr_eff1['area']
+irr_eff2 = (irr_eff1.groupby('site')['irr_eff'].sum() / site_irr_area).round(3)
 
 irr_trig1 = irr5.replace({'irr_type': irr_trig_dict})
-irr_trig1.loc[:, 'irr_area'] = irr_trig1['irr_type'] * irr_trig1['area']
-irr_trig2 = (irr_trig1.groupby('site')['irr_area'].sum() / site_irr_area).round(3)
+irr_trig1.loc[:, 'irr_trig'] = irr_trig1['irr_type'] * irr_trig1['area']
+irr_trig2 = (irr_trig1.groupby('site')['irr_trig'].sum() / site_irr_area).round(3)
 
-irr_area_ratio1 = (site_irr_area/grid_area).round(3)
+irr_area_ratio1 = (site_irr_area/sites_poly_area).round(3)
 
-poly_data1 = concat([paw6, irr_eff2, irr_trig2, irr_area_ratio1], axis=1)
-poly_data1.columns = ['paw', 'irr_eff', 'irr_trig', 'irr_area_ratio']
+poly_data1 = concat([paw6, sites_poly_area, irr_eff2, irr_trig2, irr_area_ratio1], axis=1)
+poly_data1.columns = ['paw', 'site_area', 'irr_eff', 'irr_trig', 'irr_area_ratio']
 poly_data1.loc[poly_data1['irr_area_ratio'] < min_irr_area_ratio, ['irr_eff', 'irr_trig', 'irr_area_ratio']] = nan
 
 ## Combine time series with polygon data
-input1 = merge(new_rain_et.reset_index(), poly_data1.reset_index(), on='site', how='left')
+new_rain_et1 = new_rain_et[new_rain_et['site'].isin(sites_poly2.index)]
+
+input1 = merge(new_rain_et1.reset_index(), poly_data1.reset_index(), on='site', how='left')
+
+## Convert precip and et to volumes
+input1.loc[:, [rain_name, pet_name]] = input1.loc[:, [rain_name, pet_name]].mul(input1.loc[:, 'site_area'], axis=0).round()
 
 ## Remove irrigation parameters during non-irrigation times
 input1.loc[~input1.time.dt.month.isin(irr_mons), ['irr_eff', 'irr_trig']] = nan
@@ -246,8 +262,6 @@ if input1['irr_area_ratio'].dtype != float:
 
 print('Run the LSR model')
 
-seterr(invalid='ignore')
-
 for i in time_index:
 
     ### Irrigation bucket
@@ -295,18 +309,20 @@ for i in time_index:
 ### Put results into dataframe
 
 output1 = input1.copy()
-output1.loc[:, 'irr_paw'] = irr_paw_val.round(2)
-output1.loc[:, 'w_irr'] = out_w_irr.round(2)
-output1.loc[:, 'irr_drainage'] = out_irr_drainage.round(2)
-output1.loc[:, 'non_irr_paw'] = non_irr_paw_val.round(2)
-output1.loc[:, 'w_non_irr'] = out_w_non_irr.round(2)
-output1.loc[:, 'non_irr_drainage'] = out_non_irr_drainage.round(2)
+output1.loc[:, 'irr_paw'] = irr_paw_val.round()
+output1.loc[:, 'w_irr'] = out_w_irr.round()
+output1.loc[:, 'irr_drainage'] = out_irr_drainage.round()
+output1.loc[:, 'non_irr_paw'] = non_irr_paw_val.round()
+output1.loc[:, 'w_non_irr'] = out_w_non_irr.round()
+output1.loc[:, 'non_irr_drainage'] = out_non_irr_drainage.round()
 
 #######################################################
 #### Output data
 
+print('Saving data')
 
-
+output1.to_csv(output_csv, index=False)
+sites_poly2.to_file(output_shp)
 
 
 

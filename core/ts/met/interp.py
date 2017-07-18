@@ -8,13 +8,14 @@ Interpolation functions for Met data.
 """
 
 
-def poly_interp_agg(precip, precip_crs, poly, data_col, time_col, x_col, y_col, buffer_dis=10000, grid_res=None, interp_fun='cubic', agg_ts_fun=None, period=None, digits=2, agg_xy=False, nfiles='many', output_path=None):
+def poly_interp_agg(precip, precip_crs, poly, data_col, time_col, x_col, y_col, interp_buffer_dis=10000, poly_buffer_dis=0, grid_res=None, interp_fun='cubic', agg_ts_fun=None, period=None, digits=2, agg_xy=False, nfiles='many', output_path=None):
     """
     Function to select the precip sites within a polygon with a certain buffer distance, then interpolate/resample the data at a specific resolution, then output the results.
     precip -- dataframe of time, x, y, and precip.\n
     precip_crs -- The crs of the x and y coordinates of the precip dataframe.\n
     poly -- str path of a shapefile polygon or a polygon GeoDataFrame.\n
-    buffer_dis -- Buffer distance of the polygon selection.\n
+    interp_buffer_dis -- Buffer distance of the polygon selection when performing the interpolation.\n
+    poly_buffer_dis -- Buffer distance of the polygon selection when outputting the results.\n
     grid_res -- The resulting grid resolution in meters (or the unit of the final projection).\n
     interp_fun -- The scipy griddata interpolation function to be applied (see https://docs.scipy.org/doc/scipy-0.19.0/reference/generated/scipy.interpolate.griddata.html).\n
     agg_ts_fun -- The pandas time series resampling function to resample the data in time (either 'mean' or 'sum'). If None, then no time resampling.\n
@@ -42,7 +43,7 @@ def poly_interp_agg(precip, precip_crs, poly, data_col, time_col, x_col, y_col, 
     elif isinstance(poly, str):
         poly1 = read_file(poly)
     sites1 = sites.to_crs(poly1.crs)
-    sites_sel = sel_sites_poly(sites1, poly, buffer_dis)
+    sites_sel = sel_sites_poly(sites1, poly, interp_buffer_dis)
     sites2 = sites0.loc[sites_sel['site']]
 
     ### Determine the grid resolution if not set
@@ -69,7 +70,7 @@ def poly_interp_agg(precip, precip_crs, poly, data_col, time_col, x_col, y_col, 
     new_precip['site'] = tile(sites_new_df.index.values, len(time))
 
     ### Select sites from polygon
-    sites_sel2 = sel_sites_poly(sites_new, poly)
+    sites_sel2 = sel_sites_poly(sites_new, poly, poly_buffer_dis)
     new_precip2 = new_precip.loc[new_precip.site.isin(sites_sel2.site), [time_col, x_col, y_col, data_col]]
 
     ### Agg to polygon if required
