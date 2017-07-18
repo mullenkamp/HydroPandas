@@ -42,6 +42,7 @@ def _get_wel_spd_v1(recalc=False):  #todo check wells in proper layer/aquifer
     races = get_race_data()
     # scale races so that they are right (see memo)
     races.loc[races.type=='boundry_flux','flux'] *= 0.6*86400/races.loc[races.type=='boundry_flux','flux'].sum()
+
     elv_db = smt.calc_elv_db()
     for site in races.index:
         races.loc[site, 'row'], races.loc[site, 'col'] = smt.convert_coords_to_matix(races.loc[site, 'x'],
@@ -135,7 +136,10 @@ def _get_s_wai_rivers():
 
     # value in the shapefile reference the reach numbers from scott and thorley 2009
 
+    no_flow = smt.get_no_flow(0)
+    no_flow[no_flow<0] = 0
     rivers = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/selwyn_hill_feds.shp".format(smt.sdp), 'reach', True)
+    rivers[~no_flow.astype(bool)] = np.nan
     waian = pd.DataFrame(smt.model_where(rivers[np.newaxis, :, :] == 106), columns=['layer', 'row', 'col'])
     waian['well'] = ['waian{:04d}'.format(e) for e in waian.index]
     waian['flux'] = 0.142 * 86400 / len(waian)  # evenly distribute flux from scott and thorley 2009
@@ -154,7 +158,7 @@ def _get_s_wai_rivers():
     hawkins['well'] = ['hawkins{:04d}'.format(e) for e in hawkins.index]
     hawkins['flux'] = 0.25 * 86400 / len(hawkins)  # evenly distribute flux from scott and thorley 2009
 
-    outdata = pd.concat((waian, selwyn, horo))
+    outdata = pd.concat((waian, selwyn, horo, hawkins))
     outdata['zone'] = 's_wai'
     outdata['type'] = 'river'
     outdata['consent'] = None
@@ -163,5 +167,5 @@ def _get_s_wai_rivers():
 
 
 if __name__ == '__main__':
-    test = _get_wel_spd_v1()
+    test = _get_wel_spd_v1(recalc=True)
     print 'done'

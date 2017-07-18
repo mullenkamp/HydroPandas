@@ -115,7 +115,7 @@ def _no_flow_calc():
     if len(tops) != _mt.layers:
         raise ValueError('wrong number of layers returned')
     basement = np.repeat(_get_basement()[np.newaxis,:,:], _mt.layers, axis=0)
-    buffer = np.array([5,5,5,5,5,5,5,5,10,10,10]) # set all within buffer to no flow
+    buffer = np.array([0,5,5,5,5,5,5,5,10,10,10]) # set all within buffer to no flow
     no_flow[basement+buffer[:, np.newaxis, np.newaxis] >= tops] = 0
 
     # fix the pockets of no-flow inside the model, and general domain

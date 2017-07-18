@@ -73,7 +73,7 @@ def _get_drn_spd(reach_v, wel_version,recalc=False):
         raise ValueError('carpet index yeilds non-carpet drain')
     drn_data.loc[np.isclose(drn_data.temp_carpet_group, 98), 'group'] = 'cust_carpet'
     drn_data.loc[np.isclose(drn_data.temp_carpet_group, 97), 'group'] = 'ash_carpet'
-    drn_data.loc[np.isclose(drn_data.temp_carpet_group, 99), 'group'] = 'chch_carpet'
+    drn_data.loc[np.isclose(drn_data.temp_carpet_group, 99), 'group'] = 'chch_carpet' #todo remove carpet drains where they overlap with one of the above
 
     # re-set carpet drains to layer top
     top = smt.calc_elv_db()[0]
