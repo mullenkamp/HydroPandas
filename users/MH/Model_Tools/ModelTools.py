@@ -165,7 +165,7 @@ class ModelTools(object):
             elv_db = self.calc_elv_db()
         # find the index of the closest middle point
         # convert lon to col
-        col = np.abs(model_xs[0, :] - lon).argmin()
+        col = np.abs(model_xs[0, :] - lon).argmin() #todo this should be from the middle of the grid (change for next model)
 
         # convert lat to row
         row = np.abs(model_ys[:, 0] - lat).argmin()
