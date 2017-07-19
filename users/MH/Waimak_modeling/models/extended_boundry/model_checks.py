@@ -16,7 +16,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import from_levels_and_colors
 import os
-from PyPDF2 import PdfFileMerger
 
 
 
@@ -42,7 +41,22 @@ def check_no_overlapping_features():
 
     all_data = pd.concat((no_flow,sfr_data,well_data,drn_data))
 
-    if any(all_data.duplicated(['i','j','k'],keep=False)):
+    temp = all_data.loc[all_data.duplicated(['i','j','k'],keep=False)]
+    types = ['well','sfr','drn','no_flow']
+    colors = ['red','green','yellow','pink']
+    sizes = [80,60,40,20]
+    for layer in range(smt.layers):
+        fig,ax = plt.subplots(1,1)
+        ax.set_aspect('equal')
+        for t,c,s in zip(types,colors,sizes):
+            print(t)
+            temp2 = temp.loc[(temp.bc_type==t) & (temp.k==layer)]
+            ax.scatter(temp2.j,temp2.i*-1,c=c,s=s)
+            ax.set_title('layer {}'.format(layer))
+        plt.show(fig)
+
+    if any(all_data.duplicated(['i','j','k'],keep=False)): #todo I did not fix the well drain overlap s of waimak because we don't care
+        #todo there are some boundry flux drain overlaps, but is shoudn't affect stream depletion assessments (everything is relavitve)
         raise ValueError ('There are duplicate boundry conditions')
 
 def check_layer_overlap():
@@ -355,8 +369,8 @@ def check_elevations_spatially(base_dir,dpi):
 # check starting heads, particularyly constant heads
 
 if __name__ == '__main__':
+    check_no_overlapping_features() #todo there are quite some
     create_digital_appendix(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\digital_appendix",None)
-    #check_no_overlapping_features() #todo there are quite some
     #check_layer_overlap() #passed
     #check_elv_db() #passed
     #check_noflow_overlap() #passed

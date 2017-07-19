@@ -46,6 +46,7 @@ def _get_drn_spd(reach_v, wel_version,recalc=False):
     idx = ~drn_data.duplicated(['i', 'j'], keep=False)
 
     drn_data = drn_data.loc[idx]
+
     drn_data['group'] = None
 
     # define grouping
@@ -73,7 +74,7 @@ def _get_drn_spd(reach_v, wel_version,recalc=False):
         raise ValueError('carpet index yeilds non-carpet drain')
     drn_data.loc[np.isclose(drn_data.temp_carpet_group, 98), 'group'] = 'cust_carpet'
     drn_data.loc[np.isclose(drn_data.temp_carpet_group, 97), 'group'] = 'ash_carpet'
-    drn_data.loc[np.isclose(drn_data.temp_carpet_group, 99), 'group'] = 'chch_carpet' #todo remove carpet drains where they overlap with one of the above
+    drn_data.loc[np.isclose(drn_data.temp_carpet_group, 99), 'group'] = 'chch_carpet'
 
     # re-set carpet drains to layer top
     top = smt.calc_elv_db()[0]
@@ -236,10 +237,13 @@ def _get_drn_spd(reach_v, wel_version,recalc=False):
         raise ValueError('drains with elevation above surface')
 
     if any((drn_elv <= elv[1]).flatten()):
-        raise ValueError('drains below layer 1')
+        raise ValueError('drains at or below layer 1')
 
     if any(pd.isnull(drn_data['group'])):
         raise ValueError('some groups still null')
+
+    drn_data = drn_data.loc[~((drn_data.i==62)&(drn_data.j==277))] # fix two weird ones
+    drn_data = drn_data.loc[~((drn_data.i==63)&(drn_data.j==277))]
 
     pickle.dump(drn_data,open(pickle_path,'w'))
     return drn_data

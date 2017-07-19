@@ -14,6 +14,7 @@ from users.MH.Waimak_modeling.supporting_data_path import sdp
 from core.ecan_io import rd_sql, sql_db
 import os
 import pickle
+import geopandas as gpd
 
 
 def create_wel_package(m, wel_version):
@@ -33,7 +34,7 @@ def get_wel_spd(version):
     return outdata
 
 
-def _get_wel_spd_v1(recalc=False):  #todo check wells in proper layer/aquifer
+def _get_wel_spd_v1(recalc=False):
     pickle_path = '{}/well_spd.p'.format(smt.pickle_dir)
     if os.path.exists(pickle_path) and not recalc:
         well_data = pickle.load(open(pickle_path))
@@ -41,7 +42,8 @@ def _get_wel_spd_v1(recalc=False):  #todo check wells in proper layer/aquifer
 
     races = get_race_data()
     # scale races so that they are right (see memo)
-    races.loc[races.type=='boundry_flux','flux'] *= 0.6*86400/races.loc[races.type=='boundry_flux','flux'].sum()
+    races.loc[races.type == 'boundry_flux', 'flux'] *= 0.6 * 86400 / races.loc[
+        races.type == 'boundry_flux', 'flux'].sum()
 
     elv_db = smt.calc_elv_db()
     for site in races.index:
@@ -52,7 +54,7 @@ def _get_wel_spd_v1(recalc=False):  #todo check wells in proper layer/aquifer
 
     n_wai_wells = get_nwai_wells()
     for site in n_wai_wells.index:
-        x,y,z = n_wai_wells.loc[site, ['x', 'y', 'z']]
+        x, y, z = n_wai_wells.loc[site, ['x', 'y', 'z']]
         temp = smt.convert_coords_to_matix(x, y, z, elv_db=elv_db)
         n_wai_wells.loc[site, 'layer'], n_wai_wells.loc[site, 'row'], n_wai_wells.loc[site, 'col'] = temp
     n_wai_wells['zone'] = 'n_wai'
@@ -64,7 +66,7 @@ def _get_wel_spd_v1(recalc=False):  #todo check wells in proper layer/aquifer
     no_flow = smt.get_no_flow()
     for i in s_wai_wells.index:
         layer, row, col = s_wai_wells.loc[i, ['layer', 'row', 'col']]
-        if any(pd.isnull([layer,row,col])):
+        if any(pd.isnull([layer, row, col])):
             continue
         if no_flow[layer, row, col] == 0:  # get rid of non-active wells
             s_wai_wells.loc[i, 'layer'] = np.nan
@@ -75,15 +77,61 @@ def _get_wel_spd_v1(recalc=False):  #todo check wells in proper layer/aquifer
 
     all_wells = pd.concat((races, n_wai_wells, s_wai_wells, s_wai_rivers))
 
-    well_details = rd_sql(**sql_db.wells_db.well_details)
-    well_details = well_details.set_index('WELL_NO')
+    for i in all_wells.index:
+        row, col = all_wells.loc[i, ['row', 'col']]
+        x, y = smt.convert_matrix_to_coords(row, col)
+        all_wells.loc[i, 'mx'] = x
+        all_wells.loc[i, 'my'] = y
+
+    # check wells in correct aquifer
+    aq_to_layer = {'Avonside Formation': 0,
+                   'Springston Formation': 0,
+                   'Christchurch Formation': 0,
+                   'Riccarton Gravel': 1,
+                   'Bromley Formation': 2,
+                   'Linwood Gravel': 3,
+                   'Heathcote Formation': 4,
+                   'Burwood Gravel': 5,
+                   'Shirley Formation': 6,
+                   'Wainoni Gravel': 7}
+    leapfrog_aq = gpd.read_file("{}/m_ex_bd_inputs/shp/layering/gis_aq_name_clipped.shp".format(smt.sdp))
+    leapfrog_aq = leapfrog_aq.set_index('well')
+    leapfrog_aq.loc[:,'use_aq_name'] = leapfrog_aq.loc[:,'aq_name']
+    leapfrog_aq.loc[leapfrog_aq.use_aq_name.isnull(),'use_aq_name'] = leapfrog_aq.loc[leapfrog_aq.use_aq_name.isnull(),'aq_name_gi']
+
     for well in all_wells.index:
         try:
-            all_wells.loc[well, 'aq_name'] = well_details.loc[well,'AQUIFER_NAME']
+            all_wells.loc[well,'aquifer_in_confined'] = aq = leapfrog_aq.loc[well,'use_aq_name']
+            all_wells.loc[well, 'layer_by_aq'] = aq_to_layer[aq]
         except KeyError:
             pass
 
-    pickle.dump(all_wells,open(pickle_path,'w'))
+    all_wells.loc[:,'layer_by_depth'] = all_wells.loc[:,'layer']
+    all_wells.loc[all_wells.layer_by_aq.notnull(),'layer'] = all_wells.loc[all_wells.layer_by_aq.notnull(),'layer_by_aq']
+
+    # move wells that fall on other boundry conditions north of waimak (or in constant head)
+    overlap = gpd.read_file("{}/m_ex_bd_inputs/shp/overlap_adjustment2.shp".format(smt.sdp))
+    overlap = overlap.set_index('index')
+
+
+
+    for well in all_wells.index:
+        if not well in overlap.index:
+            continue
+        all_wells.loc[well,'layer'] += overlap.loc[well,'add_k']
+        all_wells.loc[well,'row'] += overlap.loc[well,'add_row']
+        all_wells.loc[well,'col'] += overlap.loc[well,'add_col']
+
+    overlap = gpd.read_file("{}/m_ex_bd_inputs/shp/overlap_adjustment2part2.shp".format(smt.sdp))
+    overlap = overlap.set_index('Field1')
+    for well in all_wells.index:
+        if not well in overlap.index:
+            continue
+        all_wells.loc[well,'layer'] += overlap.loc[well,'add_layer']
+        all_wells.loc[well,'row'] += overlap.loc[well,'add_row']
+        all_wells.loc[well,'col'] += overlap.loc[well,'add_col']
+
+    pickle.dump(all_wells, open(pickle_path, 'w'))
     return all_wells
 
 
@@ -112,7 +160,7 @@ def _get_s_wai_wells():
     # is active at the same time at the consent with negitive number of days
     allo2.loc[allo2.loc[:, 'days'] < 0, 'days'] = 0
 
-    allo2.loc[:,'flux'] = allo2.loc[:, 'cav'] / 365 * allo2.loc[:, 'days'] / (end_time - start_time).days * -1
+    allo2.loc[:, 'flux'] = allo2.loc[:, 'cav'] / 365 * allo2.loc[:, 'days'] / (end_time - start_time).days * -1
 
     out_data = allo2.reset_index().groupby('wap').aggregate({'flux': np.sum, 'crc': ','.join})
     out_data['consent'] = [tuple(e.split(',')) for e in out_data.loc[:, 'crc']]
@@ -122,7 +170,7 @@ def _get_s_wai_wells():
     out_data['type'] = 'well'
     out_data['zone'] = 's_wai'
     out_data.index.names = ['well']
-    out_data.loc[:,'flux'] *= 0.50  # start with a 50% scaling factor from CAV come back if time
+    out_data.loc[:, 'flux'] *= 0.50  # start with a 50% scaling factor from CAV come back if time
 
     return out_data
 
@@ -137,7 +185,7 @@ def _get_s_wai_rivers():
     # value in the shapefile reference the reach numbers from scott and thorley 2009
 
     no_flow = smt.get_no_flow(0)
-    no_flow[no_flow<0] = 0
+    no_flow[no_flow < 0] = 0
     rivers = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/selwyn_hill_feds.shp".format(smt.sdp), 'reach', True)
     rivers[~no_flow.astype(bool)] = np.nan
     waian = pd.DataFrame(smt.model_where(rivers[np.newaxis, :, :] == 106), columns=['layer', 'row', 'col'])

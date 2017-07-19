@@ -465,7 +465,7 @@ class ModelTools(object):
 
                 if isinstance(layer_temp, list):
                     if one_val_per_well:
-                        layer_temp = max(set(layer_temp), key=layer_temp.count)
+                        layer_temp = max(set(layer_temp), key=layer_temp.count) #todo it may be preferable to calculate a mid screen
                     else:
                         layer_temp = list(set(layer_temp))
                 layer[i] = layer_temp

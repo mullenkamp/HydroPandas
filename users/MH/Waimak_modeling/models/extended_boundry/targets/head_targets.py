@@ -13,10 +13,19 @@ from core.classes.hydro import hydro
 from osgeo import gdal
 from users.MH.Waimak_modeling.supporting_data_path import sdp
 import rasterio
+import geopandas as gpd
 import matplotlib.pyplot as plt
+from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 
 
 def get_water_level_data(min_reading=1):
+    elv_sheet = pd.read_excel(env.sci('Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/xyz.xlsx'),
+                                                                                                                             index_Col=0)
+    elv_sheet = elv_sheet.set_index('well')
+    elv_sheet.loc[:,'accuracy_use'] = elv_sheet.accuracy_use.str.replace('m','')
+    elv_sheet.loc[:,'accuracy_use'] = elv_sheet.accuracy_use.str.replace('<','')
+    elv_sheet.loc[:,'accuracy_use'] = elv_sheet.accuracy_use.astype(float)
+
     well_details_org = rd_sql(**sql_db.wells_db.well_details)
     well_details = well_details_org[(well_details_org['WMCRZone'] == 4) | (well_details_org['WMCRZone'] == 7) |
                                     (well_details_org['WMCRZone'] == 8)]  # keep only waimak selwyn and chch zones
@@ -42,7 +51,6 @@ def get_water_level_data(min_reading=1):
     data['month'] = [e.month for e in data.time]
     data['year'] = [e.year for e in data.time]
 
-    # todo think about which raster to use
     rb = rasterio.open(
         r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\m_ex_bd_inputs\shp\dem.tif")
 
@@ -52,28 +60,38 @@ def get_water_level_data(min_reading=1):
         out_data.loc[well, 'nztmx'] = well_details.loc[well, 'NZTMX']
         out_data.loc[well, 'nztmy'] = well_details.loc[well, 'NZTMY']
         out_data.loc[well, 'depth'] = well_details.loc[well, 'DEPTH']
+        out_data.loc[well, 'num_screens'] = well_details.loc[well, 'Screens']
         out_data.loc[well,'aq_name'] = well_details.loc[well, 'AQUIFER_NAME']
         qarrl = out_data.loc[well, 'qar_rl'] = well_details.loc[well, 'QAR_RL']
-        out_data.loc[well, 'rl_from_dem'] = False
+        out_data.loc[well,'ref_ac'] = 0.1
 
         ref_level = well_details.loc[well, 'REFERENCE_RL']
         ground_ref_level = well_details.loc[well, 'GROUND_RL']
         if pd.isnull(ground_ref_level):
             ground_ref_level = 0
-        if pd.isnull(
-                ref_level):  # if there is no reference level assume it is at the ground from DEM #todo can I use lidar?
-            out_data.loc[well, 'rl_from_dem'] = True
-            x, y = well_details.loc[well, ['NZTMX', 'NZTMY']]
-            ref_level = list(rb.sample([(x, y)]))[0][0] + ground_ref_level * -1
-            if np.isclose(ref_level, -3.40282306e+38):
-                ref_level = np.nan
+        if pd.isnull(ref_level):  # if there is no reference level assume it is at the ground from DEM
+            if well in np.array(elv_sheet.index):
+                ref_level = elv_sheet.loc[well,'Elevation_use']
+                out_data.loc[well, 'ref_ac'] = elv_sheet.loc[well, 'accuracy_use']
+            else:
+                out_data.loc[well, 'ref_ac'] = 10
+                x, y = well_details.loc[well, ['NZTMX', 'NZTMY']]
+                ref_level = list(rb.sample([(x, y)]))[0][0] + ground_ref_level * -1
+                if np.isclose(ref_level, -3.40282306e+38):
+                    ref_level = np.nan
         out_data.loc[well, 'ref_level'] = ref_level
         out_data.loc[well, 'ground_level'] = ref_level + ground_ref_level
 
         if well in screen_details.index:
             top = np.min(screen_details.loc[well, 'TOP_SCREEN'])
-            bot = np.min(screen_details.loc[well, 'BOTTOM_SCREEN'])
+            bot = np.max(screen_details.loc[well, 'BOTTOM_SCREEN'])
             out_data.loc[well, 'mid_screen_depth'] = (bot + top) / 2
+
+            if out_data.loc[well,'num_screens'] == 2:
+                top = np.atleast_1d(screen_details.loc[well, 'TOP_SCREEN']).max()
+                bot = np.atleast_1d(screen_details.loc[well, 'BOTTOM_SCREEN']).min()
+                out_data.loc[well,'distance_between_screen'] = top-bot
+
         else:
             out_data.loc[well, 'mid_screen_depth'] = well_details.loc[well, 'DEPTH'] - 2
 
@@ -165,11 +183,73 @@ def get_water_level_data(min_reading=1):
 
         out_data.loc[:, 'samp_time_var'] = temp.std(axis=1) / temp.mean(axis=1)
         out_data = define_error(out_data)
+        out_data = calc_target_offset(out_data)
 
         out_data.to_csv(env.sci(
             "Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/first_pass_head_targets{}.csv".format(
                 val)))
 
+
+def calc_target_offset(all_targets):
+    vert_targets = pd.read_excel(env.sci(
+        "Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/Vertical gradient targets updated.xlsx"),
+                                 sheetname='data_for_python', index_col=0)
+
+    all_targets.loc[:,'vert_group'] = np.nan
+
+    elv = smt.calc_elv_db()
+    for i in vert_targets.index:
+        all_targets.loc[i,'vert_group'] = vert_targets.loc[i,'group']
+    number_of_values = len(all_targets.index)
+
+    aq_to_layer = {'Avonside Formation': 0,
+                   'Springston Formation': 0,
+                   'Christchurch Formation': 0,
+                   'Riccarton Gravel': 1,
+                   'Bromley Formation': 2,
+                   'Linwood Gravel': 3,
+                   'Heathcote Formation': 4,
+                   'Burwood Gravel': 5,
+                   'Shirley Formation': 6,
+                   'Wainoni Gravel': 7}
+    leapfrog_aq = gpd.read_file("{}/m_ex_bd_inputs/shp/layering/gis_aq_name_clipped.shp".format(smt.sdp))
+    leapfrog_aq = leapfrog_aq.set_index('well')
+    leapfrog_aq.loc[:,'use_aq_name'] = leapfrog_aq.loc[:,'aq_name']
+    leapfrog_aq.loc[leapfrog_aq.use_aq_name.isnull(),'use_aq_name'] = leapfrog_aq.loc[leapfrog_aq.use_aq_name.isnull(),'aq_name_gi']
+
+    for num,i in enumerate(all_targets.index):
+        if num%100 == 0:
+            print ('completed {} of {}'.format(num,number_of_values))
+        try:
+            layer_by_depth, row, col = smt.convert_coords_to_matix(all_targets.loc[i,'nztmx'],all_targets.loc[i,'nztmy'],all_targets.loc[i,'mid_screen_elv'])
+            all_targets.loc[i,'layer_by_depth'] = layer_by_depth
+            all_targets.loc[i,'row'] = row
+            all_targets.loc[i,'col'] = col
+
+        except AssertionError as val:
+            print(val)
+
+    for well in all_targets.index:
+        try:
+            all_targets.loc[well, 'aquifer_in_confined'] = aq = leapfrog_aq.loc[well, 'use_aq_name']
+            all_targets.loc[well, 'layer_by_aq'] = aq_to_layer[aq]
+        except KeyError:
+            pass
+
+    all_targets.loc[:,'layer'] = all_targets.loc[:, 'layer_by_depth']
+    idx = all_targets.layer_by_aq.notnull()
+    all_targets.loc[idx,'layer'] = all_targets.loc[idx, 'layer_by_aq']
+
+    for num, i in enumerate(all_targets.index):
+        row,col,layer = all_targets.loc[i,['row', 'col', 'layer']]
+        if any(pd.isnull([row,col,layer])):
+            continue
+        mx, my, mz = smt.convert_matrix_to_coords(int(row), int(col), int(layer), elv)
+        all_targets.loc[i, 'mx'] = mx
+        all_targets.loc[i, 'my'] = my
+        all_targets.loc[i, 'mz'] = mz
+
+    return all_targets
 
 def define_error(outdata):
     # error as a percentage
@@ -196,11 +276,7 @@ def define_error(outdata):
         # with others.
 
         # DEM error
-        if outdata.loc[well, 'rl_from_dem']:
-            dem = outdata.loc[
-                well, 'dem_error'] = 5  # based on half the 90% uncertainty of the DEM as we exect less uncetatiny in the plains vs the hill country
-        else:
-            dem = outdata.loc[well, 'dem_error'] = 0.1  # for other casing errors
+        dem = outdata.loc[well, 'dem_error'] = outdata.loc[well,'ref_ac']
 
         low_rd_err = 0
         if readings < 20:
@@ -210,11 +286,11 @@ def define_error(outdata):
         outdata.loc[well, 'total_error_m'] = dem + sea + (me + farm + low_rd_err) / (readings) ** 0.5
 
     idx = ((outdata.loc[:,'samp_time_var']<=0.1) & (outdata.loc[:, 'dem_error'] < 5) &
-           (outdata.loc[:, 'readings'] > 20) & (outdata.loc[:,'total_error_m']<=2))
+           (outdata.loc[:, 'readings'] > 20) & (outdata.loc[:,'total_error_m']<=2) & (outdata.loc[:,'num_screens']<=1))
 
     outdata.loc[idx,'include_non-gap'] = True
 
     return outdata
 
 if __name__ == '__main__':
-    get_water_level_data()
+    get_water_level_data() #todo check this!!!
