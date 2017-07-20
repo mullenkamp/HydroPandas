@@ -98,6 +98,7 @@ def get_water_level_data(min_reading=1):
     out_data.loc[:, 'mid_screen_elv'] = out_data.loc[:, 'ground_level'] - out_data.loc[:, 'mid_screen_depth']
 
     data2008 = data.loc[data['year'] >= 2008]
+    outputs = []
     for val, dat in zip(['_2008', '_all'], [data2008, data]):
         g = dat.loc[(dat.data > -999) & (dat.data < 999)].groupby('site')
         out_data['h2o_dpth_mean'] = g.aggregate({'data': np.mean})
@@ -182,12 +183,10 @@ def get_water_level_data(min_reading=1):
                                 u'reading_dec']]
 
         out_data.loc[:, 'samp_time_var'] = temp.std(axis=1) / temp.mean(axis=1)
-        out_data = define_error(out_data)
         out_data = calc_target_offset(out_data)
+        outputs.append(out_data)
 
-        out_data.to_csv(env.sci(
-            "Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/first_pass_head_targets{}.csv".format(
-                val)))
+    return outputs #2008 then all
 
 
 def calc_target_offset(all_targets):
@@ -261,6 +260,9 @@ def define_error(outdata):
 
         # add the different error terms:
         # measurement error
+        me = np.abs(outdata.loc[well, 'h2o_dpth_sd'])
+        if me==0:
+            me = 0.01 * np.abs(outdata.loc[well, 'h2o_dpth_mean'])
         me = outdata.loc[well, 'm_error'] = 0.01 * np.abs(outdata.loc[well, 'h2o_dpth_mean'])
         # farmer vs ecan
         farm = outdata.loc[well, 'users_error'] = outdata.loc[well, 'owner_measured'] * 0.10 * np.abs(outdata.loc[
@@ -285,12 +287,36 @@ def define_error(outdata):
         outdata.loc[well, 'low_rd_error'] = low_rd_err
         outdata.loc[well, 'total_error_m'] = dem + sea + (me + farm + low_rd_err) / (readings) ** 0.5
 
-    idx = ((outdata.loc[:,'samp_time_var']<=0.1) & (outdata.loc[:, 'dem_error'] < 5) &
-           (outdata.loc[:, 'readings'] > 20) & (outdata.loc[:,'total_error_m']<=2) & (outdata.loc[:,'num_screens']<=1))
+    idx = ((outdata.loc[:,'samp_time_var']<=0.1) &
+           (outdata.loc[:, 'dem_error'] < 5) &
+           (outdata.loc[:, 'readings'] > 20) &
+           (outdata.loc[:,'total_error_m']<=2) &
+           ((outdata.loc[:,'num_screens'] <= 1) | ((outdata.loc[:,'num_screens'] ==2) & (outdata.loc[:,'distance_between_screen']<5))))
 
     outdata.loc[idx,'include_non-gap'] = True
 
     return outdata
 
 if __name__ == '__main__':
-    get_water_level_data() #todo check this!!!
+    import os
+    path_2008 = env.sci("Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/head_targets_2008_woerror.csv")
+    path_all = env.sci("Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/head_targets_all_woerror.csv")
+    recalc=False
+    if not os.path.exists(path_2008) and not recalc:
+
+        outdata1, outdata2 = get_water_level_data()
+        outdata1.to_csv(path_2008)
+        outdata2.to_csv(path_all)
+    else:
+        outdata1 = pd.read_csv(path_2008)
+        outdata2 = pd.read_csv(path_all)
+
+    outpath_2008 = env.sci("Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/head_targets_2008_inc_error.csv")
+    outpath_all = env.sci("Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/head_targets_all_inc_error.csv")
+
+    outdata1 = define_error(outdata1)
+    outdata2 = define_error(outdata2)
+    outdata1.to_csv(outpath_2008)
+    outdata2.to_csv(outpath_all)
+
+
