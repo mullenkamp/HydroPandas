@@ -51,7 +51,7 @@ class ModelTools(object):
 
 
     def get_model_x_y(self):
-        pixelWidth = pixelHeight = 200
+        pixelWidth = pixelHeight = 200 #todo add grid spacing
 
         x_min, y_min = self.ulx, self.uly - self.grid_space * self.rows
 
