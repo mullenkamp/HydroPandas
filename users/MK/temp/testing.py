@@ -2925,9 +2925,25 @@ spline1([0.5, 1], [0.5, 1])
 
 spline1(x_int1.flatten()[:1000], y_int1.flatten()[:1000])
 
+###########################
+### More interp stuff
+
+import numpy as np
+
+
+
 
 #######################################################
 #### precip stats testing
+
+from core.classes.hydro import hydro
+from pandas import read_csv
+from core.ts.met.met_stats import precip_stats
+
+base_dir = r'\\fs02\ManagedShares2\Data\Surface Water\shared\base_data\precip\precip_data.csv'
+
+data = read_csv(base_dir)
+data1 = data.set_index(['site', 'time'])
 
 data = precip.sel_ts(mtypes=['precip'])
 

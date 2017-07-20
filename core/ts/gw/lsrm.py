@@ -18,7 +18,7 @@ def AET(pet, A, paw_now, paw_max):
     return(aet)
 
 
-def poly_import(irr_type_dict, paw_dict):
+def poly_import(irr_type_dict, paw_dict, paw_ratio=0.67):
     """
     Function to import polygon input data. At the moment, these include irrigation type and PAW. Inputs are dictionaries that reference either an MSSQL table with a geometry column or a shapefile. If the dictionary references an sql table then the keys should be 'server', 'database', 'table', and 'column'. If the dictionary references a shapefile, then the keys should be 'shp' and 'column'. All values should be strings.
     """
@@ -49,11 +49,12 @@ def poly_import(irr_type_dict, paw_dict):
     elif isinstance(paw_dict, dict):
         paw1 = rd_sql(paw_dict['server'], paw_dict['database'], paw_dict['table'], [paw_dict['column']], geo_col=True)
     paw1.rename(columns={paw_dict['column']: 'paw'}, inplace=True)
+    paw1.loc[:, 'paw'] = paw1.loc[:, 'paw'] * paw_ratio
 
     return(irr1, paw1)
 
 
-def input_processing(precip_et, crs, irr1, paw1, bound_shp, rain_name, pet_name, grid_res, buffer_dis, interp_fun, agg_ts_fun, time_agg, irr_eff_dict, irr_trig_dict, min_irr_area_ratio=0.01, irr_mons=[10, 11, 12, 1, 2, 3, 4]):
+def input_processing(precip_et, crs, irr1, paw1, bound_shp, rain_name, pet_name, grid_res, buffer_dis, interp_fun, agg_ts_fun, time_agg, irr_eff_dict, irr_trig_dict, min_irr_area_ratio=0.01, irr_mons=[10, 11, 12, 1, 2, 3, 4], precip_correction=1.1):
     """
     Function to process the input data for the lsrm. Outputs a DataFrame of the variables for the lsrm.
     """
@@ -67,7 +68,7 @@ def input_processing(precip_et, crs, irr1, paw1, bound_shp, rain_name, pet_name,
     ## Load and resample precip and et
     bound = read_file(bound_shp)
 
-    new_rain = poly_interp_agg(precip_et, crs, bound_shp, rain_name, 'time', 'x', 'y', buffer_dis, grid_res, grid_res, interp_fun=interp_fun, agg_ts_fun=agg_ts_fun, period=time_agg)
+    new_rain = poly_interp_agg(precip_et, crs, bound_shp, rain_name, 'time', 'x', 'y', buffer_dis, grid_res, grid_res, interp_fun=interp_fun, agg_ts_fun=agg_ts_fun, period=time_agg) * precip_correction
     new_rain.name = 'precip'
 
     new_et = poly_interp_agg(precip_et, crs, bound_shp, pet_name, 'time', 'x', 'y', buffer_dis, grid_res, grid_res, interp_fun=interp_fun, agg_ts_fun=agg_ts_fun, period=time_agg)
@@ -188,14 +189,14 @@ def input_processing(precip_et, crs, irr1, paw1, bound_shp, rain_name, pet_name,
         raise ValueError('irr_area_ratio variable must be a float dtype')
 
     ## Return dict
-    return(input1)
+    return(input1, sites_poly2)
 
 
 def lsrm(model_var, A):
     """
     The lsrm.
     """
-    from numpy import tile, nan, exp, full, arange, array, seterr
+    from numpy import nan, full, arange, seterr
     from core.ts.gw.lsrm import AET
     seterr(invalid='ignore')
 
@@ -231,14 +232,15 @@ def lsrm(model_var, A):
 
     # Output variables
     out_w_irr = full(len(irr_eff_val), nan)
+    out_irr_demand = out_w_irr.copy()
     out_w_non_irr = out_w_irr.copy()
+    out_irr_aet = out_w_irr.copy()
+    out_non_irr_aet = out_w_irr.copy()
 
     out_irr_drainage = out_w_irr.copy()
     out_non_irr_drainage = out_w_irr.copy()
 
-#    # Save as dict
-#    model_var = {'irr_paw_val': irr_paw_val, 'non_irr_paw_val': non_irr_paw_val, 'irr_rain_val': irr_rain_val, 'non_irr_rain_val': non_irr_rain_val, 'irr_pet_val': irr_pet_val, 'non_irr_pet_val': non_irr_pet_val, 'irr_eff_val': irr_eff_val, 'irr_trig_val': irr_trig_val, 'time_index': time_index, 'w_irr': w_irr, 'w_non_irr': w_non_irr, 'out_w_irr': out_w_irr, 'out_w_non_irr': out_w_non_irr, 'out_irr_drainage': out_irr_drainage, 'out_non_irr_drainage': out_non_irr_drainage}
-
+    ## Run the model
     for i in time_index:
 
         ### Irrigation bucket
@@ -246,8 +248,8 @@ def lsrm(model_var, A):
 
         ## Calc AET and perform the initial water balance
         irr_aet_val = AET(irr_pet_val[i], A, w_irr, i_irr_paw)
+        out_irr_aet[i] = irr_aet_val.copy()
         w_irr = w_irr + irr_rain_val[i] - irr_aet_val
-        w_irr[w_irr < 0] = 0
 
         ## Check and calc the GW drainage from excessive precip
         irr_drainge_bool = w_irr > i_irr_paw
@@ -255,22 +257,26 @@ def lsrm(model_var, A):
             temp_irr_draiange = w_irr[irr_drainge_bool] - i_irr_paw[irr_drainge_bool]
             out_irr_drainage[i[irr_drainge_bool]] = temp_irr_draiange
             w_irr[irr_drainge_bool] = i_irr_paw[irr_drainge_bool]
-        out_w_irr[i] = w_irr
+        out_w_irr[i] = w_irr.copy()
 
         ## Check and calc drainage from irrigation if w is below trigger
         irr_paw_ratio = w_irr/i_irr_paw
         irr_trig_bool = irr_paw_ratio <= irr_trig_val[i]
         if any(irr_trig_bool):
             diff_paw = i_irr_paw[irr_trig_bool] - w_irr[irr_trig_bool]
+            out_irr_demand[i[irr_trig_bool]] = diff_paw.copy()
             irr_drainage = diff_paw/irr_eff_val[i][irr_trig_bool] - diff_paw
-            out_irr_drainage[i[irr_trig_bool]] = irr_drainage
+            out_irr_drainage[i[irr_trig_bool]] = irr_drainage.copy()
             w_irr[irr_trig_bool] = i_irr_paw[irr_trig_bool].copy()
+
+        out_w_irr[i] = w_irr.copy()
 
         ### Non-irrigation bucket
         i_non_irr_paw = non_irr_paw_val[i]
 
         ## Calc AET and perform the initial water balance
         non_irr_aet_val = AET(non_irr_pet_val[i], A, w_non_irr, i_non_irr_paw)
+        out_non_irr_aet[i] = non_irr_aet_val.copy()
         w_non_irr = w_non_irr + non_irr_rain_val[i] - non_irr_aet_val
         w_non_irr[w_non_irr < 0] = 0
 
@@ -278,16 +284,19 @@ def lsrm(model_var, A):
         non_irr_drainge_bool = w_non_irr > i_non_irr_paw
         if any(non_irr_drainge_bool):
             temp_non_irr_draiange = w_non_irr[non_irr_drainge_bool] - i_non_irr_paw[non_irr_drainge_bool]
-            out_non_irr_drainage[i[non_irr_drainge_bool]] = temp_non_irr_draiange
+            out_non_irr_drainage[i[non_irr_drainge_bool]] = temp_non_irr_draiange.copy()
             w_non_irr[non_irr_drainge_bool] = i_non_irr_paw[non_irr_drainge_bool]
-        out_w_non_irr[i] = w_non_irr
+        out_w_non_irr[i] = w_non_irr.copy()
 
     ### Put results into dataframe
 
     output1 = model_var.copy()
+    output1.loc[:, 'irr_aet'] = out_irr_aet.round()
+    output1.loc[:, 'non_irr_aet'] = out_non_irr_aet.round()
     output1.loc[:, 'irr_paw'] = irr_paw_val.round()
     output1.loc[:, 'w_irr'] = out_w_irr.round()
     output1.loc[:, 'irr_drainage'] = out_irr_drainage.round()
+    output1.loc[:, 'irr_demand'] = out_irr_demand.round()
     output1.loc[:, 'non_irr_paw'] = non_irr_paw_val.round()
     output1.loc[:, 'w_non_irr'] = out_w_non_irr.round()
     output1.loc[:, 'non_irr_drainage'] = out_non_irr_drainage.round()
