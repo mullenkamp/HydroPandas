@@ -7,7 +7,7 @@ import os
 import contextlib
 
 
-def rd_hydstra_by_var(varto, start_time=0, end_time=0, data_type='mean', interval='day', multiplier=1, min_qual=None, sites_chunk=20, return_qual=True, export=False, export_path='flow_data.csv'):
+def rd_hydstra_by_var(varto, start_time=0, end_time=0, data_type='mean', interval='day', multiplier=1, min_qual=None, sites_chunk=20, return_qual=True, print_sites=False, export=False, export_path='flow_data.csv'):
     """
     Function to read in data from Hydstra's database using HYDLLP. This function extracts all sites with a specific variable code (varto).
 
@@ -78,7 +78,7 @@ def rd_hydstra_by_var(varto, start_time=0, end_time=0, data_type='mean', interva
 #            sites1 = to_numeric(period3[period3.varfrom == j].site, 'coerce', 'integer').dropna().values
 #        else:
         sites1 = period3[period3.varfrom == j].site.values
-        df = rd_hydstra_db(sites1, data_type=data_type, varfrom=j, varto=varto, interval=interval, multiplier=multiplier, min_qual=min_qual, return_qual=return_qual, sites_chunk=sites_chunk)
+        df = rd_hydstra_db(sites1, data_type=data_type, varfrom=j, varto=varto, interval=interval, multiplier=multiplier, min_qual=min_qual, return_qual=return_qual, sites_chunk=sites_chunk, print_sites=print_sites)
         data = concat([data, df])
 
     ### Make sure the data types are correct
@@ -91,7 +91,7 @@ def rd_hydstra_by_var(varto, start_time=0, end_time=0, data_type='mean', interva
 
 
 
-def rd_hydstra_db(sites, start_time=0, end_time=0, datasource='A', data_type='mean', varfrom=100, varto=140, interval='day', multiplier=1, min_qual=None, export=False, export_path='flow_data.csv', return_qual=False, sites_chunk=20):
+def rd_hydstra_db(sites, start_time=0, end_time=0, datasource='A', data_type='mean', varfrom=100, varto=140, interval='day', multiplier=1, min_qual=None, export=False, export_path='flow_data.csv', return_qual=False, sites_chunk=20, print_sites=False):
     """
     Function to read in data from Hydstra's database using HYDLLP.
 
@@ -128,6 +128,8 @@ def rd_hydstra_db(sites, start_time=0, end_time=0, datasource='A', data_type='me
     ### Run instance of hydllp
     data = DataFrame()
     for i in sites2:
+        if print_sites:
+            print(i)
         ### Open connection
         hyd = openHyDb()
         with hyd as h:

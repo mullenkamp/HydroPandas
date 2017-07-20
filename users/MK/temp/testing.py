@@ -2948,7 +2948,20 @@ data1 = data.set_index(['site', 'time'])
 data = precip.sel_ts(mtypes=['precip'])
 
 
+#################################################
+#### Hydstra fixes
 
+from core.ecan_io import rd_sql, rd_hydstra_by_var, write_sql, rd_hydstra_db
+from pandas import concat
+from os.path import join
+from datetime import date, timedelta
+
+sites = [70105, 62103, 62105, 65104, 66429, 66450]
+bad_site = [166602, 366425]
+
+for i in sites:
+    print(i)
+    t1 = rd_hydstra_db(sites=[i])
 
 
 

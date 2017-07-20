@@ -40,6 +40,7 @@ mtype_dict = {'swl': [100, 'mean', r'swl\swl_data.csv'], 'precip': [10, 'tot', r
 ### Export parameters
 subdays = timedelta(days=2)
 end = (date.today() - subdays).strftime('%Y-%m-%d')
+start = '2010-01-01'
 
 server1 = 'SQL2012DEV01'
 database1 = 'HydstraArchive'
@@ -125,7 +126,7 @@ write_sql(server1, database1, i + '_data', wtemp.reset_index(), dtype_dict[i], d
 
 ## Flow data
 i = 'flow'
-flow1 = rd_hydstra_by_var(140, end_time=end, data_type='mean', sites_chunk=26)
+flow1 = rd_hydstra_by_var(140, start_time=start, end_time=end, data_type='mean', sites_chunk=10, print_sites=True)
 flow2 = rd_hydstra_by_var(143, end_time=end, data_type='mean')
 
 flow2.loc[:, 'data'] = flow2.loc[:, 'data'] * 0.001
