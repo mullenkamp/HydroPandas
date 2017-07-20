@@ -33,7 +33,7 @@ site_names = ['site', 'site_name', 'site_short_name']
 qual_cols = ['QUALITY', 'TEXT']
 qual_names = ['qual_code', 'qual_name']
 
-base_dir = r'E:\ecan\shared\base_data'
+base_dir = r'\\fs02\ManagedShares2\Data\Surface Water\shared\base_data'
 
 mtype_dict = {'swl': [100, 'mean', r'swl\swl_data.csv'], 'precip': [10, 'tot', r'precip\precip_data.csv'], 'gwl': [110, 'mean', r'gwl\gwl_data.csv'], 'lakel': [130, 'mean', r'lakel\lakel_data.csv'], 'wtemp': [450, 'mean', r'wtemp\wtemp_data.csv'], 'flow': [[140, 143], 'mean', r'flow\flow_data.csv']}
 
@@ -95,7 +95,7 @@ gwl = rd_hydstra_by_var(mtype_dict[i][0], end_time=end, data_type=mtype_dict[i][
 gwl2 = gwl.reset_index()
 gwl2.loc[:, 'site'] = gwl2.loc[:, 'site'].str.replace('_', '/')
 gwl3 = gwl2.set_index(['site', 'time'])
-gwl3.to_csv(mtype_dict[i][2])
+gwl3.to_csv(join(base_dir, mtype_dict[i][2]))
 
 # Fix quality code
 gwl.loc[gwl.qual_code == 18, 'qual_code'] = 50

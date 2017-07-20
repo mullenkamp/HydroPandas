@@ -117,7 +117,7 @@ def create_m_extended_boundry(name, dir_path, safe_mode=True, mt3d_link=False, v
 
     return m
 if __name__ == '__main__':
-    m = create_m_extended_boundry('rough_version',r'C:\Users\MattH\Desktop\ecan_rough_version',safe_mode=False,mt3d_link=True)
+    m = create_m_extended_boundry('rough_version',r"C:\Users\matth\Desktop\test",safe_mode=False,mt3d_link=True)
     m.write_name_file()
     m.write_input()
     m.check()

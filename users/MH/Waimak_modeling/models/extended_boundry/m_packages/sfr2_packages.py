@@ -102,6 +102,12 @@ def _reach_data_v1(recalc=False):
         return reach_data
 
     temp_str_data = _get_base_stream_values()
+    # fix wierd segment numbering for reaches
+    old_to_temp_seg = dict([[38,125],[42,127],[41,126],[39,136],[43,137],[25,138],[26,139],[44,141],[27,142],[36,143],[37,144]])
+    temp_str_data = temp_str_data.replace({'segment':old_to_temp_seg})
+    temp_to_new_seg = dict([[125,25],[127,27],[126,26],[136,36],[137,37],[138,38],[139,39],[141,41],[142,42],[143,43],[144,44]])
+    temp_str_data = temp_str_data.replace({'segment':temp_to_new_seg})
+
     outdata = flopy.modflow.ModflowSfr2.get_empty_reach_data(len(temp_str_data.index),default_value=0)
     data_to_pass = {'i': 'i', 'j': 'j', 'k': 'k', 'reach': 'ireach', 'segment': 'iseg', 'slope': 'slope',
                     'stop': 'strtop'}
@@ -199,8 +205,13 @@ def _seg_data_v1(recalc=False):
     seg_data['width1'][np.isclose(seg_data['width1'], 0)] = 1 # define all undefined widths as 1 m these should just be the drains
     seg_data['width2'][np.isclose(seg_data['width2'], 0)] = 1 #define all undefined widths as 1 m
 
-    # some stream segments are listed in a incorrect order this does not cause a problem; however it can require an
-    # extra iteration to converge.
+    #fix inconsistant ordering
+    seg_data = pd.DataFrame(seg_data)
+    old_to_temp_seg = dict([[38,125],[42,127],[41,126],[39,136],[43,137],[25,138],[26,139],[44,141],[27,142],[36,143],[37,144]])
+    seg_data = seg_data.replace({'segment':old_to_temp_seg})
+    temp_to_new_seg = dict([[125,25],[127,27],[126,26],[136,36],[137,37],[138,38],[139,39],[141,41],[142,42],[143,43],[144,44]])
+    seg_data = seg_data.replace({'segment':temp_to_new_seg}).to_records(False)
+
     pickle.dump(seg_data,open(pickle_path,'w'))
     return seg_data
 
@@ -310,6 +321,7 @@ def _define_reach_length(reach_data, mode='cornering'):
     return wrd
 
 if __name__ == '__main__':
+    test = _seg_data_v1(True)
     test = pd.DataFrame(_reach_data_v1(True))
     elv = smt.calc_elv_db()
     for i in test.index:

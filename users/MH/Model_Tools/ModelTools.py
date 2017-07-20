@@ -51,7 +51,7 @@ class ModelTools(object):
 
 
     def get_model_x_y(self):
-        pixelWidth = pixelHeight = 200
+        pixelWidth = pixelHeight = 200 #todo add grid spacing
 
         x_min, y_min = self.ulx, self.uly - self.grid_space * self.rows
 
@@ -165,7 +165,7 @@ class ModelTools(object):
             elv_db = self.calc_elv_db()
         # find the index of the closest middle point
         # convert lon to col
-        col = np.abs(model_xs[0, :] - lon).argmin()
+        col = np.abs(model_xs[0, :] - lon).argmin() #todo this should be from the middle of the grid (change for next model)
 
         # convert lat to row
         row = np.abs(model_ys[:, 0] - lat).argmin()
@@ -465,7 +465,7 @@ class ModelTools(object):
 
                 if isinstance(layer_temp, list):
                     if one_val_per_well:
-                        layer_temp = max(set(layer_temp), key=layer_temp.count)
+                        layer_temp = max(set(layer_temp), key=layer_temp.count) #todo it may be preferable to calculate a mid screen
                     else:
                         layer_temp = list(set(layer_temp))
                 layer[i] = layer_temp
