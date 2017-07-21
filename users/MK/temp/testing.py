@@ -2964,16 +2964,30 @@ for i in sites:
     t1 = rd_hydstra_db(sites=[i])
 
 
+###############################################
+#### Hydrotel mtypes
 
+from core.ecan_io import rd_sql
+from pandas import to_datetime, merge, to_numeric, Grouper
+from numpy import ndarray, in1d, where
+from core.ts.ts import res
+from core.misc.misc import time_switch, select_sites
 
+#### Database parameters
+server = 'SQL2012PROD05'
+database = 'Hydrotel'
 
+objects_tab = 'Hydrotel.dbo.Objects'
+objects_col = ['Object', 'Site', 'Name']
 
+objects1 = rd_sql(server, database, objects_tab, objects_col)
 
+t1 = objects1.Name.unique()
+t1.sort()
+t1.tolist()
 
-
-
-
-
+c1 = objects1.groupby('Name')['Site'].count()
+c1.sort_values()
 
 
 

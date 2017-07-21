@@ -30,7 +30,6 @@ crs = 4326
 interp_fun = 'cubic'
 paw_ratio = 0.67
 precip_correction = 1.1
-
 min_irr_area_ratio = 0.01
 
 irr_mons = [10, 11, 12, 1, 2, 3, 4]
