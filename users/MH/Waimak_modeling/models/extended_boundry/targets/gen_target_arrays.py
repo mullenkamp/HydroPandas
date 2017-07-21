@@ -86,98 +86,129 @@ def gen_constant_head_targets():  # watch if we have constant heads in the sw bo
 
 
 def get_target_group_values():
-    target_group_val = {'chb_ash': 5.25, # 3.0 to 7.5 #todo talk over these
-                        'chb_chch': 0.9, # 0.3 to 1.5
-                        'chb_cust': 0.3, # 0.1 to 0.5
+    # Note that below are in m3/s and then converted to m3/day
+    target_group_val = {'chb_ash': -5.25,  # 3.0 to 7.5 #todo talk over these
+                        'chb_chch': -0.9,  # 0.3 to 1.5
+                        'chb_cust': -0.3,  # 0.1 to 0.5
                         'chb_sely': 'sel_off',
 
                         # drains
-                        'd_ash_car': 'd_ash_car', #todo ask brioch
-                        'd_ash_est': 1.2, # 0.2 to 2
+                        'd_ash_car': None,
+                        'd_ash_est': -1.2,  # 0.2 to 2
                         'd_ash_s': None,
                         'd_bul_avon': 'chch_str',
                         'd_bul_styx': 'chch_str',
-                        'd_cam_mrsh': 'd_cam_mrsh', #todo look up
-                        'd_cam_revl': 'd_cam_revl', #todo look up
                         'd_cam_s': None,
-                        'd_cam_yng': 'd_cam_yng', #todo look up
-                        'd_chch_c': 'd_chch_c', #todo ask brioch
-                        'd_cour_nrd': 'd_cour_nrd', #todo look up
+                        'd_chch_c': 'chch_str',
                         'd_court_s': None,
-                        'd_cust_c': 'd_cust_c', #todo ask brioch
+                        'd_cust_c': None,
                         'd_dlin_c': 'sel_str',
                         'd_dsel_c': 'sel_str',
                         'd_dwaimak': None,
                         'd_ect': None,
-                        'd_emd_gard': 'd_emd_gard', #todo look up
                         'd_greig_s': None,
                         'd_kaiapo_s': None,
-                        'd_kairaki': 'd_kairaki', #todo lookup
-
-                        #todo start here
-                        'd_kuku_leg': 'd_kuku_leg',
-                        'd_nbk_mrsh': 'd_nbk_mrsh',
-                        'd_oho_btch': 'd_oho_btch',
-                        'd_oho_jefs': 'd_oho_jefs',
-                        'd_oho_kpoi': 'd_oho_kpoi',
-                        'd_oho_misc': 'd_oho_misc',
-                        'd_oho_mlbk': 'd_oho_mlbk',
-                        'd_oho_whit': 'd_oho_whit',
-                        'd_salt_fct': 'd_salt_fct',
-                        'd_salt_s': 'd_salt_s',
-                        'd_salt_top': 'd_salt_top',
-                        'd_sbk_mrsh': 'd_sbk_mrsh',
-                        'd_sil_harp': 'd_sil_harp',
-                        'd_sil_heyw': 'd_sil_heyw',
-                        'd_sil_ilnd': 'd_sil_ilnd',
-                        'd_smiths': 'd_smiths',
-                        'd_tar_gre': 'd_tar_gre',
-                        'd_tar_stok': 'd_tar_stok',
-                        'd_taran_s': 'd_taran_s',
-                        'd_ulin_c': 'd_ulin_c',
-                        'd_usel_c': 'd_usel_c',
-                        'd_uwaimak': 'd_uwaimak',
+                        'd_salt_s': None,
+                        'd_taran_s': None,
+                        'd_ulin_c': 'sel_str',
+                        'd_usel_c': 'sel_str',
+                        'd_uwaimak': None,
                         'd_waihora': 'sel_off',
-                        'd_waikuk_s': 'd_waikuk_s',
+                        'd_waikuk_s': None,
 
-                        # surface water flow
-                        'sfo_1drn': 'sfo_1drn',
-                        'sfo_2drn': 'sfo_2drn',
-                        'sfo_3drn': 'sfo_3drn',
-                        'sfo_4drn': 'sfo_4drn',
-                        'sfo_5drn': 'sfo_5drn',
-                        'sfo_7drn': 'sfo_7drn',
-                        'sfo_c_benn': 'sfo_c_benn',
-                        'sfo_c_oxf': 'sfo_c_oxf',
-                        'sfo_c_pat': 'sfo_c_pat',
-                        'sfo_c_skew': 'sfo_c_skew',
-                        'sfo_c_swan': 'sfo_c_swan',
-                        'sfo_c_tip': 'sfo_c_tip',
-                        'sfo_c_tlks': 'sfo_c_tlks',
-                        'sfo_e_wolf': 'sfo_e_wolf',
+                        # from previous shapefile of targets
+                        'd_cam_mrsh': -0.17,
+                        'd_cam_revl': 0.0,
+                        'd_cam_yng': -0.33,
+                        'd_cour_nrd': -0.37,
+                        'd_emd_gard': -0.18,
+                        'd_kairaki': -0.09,
+                        'd_kuku_leg': -0.45,
+                        'd_nbk_mrsh': -0.66,
+                        'd_oho_btch': -0.29,
+                        'd_oho_jefs': -0.03,
+                        'd_oho_kpoi': -0.19,
+                        'd_oho_misc': 0.0,
+                        'd_oho_mlbk': -0.15,
+                        'd_oho_whit': -0.01,
+                        'd_salt_fct': -0.14,
+                        'd_salt_top': -0.27,
+                        'd_sbk_mrsh': -0.17,
+                        'd_sil_harp': -0.36,
+                        'd_sil_heyw': -0.39,
+                        'd_sil_ilnd': -0.89,
+                        'd_smiths': -0.12,
+                        'd_tar_gre': -0.11,
+                        'd_tar_stok': -0.10,
 
-                        # surface water flux
-                        'sfx_a1_con': 'sfx_a1_con',
-                        'sfx_a2_gol': 'sfx_a2_gol',
-                        'sfx_a3_tul': 'sfx_a3_tul',
-                        'sfx_a4_sh1': 'sfx_a4_sh1',
-                        'sfx_c1_swa': 'sfx_c1_swa',
-                        'sfx_c2_mil': 'sfx_c2_mil',
-                        'sfx_e1_stf': 'sfx_e1_stf',
-                        'sfx_w1_cou': 'sfx_w1_cou',
-                        'sfx_w2_tom': 'sfx_w2_tom',
-                        'sfx_w3_ros': 'sfx_w3_ros',
-                        'sfx_w4_mcl': 'sfx_w4_mcl',
-                        'sfx_w5_wat': 'sfx_w5_wat',
-                        'sfx_w6_sh1': 'sfx_w6_sh1',
+                        # surface water flow # from previous shapefiles of targets #todo where possible change these to fluxs
+                        'sfo_1drn': 0.23,
+                        'sfo_2drn': 0.19,
+                        'sfo_3drn': 0.18,
+                        'sfo_4drn': 0.05,
+                        'sfo_5drn': 0.05,
+                        'sfo_7drn': 0.21,
+                        'sfo_c_benn': 0.13,
+                        'sfo_c_oxf': 0.99,
+                        'sfo_c_pat': 0.0,
+                        'sfo_c_skew': 1.75,
+                        'sfo_c_swan': 0.85,
+                        'sfo_c_tip': 0.0,
+                        'sfo_c_tlks': 1.75,
+                        'sfo_e_wolf': 0.0,
+
+                        # surface water flux #from pervious shapefiles of targets
+                        'sfx_a1_con': 5.20,
+                        'sfx_a2_gol': 5.20,
+                        'sfx_a3_tul': 5.20,
+                        'sfx_a4_sh1': -0.40,
+                        'sfx_c1_swa': -0.43,
+                        'sfx_c2_mil': -0.42,
+                        'sfx_e1_stf': 1.6,
+                        'sfx_w1_cou': 2.8,
+                        'sfx_w2_tom': 1.1,
+                        'sfx_w3_ros': 2.2,
+                        'sfx_w4_mcl': 5.7,
+                        'sfx_w5_wat': -0.1,
+                        'sfx_w6_sh1': -0.5,
+
 
                         # groups
-                        'sel_off': 11, #1.2-17
-                        'chch_str': 10, # 7.5 to 12.5
-                        'sel_str' : 9.8 # no range
+                        'sel_off': -11,  # 1.2-17
+                        'chch_str': -10,  # 7.5 to 12.5 #todo it was -6 in the previous run think about this!!!
+                        'sel_str': -9.8  # no range
+                        }
+    for key in target_group_val.keys():
+        if isinstance(target_group_val[key], str) or target_group_val[key] is None:
+            continue
+        target_group_val[key] *= 86400 #convert numbers to m3/day
 
-                    # todo add groups here
-                    }
+    return target_group_val
+
+
+def get_vertical_gradient_targets ():
+
+
+    # load in vert targets
+    vert_targets = pd.read_excel(env.sci(
+        "Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/Vertical gradient targets updated.xlsx"),
+                                 sheetname='data_for_python', index_col=0)
+
+    # load in the row, col options from the bulk head targets sheet
+    all_wells = pd.read_csv('{}/all_wells_row_col_layer.csv'.format(smt.sdp),index_col=0)
+    vert_targets = pd.merge(vert_targets, all_wells,how='left',left_index=True,right_index=True)
+
+    # take the mean of any in the same layer
+    g = vert_targets.groupby(['group','layer'])#todo check
+    out_data = g.aggregate({'GWL_RL':np.mean})
+    out_data = pd.merge(out_data,vert_targets.loc[:,['mx','my','layer', 'row', 'col']],how='left',right_index=True,left_index=True) #todo should be actual x,y
+
+
+    out_data.loc[:,'weightings'] = None #todo weigthing
+    #return a dataframe: lat, lon, layer, obs, weight?, i,j
+
+    raise NotImplementedError
+
 
 
 if __name__ == '__main__':

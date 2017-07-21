@@ -86,6 +86,8 @@ def _elvdb_calc():
     ash_est = smt.shape_file_to_model_array(temp_path, 'ID', alltouched=True)
     outdata[0][np.isfinite(ash_est)] = 1.2
 
+    # hackish fix to keep stream at or below ground surface
+    outdata[0,57,225] +=1
     return outdata
 
 def _get_basement():

@@ -134,6 +134,10 @@ def _get_drn_spd(reach_v, wel_version, recalc=False):
 
     top = smt.calc_elv_db()[0]
     for val, group in zip([1, 3, 2, 5, 4], ['chch_carpet', 'up_lincoln', 'down_lincoln', 'up_selwyn', 'down_selwyn']):
+        if val in [2,4]:
+            sub = 0.5 # subtract 0.5 from the lower selwyn carpet drains
+        else:
+            sub = 0
         temp = pd.DataFrame(smt.model_where(np.isclose(drain_to_add, val)), columns=['i', 'j'])
         temp['k'] = 0
         temp['zone'] = 's_wai'
@@ -141,7 +145,7 @@ def _get_drn_spd(reach_v, wel_version, recalc=False):
         temp['cond'] = 20000
         for i in temp.index:
             row, col = temp.loc[i, ['i', 'j']]
-            temp.loc[i, 'elev'] = top[row, col]
+            temp.loc[i, 'elev'] = top[row, col] - sub
         drn_data = pd.concat((drn_data, temp))
 
     # add the waimakariri drain up above the bridge

@@ -45,9 +45,10 @@ def _get_rch(): #todo if mike gets dave scott running before this model is done,
     Use 190 mm/year for Christchurch WM zone."""
 
     rch = np.zeros((smt.rows, smt.cols))
-    rch[zones == 7] = 190/1000/365
-    rch[zones == 8] = 270/1000/365
-    rch[zones == 4] = 233/1000/365
+    rch[zones == 7] = 175/1000/365
+    rch[zones == 9] = 100/1000/365
+    rch[zones == 8] = 195/1000/365 #todo this is not consistant
+    rch[zones == 4] = 290/1000/365
     idx = np.where(np.isfinite(scaled_old_rch))
     rch[idx]= scaled_old_rch[idx]
     # get new rch values for nwai

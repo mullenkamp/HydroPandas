@@ -102,11 +102,6 @@ def _reach_data_v1(recalc=False):
         return reach_data
 
     temp_str_data = _get_base_stream_values()
-    # fix wierd segment numbering for reaches
-    old_to_temp_seg = dict([[38,125],[42,127],[41,126],[39,136],[43,137],[25,138],[26,139],[44,141],[27,142],[36,143],[37,144]])
-    temp_str_data = temp_str_data.replace({'segment':old_to_temp_seg})
-    temp_to_new_seg = dict([[125,25],[127,27],[126,26],[136,36],[137,37],[138,38],[139,39],[141,41],[142,42],[143,43],[144,44]])
-    temp_str_data = temp_str_data.replace({'segment':temp_to_new_seg})
 
     outdata = flopy.modflow.ModflowSfr2.get_empty_reach_data(len(temp_str_data.index),default_value=0)
     data_to_pass = {'i': 'i', 'j': 'j', 'k': 'k', 'reach': 'ireach', 'segment': 'iseg', 'slope': 'slope',
@@ -131,7 +126,20 @@ def _reach_data_v1(recalc=False):
         temp_str_data.loc[temp_str_data['segment']==seg, 'width'] = width
     outdata['strhc1'] = temp_str_data.loc[:,'cond']/(outdata['rchlen'] * temp_str_data['width'])
 
-    outdata['strtop'] = np.array(get_reach_elv())
+    outdata['strtop'] = np.array(get_reach_elv()) - 0.5
+
+    # fix wierd segment numbering for reaches
+    temp_str_data = pd.DataFrame(outdata)
+    old_to_temp_seg = dict([[38,125],[42,127],[41,126],[39,136],[43,137],[25,138],[26,139],[44,141],[27,142],[36,143],[37,144]])
+    temp_str_data = temp_str_data.replace({'iseg':old_to_temp_seg})
+    temp_to_new_seg = dict([[125,25],[127,27],[126,26],[136,36],[137,37],[138,38],[139,39],[141,41],[142,42],[143,43],[144,44]])
+    temp_str_data = temp_str_data.replace({'iseg':temp_to_new_seg})
+
+    #fix one backwards flowing reach
+    temp_str_data.loc[temp_str_data.iseg==19,'strtop'] = 72.44
+
+    outdata = temp_str_data.to_records(False).astype(flopy.modflow.ModflowSfr2.get_default_reach_dtype())
+
 
     elv = smt.calc_elv_db()
     temp = pd.DataFrame(outdata)
@@ -208,9 +216,10 @@ def _seg_data_v1(recalc=False):
     #fix inconsistant ordering
     seg_data = pd.DataFrame(seg_data)
     old_to_temp_seg = dict([[38,125],[42,127],[41,126],[39,136],[43,137],[25,138],[26,139],[44,141],[27,142],[36,143],[37,144]])
-    seg_data = seg_data.replace({'segment':old_to_temp_seg})
+    seg_data = seg_data.replace({'nseg':old_to_temp_seg,'outseg':old_to_temp_seg})
     temp_to_new_seg = dict([[125,25],[127,27],[126,26],[136,36],[137,37],[138,38],[139,39],[141,41],[142,42],[143,43],[144,44]])
-    seg_data = seg_data.replace({'segment':temp_to_new_seg}).to_records(False)
+    seg_data = seg_data.replace({'nseg':temp_to_new_seg,'outseg':temp_to_new_seg}).sort_values('nseg')
+    seg_data = seg_data.to_records(False).astype(flopy.modflow.ModflowSfr2.get_default_segment_dtype())
 
     pickle.dump(seg_data,open(pickle_path,'w'))
     return seg_data
@@ -321,12 +330,20 @@ def _define_reach_length(reach_data, mode='cornering'):
     return wrd
 
 if __name__ == '__main__':
-    test = _seg_data_v1(True)
-    test = pd.DataFrame(_reach_data_v1(True))
+    seg = pd.DataFrame(_seg_data_v1(True))
+    reach = pd.DataFrame(_reach_data_v1(True))
     elv = smt.calc_elv_db()
-    for i in test.index:
-        row, col = test.loc[i,['i','j']].astype(int)
-        if any(test.loc[i,['strtop']] + 1 < elv[1,row,col]):
-            print test.loc[i,['iseg','ireach']]
-            print 'str_top: {}, bot_layer 1 elv: {} top layer 1 elv {}'.format(test.loc[i,'strtop'], elv[1,row,col],elv[0,row,col])
+    g=reach.groupby(['iseg'])
+    bot = g.aggregate({'strtop':np.min})
+    top = g.aggregate({'strtop':np.max})
+    problems = []
+    for i in seg.index:
+        segment, outseg = seg.loc[i,['nseg','outseg']]
+        if outseg ==0:
+            continue
+        ttop = top.loc[outseg, 'strtop']
+        tbot = bot.loc[segment, 'strtop']
+        if ttop>tbot:
+            problems.append((segment,outseg))
 
+    print(problems)

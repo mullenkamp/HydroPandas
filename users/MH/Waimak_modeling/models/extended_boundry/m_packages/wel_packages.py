@@ -215,5 +215,6 @@ def _get_s_wai_rivers():
 
 
 if __name__ == '__main__':
+    n_wells = get_nwai_wells()
     test = _get_wel_spd_v1(recalc=True)
     print 'done'
