@@ -170,7 +170,7 @@ def _get_s_wai_wells():
     out_data['type'] = 'well'
     out_data['zone'] = 's_wai'
     out_data.index.names = ['well']
-    out_data.loc[:, 'flux'] *= 0.50  # start with a 50% scaling factor from CAV come back if time
+    out_data.loc[:, 'flux'] *= 0.50  # start with a 50% scaling factor from CAV come back if time #todo should chch wells be scaled???
 
     return out_data
 
@@ -215,6 +215,7 @@ def _get_s_wai_rivers():
 
 
 if __name__ == '__main__':
+    _get_s_wai_wells()
     n_wells = get_nwai_wells()
     test = _get_wel_spd_v1(recalc=True)
     print 'done'

@@ -29,6 +29,7 @@ if __name__ == '__main__':
     model_x, model_y = smt.get_model_x_y()
 
 
+
     for i in range(smt.layers):
         temp = data.loc[data.layer==i]
         fig,ax = plt.subplots(1,1,figsize=(18.5, 9.5))

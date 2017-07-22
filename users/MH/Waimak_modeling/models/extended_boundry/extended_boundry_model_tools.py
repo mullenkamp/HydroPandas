@@ -143,11 +143,12 @@ def _no_flow_calc():
 
 def _get_constant_heads():
 
+    temp_c_heads_down = np.zeros((_mt.rows,_mt.cols)) * np.nan
     outdata = np.zeros((_mt.layers, _mt.rows, _mt.cols))*np.nan
 
     # sea surface (north/south wai
-    first_sea_val = 0.5
-    rest_sea_val = 0
+    first_sea_val = 0 #todo correct to cell elevation + desity correction
+    rest_sea_val = 0 #todo
     sea = _mt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/coastal_constant_heads.shp".format(_mt.sdp),'ID',True)
     sea[np.isfinite(sea)] = rest_sea_val
 
@@ -156,7 +157,9 @@ def _get_constant_heads():
         if all(np.isnan(sea[i])):
             continue
         j = np.where(np.isfinite(sea[i]))[0].min()
+        j2 = np.where(np.isfinite(sea[i]))[0].max()
         sea[i,j] = first_sea_val
+        temp_c_heads_down[i,j2] = 1
 
     temp = sea[300:,:]
     for j in range(309):
@@ -164,12 +167,25 @@ def _get_constant_heads():
             continue
 
         i = np.where(np.isfinite(temp[:,j]))[0].min()
+        i2 = np.where(np.isfinite(temp[:,j]))[0].max()
         sea[i+300,j] = first_sea_val
+        temp_c_heads_down[i2+300,j] = 1
+    for j in range(smt.cols):
+        if all(np.isnan(temp[:,j])):
+            continue
 
-    outdata[0][np.isfinite(sea)] = sea[np.isfinite(sea)]
+        i2 = np.where(np.isfinite(temp[:,j]))[0].max()
+        temp_c_heads_down[i2+300,j] = 1
+
+    elv = _elvdb_calc()
+    mid = (elv[:-1] + elv[1:])/2
+    outdata[0][np.isfinite(sea)] = mid[0, np.isfinite(sea)] * -0.025
     # propogate constant head down as active cells
     for i in range(1,_mt.layers):
         outdata[i][np.isfinite(sea)] = -999
+
+    outdata[1:,np.isfinite(temp_c_heads_down)] = mid[1:,np.isfinite(temp_c_heads_down)] * -0.025 #todo set value here have cath check
+
 
     tops = _elvdb_calc()[0:_mt.layers]
     if len(tops) != _mt.layers:
@@ -199,6 +215,6 @@ if model_version == 'a':
 
 
 if __name__ == '__main__':
-   start = time.time()
-
-   print('took {} seconds'.format((time.time()-start)))
+    start = time.time()
+    _get_constant_heads()
+    print('took {} seconds'.format((time.time()-start)))
