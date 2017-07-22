@@ -50,6 +50,15 @@ def gen_sfr_flow_target_array():  # todo talk to cath/brioch about which to incl
     return target_array, num_to_name
 
 
+def gen_sfr_full_we_flux_target_array():
+    shp_path = '{}/m_ex_bd_inputs/shp/full_w_e_flux_targets.shp'.format(smt.sdp)
+    target_array = smt.shape_file_to_model_array(shp_path, 'GRID_CODE', True)
+    target_array[np.isnan(target_array)] = 0
+    num_to_name = {1: 'sfx_w_all',
+                   2: 'sfx_e_all'}
+
+    return target_array, num_to_name
+
 def gen_sfr_flux_target_array():  # todo talk to cath/brioch about which to include but can be done from existing shape files
     shp_path = '{}/m_ex_bd_inputs/shp/org_str_flux_targets.shp'.format(smt.sdp)
     target_array = smt.shape_file_to_model_array(shp_path, 'GRID_CODE', True)
@@ -66,7 +75,13 @@ def gen_sfr_flux_target_array():  # todo talk to cath/brioch about which to incl
                    19: 'sfx_w6_sh1',
                    22: 'sfx_a2_gol',
                    23: 'sfx_a4_sh1',
-                   24: 'sfx_a3_tul'}
+                   24: 'sfx_a3_tul',
+                   115: 'sfx_1drn',
+                   116: 'sfx_3drn',
+                   117: 'sfx_4drn',
+                   118: 'sfx_5drn',
+                   119: 'sfx_2drn',
+                   120: 'sfx_7drn'}
 
     return target_array, num_to_name
 
@@ -141,13 +156,13 @@ def get_target_group_values():
                         'd_tar_gre': -0.11,
                         'd_tar_stok': -0.10,
 
-                        # surface water flow # from previous shapefiles of targets #todo where possible change these to fluxs
-                        'sfo_1drn': 0.23,
-                        'sfo_2drn': 0.19,
-                        'sfo_3drn': 0.18,
-                        'sfo_4drn': 0.05,
-                        'sfo_5drn': 0.05,
-                        'sfo_7drn': 0.21,
+                        # surface water flow # from previous shapefiles of targets
+                        'sfo_1drn': None,
+                        'sfo_2drn': None,
+                        'sfo_3drn': None,
+                        'sfo_4drn': None,
+                        'sfo_5drn': None,
+                        'sfo_7drn': None,
                         'sfo_c_benn': 0.13,
                         'sfo_c_oxf': 0.99,
                         'sfo_c_pat': 0.0,
@@ -171,7 +186,14 @@ def get_target_group_values():
                         'sfx_w4_mcl': 5.7,
                         'sfx_w5_wat': -0.1,
                         'sfx_w6_sh1': -0.5,
-
+                        'sfx_1drn': -0.23,
+                        'sfx_2drn': -0.19,
+                        'sfx_3drn': -0.18,
+                        'sfx_4drn': -0.05,
+                        'sfx_5drn': -0.05,
+                        'sfx_7drn': -0.21,
+                        'sfx_e_all': -1.99,
+                        'sfx_w_all': -999999, #todo ask brioch what this target was
 
                         # groups
                         'sel_off': -11,  # 1.2-17
@@ -186,32 +208,32 @@ def get_target_group_values():
     return target_group_val
 
 
-def get_vertical_gradient_targets ():
+def get_vertical_gradient_targets():
 
 
     # load in vert targets
     vert_targets = pd.read_excel(env.sci(
-        "Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/Vertical gradient targets updated.xlsx"),
+        "Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/Vertical gradient targets updated_use.xlsx"),
                                  sheetname='data_for_python', index_col=0)
 
     # load in the row, col options from the bulk head targets sheet
     all_wells = pd.read_csv('{}/all_wells_row_col_layer.csv'.format(smt.sdp),index_col=0)
     vert_targets = pd.merge(vert_targets, all_wells,how='left',left_index=True,right_index=True)
 
-    # take the mean of any in the same layer
-    g = vert_targets.groupby(['group','layer'])#todo check
-    out_data = g.aggregate({'GWL_RL':np.mean})
-    out_data = pd.merge(out_data,vert_targets.loc[:,['mx','my','layer', 'row', 'col']],how='left',right_index=True,left_index=True) #todo should be actual x,y
+    vert_targets.loc['M35/11937','GWL_RL'] = vert_targets.loc[['M35/11937','M35/10909'],'GWL_RL'].mean()
+    vert_targets = vert_targets.drop(['M35/10909']) # this and above are in the same layer
+    vert_targets.loc[:, 'weightings'] = None #todo weigthing
 
+    outdata = vert_targets.loc[:,['NZTM_x','NZTM_y','layer','GWL_RL','weightings','row','col']].rename(columns={'NZTM_x':'x','NZTM_y':'y','GWL_RL':'obs','row':'i','col':'j'})
 
-    out_data.loc[:,'weightings'] = None #todo weigthing
     #return a dataframe: lat, lon, layer, obs, weight?, i,j
 
-    raise NotImplementedError
+    return outdata
 
 
 
 if __name__ == '__main__':
+    get_vertical_gradient_targets()
     zones, zone_data = gen_constant_head_targets()
     drn_array, drn_dict = gen_drn_target_array()
     flow_array, flow_dict = gen_sfr_flow_target_array()

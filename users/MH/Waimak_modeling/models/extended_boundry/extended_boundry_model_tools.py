@@ -147,8 +147,8 @@ def _get_constant_heads():
     outdata = np.zeros((_mt.layers, _mt.rows, _mt.cols))*np.nan
 
     # sea surface (north/south wai
-    first_sea_val = 0 #todo correct to cell elevation + desity correction
-    rest_sea_val = 0 #todo
+    first_sea_val = 0
+    rest_sea_val = 0
     sea = _mt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/coastal_constant_heads.shp".format(_mt.sdp),'ID',True)
     sea[np.isfinite(sea)] = rest_sea_val
 
@@ -185,6 +185,7 @@ def _get_constant_heads():
         outdata[i][np.isfinite(sea)] = -999
 
     outdata[1:,np.isfinite(temp_c_heads_down)] = mid[1:,np.isfinite(temp_c_heads_down)] * -0.025 #todo set value here have cath check
+    #todo check if this causes heaps of inflow in the deep layers
 
 
     tops = _elvdb_calc()[0:_mt.layers]
