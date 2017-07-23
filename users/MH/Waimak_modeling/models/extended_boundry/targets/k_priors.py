@@ -28,3 +28,11 @@ if __name__ == '__main__':
         np.savetxt(out_path, temp2)
 
     # make an array of the convined zone
+    temp = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/confined_zone_full_extent.shp".format(smt.sdp),
+                                         'Id',True)
+    temp[np.isfinite(temp)] = 1
+    temp[np.isnan(temp)] = 0
+    temp = temp.astype(np.int8)
+    out_path = env.sci(
+        r"Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\InitialParamaters\inital_sc_data_rasters_extended\v2\arrays\confined_bool_array.txt")
+    np.savetxt(out_path,temp)

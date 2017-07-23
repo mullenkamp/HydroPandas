@@ -27,7 +27,7 @@ def _elvdb_calc():
     # quickly smooth the dem near the top of the waimakariri (that gorge)
     top_smooth = gdalOpen("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/layering/DEM_smoother.tif".format(sdp)).ReadAsArray()
     top_smooth[np.isclose(top_smooth, -3.40282306074e+038)] = 0
-    top += top_smooth/2 #todo this is a first pass could be better
+    top += top_smooth/2
 
 
     # bottoms
@@ -60,7 +60,7 @@ def _elvdb_calc():
         'wainoni': 20,
         # seems to be target (though with minimal data) in two groups 1 from 20-30 the other from 40-80
         'deep_divide1': 40, #this one was carefully thought about to ensure that there was the potential to grab targets (assuming no changes in the above layers)
-        'deep_divide2': 40 #todo this captures our deepest wells but means no targets in teh bottom of the model.
+        'deep_divide2': 40 #this captures our deepest wells but means no targets in teh bottom of the model.
 
     }
     outdata = np.zeros((len(layer_names)+3,_mt.rows,_mt.cols))

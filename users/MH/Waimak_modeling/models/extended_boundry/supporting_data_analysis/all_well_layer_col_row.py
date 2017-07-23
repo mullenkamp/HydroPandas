@@ -98,8 +98,6 @@ def create_all_well_row_col():
     leapfrog_aq.loc[leapfrog_aq.use_aq_name.isnull(),'use_aq_name'] = leapfrog_aq.loc[leapfrog_aq.use_aq_name.isnull(),'aq_name_gi']
 
     for num,i in enumerate(out_data.index):
-        if i > 100:
-            break #todo DADB
         if num%100 == 0:
             print ('completed {} of {}'.format(num,number_of_values))
         try:
@@ -131,7 +129,7 @@ def create_all_well_row_col():
         out_data.loc[i, 'my'] = my
         out_data.loc[i, 'mz'] = mz
 
-    out_data.to_csv('{}/all_wells_row_col_layer.csv'.format(smt.sdp)) #todo check
+    out_data.to_csv('{}/all_wells_row_col_layer.csv'.format(smt.sdp))
 
 if __name__ == '__main__':
     # note this takes some time to run

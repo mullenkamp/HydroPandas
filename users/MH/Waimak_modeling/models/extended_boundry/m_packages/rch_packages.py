@@ -23,7 +23,7 @@ def create_rch_package(m):
 
 
 
-def _get_rch(): #todo if mike gets dave scott running before this model is done, spatialy vary the stuff to the south
+def _get_rch():
     new_no_flow = smt.get_no_flow()
     zones = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/cwms_zones.shp".format(smt.sdp),'ZONE_CODE')
     zones[~new_no_flow[0].astype(bool)] = 0
@@ -47,7 +47,7 @@ def _get_rch(): #todo if mike gets dave scott running before this model is done,
     rch = np.zeros((smt.rows, smt.cols))
     rch[zones == 7] = 175/1000/365
     rch[zones == 9] = 100/1000/365
-    rch[zones == 8] = 195/1000/365 #todo this is not consistant
+    rch[zones == 8] = 195/1000/365
     rch[zones == 4] = 290/1000/365
     idx = np.where(np.isfinite(scaled_old_rch))
     rch[idx]= scaled_old_rch[idx]

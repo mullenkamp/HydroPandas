@@ -13,8 +13,6 @@ from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_too
 import geopandas as gpd
 
 
-# todo I need to get targets for everything from our data. most of the old targets are in the shp file.
-# todo it might be worth popping a target dict in this script
 
 def gen_drn_target_array():
     drn_data = _get_drn_spd(smt.reach_v, smt.wel_version)
@@ -29,7 +27,7 @@ def gen_drn_target_array():
     return out_array, out_dict
 
 
-def gen_sfr_flow_target_array():  # todo talk to cath/brioch about which to include, but can be done from existing shape files
+def gen_sfr_flow_target_array():
     shp_path = '{}/m_ex_bd_inputs/shp/org_str_flow_targets.shp'.format(smt.sdp)
     target_array = smt.shape_file_to_model_array(shp_path, 'RASTERVALU', True)
     target_array[np.isnan(target_array)] = 0
@@ -59,7 +57,7 @@ def gen_sfr_full_we_flux_target_array():
 
     return target_array, num_to_name
 
-def gen_sfr_flux_target_array():  # todo talk to cath/brioch about which to include but can be done from existing shape files
+def gen_sfr_flux_target_array():
     shp_path = '{}/m_ex_bd_inputs/shp/org_str_flux_targets.shp'.format(smt.sdp)
     target_array = smt.shape_file_to_model_array(shp_path, 'GRID_CODE', True)
     target_array[np.isnan(target_array)] = 0
@@ -196,8 +194,8 @@ def get_target_group_values():
                         'sfx_w_all': -999999, #todo ask brioch what this target was
 
                         # groups
-                        'sel_off': -11,  # 1.2-17
-                        'chch_str': -10,  # 7.5 to 12.5 #todo it was -6 in the previous run think about this!!!
+                        'sel_off': None,  # 1.2-17 # to much range- just observe
+                        'chch_str': -10,  # 7.5 to 12.5
                         'sel_str': -9.8  # no range
                         }
     for key in target_group_val.keys():

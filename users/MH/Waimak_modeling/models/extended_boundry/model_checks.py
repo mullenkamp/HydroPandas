@@ -21,8 +21,6 @@ import os
 
 #todo a lot of this could go into model tools (maybe)
 
-#todo run checks
-
 def check_no_overlapping_features():
     no_flow = smt.get_no_flow()
     no_flow[no_flow<0]=0
@@ -55,8 +53,8 @@ def check_no_overlapping_features():
             ax.set_title('layer {}'.format(layer))
         plt.show(fig)
 
-    if any(all_data.duplicated(['i','j','k'],keep=False)): #todo I did not fix the well drain overlap s of waimak because we don't care
-        #todo there are some boundry flux drain overlaps, but is shoudn't affect stream depletion assessments (everything is relavitve)
+    if any(all_data.duplicated(['i','j','k'],keep=False)): #I did not fix the well drain overlap s of waimak because we don't care
+        #there are some boundry flux drain overlaps, but is shoudn't affect stream depletion assessments (everything is relavitve)
         raise ValueError ('There are duplicate boundry conditions')
 
 def check_layer_overlap():
@@ -97,8 +95,6 @@ def check_null_spd():
     if any(np.isnan(rch).flatten()):
         raise ValueError('null data in recharge spd')
 
-
-# todo check out https://stackoverflow.com/questions/3444645/merge-pdf-files for pdf joining
 
 def create_digital_appendix(root_dir,dpi):
     base_dir = '{}/individual_pdfs'.format(root_dir)
@@ -362,14 +358,10 @@ def check_elevations_spatially(base_dir,dpi):
     plt.close(fig)
 
     return paths
-# todo other semi-manual checks
-# check wells are in teh right aquifer
-# check target wells are in the right aquifer
-# move wells to the right location
-# check starting heads, particularyly constant heads
+# todo check starting heads, particularyly constant heads
 
 if __name__ == '__main__':
-    check_no_overlapping_features() #todo there are quite some
+    check_no_overlapping_features()
     create_digital_appendix(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\digital_appendix",None)
     #check_layer_overlap() #passed
     #check_elv_db() #passed
