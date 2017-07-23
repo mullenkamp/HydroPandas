@@ -43,6 +43,8 @@ def get_fault_zone():
     no_flow = smt.get_no_flow()
     fault_zone[np.isclose(no_flow,0)] = np.nan
 
+    fault_zone+=1
+    fault_zone[np.isnan(fault_zone)] = 0
     return fault_zone
 
 if __name__ == '__main__':
