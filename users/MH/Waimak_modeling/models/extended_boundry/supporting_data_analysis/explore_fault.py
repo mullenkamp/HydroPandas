@@ -17,8 +17,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import from_levels_and_colors
 import os
 
-
-if __name__ == '__main__':
+def get_all_bcs():
     sfr_data = pd.DataFrame(_get_reach_data(smt.reach_v))
     sfr_data['bc_type'] = 'sfr'
 
@@ -30,12 +29,21 @@ if __name__ == '__main__':
     drn_data = drn_data.loc[~drn_data.group.str.contains('carpet')] # don't worry about carpet drains
 
     all_data = pd.concat((sfr_data,well_data,drn_data)).reset_index()
-    all_data = all_data.loc[(all_data.i<190) & (all_data.j>200)]
 
     for i in all_data.index:
         row, col = all_data.loc[i,['i','j']]
         x,y = smt.convert_matrix_to_coords(row,col)
         all_data.loc[i,'mx'] = x
         all_data.loc[i,'my'] = y
+    return all_data
 
-    all_data.to_csv(r"C:\Users\MattH\Downloads\all_bcs.csv")
+def get_fault_zone():
+    fault_zone = np.repeat(smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/Pegusus_bay_fault.shp".format(smt.sdp),
+                                                         'Id',True)[np.newaxis,:,:],smt.layers,axis=0)
+    no_flow = smt.get_no_flow()
+    fault_zone[np.isclose(no_flow,0)] = np.nan
+
+    return fault_zone
+
+if __name__ == '__main__':
+    test = get_fault_zone()
