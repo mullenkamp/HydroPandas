@@ -161,6 +161,7 @@ def _get_s_wai_wells():
     allo2.loc[allo2.loc[:, 'days'] < 0, 'days'] = 0
 
     allo2.loc[:, 'flux'] = allo2.loc[:, 'cav'] / 365 * allo2.loc[:, 'days'] / (end_time - start_time).days * -1
+    allo2.loc[allo2.use_type=='irrigation','flux']*=0.5 #todo I'm trying this for not
 
     out_data = allo2.reset_index().groupby('wap').aggregate({'flux': np.sum, 'crc': ','.join})
     out_data['consent'] = [tuple(e.split(',')) for e in out_data.loc[:, 'crc']]
@@ -173,6 +174,87 @@ def _get_s_wai_wells():
     out_data.loc[:, 'flux'] *= 0.50  # start with a 50% scaling factor from CAV come back if time #todo should chch wells be scaled???
 
     return out_data
+
+def _check_chch_wells():
+    allo = pd.read_csv("{}/inputs/wells/allo_gis.csv".format(sdp), index_col='crc')
+
+    # option 2
+    end_time = pd.datetime(2016, 12, 31)
+    start_time = pd.datetime(2008, 1, 1)
+
+    allo2 = allo.loc[np.in1d(allo['cwms'], ['Christchurch - West Melton']) &
+                     (allo['take_type'] == 'Take Groundwater') &
+                     ((allo.status_details.str.contains('Terminated')) | allo.status_details.str.contains('Issued'))]
+
+    allo2.loc[:, 'to_date'] = pd.to_datetime(allo2.loc[:, 'to_date'], format='%d/%m/%Y', errors='coerce')
+    allo2.loc[:, 'from_date'] = pd.to_datetime(allo2.loc[:, 'from_date'], format='%d/%m/%Y', errors='coerce')
+    allo2.loc[allo2.loc[:, 'to_date'] > end_time, 'to_date'] = end_time
+    allo2.loc[allo2.loc[:, 'to_date'] < start_time, 'to_date'] = None
+    allo2.loc[allo2.loc[:, 'from_date'] < start_time, 'from_date'] = start_time
+    allo2.loc[allo2.loc[:, 'from_date'] > end_time, 'from_date'] = None
+    idx = (pd.notnull(allo2.loc[:, 'to_date']) & pd.notnull(allo2.loc[:, 'from_date']))
+    allo2.loc[idx, 'temp_days'] = (allo2.loc[idx, 'to_date'] - allo2.loc[idx, 'from_date'])
+    allo2.loc[:, 'days'] = [e.days for e in allo2.loc[:, 'temp_days']]
+
+    # the below appear to be an interal consents marker... and should not be included here as a replacement consent
+    # is active at the same time at the consent with negitive number of days
+    allo2.loc[allo2.loc[:, 'days'] < 0, 'days'] = 0
+
+    allo2.loc[:, 'flux'] = allo2.loc[:, 'cav'] / 365 * allo2.loc[:, 'days'] / (end_time - start_time).days * -1
+    allo2.loc[allo2.use_type=='irrigation','flux']*=0.5 #todo I'm trying this for not
+
+    out_data = allo2.reset_index().groupby('wap').aggregate({'flux': np.sum, 'crc': ','.join})
+    out_data['consent'] = [tuple(e.split(',')) for e in out_data.loc[:, 'crc']]
+    out_data = out_data.drop('crc', axis=1)
+    out_data = out_data.dropna()
+
+    out_data['type'] = 'well'
+    out_data['zone'] = 's_wai'
+    out_data.index.names = ['well']
+    out_data.loc[:, 'flux'] *= 0.50  # start with a 50% scaling factor from CAV come back if time
+
+    return out_data
+
+def _check_waimak_wells():
+    allo = pd.read_csv("{}/inputs/wells/allo_gis.csv".format(sdp), index_col='crc')
+
+    # option 2
+    end_time = pd.datetime(2016, 12, 31)
+    start_time = pd.datetime(2008, 1, 1)
+
+    allo2 = allo.loc[np.in1d(allo['cwms'], ['Waimakariri']) &
+                     (allo['take_type'] == 'Take Groundwater') &
+                     ((allo.status_details.str.contains('Terminated')) | allo.status_details.str.contains('Issued'))]
+
+    allo2.loc[:, 'to_date'] = pd.to_datetime(allo2.loc[:, 'to_date'], format='%d/%m/%Y', errors='coerce')
+    allo2.loc[:, 'from_date'] = pd.to_datetime(allo2.loc[:, 'from_date'], format='%d/%m/%Y', errors='coerce')
+    allo2.loc[allo2.loc[:, 'to_date'] > end_time, 'to_date'] = end_time
+    allo2.loc[allo2.loc[:, 'to_date'] < start_time, 'to_date'] = None
+    allo2.loc[allo2.loc[:, 'from_date'] < start_time, 'from_date'] = start_time
+    allo2.loc[allo2.loc[:, 'from_date'] > end_time, 'from_date'] = None
+    idx = (pd.notnull(allo2.loc[:, 'to_date']) & pd.notnull(allo2.loc[:, 'from_date']))
+    allo2.loc[idx, 'temp_days'] = (allo2.loc[idx, 'to_date'] - allo2.loc[idx, 'from_date'])
+    allo2.loc[:, 'days'] = [e.days for e in allo2.loc[:, 'temp_days']]
+
+    # the below appear to be an interal consents marker... and should not be included here as a replacement consent
+    # is active at the same time at the consent with negitive number of days
+    allo2.loc[allo2.loc[:, 'days'] < 0, 'days'] = 0
+
+    allo2.loc[:, 'flux'] = allo2.loc[:, 'cav'] / 365 * allo2.loc[:, 'days'] / (end_time - start_time).days * -1
+    allo2.loc[allo2.use_type == 'irrigation', 'flux'] *= 0.5  # todo I'm trying this for not
+
+    out_data = allo2.reset_index().groupby('wap').aggregate({'flux': np.sum, 'crc': ','.join})
+    out_data['consent'] = [tuple(e.split(',')) for e in out_data.loc[:, 'crc']]
+    out_data = out_data.drop('crc', axis=1)
+    out_data = out_data.dropna()
+
+    out_data['type'] = 'well'
+    out_data['zone'] = 'n_wai'
+    out_data.index.names = ['well']
+    out_data.loc[:, 'flux'] *= 0.50  # start with a 50% scaling factor from CAV come back if time #todo should chch wells be scaled???
+
+    return out_data
+
 
 
 def _get_s_wai_rivers():
@@ -215,7 +297,11 @@ def _get_s_wai_rivers():
 
 
 if __name__ == '__main__':
-    _get_s_wai_wells()
+
+    n_wells_new = _check_waimak_wells()
+    allo = pd.read_csv("{}/inputs/wells/allo_gis.csv".format(sdp), index_col='crc')
+    chch_wells = _check_chch_wells()
     n_wells = get_nwai_wells()
-    test = _get_wel_spd_v1(recalc=True)
+    s_wells_all = _get_s_wai_wells()
+    well_spd = _get_wel_spd_v1(recalc=True)
     print 'done'

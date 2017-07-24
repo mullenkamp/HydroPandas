@@ -171,9 +171,9 @@ def get_target_group_values():
                         'sfo_e_wolf': 0.0,
 
                         # surface water flux #from pervious shapefiles of targets
-                        'sfx_a1_con': 5.20,
-                        'sfx_a2_gol': 5.20,
-                        'sfx_a3_tul': 5.20,
+                        'sfx_a1_con': 'mid_ash_g', #todo group these
+                        'sfx_a2_gol': 'mid_ash_g',
+                        'sfx_a3_tul':'mid_ash_g',
                         'sfx_a4_sh1': -0.40,
                         'sfx_c1_swa': -0.43,
                         'sfx_c2_mil': -0.42,
@@ -190,10 +190,11 @@ def get_target_group_values():
                         'sfx_4drn': -0.05,
                         'sfx_5drn': -0.05,
                         'sfx_7drn': -0.21,
-                        'sfx_e_all': -1.99,
-                        'sfx_w_all': -999999, #todo ask brioch what this target was
+                        'sfx_e_all': 1.99,
+                        'sfx_w_all': 11.2,
 
                         # groups
+                        'mid_ash_g':5.20,
                         'sel_off': None,  # 1.2-17 # to much range- just observe
                         'chch_str': -10,  # 7.5 to 12.5
                         'sel_str': -9.8  # no range
