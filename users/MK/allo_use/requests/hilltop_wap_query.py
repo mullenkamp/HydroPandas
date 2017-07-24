@@ -15,14 +15,7 @@ from core.misc import rd_dir
 #fpath = {'tel': r'C:\ecan\hilltop\xml_test\tel', 'annual': r'C:\ecan\hilltop\xml_test\annual', 'archive': r'C:\ecan\hilltop\xml_test\archive'}
 fpath = r'H:\Data\Telemetry'
 
-corr_csv = r'C:\ecan\hilltop\ht_corrections.csv'
-export_bad1 = r'C:\ecan\hilltop\xml_test\error_sites1.csv'
-
-export_usable = r'C:\ecan\hilltop\xml_test\usable_sites.csv'
-export_daily_raw = r'C:\ecan\hilltop\xml_test\use_daily_all_raw.csv'
-export_daily_meters = r'C:\ecan\hilltop\xml_test\use_daily_all_meters.csv'
-export_daily_waps = r'C:\ecan\hilltop\xml_test\use_daily_all_waps.csv'
-export_daily_waps_cols = r'C:\ecan\hilltop\xml_test\use_daily_all_waps_cols.csv'
+export_waps = r'E:\ecan\local\Projects\requests\Ilja\2017-07-25\hilltop_telemetry_waps.csv'
 
 #########################################
 #### Read WAPs in directory
@@ -36,6 +29,24 @@ for i in files1:
     data_lst.append(f1)
 
 results1 = concat(data_lst)
+
+#########################################
+#### Aggregate to WAP without M's
+
+results2 = results1.copy()
+
+results2.loc[:, 'site'] = results2.loc[:, 'site'].apply(lambda x: x.split('-')[0])
+results3 = results2.drop_duplicates('site')
+
+#########################################
+#### Output
+
+results3.to_csv(export_waps, index=False)
+
+
+
+
+
 
 
 
