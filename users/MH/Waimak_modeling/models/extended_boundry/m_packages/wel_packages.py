@@ -130,6 +130,19 @@ def _get_wel_spd_v1(recalc=False):
         all_wells.loc[well,'layer'] += overlap.loc[well,'add_layer']
         all_wells.loc[well,'row'] += overlap.loc[well,'add_row']
         all_wells.loc[well,'col'] += overlap.loc[well,'add_col']
+    #todo add southern injectino races
+
+    # add little rakaia flux which will be parameterized via pest
+    temp = smt.model_where(np.isfinite(smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/little_rakaia_boundry_wells.shp".format(smt.sdp),
+                                         'Id', True)))
+    lrf = pd.DataFrame(index=['lrz_flux{:04d}'.format(e) for e in range(len(temp))],columns=all_wells.keys())
+    lrf.loc[:,'row'] = np.array(temp)[:,0]
+    lrf.loc[:,'col'] = np.array(temp)[:,1]
+    lrf.loc[:,'layer'] = 0
+    lrf.loc[:,'flux'] = 86400/len(temp)
+    lrf.loc[:,'type'] = 'lr_boundry_flux'
+
+    all_wells = pd.concat((all_wells,lrf))
 
     pickle.dump(all_wells, open(pickle_path, 'w'))
     return all_wells
@@ -297,11 +310,11 @@ def _get_s_wai_rivers():
 
 
 if __name__ == '__main__':
+    well_spd = _get_wel_spd_v1(recalc=False)
 
     n_wells_new = _check_waimak_wells()
     allo = pd.read_csv("{}/inputs/wells/allo_gis.csv".format(sdp), index_col='crc')
     chch_wells = _check_chch_wells()
     n_wells = get_nwai_wells()
     s_wells_all = _get_s_wai_wells()
-    well_spd = _get_wel_spd_v1(recalc=True)
     print 'done'
