@@ -23,7 +23,7 @@ n_periods = 3
 fun = 'sum'
 pivot = False
 
-output_csv = r'E:\ecan\shared\projects\2017-07-23_flooding\precip\precip_data.csv'
+output_csv = r'S:\Surface Water\shared\projects\2017-07-23_flooding\precip\precip_data.csv'
 
 ########################################
 #### Get data
