@@ -13,7 +13,7 @@ import logging
 import numpy as np
 from copy import deepcopy
 
-#todo move to core if/when it works
+#this did not work well, it's unclear if it was just our data or the method
 def interp_3d_montecarlo(locations, data, method, num_sim=None, return_values=False):
     """
     returns values from a montecarloed interpolation from the data provided (uses radial basis function interpolation)
@@ -35,7 +35,7 @@ def interp_3d_montecarlo(locations, data, method, num_sim=None, return_values=Fa
           'y':data['y'],
           'z': data['z'],
           'd':np.random.normal(data['d'],data['sd']),
-          'locations': (np.array(locations['x']),np.array(locations['y']),np.array(locations['z'])), #todo check locations and output map correctly
+          'locations': (np.array(locations['x']),np.array(locations['y']),np.array(locations['z'])),
           'method': method}
 
 

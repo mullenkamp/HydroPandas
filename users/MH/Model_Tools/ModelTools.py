@@ -140,7 +140,7 @@ class ModelTools(object):
             return lon, lat, elv
 
     def convert_coords_to_matix(self, lon, lat, elv=None, elv_db=None,
-                                return_AE=False):
+                                return_AE=False): #todo can this be made quicker
         """
         convert from real world coordinates to model indexes by comparing value to center point of array.  Where the value
         is on an edge defaults to top left corner (e.g. row 1, col 1, layer 1)
@@ -165,14 +165,14 @@ class ModelTools(object):
             elv_db = self.calc_elv_db()
         # find the index of the closest middle point
         # convert lon to col
-        col = np.abs(model_xs[0, :] - lon).argmin() #todo this should be from the middle of the grid (change for next model)
+        col = np.abs(model_xs[0, :] - lon).argmin() #todo see if this is identical with the gdal process
 
         # convert lat to row
         row = np.abs(model_ys[:, 0] - lat).argmin()
 
         if return_AE:
             x0 = (100 - (model_xs[0, :] - lon)[col]) / 200
-            y0 = (100 - (model_ys[:, 0] - lat)[row]) / 200 # todo implment grid spacing here
+            y0 = (100 - (model_ys[:, 0] - lat)[row]) / 200 # todo impilment grid spacing here
 
         if elv is None:
             if return_AE:
@@ -493,7 +493,7 @@ class ModelTools(object):
         else:
             return layer, row, col
 
-    def calc_elv_db(self,recalc=False):
+    def calc_elv_db(self,recalc=False): #todo make this stored in the class so that it isn't loaded multple times
         """
         calculates the elevation database (bottoms with the top of layer one on top or loads pickel
         :param recalc: force recalculates the elv_db from the gns data even if it is not present
@@ -519,7 +519,7 @@ class ModelTools(object):
         else:
             return no_flow[layer]
 
-    def get_base_model(self,recalc=False):
+    def get_base_model(self,recalc=False): #todo raise eception if model path not passed
         import flopy
         m = flopy.modflow.Modflow.load(self.base_mod_path, model_ws=os.path.dirname(self.base_mod_path),
                                        forgive=False)

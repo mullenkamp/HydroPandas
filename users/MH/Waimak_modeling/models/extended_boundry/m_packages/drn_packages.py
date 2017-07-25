@@ -69,7 +69,6 @@ def _get_drn_spd(reach_v, wel_version, recalc=False):
         row, col = drn_data.loc[i, ['i', 'j']]
         drn_data.loc[i, 'temp_carpet_group'] = carpet_groups[row, col]
 
-    # todo do we want to remove the carpet drains in the N part or the model?
     if drn_data.loc[drn_data['temp_carpet_group'].notnull(), 'group'].notnull().any():
         raise ValueError('carpet index yeilds non-carpet drain')
     drn_data.loc[np.isclose(drn_data.temp_carpet_group, 98), 'group'] = 'cust_carpet'
