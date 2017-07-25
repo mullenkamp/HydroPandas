@@ -4,7 +4,7 @@ Functions for importing mssql data.
 """
 
 
-def rd_sql(server=None, database=None, table=None, col_names=None, where_col=None, where_val=None, where_op='AND', code=None, geo_col=False, epsg=2193, data_source_csv='ecan_mssql_data_sources.csv', stmt=None, export=False, path='save.csv'):
+def rd_sql(server=None, database=None, table=None, col_names=None, where_col=None, where_val=None, where_op='AND', code=None, geo_col=False, epsg=2193, from_date=None, to_date=None, date_col=None, data_source_csv='ecan_mssql_data_sources.csv', stmt=None, export=False, path='save.csv'):
     """
     Function to import data from a MSSQL database. Specific columns can be selected and specific queries within columns can be selected. Requires the pymssql package, which must be separately installed.
 
@@ -19,12 +19,15 @@ def rd_sql(server=None, database=None, table=None, col_names=None, where_col=Non
     where_op -- If where_col is a dictionary and there are more than one key, then the operator that connects the where statements must be either 'AND' or 'OR'.\n
     geo_col -- Is there a geometry column in the table?.\n
     epsg -- The coordinate system (int).\n
+    from_date -- The start date as a str in the form '2010-01-01'.\n
+    to_date -- The end date as a str in the form '2010-01-01'.\n
+    date_col -- The SQL table column that contains the dates (str).\n
     stmt -- Custom SQL statement to be directly passed to the database table. This will ignore all prior arguments except server and database.\n
     export -- Should the data be exported?\n
     path -- The path and csv name for the export if 'export' is True (str).
     """
     from pymssql import connect
-    from pandas import read_sql, read_csv
+    from pandas import read_sql, read_csv, to_datetime, Timestamp
     from os.path import join, dirname, realpath
     from core.ecan_io import mssql
     from numpy import ceil
@@ -60,20 +63,11 @@ def rd_sql(server=None, database=None, table=None, col_names=None, where_col=Non
             if isinstance(where_col, str) & isinstance(where_val, list):
                 if len(where_val) > 10000:
                     raise ValueError('The number of values in where_val cannot be over 10000 (or so). MSSQL limitation. Break them into smaller chunks.')
-#                    n_chunks = int(ceil(len(where_val) * 0.0001))
-#                    lst2 = [str(where_val[i::n_chunks])[1:-1] for i in xrange(n_chunks)]
-#                    in_stmt = (') or ' + where_col + ' IN (').join(lst2)
-#                    where_stmt = ' WHERE ' + where_col + ' IN (' + in_stmt + ')'
-#                else:
                 where_val = [str(i) for i in where_val]
-                where_stmt = ' WHERE ' + str(where_col) + ' IN (' + str(where_val)[1:-1] + ')'
+                where_stmt = str(where_col) + ' IN (' + str(where_val)[1:-1] + ')'
             elif isinstance(where_col, dict):
                 where_stmt1 = []
                 for i in where_col:
-                    if not isinstance(i, list):
-                        col1 = [str(i)]
-                    else:
-                        col1 = [str(j) for j in i]
                     if not isinstance(where_col[i], list):
                         if isinstance(where_col[i], str):
                             where1 = [where_col[i].encode('ascii', 'ignore')]
@@ -81,15 +75,36 @@ def rd_sql(server=None, database=None, table=None, col_names=None, where_col=Non
                             where1 = [where_col[i]]
                     else:
                         where1 = [str(j) for j in where_col[i]]
-                    s1 = col1 + ' IN (' + str(where1)[1:-1] + ')'
+                    s1 = i + ' IN (' + str(where1)[1:-1] + ')'
                     where_stmt1.append(s1)
-                where_stmt = ' WHERE ' + (' ' + where_op + ' ').join(where_stmt1)
+                where_stmt = (' ' + where_op + ' ').join(where_stmt1)
             else:
                 raise ValueError('where_col must be either a string with an associated where_val list or a dictionary of strings to lists.')
         else:
             where_stmt = ''
 
-        stmt1 = 'SELECT ' + col_stmt + ' FROM ' + table + where_stmt
+        if isinstance(from_date, str):
+            from_date1 = to_datetime(from_date, errors='coerce')
+            if isinstance(from_date1, Timestamp):
+                from_date2 = from_date1.strftime('%Y-%m-%d')
+                where_from_date = date_col + " >= " + from_date2.join(['\'', '\''])
+        else:
+            where_from_date = ''
+
+        if isinstance(to_date, str):
+            to_date1 = to_datetime(to_date, errors='coerce')
+            if isinstance(to_date1, Timestamp):
+                to_date2 = to_date1.strftime('%Y-%m-%d')
+                where_to_date = date_col + " <= " + to_date2.join(['\'', '\''])
+        else:
+            where_to_date = ''
+
+        where_lst = [i for i in [where_stmt, where_from_date, where_to_date] if len(i) > 0]
+
+        if len(where_lst) > 0:
+            stmt1 = "SELECT " + col_stmt + " FROM " + table + " where " + " and ".join(where_lst)
+        else:
+            stmt1 = "SELECT " + col_stmt + " FROM " + table
 
     elif isinstance(stmt, str):
         stmt1 = stmt

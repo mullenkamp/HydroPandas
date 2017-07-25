@@ -16,6 +16,7 @@ from core.misc import rd_dir
 fpath = r'H:\Data\Telemetry'
 
 export_waps = r'E:\ecan\local\Projects\requests\Ilja\2017-07-25\hilltop_telemetry_waps.csv'
+export_waps1 = r'E:\ecan\local\Projects\requests\Ilja\2017-07-25\hilltop_telemetry_waps_with_m.csv'
 
 #########################################
 #### Read WAPs in directory
@@ -42,7 +43,7 @@ results3 = results2.drop_duplicates('site')
 #### Output
 
 results3.to_csv(export_waps, index=False)
-
+results1.to_csv(export_waps1, index=False)
 
 
 

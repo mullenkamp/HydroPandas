@@ -2989,7 +2989,16 @@ t1.tolist()
 c1 = objects1.groupby('Name')['Site'].count()
 c1.sort_values()
 
+###############################################
+#### Hydrotel all precip sites test
 
+from core.ecan_io import rd_hydrotel
+
+mtype = 'Rainfall'
+from_date = '2017-07-21'
+to_date = '2017-07-23'
+
+precip1 = rd_hydrotel(mtype=mtype, from_date=from_date, to_date=to_date)
 
 
 

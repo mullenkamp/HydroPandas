@@ -187,7 +187,7 @@ def rd_hydstra_dir(input_path, min_filter=False, min_yrs=25, export=False, expor
     return(t1)
 
 
-def rd_hydrotel(select, input_type='number', mtype='Flow', use_site_name=False, resample=False, period='day', n_periods=1, fun='mean', pivot=False, export=False, export_path='hydrotel_data.csv'):
+def rd_hydrotel(select=None, input_type='number', mtype='Flow', from_date=None, to_date=None, use_site_name=False, resample=False, period='day', n_periods=1, fun='mean', pivot=False, export=False, export_path='hydrotel_data.csv'):
     """
     Function to extract time series data from the hydrotel database.
 
@@ -220,20 +220,30 @@ def rd_hydrotel(select, input_type='number', mtype='Flow', use_site_name=False, 
 
     #### Import data and select the correct sites
 
-    if input_type is 'number':
-        sites = select_sites(select).astype('int32').tolist()
-        site_val1 = rd_sql(server, database, sites_tab, sites_col, 'ExtSysId', sites)
-        site_val1.loc[:,'ExtSysId'] = to_numeric(site_val1.loc[:,'ExtSysId'], errors='ignore')
-        site_val = site_val1.Site.values.astype('int32').tolist()
-    if input_type is 'name':
-        sites = select_sites(select).tolist()
-        db_sites = rd_sql(server, database, sites_tab, sites_col)
-        site_index1 = [where(db_sites.Name.str.contains(i))[0][0] for i in sites]
-        site_val = db_sites.loc[site_index1, 'Site'].astype('int32').tolist()
+    if select is not None:
+        if input_type is 'number':
+            sites = select_sites(select).astype('int32').tolist()
+            site_val1 = rd_sql(server, database, sites_tab, sites_col, 'ExtSysId', sites)
+            site_val1.loc[:,'ExtSysId'] = to_numeric(site_val1.loc[:,'ExtSysId'], errors='ignore').astype('int32')
+            site_val = site_val1.Site.values.tolist()
+        if input_type is 'name':
+            sites = select_sites(select).tolist()
+            db_sites = rd_sql(server, database, sites_tab, sites_col)
+            site_index1 = [where(db_sites.Name.str.contains(i))[0][0] for i in sites]
+            site_val = db_sites.loc[site_index1, 'Site'].astype('int32').tolist()
 
-    objects1 = rd_sql(server, database, objects_tab, objects_col, 'Site', site_val)
-    object_val1 = objects1[objects1.Name == mtype]
-    object_val = object_val1.Object.values.astype(int).tolist()
+        where_col = {'Site': site_val, 'Name': [mtype]}
+        object_val1 = rd_sql(server, database, objects_tab, objects_col, where_col)
+        object_val = object_val1.Object.values.astype(int).tolist()
+    else:
+        site_val1 = rd_sql(server, database, sites_tab, sites_col)
+        site_val1.loc[:,'ExtSysId'] = to_numeric(site_val1.loc[:,'ExtSysId'], errors='ignore')
+        site_val1 = site_val1[site_val1['ExtSysId'].notnull()]
+        site_val1.loc[:,'ExtSysId'] = site_val1.loc[:,'ExtSysId'].astype('int32')
+        site_val = site_val1.Site.values.tolist()
+        where_col = {'Site': site_val, 'Name': [mtype]}
+        object_val1 = rd_sql(server, database, objects_tab, objects_col, where_col)
+        object_val = object_val1.Object.values.astype(int).tolist()
 
     #### Rearrange data
     point_val1 = rd_sql(server, database, points_tab, points_col, where_col='Object', where_val=object_val)
@@ -244,7 +254,7 @@ def rd_hydrotel(select, input_type='number', mtype='Flow', use_site_name=False, 
     comp_tab2 = merge(comp_tab1, point_val1, on='Object')
     comp_tab2.set_index('Point', inplace=True)
 
-    data1 = rd_sql(server, database, data_tab, data_col, 'Point', point_val)
+    data1 = rd_sql(server, database, data_tab, data_col, 'Point', point_val, from_date=from_date, to_date=to_date, date_col='DT')
     data1.columns = ['site', 'time', 'value']
     data1.set_index(['site', 'time'], inplace=True)
     site_numbers = [comp_tab2.loc[i, 'ExtSysId'] for i in data1.index.levels[0]]
