@@ -250,7 +250,7 @@ def calc_target_offset(all_targets):
 
     return all_targets
 
-def define_error(outdata):
+def define_error(outdata): #todo some of these are retuning nan figure out why!!!
     # error as a percentage
     outdata.loc[:, 'total_error_m'] = np.nan
     outdata.loc[:, 'include_non-gap'] = False
@@ -269,9 +269,9 @@ def define_error(outdata):
             well, 'h2o_dpth_mean'])
         # seasonal bias correction
         sea = outdata.loc[
-            well, 'scorrection_error'] = outdata.loc[well, 'samp_time_var'] /3.3166 * 12.1
+            well, 'scorrection_error'] = outdata.loc[well, 'samp_time_var'] /3.3166 * 6.05
         # the above is based on the coefficient of variation(CV) of the monthly data/the cv if all sample are in 1 month
-        # * 2 * the standard deviation of the water range (sept-mar) of all samples with as CV of < 0.000001
+        #  * the standard deviation of the water range (sept-mar) of all samples with as CV of < 0.000001
         # given time I would group these spatially, but I'm not that concerned. it will slightly over represent the
         # uncertainty of high seasonal CV in the coastal zone, and under-represent those with high seasonal CV in the
         # inland zone.  I plan to mostly uses only those with a seasonal CV of less than 0.1 for targets and gap fill
@@ -285,7 +285,7 @@ def define_error(outdata):
             low_rd_err = 15
 
         outdata.loc[well, 'low_rd_error'] = low_rd_err
-        outdata.loc[well, 'total_error_m'] = dem + sea + (me + farm + low_rd_err) / (readings) ** 0.5
+        outdata.loc[well, 'total_error_m'] = dem + sea + me + (farm + low_rd_err) / (readings) ** 0.5
 
     idx = ((outdata.loc[:,'samp_time_var']<=0.1) &
            (outdata.loc[:, 'dem_error'] < 5) &

@@ -184,7 +184,7 @@ def _get_constant_heads():
     for i in range(1,_mt.layers):
         outdata[i][np.isfinite(sea)] = -999
 
-    outdata[1:,np.isfinite(temp_c_heads_down)] = mid[1:,np.isfinite(temp_c_heads_down)] * -0.025 #todo set value here have cath check
+    outdata[1:,np.isfinite(temp_c_heads_down)] = mid[1:,np.isfinite(temp_c_heads_down)] * -0.025
     #todo check if this causes heaps of inflow in the deep layers
 
 

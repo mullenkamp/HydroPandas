@@ -174,7 +174,7 @@ def _get_s_wai_wells():
     allo2.loc[allo2.loc[:, 'days'] < 0, 'days'] = 0
 
     allo2.loc[:, 'flux'] = allo2.loc[:, 'cav'] / 365 * allo2.loc[:, 'days'] / (end_time - start_time).days * -1
-    allo2.loc[allo2.use_type=='irrigation','flux']*=0.5 #todo I'm trying this for not
+    allo2.loc[allo2.use_type=='irrigation','flux']*=0.5
 
     out_data = allo2.reset_index().groupby('wap').aggregate({'flux': np.sum, 'crc': ','.join})
     out_data['consent'] = [tuple(e.split(',')) for e in out_data.loc[:, 'crc']]
@@ -184,7 +184,7 @@ def _get_s_wai_wells():
     out_data['type'] = 'well'
     out_data['zone'] = 's_wai'
     out_data.index.names = ['well']
-    out_data.loc[:, 'flux'] *= 0.50  # start with a 50% scaling factor from CAV come back if time #todo should chch wells be scaled???
+    out_data.loc[:, 'flux'] *= 0.50  # start with a 50% scaling factor from CAV come back if time
 
     return out_data
 
@@ -214,7 +214,7 @@ def _check_chch_wells():
     allo2.loc[allo2.loc[:, 'days'] < 0, 'days'] = 0
 
     allo2.loc[:, 'flux'] = allo2.loc[:, 'cav'] / 365 * allo2.loc[:, 'days'] / (end_time - start_time).days * -1
-    allo2.loc[allo2.use_type=='irrigation','flux']*=0.5 #todo I'm trying this for not
+    allo2.loc[allo2.use_type=='irrigation','flux']*=0.5
 
     out_data = allo2.reset_index().groupby('wap').aggregate({'flux': np.sum, 'crc': ','.join})
     out_data['consent'] = [tuple(e.split(',')) for e in out_data.loc[:, 'crc']]
@@ -254,7 +254,7 @@ def _check_waimak_wells():
     allo2.loc[allo2.loc[:, 'days'] < 0, 'days'] = 0
 
     allo2.loc[:, 'flux'] = allo2.loc[:, 'cav'] / 365 * allo2.loc[:, 'days'] / (end_time - start_time).days * -1
-    allo2.loc[allo2.use_type == 'irrigation', 'flux'] *= 0.5  # todo I'm trying this for not
+    allo2.loc[allo2.use_type == 'irrigation', 'flux'] *= 0.5
 
     out_data = allo2.reset_index().groupby('wap').aggregate({'flux': np.sum, 'crc': ','.join})
     out_data['consent'] = [tuple(e.split(',')) for e in out_data.loc[:, 'crc']]
@@ -264,7 +264,7 @@ def _check_waimak_wells():
     out_data['type'] = 'well'
     out_data['zone'] = 'n_wai'
     out_data.index.names = ['well']
-    out_data.loc[:, 'flux'] *= 0.50  # start with a 50% scaling factor from CAV come back if time #todo should chch wells be scaled???
+    out_data.loc[:, 'flux'] *= 0.50  # start with a 50% scaling factor from CAV come back if time
 
     return out_data
 

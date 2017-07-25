@@ -100,7 +100,7 @@ def gen_constant_head_targets():  # watch if we have constant heads in the sw bo
 
 def get_target_group_values():
     # Note that below are in m3/s and then converted to m3/day
-    target_group_val = {'chb_ash': -5.25,  # 3.0 to 7.5 #todo talk over these
+    target_group_val = {'chb_ash': -5.25,  # 3.0 to 7.5
                         'chb_chch': -0.9,  # 0.3 to 1.5
                         'chb_cust': -0.3,  # 0.1 to 0.5
                         'chb_sely': 'sel_off',
@@ -171,7 +171,7 @@ def get_target_group_values():
                         'sfo_e_wolf': 0.0,
 
                         # surface water flux #from pervious shapefiles of targets
-                        'sfx_a1_con': 'mid_ash_g', #todo group these
+                        'sfx_a1_con': 'mid_ash_g',
                         'sfx_a2_gol': 'mid_ash_g',
                         'sfx_a3_tul':'mid_ash_g',
                         'sfx_a4_sh1': -0.40,
@@ -221,17 +221,48 @@ def get_vertical_gradient_targets():
 
     vert_targets.loc['M35/11937','GWL_RL'] = vert_targets.loc[['M35/11937','M35/10909'],'GWL_RL'].mean()
     vert_targets = vert_targets.drop(['M35/10909']) # this and above are in the same layer
-    vert_targets.loc[:, 'weightings'] = None #todo weigthing
 
-    outdata = vert_targets.loc[:,['NZTM_x','NZTM_y','layer','GWL_RL','weightings','row','col']].rename(columns={'NZTM_x':'x','NZTM_y':'y','GWL_RL':'obs','row':'i','col':'j'})
+    all_targets = pd.read_csv(env.sci("Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/head_targets_2008_inc_error.csv"), index_col=1)
+    idx = vert_targets.index
+    vert_targets.loc[idx, 'weight'] = 1/all_targets.loc[idx,'total_error_m']
 
+    outdata = vert_targets.loc[:,['NZTM_x','NZTM_y','layer','GWL_RL','weight','row','col']].rename(columns={'NZTM_x':'x','NZTM_y':'y','GWL_RL':'obs','row':'i','col':'j'})
     #return a dataframe: lat, lon, layer, obs, weight?, i,j
+    # pull weight from uncertainty
+
+    return outdata
+
+def get_head_targets(): #todo check all have a total error!
+    #lat, lon, layer, obs, weigth? i, j
+    all_targets = pd.read_csv(env.sci("Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/head_targets_2008_inc_error.csv"), index_col=1)
+    all_targets = all_targets.loc[(all_targets.h2o_elv_mean.notnull()) & (all_targets.row.notnull()) &
+                                  (all_targets.col.notnull()) & (all_targets.layer.notnull())]
+
+    # pull out targets for each layer
+    min_readings = {0:20,
+                    1:20,
+                    2:2,
+                    3:2,
+                    4:2,
+                    5:2,
+                    6:1,
+                    7:1,
+                    8:1,
+                    9:1}
+    all_targets.loc[:,'weight'] = 1/all_targets.loc[:,'total_error_m']
+
+    outdata = pd.DataFrame()
+    for layer in range(smt.layers-1): # pull out targets for layers 0-9 layer 10 has no targets
+        idx = (all_targets.layer == layer) & (all_targets.readings >= min_readings[layer])
+        outdata = pd.concat((outdata, all_targets.loc[idx,['nztmx','nztmy','layer','h2o_elv_mean',
+                                                                   'weight','row','col','total_error_m']]))
 
     return outdata
 
 
 
 if __name__ == '__main__':
+    test = get_head_targets()
     get_vertical_gradient_targets()
     zones, zone_data = gen_constant_head_targets()
     drn_array, drn_dict = gen_drn_target_array()

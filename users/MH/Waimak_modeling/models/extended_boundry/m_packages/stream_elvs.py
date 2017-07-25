@@ -147,7 +147,7 @@ def get_reach_elv():
      41:old,
      42:old,
      43:old,
-     44:new, #todo has problems
+     44:new,
      }
 
     plot = False # hold over to check stuff
@@ -176,7 +176,7 @@ def get_reach_elv():
             plt.show(fig)
 
 
-    #todo add seg_to_use to data
+    #add seg_to_use to data
     for seg in set(data.iseg):
         temp = data.loc[data.iseg==seg]
         if seg_dict[seg] == 'new':
@@ -185,19 +185,21 @@ def get_reach_elv():
             temp.loc[:, 'elev_to_use'] = clean_weird_points(temp.loc[:, 'strtop'])
         data.loc[data.iseg == seg,'elev_to_use'] = temp.loc[:,'elev_to_use']
 
-    # todo check for problems across segments
+    # check for problems across segments
     for seg in set(data.iseg):
 
         if seg_dict[seg] == 'new':
             temp = data.loc[data.iseg == seg]
             bot = temp.loc[temp.ireach==temp.ireach.max(),'elev_to_use'].iloc[0]
-            # todo check downstream
+            # check downstream
             try:
                 down_seg = down_str_seg_dict[seg]
                 down = data.loc[data.iseg == down_seg]
                 down_top = down.loc[down.ireach==down.ireach.min(),'elev_to_use'].iloc[0]
                 if down_top > bot:
-                    print('segment: {}, bottom {}, down_seg {} top of downstream {}'.format(seg,bot,down_seg,down_top))
+                    raise ValueError('segment: {}, bottom {}, down_seg {} top of downstream {}'.format(seg, bot,
+                                                                                                       down_seg,
+                                                                                                       down_top))
             except KeyError as val:
                 pass
 
@@ -211,7 +213,7 @@ def get_reach_elv():
                 up = data.loc[data.iseg == us]
                 up_bot = up.loc[up.ireach==up.ireach.max(),'elev_to_use'].iloc[0]
                 if up_bot < top:
-                    print('segment{} top: {}, upseg: {} upbot: {}'.format(seg,top,us,up_bot))
+                    raise ValueError('segment{} top: {}, upseg: {} upbot: {}'.format(seg,top,us,up_bot))
 
     return data.loc[:,'elev_to_use']
 
