@@ -17,11 +17,14 @@ mtypes3 = 'swl'
 mtypes4 = 'gwl'
 mtypes5 = 'gwl_m'
 mtypes6 = 'usage'
+mtypes7 = 'flow_tel'
 sites1 = [70105, 69607, 69602, 65101, 69505]
 sites2 = [66, 137]
 sites3 = ['BT27/5020']
 sites4 = ['J38/0774', 'J38/0874', 'J38/0811', 'I39/0033']
 qual_codes = [10, 18, 20, 30]
+from_date = '2015-01-01'
+to_date = '2017-06-30'
 poly = r'S:\Surface Water\backups\MichaelE\Projects\otop\GIS\vector\min_flow\catch1.shp'
 
 ### From the MSSQL server (the easy way) - Loads in both the time series data and the geo locations
@@ -34,6 +37,8 @@ gwl1 = hydro().get_data(mtypes=mtypes4, sites=sites3, qual_codes=qual_codes)
 gwl2 = hydro().get_data(mtypes=mtypes5, sites=sites3)
 
 use1 = hydro().get_data(mtypes=mtypes6, sites=sites4)
+
+tel1 = hydro().get_data(mtypes=mtypes7, sites=sites1, from_date=from_date, to_date=to_date)
 
 ## Find sites based on a polygon shapefile with a 100 m buffer distance (for m_flow)
 h4 = hydro().get_data(mtypes=[mtypes1, mtypes2], sites=poly, buffer_dis=100, qual_codes=qual_codes)

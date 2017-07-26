@@ -512,7 +512,7 @@ def _proc_hydro_sql(self, sites_sql_fun, db_dict, mtype, sites=None, from_date=N
         sites3 = sites2[sites2.isin(sites1)].astype(str).tolist()
         h1 = h1._rd_hydro_mssql(server=server1, database=db1, table=tab1, sites=sites3, from_date=from_date, to_date=to_date, mtype=mtype, time_col=time1, site_col=site1, data_col=data1, qual_col=qual1, qual_codes=qual_codes)
     elif callable(mtype_dict):
-        h1 = mtype_dict(h1, sites=sites1, from_date=from_date, to_date=to_date)
+        h1 = mtype_dict(h1, sites=sites1, mtype=mtype, from_date=from_date, to_date=to_date)
 
     return(h1)
 

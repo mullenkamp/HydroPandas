@@ -16,10 +16,11 @@ swl_m_dict = {'units': 'masl', 'resample': 'mean', 'long_name': 'manually gauged
 gwl_dict = {'units': 'masl', 'resample': 'mean', 'long_name': 'recorder groundwater level', 'description': 'groundwater level measured via a recording device'}
 gwl_m_dict = {'units': 'masl', 'resample': 'mean', 'long_name': 'manually gauged groundwater level', 'description': 'groundwater level manually measured during gaugings'}
 precip_dict = {'units': 'mm', 'resample': 'sum', 'long_name': 'ECan precipitation', 'description': 'precipitation data from ECan stations'}
+precip_tel_dict = {'units': 'mm', 'resample': 'sum', 'long_name': 'ECan precipitation', 'description': 'telemetered precipitation data from ECan stations'}
 lakel_dict = {'units': 'masl', 'resample': 'mean', 'long_name': 'recorder lake level', 'description': 'lake level measured via a recording device'}
 usage_dict = {'units': 'm', 'resample': 'mean', 'long_name': 'water meter usage', 'description': 'water meter usage data from consent holders'}
 
-all_mtypes = {'flow': flow_dict, 'flow_m': flow_m_dict, 'swl': swl_dict, 'swl_m': swl_m_dict, 'gwl': gwl_dict, 'gwl_m': gwl_m_dict, 'precip': precip_dict, 'usage': usage_dict, 'lakel': lakel_dict, 'flow_tel': flow_tel_dict}
+all_mtypes = {'flow': flow_dict, 'flow_m': flow_m_dict, 'swl': swl_dict, 'swl_m': swl_m_dict, 'gwl': gwl_dict, 'gwl_m': gwl_m_dict, 'precip': precip_dict, 'usage': usage_dict, 'lakel': lakel_dict, 'flow_tel': flow_tel_dict, 'precip_tel': precip_tel_dict}
 
 class hydro(object):
     """

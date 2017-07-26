@@ -176,44 +176,6 @@ def rd_niwa_geo():
     return(site_geo.set_index('site'))
 
 
-def get_geo_loc(self):
-    for i in self.mtypes_sites:
-        if hasattr(self, 'geo_loc'):
-            geo_sites = self.geo_loc.index.tolist()
-        else:
-            geo_sites = []
-        sites = list(self.mtypes_sites[i])
-        geo_sites_check = ~Series(sites).isin(geo_sites)
-        if any(geo_sites_check):
-            sites_sel = Series(sites)[geo_sites_check].values
-            if sites_sel.dtype == dtype('int64'):
-                sites_sel = sites_sel.astype(int).tolist()
-            elif sites_sel.dtype == dtype('O'):
-                sites_sel = sites_sel.astype(str).tolist()
-            else:
-                sites_sel = sites_sel.tolist()
-            if i in ['flow', 'swl', 'swl_m', 'flow_m', 'precip']:
-                geo1 = rd_sw_rain_geo(sites_sel)
-                if hasattr(self, 'geo_loc'):
-                    self.geo_loc = concat([self.geo_loc, geo1])
-                else:
-                    setattr(self, 'geo_loc', geo1)
-            elif i in ['gwl', 'gwl_m', 'usage']:
-                geo1 = rd_waps_geo(sites_sel)
-                if hasattr(self, 'geo_loc'):
-                    self.geo_loc = concat([self.geo_loc, geo1])
-                else:
-                    self.geo_loc = geo1
-
-    sites_mis_bool = ~Series(self.sites).isin(self.geo_loc.index)
-    if any(sites_mis_bool):
-        sites_mis = Series(self.sites)[sites_mis_bool].tolist()
-        print('Missing ' + str(sites_mis) + ' site(s)')
-    else:
-        print('Found all of the sites!')
-
-
-
 #####################################################
 #### Import time series data
 
@@ -237,17 +199,18 @@ def _rd_hydstra(self, sites, start_time=0, end_time=0, datasource='A', data_type
     return(self)
 
 
-def _rd_hydrotel(self, sites, input_type='name', mtype='Flow', resample=False, period='day', n_periods=1, fun='mean'):
+def _rd_hydrotel(self, sites, input_type='number', mtype='flow_tel', from_date=None, to_date=None, resample=False, period='day', n_periods=1, fun='mean'):
     """
     Need to update!!! The mtypes in hydrotel are inconsistent!!!
     """
     from core.ecan_io.flow import rd_hydrotel
 
     ### Mtype conversion
-    mtype_dict1 = {'flow_tel': 'Flow'}
+    mtype_dict1 = {'flow_tel': 'Flow', 'precip_tel': 'Rainfall'}
+    mtype1 = mtype_dict1[mtype]
 
     ### Load in hydrotel data
-    data = rd_hydrotel(select=sites, input_type=input_type, mtype=mtype, resample=resample, period=period, n_periods=n_periods, fun=fun)
+    data = rd_hydrotel(select=sites, input_type=input_type, mtype=mtype1, resample=resample, period=period, n_periods=n_periods, fun=fun, from_date=from_date, to_date=to_date)
     mtype1 = mtype.lower()
     data2 = data.reset_index()
     data2['mtype'] = mtype1
@@ -257,17 +220,12 @@ def _rd_hydrotel(self, sites, input_type='name', mtype='Flow', resample=False, p
     return(self)
 
 
-def _rd_henry(self, sites, from_date=None, to_date=None, agg_day=True, min_filter=5):
+def _rd_henry(self, sites, mtype='flow_m', from_date=None, to_date=None, agg_day=True, min_filter=5):
     from core.ecan_io.flow import rd_henry
 
-    if from_date is None:
-        from_date = '1900-01-01'
-    if to_date is None:
-        to_date = '2100-01-01'
-
     ### Load in gaugings data
-    data = rd_henry(sites, start=from_date, end=to_date, agg_day=agg_day, min_filter=min_filter)
-    data['mtype'] = 'flow_m'
+    data = rd_henry(sites, from_date=from_date, to_date=to_date, agg_day=agg_day, min_filter=min_filter)
+    data['mtype'] = mtype
 
     ### Load into hydro class
     self.add_data(data, 'date', 'site', 'mtype', 'flow', 'long')
@@ -275,12 +233,43 @@ def _rd_henry(self, sites, from_date=None, to_date=None, agg_day=True, min_filte
 
 
 ##########################################
-#### The big GET!
+#### The two big GETS!
 
 #mtypes_sql_dict = {'flow': flow_dict, 'flow_tel': _rd_hydrotel, 'flow_m': _rd_henry, 'swl_tel': _rd_hydrotel, 'swl': swl_dict, 'gwl_tel': _rd_hydrotel, 'gwl': gwl_dict, 'gwl_m': gwl_m_dict, 'usage': (wus_usage_dict, usage_dict)}
-mtypes_sql_dict = {'flow': flow_dict, 'flow_m': _rd_henry, 'swl': swl_dict, 'gwl': gwl_dict, 'gwl_m': gwl_m_dict, 'usage': (wus_usage_dict, usage_dict), 'precip': precip_dict}
+mtypes_sql_dict = {'flow': flow_dict, 'flow_m': _rd_henry, 'swl': swl_dict, 'gwl': gwl_dict, 'gwl_m': gwl_m_dict, 'usage': (wus_usage_dict, usage_dict), 'precip': precip_dict, 'flow_tel': _rd_hydrotel, 'precip_tel': _rd_hydrotel}
 
-geo_loc_dict = {'flow': rd_sw_rain_geo, 'flow_m': rd_sw_rain_geo, 'swl': rd_sw_rain_geo, 'gwl': rd_waps_geo, 'gwl_m': rd_waps_geo, 'usage': rd_waps_geo, 'precip': rd_sw_rain_geo}
+geo_loc_dict = {'flow': rd_sw_rain_geo, 'flow_m': rd_sw_rain_geo, 'swl': rd_sw_rain_geo, 'gwl': rd_waps_geo, 'gwl_m': rd_waps_geo, 'usage': rd_waps_geo, 'precip': rd_sw_rain_geo, 'flow_tel': rd_sw_rain_geo, 'precip_tel': rd_sw_rain_geo,}
+
+
+def get_geo_loc(self):
+    for i in self.mtypes_sites:
+        if hasattr(self, 'geo_loc'):
+            geo_sites = self.geo_loc.index.tolist()
+        else:
+            geo_sites = []
+        sites = list(self.mtypes_sites[i])
+        geo_sites_check = ~Series(sites).isin(geo_sites)
+        if any(geo_sites_check):
+            sites_sel = Series(sites)[geo_sites_check].values
+            if sites_sel.dtype == dtype('int64'):
+                sites_sel = sites_sel.astype(int).tolist()
+            elif sites_sel.dtype == dtype('O'):
+                sites_sel = sites_sel.astype(str).tolist()
+            else:
+                sites_sel = sites_sel.tolist()
+            if i in geo_loc_dict:
+                geo1 = geo_loc_dict[i](sites_sel)
+                if hasattr(self, 'geo_loc'):
+                    self.geo_loc = concat([self.geo_loc, geo1])
+                else:
+                    setattr(self, 'geo_loc', geo1)
+
+    sites_mis_bool = ~Series(self.sites).isin(self.geo_loc.index)
+    if any(sites_mis_bool):
+        sites_mis = Series(self.sites)[sites_mis_bool].tolist()
+        print('Missing ' + str(sites_mis) + ' site(s)')
+    else:
+        print('Found all of the sites!')
 
 
 def get_data(self, mtypes, sites=None, qual_codes=None, from_date=None, to_date=None, buffer_dis=0):

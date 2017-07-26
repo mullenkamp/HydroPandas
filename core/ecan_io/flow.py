@@ -17,14 +17,15 @@ def rd_ts(csv, index=1, header='infer', skiprows=0, reg=False, **kwargs):
     return(ts)
 
 
-def rd_henry(sites, sites_col=1, start='1900-01-01', end='2100-01-01', agg_day=True, sites_by_col=False, min_filter=None, export=False, export_path='gauge_flows.csv'):
+def rd_henry(sites, sites_col=1, from_date=None, to_date=None, agg_day=True, sites_by_col=False, min_filter=None, export=False, export_path='gauge_flows.csv'):
     """
     Function to read in gaugings data from the "Henry DB". Hopefully, they keep this around for a while longer.
 
     Arguments:\n
     sites -- Either a list of site names or a file path string that contains a column of site names.\n
     sites_col -- If 'sites' is a path string, then the column that contains site names.\n
-    years -- Either 'all' (default) or a list of years of data.\n
+    from_date -- A date string for the start of the data (e.g. '2010-01-01').\n
+    to_date -- A date string for the end of the data.\n
     agg_day -- Should the gauging dates be aggregated down to the day as opposed to having the hour and minute. Gaugings are aggregated by the mean.\n
     sites_by_col -- 'False' does not make a time series, rather it is organized by site, date, and gauging. 'True' creates a time series with the columns as gauging sites (will create many NAs).\n
     min_filter -- Minimum number of days required for the gaugings output.
@@ -91,8 +92,10 @@ def rd_henry(sites, sites_col=1, start='1900-01-01', end='2100-01-01', agg_day=T
         data3 = data3[in1d(data3.site.values, count_index)]
 
     ### Select within date range
-    mask = (data3.date >= start) & (data3.date <= end)
-    data3 = data3[mask]
+    if from_date is not None:
+        data3 = data3[data3.date >= from_date]
+    if to_date is not None:
+        data3 = data3[data3.date <= to_date]
 
     ### reorganize data with sites as columns and dates as index
 
