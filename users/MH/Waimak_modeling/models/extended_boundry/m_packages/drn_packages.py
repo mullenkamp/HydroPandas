@@ -249,7 +249,7 @@ def _get_drn_spd(reach_v, wel_version, recalc=False):
     drn_data = drn_data.loc[~((drn_data.i == 63) & (drn_data.j == 277))]
 
     drn_data.loc[:, 'target_group'] = drn_data.loc[:,'group']
-    group_names_to_keys = {'ash_carpet': 'd_ash_car',
+    group_names_to_keys = {'ash_carpet': 'd_ash_c',
                            'ashley_estuary': 'd_ash_est',
                            'ashley_swaz': 'd_ash_s',
                            'cam_swaz': 'd_cam_s',
@@ -333,6 +333,19 @@ def _get_drn_spd(reach_v, wel_version, recalc=False):
     drn_data = drn_data.loc[(~drn_data.remove) & (~drn_data.duplicated(['i','j'],keep=False))].reset_index()
     drn_data = drn_data.drop('remove',axis=1)
 
+    p_group_map = {
+        'd_salt_s': 'd_salt_fct',
+        'd_waikuk_s': 'd_kuku_leg',
+        'd_ash_s': 'd_kuku_leg',
+        'd_taran_s': 'd_tar_stok',
+        'd_cam_s': 'd_cam_revl',
+        'd_kaiapo_s': 'd_sil_ilnd',
+        'd_ect': 'd_sil_ilnd',
+        'd_dwaimak': 'd_sil_ilnd',
+        'd_court_s': 'd_cour_nrd',
+    }
+    drn_data.loc[:,'parameter_group'] = drn_data.loc[:,'target_group']
+    drn_data = drn_data.replace({'parameter_group':p_group_map})
     pickle.dump(drn_data, open(pickle_path, 'w'))
     return drn_data
 

@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 from users.MH.Waimak_modeling.models.extended_boundry.m_packages.drn_packages import _get_drn_spd
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt, _get_constant_heads
+from users.MH.Waimak_modeling.models.extended_boundry.m_packages.wel_packages import get_wel_spd
 import geopandas as gpd
 
 
@@ -222,7 +223,7 @@ def get_vertical_gradient_targets():
     vert_targets.loc['M35/11937','GWL_RL'] = vert_targets.loc[['M35/11937','M35/10909'],'GWL_RL'].mean()
     vert_targets = vert_targets.drop(['M35/10909']) # this and above are in the same layer
 
-    all_targets = pd.read_csv(env.sci("Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/head_targets_2008_inc_error.csv"), index_col=1)
+    all_targets = pd.read_csv(env.sci("Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/head_targets_2008_inc_error.csv"), index_col=0)
     idx = vert_targets.index
     vert_targets.loc[idx, 'weight'] = 1/all_targets.loc[idx,'total_error_m']
 
@@ -260,10 +261,19 @@ def get_head_targets(): #todo check all have a total error!
     return outdata
 
 
+def generate_all_data_for_brioch(): #todo wrapper to save all of the above
+
+    # well_ data
+    well_data = get_wel_spd(smt.wel_version,True)
+    well_data = well_data.loc[:,['layer','row','col','flux','type']]
+
+    #todo get drn data
+    raise NotImplementedError
+
 
 if __name__ == '__main__':
     test = get_head_targets()
-    get_vertical_gradient_targets()
+    test2 = get_vertical_gradient_targets()
     zones, zone_data = gen_constant_head_targets()
     drn_array, drn_dict = gen_drn_target_array()
     flow_array, flow_dict = gen_sfr_flow_target_array()
