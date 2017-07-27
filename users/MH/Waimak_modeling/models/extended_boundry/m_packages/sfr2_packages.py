@@ -330,8 +330,8 @@ def _define_reach_length(reach_data, mode='cornering'):
     return wrd
 
 if __name__ == '__main__':
-    seg = pd.DataFrame(_seg_data_v1(True))
-    reach = pd.DataFrame(_reach_data_v1(True))
+    seg = pd.DataFrame(_seg_data_v1(False))
+    reach = pd.DataFrame(_reach_data_v1(False))
     elv = smt.calc_elv_db()
     g=reach.groupby(['iseg'])
     bot = g.aggregate({'strtop':np.min})

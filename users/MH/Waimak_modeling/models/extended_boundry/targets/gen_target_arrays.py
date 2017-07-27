@@ -11,8 +11,9 @@ import pandas as pd
 from users.MH.Waimak_modeling.models.extended_boundry.m_packages.drn_packages import _get_drn_spd
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt, _get_constant_heads
 from users.MH.Waimak_modeling.models.extended_boundry.m_packages.wel_packages import get_wel_spd
+from users.MH.Waimak_modeling.models.extended_boundry.m_packages.drn_packages import _get_drn_spd
 import geopandas as gpd
-
+import os
 
 
 def gen_drn_target_array():
@@ -51,12 +52,13 @@ def gen_sfr_flow_target_array():
 
 def gen_sfr_full_we_flux_target_array():
     shp_path = '{}/m_ex_bd_inputs/shp/full_w_e_flux_targets.shp'.format(smt.sdp)
-    target_array = smt.shape_file_to_model_array(shp_path, 'GRID_CODE', True)
+    target_array = smt.shape_file_to_model_array(shp_path, 'targ_code', True)
     target_array[np.isnan(target_array)] = 0
     num_to_name = {1: 'sfx_w_all',
                    2: 'sfx_e_all'}
 
     return target_array, num_to_name
+
 
 def gen_sfr_flux_target_array():
     shp_path = '{}/m_ex_bd_inputs/shp/org_str_flux_targets.shp'.format(smt.sdp)
@@ -174,7 +176,7 @@ def get_target_group_values():
                         # surface water flux #from pervious shapefiles of targets
                         'sfx_a1_con': 'mid_ash_g',
                         'sfx_a2_gol': 'mid_ash_g',
-                        'sfx_a3_tul':'mid_ash_g',
+                        'sfx_a3_tul': 'mid_ash_g',
                         'sfx_a4_sh1': -0.40,
                         'sfx_c1_swa': -0.43,
                         'sfx_c2_mil': -0.42,
@@ -195,7 +197,7 @@ def get_target_group_values():
                         'sfx_w_all': 11.2,
 
                         # groups
-                        'mid_ash_g':5.20,
+                        'mid_ash_g': 5.20,
                         'sel_off': None,  # 1.2-17 # to much range- just observe
                         'chch_str': -10,  # 7.5 to 12.5
                         'sel_str': -9.8  # no range
@@ -203,79 +205,132 @@ def get_target_group_values():
     for key in target_group_val.keys():
         if isinstance(target_group_val[key], str) or target_group_val[key] is None:
             continue
-        target_group_val[key] *= 86400 #convert numbers to m3/day
+        target_group_val[key] *= 86400  # convert numbers to m3/day
 
     return target_group_val
 
 
 def get_vertical_gradient_targets():
-
-
     # load in vert targets
     vert_targets = pd.read_excel(env.sci(
         "Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/Vertical gradient targets updated_use.xlsx"),
-                                 sheetname='data_for_python', index_col=0)
+        sheetname='data_for_python', index_col=0)
 
     # load in the row, col options from the bulk head targets sheet
-    all_wells = pd.read_csv('{}/all_wells_row_col_layer.csv'.format(smt.sdp),index_col=0)
-    vert_targets = pd.merge(vert_targets, all_wells,how='left',left_index=True,right_index=True)
+    all_wells = pd.read_csv('{}/all_wells_row_col_layer.csv'.format(smt.sdp), index_col=0)
+    vert_targets = pd.merge(vert_targets, all_wells, how='left', left_index=True, right_index=True)
 
-    vert_targets.loc['M35/11937','GWL_RL'] = vert_targets.loc[['M35/11937','M35/10909'],'GWL_RL'].mean()
-    vert_targets = vert_targets.drop(['M35/10909']) # this and above are in the same layer
+    vert_targets.loc['M35/11937', 'GWL_RL'] = vert_targets.loc[['M35/11937', 'M35/10909'], 'GWL_RL'].mean()
+    vert_targets = vert_targets.drop(['M35/10909'])  # this and above are in the same layer
 
-    all_targets = pd.read_csv(env.sci("Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/head_targets_2008_inc_error.csv"), index_col=0)
+    all_targets = pd.read_csv(env.sci(
+        "Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/head_targets_2008_inc_error.csv"),
+                              index_col=0)
     idx = vert_targets.index
-    vert_targets.loc[idx, 'weight'] = 1/all_targets.loc[idx,'total_error_m']
+    vert_targets.loc[idx, 'weight'] = 1 / all_targets.loc[idx, 'total_error_m']
 
-    outdata = vert_targets.loc[:,['NZTM_x','NZTM_y','layer','GWL_RL','weight','row','col']].rename(columns={'NZTM_x':'x','NZTM_y':'y','GWL_RL':'obs','row':'i','col':'j'})
-    #return a dataframe: lat, lon, layer, obs, weight?, i,j
+    outdata = vert_targets.loc[:, ['NZTM_x', 'NZTM_y', 'layer', 'GWL_RL', 'weight', 'row', 'col']].rename(
+        columns={'NZTM_x': 'x', 'NZTM_y': 'y', 'GWL_RL': 'obs', 'row': 'i', 'col': 'j'})
+    # return a dataframe: lat, lon, layer, obs, weight?, i,j
     # pull weight from uncertainty
 
     return outdata
 
-def get_head_targets(): #todo check all have a total error!
-    #lat, lon, layer, obs, weigth? i, j
-    all_targets = pd.read_csv(env.sci("Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/head_targets_2008_inc_error.csv"), index_col=1)
+
+def get_head_targets():  # todo check all have a total error!
+    # lat, lon, layer, obs, weigth? i, j
+    all_targets = pd.read_csv(env.sci(
+        "Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/head_targets_2008_inc_error.csv"),
+                              index_col=1)
     all_targets = all_targets.loc[(all_targets.h2o_elv_mean.notnull()) & (all_targets.row.notnull()) &
                                   (all_targets.col.notnull()) & (all_targets.layer.notnull())]
 
     # pull out targets for each layer
-    min_readings = {0:20,
-                    1:20,
-                    2:2,
-                    3:2,
-                    4:2,
-                    5:2,
-                    6:1,
-                    7:1,
-                    8:1,
-                    9:1}
-    all_targets.loc[:,'weight'] = 1/all_targets.loc[:,'total_error_m']
+    min_readings = {0: 20,
+                    1: 20,
+                    2: 2,
+                    3: 2,
+                    4: 2,
+                    5: 2,
+                    6: 1,
+                    7: 1,
+                    8: 1,
+                    9: 1}
+    all_targets.loc[:, 'weight'] = 1 / all_targets.loc[:, 'total_error_m']
 
     outdata = pd.DataFrame()
-    for layer in range(smt.layers-1): # pull out targets for layers 0-9 layer 10 has no targets
+    for layer in range(smt.layers - 1):  # pull out targets for layers 0-9 layer 10 has no targets
         idx = (all_targets.layer == layer) & (all_targets.readings >= min_readings[layer])
-        outdata = pd.concat((outdata, all_targets.loc[idx,['nztmx','nztmy','layer','h2o_elv_mean',
-                                                                   'weight','row','col','total_error_m']]))
+        outdata = pd.concat((outdata, all_targets.loc[idx, ['nztmx', 'nztmy', 'layer', 'h2o_elv_mean',
+                                                            'weight', 'row', 'col', 'total_error_m']]))
 
     return outdata
 
 
-def generate_all_data_for_brioch(): #todo wrapper to save all of the above
+def get_seg_param_dict():
+    seg_param_dict = {
+        # small single point bits of the ashley
+        8: 12,
+        15: 18,
+        22: 30,
+        24: 30,
+        28: 32,
 
+        # link up small bits of the cust
+        19: 21,
+        37: 27,
+        39: 27,
+        41: 44,
+        43: 44
+        # todo it may not make sense to propogate ks from down stream in cust tributaries segs  26, 25,36,38,40,42
+
+    }
+    return seg_param_dict
+
+def save_dict_to_csv(path, indict, from_lab, to_lab):
+    temp = pd.Series(indict, name=to_lab)
+    temp.index.names = [from_lab]
+    pd.DataFrame(temp).to_csv(path)
+
+
+def generate_all_data_for_brioch(outdir):
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+
+    head_targets = get_head_targets()
+    head_targets.to_csv('{}/head_targets.csv'.format(outdir))
+
+    vert_targets = get_vertical_gradient_targets()
+    vert_targets.to_csv('{}/vertical_gradient_targets.csv'.format(outdir))
+
+    target_group_val = get_target_group_values()
+    save_dict_to_csv('{}/target_values.csv'.format(outdir), target_group_val, 'group_name', 'value')
+
+    constant_head_targets, constant_head_zones = gen_constant_head_targets()
+    for i in range(smt.layers):
+        np.savetxt('{}/constant_head_target_0idlayer_{}.txt'.format(outdir, i), constant_head_targets[i])
+    save_dict_to_csv('{}/constant_heads_dict.csv'.format(outdir), constant_head_zones, 'num_id', 'chb_id')
+
+    futns = [gen_sfr_flux_target_array, gen_sfr_full_we_flux_target_array, gen_sfr_flow_target_array,
+             gen_drn_target_array]
+    names = ['sfr_flux', 'sfr_full_str_flux', 'sfr_flow', 'drn_flux']
+    for f, n in zip(futns, names):
+        temp_array, temp_dict = f()
+        np.savetxt('{}/{}_array.txt'.format(outdir, n), temp_array)
+        save_dict_to_csv('{}/{}_dict.csv'.format(outdir, n), temp_dict, 'num_id', '{}_id'.format(n))
+
+    seg_dict = get_seg_param_dict()
+    save_dict_to_csv('{}/segment_k_param_group.csv'.format(outdir), seg_dict, 'seg', 'use_k_of_seg')
     # well_ data
-    well_data = get_wel_spd(smt.wel_version,True)
-    well_data = well_data.loc[:,['layer','row','col','flux','type']]
+    well_data = get_wel_spd(smt.wel_version, True)
+    well_data = well_data.loc[:, ['layer', 'row', 'col', 'flux', 'type']]
+    well_data.to_csv('{}/well_data.csv'.format(outdir))
 
-    #todo get drn data
-    raise NotImplementedError
+    drn_data = _get_drn_spd(smt.reach_v, smt.wel_version, True)
+    drn_data.to_csv('{}/drain_data.csv'.format(outdir))
+
+    print('done')
 
 
 if __name__ == '__main__':
-    test = get_head_targets()
-    test2 = get_vertical_gradient_targets()
-    zones, zone_data = gen_constant_head_targets()
-    drn_array, drn_dict = gen_drn_target_array()
-    flow_array, flow_dict = gen_sfr_flow_target_array()
-    flux_array, flux_dict = gen_sfr_flux_target_array()
-    print 'done'
+    generate_all_data_for_brioch(r"T:\Temp\temp_gw_files\data_for_brioch_27-07-2017")
