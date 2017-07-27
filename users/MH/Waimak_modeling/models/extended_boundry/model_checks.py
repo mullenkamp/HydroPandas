@@ -117,7 +117,7 @@ def check_well_loc_discharge(base_dir,dpi):
     wells = org_well.loc[org_well.type=='well']
     races = org_well.loc[org_well.type=='race']
     rivers = org_well.loc[org_well.type=='river']
-    boundry_flux = org_well.loc[org_well.type=='boundry_flux']
+    boundry_flux = org_well.loc[org_well.type.str.contains('boundry_flux')]
 
     # waimak = 4, chch_wm = 7, selwyn=8
     zones = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/cwms_zones.shp".format(smt.sdp), 'ZONE_CODE')
@@ -361,7 +361,7 @@ def check_elevations_spatially(base_dir,dpi):
 # todo check starting heads, particularyly constant heads
 
 if __name__ == '__main__':
-    check_no_overlapping_features()
+    #check_no_overlapping_features()
     create_digital_appendix(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\digital_appendix",None)
     #check_layer_overlap() #passed
     #check_elv_db() #passed

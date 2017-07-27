@@ -26,9 +26,9 @@ def create_wel_package(m, wel_version):
                                          unitnumber=709)
 
 
-def get_wel_spd(version):
+def get_wel_spd(version,recalc=False):
     if version == 1:
-        outdata = _get_wel_spd_v1()
+        outdata = _get_wel_spd_v1(recalc)
     else:
         raise ValueError('unexpected version: {}'.format(version))
     return outdata

@@ -181,6 +181,7 @@ def get_water_level_data(min_reading=1):
                                 u'reading_apr', u'reading_may', u'reading_jun', u'reading_jul',
                                 u'reading_aug', u'reading_sep', u'reading_oct', u'reading_nov',
                                 u'reading_dec']]
+        temp = temp.fillna(0)
 
         out_data.loc[:, 'samp_time_var'] = temp.std(axis=1) / temp.mean(axis=1)
         out_data = calc_target_offset(out_data)
@@ -301,9 +302,8 @@ if __name__ == '__main__':
     import os
     path_2008 = env.sci("Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/head_targets_2008_woerror.csv")
     path_all = env.sci("Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/head_targets_all_woerror.csv")
-    recalc=False
-    if not os.path.exists(path_2008) and not recalc:
-
+    recalc=True
+    if recalc:
         outdata1, outdata2 = get_water_level_data()
         outdata1.to_csv(path_2008)
         outdata2.to_csv(path_all)
