@@ -160,6 +160,7 @@ def arc_catch_del(WD, boundary_shp, sites_shp, site_num_col='site', point_dis=10
         arcpy.Clip_management(dem, "1323813.1799 5004764.9257 1688157.0305 5360238.95", dem_loc, bound, "", "ClippingGeometry", "NO_MAINTAIN_EXTENT")
 
         # Fill holes in DEM
+        print('Filling DEM...')
         dem_fill = Fill(dem_loc)
 
         # Subtract stream raster from
@@ -167,7 +168,6 @@ def arc_catch_del(WD, boundary_shp, sites_shp, site_num_col='site', point_dis=10
         dem_diff = Con(IsNull(s_rast), dem_fill, dem_fill - s_rast)
 
         # Fill holes in DEM
-        print('Filling DEM...')
         dem2 = Fill(dem_diff)
         dem2.save(dem_fill_tif)
 
