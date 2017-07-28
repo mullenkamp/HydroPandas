@@ -4,7 +4,7 @@ Functions to delineate catchments using arcpy.
 """
 
 
-def arc_catch_del(WD, boundary_shp, sites_shp, site_num_col='site', point_dis=1000, stream_depth=10, grid_size=8, pour_dis=20, streams='S:/Surface Water/shared\\GIS_base\\vector\\MFE_REC_rivers_no_1st.shp', dem='S:/Surface Water/shared\\GIS_base\\raster\\DEM_8m_2012\\linz_8m_dem', export_dir='results'):
+def arc_catch_del(WD, boundary_shp, sites_shp, site_num_col='site', point_dis=1000, stream_depth=10, grid_size=8, pour_dis=20, streams='S:/Surface Water/shared\\GIS_base\\vector\\MFE_REC_rivers_no_1st.shp', dem='S:/Surface Water/shared\\GIS_base\\raster\\DEM_8m_2012\\linz_8m_dem', export_dir='results', overwrite_rasters=False):
     """
     Arcpy function to delineate catchments based on specific points, a polygon, and the REC rivers layer.
     """
@@ -151,7 +151,7 @@ def arc_catch_del(WD, boundary_shp, sites_shp, site_num_col='site', point_dis=10
     arcpy.FeatureToRaster_conversion(stream_diss, 'rast', stream_rast, grid_size)
 
     ## Create the necessary flow direction and accumulation rasters if they do not already exist
-    if os.path.exists(os.path.join(env.workspace, accu_tif)):
+    if os.path.exists(os.path.join(env.workspace, accu_tif)) & (not overwrite_rasters):
         accu1 = Raster(accu_tif)
         fd1 = Raster(fd_tif)
     else:
