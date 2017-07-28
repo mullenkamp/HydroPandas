@@ -71,7 +71,7 @@ def agg_catch(catch_del_shp, catch_sites_csv, catch_sites_col=['GRIDCODE', 'SITE
             base1 = GeoSeries(concat([base1, t2]))
 
     ## Convert to GeoDataFrame (so that all functions can be applied to it)
-    base2 = GeoDataFrame(base1.index, geometry=base1.geometry.values)
+    base2 = GeoDataFrame(base1.index, geometry=base1.geometry.values, crs=catch.crs)
     base2.columns = ['site', 'geometry']
     return(base2)
 

@@ -7,6 +7,20 @@ Functions to delineate catchments using arcpy.
 def arc_catch_del(WD, boundary_shp, sites_shp, site_num_col='site', point_dis=1000, stream_depth=10, grid_size=8, pour_dis=20, streams='S:/Surface Water/shared\\GIS_base\\vector\\MFE_REC_rivers_no_1st.shp', dem='S:/Surface Water/shared\\GIS_base\\raster\\DEM_8m_2012\\linz_8m_dem', export_dir='results', overwrite_rasters=False):
     """
     Arcpy function to delineate catchments based on specific points, a polygon, and the REC rivers layer.
+
+    Be careful that the folder path isn't too long!!! Do not have spaces in the path name!!! Arc sucks!!!
+
+    WD -- Working directory (str).\n
+    boundary_shp -- The path to the shapefile polygon boundary extent (str).\n
+    sites_shp -- The path to the sites shapefile (str).\n
+    site_num_col -- The column in the sites_shp that contains the site IDs (str).\n
+    point_dis -- The max distance to snap the sites to the nearest stream line (int).\n
+    stream_depth -- The depth that the streams shapefile should be burned into the dem (int).\n
+    grid_size -- The resolution of the dem (int).\n
+    streams -- The path to the streams shapefile (str).\n
+    dem -- The path to the dem (str).\n
+    export_dir -- The subfolder where the results should be saved (str).\n
+    overwrite_rasters -- Should the flow direction and flow accumulation rasters be overwritten? (bool).
     """
 
     # load in the necessary arcpy libraries to import arcpy
@@ -114,6 +128,7 @@ def arc_catch_del(WD, boundary_shp, sites_shp, site_num_col='site', point_dis=10
     dem_loc = 'dem_loc.tif'
     stream_diss = 'MFE_rivers_diss.shp'
     stream_rast = 'stream_rast.tif'
+    dem_diff_tif = 'dem_diff.tif'
     dem_fill_tif = 'dem_fill.tif'
     fd_tif = 'fd1.tif'
     accu_tif = 'accu1.tif'
@@ -161,14 +176,15 @@ def arc_catch_del(WD, boundary_shp, sites_shp, site_num_col='site', point_dis=10
 
         # Fill holes in DEM
         print('Filling DEM...')
-        dem_fill = Fill(dem_loc)
+#        dem_fill = Fill(dem_loc)
 
         # Subtract stream raster from
         s_rast = Raster(stream_rast)
-        dem_diff = Con(IsNull(s_rast), dem_fill, dem_fill - s_rast)
+        dem_diff = Con(IsNull(s_rast), dem_loc, dem_loc - s_rast)
+        dem_diff.save(dem_diff_tif)
 
         # Fill holes in DEM
-        dem2 = Fill(dem_diff)
+        dem2 = Fill(dem_diff_tif)
         dem2.save(dem_fill_tif)
 
         # flow direction

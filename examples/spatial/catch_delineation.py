@@ -19,7 +19,7 @@ qual_codes = [10, 18, 20, 30]
 
 streams_shp = r'S:\Surface Water\shared\GIS_base\vector\streams\WaterQualityClasses_temp.shp'
 
-base_dir = r'S:\Surface Water\shared\projects\cant_catch_delin\GIS\2017-07-28'
+base_dir = r'P:\cant_catch_delin\set1'
 bound_shp = 'orari_catch.shp'
 
 catch_del_shp = r'catch_del.shp'
@@ -61,15 +61,6 @@ catch_del.to_file(join(base_dir, export_catch_shp))
 
 #allo_loc = read_file(allo_loc_shp)[[crc_col, 'geometry']]
 #crc_catch2, catch4 = pts_poly_join(allo_loc, catch_del, 'site', pts_id_col=crc_col)
-
-
-
-
-
-
-
-
-
 
 
 
