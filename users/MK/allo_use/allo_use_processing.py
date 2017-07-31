@@ -21,7 +21,7 @@ max_date_allo = '2016-06-30'
 max_date_use_est = '2015-06-30'
 sql_join_codes = ['swaz_gis', 'catch_gis', 'cwms_gis']
 vcn_grid_shp = r'E:\ecan\shared\GIS_base\vector\niwa\NIWA_rain_grid_Canterbury.shp'
-vcn_data_path = 'E:/ecan/shared/base_data/precip/VCN_data'
+#vcn_data_path = 'E:/ecan/shared/base_data/precip/VCN_data'
 
 ## Export
 base_export_path = 'E:/ecan/shared/base_data/usage/'
@@ -38,7 +38,7 @@ use_ros_export_path = 'E:/ecan/shared/base_data/usage/allo_use_ros_mon.csv'
 ann_use_ros_export_path = 'E:/ecan/shared/base_data/usage/allo_use_ros_ann.csv'
 usage_mon_est_export_path = 'E:/ecan/shared/base_data/usage/allo_est_use_mon.h5'
 export_mon_path = 'E:/ecan/shared/base_data/usage/sd_est_recent_mon_vol.csv'
-export_sd_est_path = 'E:/ecan/shared/base_data/usage/sd_est_all_mon_vol.csv'
+export_sd_est_path = 'E:/ecan/shared/base_data/usage/sd_est_all_mon_vol.h5'
 export_reg_path = 'E:/ecan/shared/base_data/usage/sd_est_reg.csv'
 export_use_daily = 'E:/ecan/shared/base_data/usage/usage_daily.h5'
 #export_use_mon = 'C:/ecan/shared/base_data/usage/usage_mon.csv'
@@ -88,8 +88,8 @@ usage_est = est_use(allo_use, allo_use_ros, allo_gis, export=True, export_path=u
 ### Spatial joins of all relevant spatial data to the vcsn shp
 vcn_grid2 = pts_sql_join(vcn_grid, sql_join_codes).dropna(subset=['cwms'])
 
-### Estimate Stream depletiing usage for earlier years (1972-2012)
-sd_est_all_mon_vol, sd_est_mon_vol, sd_reg = hist_sd_use(usage_est, allo_gis, vcn_grid2, vcn_data_path, export=True, export_mon_path=export_mon_path, export_sd_est_path=export_sd_est_path, export_reg_path=export_reg_path)
+### Estimate Stream depleting usage for earlier years (1972-2012)
+sd_est_all_mon_vol, sd_est_mon_vol, sd_reg = hist_sd_use(usage_est, allo_gis, vcn_grid2, export=True, export_mon_path=export_mon_path, export_sd_est_path=export_sd_est_path, export_reg_path=export_reg_path)
 
 
 ###########################################################

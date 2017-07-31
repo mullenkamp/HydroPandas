@@ -293,7 +293,3 @@ def rd_niwa_vcsn(mtypes, sites, nc_path='Y:/VirtualClimate/vcsn_precip_et_2016-0
 
 
 
-
-
-
-

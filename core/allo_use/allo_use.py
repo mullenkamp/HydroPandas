@@ -693,47 +693,57 @@ def est_use(allo_use, allo_use_ros, allo_gis, date_col='date', usage_col='mon_us
     return(allo_use2)
 
 
-def hist_sd_use(usage_est, allo_gis, vcn_grid2, vcn_data_path, date_col='date', export=True, export_mon_path='sd_mon_vol.csv', export_reg_path='sd_reg.csv', export_sd_est_path='sd_est_all_mon_vol.csv'):
+def hist_sd_use(usage, allo_gis, vcn_grid2, et_col='pe', date_col='date', export=True, export_mon_path='sd_mon_vol.csv', export_reg_path='sd_reg.csv', export_sd_est_path='sd_est_all_mon_vol.csv'):
     """
     Function to create stream depletion for all consents from monthly sums of usage and ET.
     """
-    from pandas import read_csv, to_datetime, datetime, merge, MultiIndex, DataFrame, date_range, IndexSlice, concat
-    from numpy import in1d, array, repeat, nan
-    from os import listdir, path
-    from fnmatch import filter
-    from re import findall
+    from pandas import read_csv, to_datetime, datetime, merge, MultiIndex, DataFrame, date_range, IndexSlice, concat, Grouper, to_numeric
+    from numpy import in1d, repeat, nan
     from core.stats import lin_reg
-    from core.misc import rd_dir
-    from core.ecan_io import rd_vcn
-    from core.ts import w_resample
+    from core.ecan_io.met import rd_niwa_vcsn
+    from core.ts import grp_ts_agg
+    from core.allo_use import allo_filter
+    from core.misc import save_df
 
     ### Name parameters
+    mon_allo_name = 'mon_allo_m3'
+    ann_allo_name = 'ann_allo_m3'
+    mon_restr_allo_name = 'mon_restr_allo_m3'
+    ann_restr_allo_name = 'ann_restr_allo_m3'
     usage_name = 'usage_est'
+    raw_usage_name = 'mon_usage_m3'
     sd_usage_name = 'sd_usage'
+    unique_ids = ['crc', 'take_type', 'allo_block', 'wap']
 
     ### Read in data
-    vcn_sites = vcn_grid2[vcn_grid2.ecan_id.notnull()]
-    vcn_sites_lst = vcn_sites.ecan_id.astype('int32').values
-    vcn_data = rd_vcn(data_dir=vcn_data_path, select=vcn_sites_lst, data_type='ET')
-    vcn_sites2 = vcn_sites[in1d(vcn_sites.ecan_id, vcn_data.columns)].sort_values('ecan_id')
+    vcn_grid2.rename(columns={'niwa_id': 'site'}, inplace=True)
+    vcn_sites = vcn_grid2[vcn_grid2.site.notnull()]
+    vcn_sites_lst = vcn_sites.site.values
+    vcn_data = rd_niwa_vcsn('PET', vcn_sites_lst, include_sites=True).drop(['x', 'y'], axis=1)
+    vcn_data2 = merge(vcn_data, vcn_sites[['site', 'catch_grp']], on='site').drop('site', axis=1)
+
+    usage_est = usage.copy()
+    usage_est.loc[:, date_col] = to_datetime(usage_est[date_col])
+    usage_est.rename(columns={date_col: 'time'}, inplace=True)
+
 
     ### Resample the ET series to monthly sums
-    vcn_data_agg = vcn_data.groupby(vcn_sites2.catch_grp.values, axis=1).mean()
-    et_mon = w_resample(vcn_data_agg, period='month', export=False)
-    et_mon = et_mon.dropna(how='all')
+    et_mon = grp_ts_agg(vcn_data2, 'catch_grp', 'time', 'M', 'mean')
+    et_mon.loc[:, 'catch_grp'] = to_numeric(et_mon.loc[:, 'catch_grp'], errors='coerce')
 
-    ### Filter only the SW sites with SD and surface water sites
-    usage1 = usage_est[(usage_est.sd1_150.notnull()) | (usage_est.take_type == 'Take Surface Water')]
-    allo_gis2 = allo_gis[allo_gis.sd1_150.notnull() | (allo_gis.take_type == 'Take Surface Water')].drop('geometry', axis=1).drop_duplicates(subset=['crc', 'take_type', 'use_type'])
+    ### Filter only the GW sites with SD and surface water sites
+    allo_gis1 = allo_gis[allo_gis.sd1_150.notnull() | (allo_gis.take_type == 'Take Surface Water')].drop_duplicates(subset=unique_ids)
+    allo_gis2 = allo_filter(allo_gis1).reset_index()
+    usage1 = merge(usage_est, allo_gis2[unique_ids], on=unique_ids)
 
-    first_date = et_mon.index[0]
-    last_date = usage1[usage1.usage_est.notnull()].dates.sort_values().values[-1]
-    usage1.loc[:, date_col] = to_datetime(usage1[date_col])
-    usage1 = usage1[(usage1[date_col] <= last_date) & (usage1[date_col] >= first_date)]
+    first_date = et_mon.time[0]
+    time_temp = usage1[usage1.usage_est.notnull()].time
+    last_date = time_temp[time_temp.last_valid_index()]
+    usage1 = usage1[(usage1.time <= last_date) & (usage1.time >= first_date)]
 
     ### Estimate the number of days per each month
-    days1 = to_datetime(usage1.dates.unique()).sort_values()
-    days = days1[in1d(days1, et_mon.index)]
+    days1 = to_datetime(usage1.time.unique()).sort_values()
+    days = days1[in1d(days1, et_mon.time.unique())]
 #    count1 = days.days_in_month
 
     ### Merge allo/use with the spatial info
@@ -745,8 +755,8 @@ def hist_sd_use(usage_est, allo_gis, vcn_grid2, vcn_data_path, date_col='date', 
 #    tot_use1.loc[(tot_use1.take_type == 'Take Surface Water'), 'sd_usage'] = tot_use1.loc[(tot_use1.take_type == 'Take Surface Water'), 'usage_est']
 
     ### Select ET data that coincide with the usage data
-    et_mon_sel = et_mon.loc[:, in1d(et_mon.columns, tot_use1.catch_grp.unique()) & (et_mon.columns != '')]
-    et_mon_sel_rec = et_mon_sel.loc[days, :]
+    et_mon_sel = et_mon[in1d(et_mon.catch_grp, tot_use1.catch_grp.unique()) & (et_mon.catch_grp != nan)]
+    et_mon_sel_rec = et_mon_sel[et_mon_sel.time.isin(days)]
 
     ### Re-group the use types
     tot_use1['use_type_reg'] = tot_use1['use_type']
@@ -756,7 +766,7 @@ def hist_sd_use(usage_est, allo_gis, vcn_grid2, vcn_data_path, date_col='date', 
     tot_use1.loc[tot_use1.use_type == 'hydroelectric', 'use_type_reg'] = 'other'
 
     ### Create blank multiindex dataframe for both the monthly data and the regressions
-    levels0 = et_mon_sel.columns.tolist()
+    levels0 = et_mon_sel.catch_grp.unique()
     levels1 = ['allo_vol.day', 'usage_vol.day', 'usage_allo_ratio', 'tot_usage_vol.day', 'usage_rate_m3.s']
     levels2 = ['irrigation', 'other', 'tot']
     labels0 = repeat(range(len(levels0)), 8).tolist()
@@ -774,14 +784,16 @@ def hist_sd_use(usage_est, allo_gis, vcn_grid2, vcn_data_path, date_col='date', 
 
     ### Loop through all sites/files
     usage_et_est =[]
-    for fi in et_mon_sel.columns.get_level_values(0):
+    grp1 = et_mon_sel_rec.groupby('catch_grp')
+    for fi, catch_grp in grp1:
 
         ### Select necessary data
 #        usage2 = tot_use1[tot_use1.catch_grp == fi]
 #        et_mon_sel2 = et_mon_sel[fi]
-        et_mon_sel_rec2 = et_mon_sel_rec[fi]
-        tot_use2 = tot_use1.loc[tot_use1.catch_grp == fi, ['crc', date_col, 'use_type', 'take_type', 'use_type_reg', 'sd1_150', 'mon_vol', 'up_allo_m3', 'ann_up_allo', usage_name]]
-        tot_use2[date_col] = to_datetime(tot_use2[date_col])
+#        et_mon_sel_rec2 = et_mon_sel_rec[fi]
+        et_mon_sel_rec2 = catch_grp.drop('catch_grp', axis=1).set_index('time')
+        tot_use2 = tot_use1.loc[tot_use1.catch_grp == fi, ['crc', 'wap', 'time', 'use_type', 'allo_block', 'take_type', 'use_type_reg', 'sd1_150', mon_allo_name, mon_restr_allo_name, ann_restr_allo_name, usage_name]]
+#        tot_use2[date_col] = to_datetime(tot_use2[date_col])
 #        usage2[date_col] = to_datetime(usage2[date_col])
 
 #        first_date = et_mon_sel2.index[0]
@@ -789,16 +801,16 @@ def hist_sd_use(usage_est, allo_gis, vcn_grid2, vcn_data_path, date_col='date', 
 #        tot_use2 = tot_use2[(tot_use2[date_col] <= last_date) & (tot_use2[date_col] >= first_date)]
 
         ### Aggregate all WAP usage by month and use type
-        tot_use3 = tot_use2[[date_col, 'use_type_reg', 'ann_up_allo', usage_name]].groupby([date_col, 'use_type_reg']).sum().round(2).reset_index()
-        tot_use3.columns = [date_col, 'use_type_reg', 'allo_vol.day', 'usage_vol.day']
-        tot_use3 = tot_use3.pivot(index=date_col, columns='use_type_reg')
+        tot_use3 = tot_use2[['time', 'use_type_reg', ann_restr_allo_name, usage_name]].groupby(['time', 'use_type_reg']).sum().round().reset_index()
+        tot_use3.columns = ['time', 'use_type_reg', 'allo_vol.day', 'usage_vol.day']
+        tot_use3 = tot_use3.pivot(index='time', columns='use_type_reg')
         tot_use3 = tot_use3[in1d(tot_use3.index, days)]
 
         ### Estimate the number of days per each month
         count1 = tot_use3.index.days_in_month
 
         ### Convert to volumes per day (to remove the differences in the number of days per month)
-        tot_use3 = tot_use3.div(count1, axis=0).round(2)
+        tot_use3 = tot_use3.div(count1.values, axis=0).round(2)
         tot_use3.loc[:, tot_use3.sum() == 0] = nan
 
         ### Calc ratios and rates
@@ -809,9 +821,9 @@ def hist_sd_use(usage_est, allo_gis, vcn_grid2, vcn_data_path, date_col='date', 
 
         ### Lin reg to ratios
         sel1 = concat([nat_mon[fi]['usage_allo_ratio'], et_mon_sel_rec2], axis=1)
-        sel1.columns = ['irrigation', 'other', 'et']
+        sel1.columns = ['irrigation', 'other', et_col]
 
-        reg1 = lin_reg(sel1['et'], sel1[['irrigation', 'other']])[0][reg_cols]
+        reg1 = lin_reg(sel1[et_col], sel1[['irrigation', 'other']])[0][reg_cols]
 
         ## Put in mean values if missing
         if reg1.loc['other', :].isnull()[0]:
@@ -824,24 +836,25 @@ def hist_sd_use(usage_est, allo_gis, vcn_grid2, vcn_data_path, date_col='date', 
 
         ### Estimate the historic usage from ET and allocation
         ## Select and prepare data
-        et_mon_site = et_mon[fi]
+#        et_mon_site = et_mon[fi]
+        et_mon_site = et_mon_sel_rec2.copy()
 
         ## calcs
         sd_ratio = DataFrame(nan, index=et_mon_site.index, columns=['irrigation', 'other'])
         sd_ratio['irrigation'] = et_mon_site * reg1['Slope'].values[0] + reg1['Intercept'].values[0]
         sd_ratio['other'] = et_mon_site * reg1['Slope'].values[1] + reg1['Intercept'].values[1]
         sd_ratio2 = sd_ratio.reset_index()
-        sd_ratio2.columns = [date_col, 'irrigation', 'other']
+        sd_ratio2.columns = ['time', 'irrigation', 'other']
 
         # Irrigation
         irr_use1 = tot_use2[tot_use2.use_type_reg == 'irrigation']
-        irr_use2 = merge(irr_use1, sd_ratio2[[date_col, 'irrigation']], on=date_col, how='left')
-        irr_use2['usage.mon'] = irr_use2['ann_up_allo'] * irr_use2['irrigation']
+        irr_use2 = merge(irr_use1, sd_ratio2[['time', 'irrigation']], on='time', how='left')
+        irr_use2['usage.mon'] = irr_use2[ann_restr_allo_name] * irr_use2['irrigation']
 
         # Other
         oth_use1 = tot_use2[tot_use2.use_type_reg == 'other']
-        oth_use2 = merge(oth_use1, sd_ratio2[[date_col, 'other']], on=date_col, how='left')
-        oth_use2['usage.mon'] = oth_use2['ann_up_allo'] * oth_use2['other']
+        oth_use2 = merge(oth_use1, sd_ratio2[['time', 'other']], on='time', how='left')
+        oth_use2['usage.mon'] = oth_use2[ann_restr_allo_name] * oth_use2['other']
 
         ## Combine
         tot_use4 = concat([irr_use2.drop('irrigation', axis=1), oth_use2.drop('other', axis=1)])
@@ -855,24 +868,28 @@ def hist_sd_use(usage_est, allo_gis, vcn_grid2, vcn_data_path, date_col='date', 
         usage_et_est.append(tot_use5)
 
     ### Make the final object
-    sd_et_est1 = concat(usage_et_est)[['crc', date_col, 'take_type', 'use_type', 'sd1_150', 'mon_vol', 'up_allo_m3', 'ann_up_allo', usage_name]]
+    sd_et_est0 = concat(usage_et_est)[['crc', 'take_type', 'allo_block', 'use_type', 'wap', 'time', 'sd1_150', mon_allo_name, mon_restr_allo_name, ann_restr_allo_name, usage_name]]
+
+    ### Put in actual usage
+    sd_et_est1 = merge(sd_et_est0, usage_est[['crc', 'take_type', 'allo_block', 'wap', 'time', raw_usage_name, ann_allo_name]], on=['crc', 'take_type', 'allo_block', 'wap', 'time'], how='left')
+    usage_index = sd_et_est1[raw_usage_name].notnull()
+    sd_et_est1.loc[usage_index, usage_name] = sd_et_est1.loc[usage_index, raw_usage_name]
 
     ### Calc SD usage
     sd_et_est1[sd_usage_name] = (sd_et_est1['sd1_150'] * 0.01 * sd_et_est1[usage_name]).round(2)
     sd_et_est1.loc[(sd_et_est1.take_type == 'Take Surface Water'), sd_usage_name] = (sd_et_est1.loc[(sd_et_est1.take_type == 'Take Surface Water'), usage_name]).round(2)
 
-
     ## Remove negtive values and others...
-    sd_et_est1[sd_et_est1[sd_usage_name] < 0] = 0
+    sd_et_est1[sd_et_est1[usage_name] < 0] = 0
     sd_et_est1 = sd_et_est1[sd_et_est1.crc != 0]
     sd_et_est1 = sd_et_est1.drop('sd1_150', axis=1)
 
     ### Export data and return
     if export:
-        nat_mon.to_csv(export_mon_path)
-        reg_df.to_csv(export_reg_path)
-        sd_et_est1.to_csv(export_sd_est_path, index=False)
-    return([sd_et_est1, nat_mon, reg_df])
+        save_df(nat_mon, export_mon_path, index=True)
+        save_df(reg_df, export_reg_path, index=True)
+        save_df(sd_et_est1, export_sd_est_path, index=False)
+    return(sd_et_est1, nat_mon, reg_df)
 
 
 def w_use_proc(ht_use_csv=r'S:\Surface Water\shared\base_data\usage\use_daily_all_waps.csv', export=False, export_path='usage_daily.h5'):
@@ -1241,7 +1258,186 @@ def allo_errors(takes, wap, dates, zone, zone_add, takes_names, wap_names, dates
 #    return([allo_ts4, allo_ts3])
 
 
+def hist_sd_use2(usage_est, allo_gis, vcn_grid2, vcn_data_path, date_col='date', export=True, export_mon_path='sd_mon_vol.csv', export_reg_path='sd_reg.csv', export_sd_est_path='sd_est_all_mon_vol.csv'):
+    """
+    Function to create stream depletion for all consents from monthly sums of usage and ET.
+    """
+    from pandas import read_csv, to_datetime, datetime, merge, MultiIndex, DataFrame, date_range, IndexSlice, concat
+    from numpy import in1d, array, repeat, nan
+    from os import listdir, path
+    from fnmatch import filter
+    from re import findall
+    from core.stats import lin_reg
+    from core.misc import rd_dir
+    from core.ecan_io import rd_vcn
+    from core.ts import w_resample
 
+    ### Name parameters
+    usage_name = 'usage_est'
+    sd_usage_name = 'sd_usage'
+
+    ### Read in data
+    vcn_sites = vcn_grid2[vcn_grid2.ecan_id.notnull()]
+    vcn_sites_lst = vcn_sites.ecan_id.astype('int32').values
+    vcn_data = rd_vcn(data_dir=vcn_data_path, select=vcn_sites_lst, data_type='ET')
+    vcn_sites2 = vcn_sites[in1d(vcn_sites.ecan_id, vcn_data.columns)].sort_values('ecan_id')
+
+    ### Resample the ET series to monthly sums
+    vcn_data_agg = vcn_data.groupby(vcn_sites2.catch_grp.values, axis=1).mean()
+    et_mon = w_resample(vcn_data_agg, period='month', export=False)
+    et_mon = et_mon.dropna(how='all')
+
+    ### Filter only the SW sites with SD and surface water sites
+    usage1 = usage_est[(usage_est.sd1_150.notnull()) | (usage_est.take_type == 'Take Surface Water')]
+    allo_gis2 = allo_gis[allo_gis.sd1_150.notnull() | (allo_gis.take_type == 'Take Surface Water')].drop('geometry', axis=1).drop_duplicates(subset=['crc', 'take_type', 'use_type'])
+
+    first_date = et_mon.index[0]
+    last_date = usage1[usage1.usage_est.notnull()].dates.sort_values().values[-1]
+    usage1.loc[:, date_col] = to_datetime(usage1[date_col])
+    usage1 = usage1[(usage1[date_col] <= last_date) & (usage1[date_col] >= first_date)]
+
+    ### Estimate the number of days per each month
+    days1 = to_datetime(usage1.dates.unique()).sort_values()
+    days = days1[in1d(days1, et_mon.index)]
+#    count1 = days.days_in_month
+
+    ### Merge allo/use with the spatial info
+    tot_use1 = merge(usage1, allo_gis2, how='left')
+    tot_use1 = tot_use1[tot_use1.catch_grp.notnull()]
+
+    ### Calc SD usage
+#    tot_use1['sd_usage'] = tot_use1['sd1_150'] * 0.01 * tot_use1['usage_est']
+#    tot_use1.loc[(tot_use1.take_type == 'Take Surface Water'), 'sd_usage'] = tot_use1.loc[(tot_use1.take_type == 'Take Surface Water'), 'usage_est']
+
+    ### Select ET data that coincide with the usage data
+    et_mon_sel = et_mon.loc[:, in1d(et_mon.columns, tot_use1.catch_grp.unique()) & (et_mon.columns != '')]
+    et_mon_sel_rec = et_mon_sel.loc[days, :]
+
+    ### Re-group the use types
+    tot_use1['use_type_reg'] = tot_use1['use_type']
+    tot_use1.loc[tot_use1.use_type == 'stockwater', 'use_type_reg'] = 'irrigation'
+    tot_use1.loc[tot_use1.use_type == 'water_supply', 'use_type_reg'] = 'other'
+    tot_use1.loc[tot_use1.use_type == 'industry', 'use_type_reg'] = 'other'
+    tot_use1.loc[tot_use1.use_type == 'hydroelectric', 'use_type_reg'] = 'other'
+
+    ### Create blank multiindex dataframe for both the monthly data and the regressions
+    levels0 = et_mon_sel.columns.tolist()
+    levels1 = ['allo_vol.day', 'usage_vol.day', 'usage_allo_ratio', 'tot_usage_vol.day', 'usage_rate_m3.s']
+    levels2 = ['irrigation', 'other', 'tot']
+    labels0 = repeat(range(len(levels0)), 8).tolist()
+    labels1 = [0,0,1,1,2,2,3,4] * len(levels0)
+    labels2 = [0,1,0,1,0,1,2,2] * len(levels0)
+    col_index = MultiIndex(levels=[levels0, levels1, levels2], labels=[labels0, labels1, labels2])
+
+    nat_mon = DataFrame(nan, columns=col_index, index=days)
+
+    reg_levels1 = ['irrigation', 'other']
+    reg_cols = ["Slope", "Intercept", "R2", "NRMSE", "p-value"]
+    reg_row_index = MultiIndex.from_product([levels0, reg_levels1])
+
+    reg_df = DataFrame(nan, columns=reg_cols, index=reg_row_index)
+
+    ### Loop through all sites/files
+    usage_et_est =[]
+    for fi in et_mon_sel.columns.get_level_values(0):
+
+        ### Select necessary data
+#        usage2 = tot_use1[tot_use1.catch_grp == fi]
+#        et_mon_sel2 = et_mon_sel[fi]
+        et_mon_sel_rec2 = et_mon_sel_rec[fi]
+        tot_use2 = tot_use1.loc[tot_use1.catch_grp == fi, ['crc', date_col, 'use_type', 'take_type', 'use_type_reg', 'sd1_150', 'mon_vol', 'up_allo_m3', 'ann_up_allo', usage_name]]
+        tot_use2[date_col] = to_datetime(tot_use2[date_col])
+#        usage2[date_col] = to_datetime(usage2[date_col])
+
+#        first_date = et_mon_sel2.index[0]
+#        last_date = tot_use2.dates.sort_values().unique()[-1]
+#        tot_use2 = tot_use2[(tot_use2[date_col] <= last_date) & (tot_use2[date_col] >= first_date)]
+
+        ### Aggregate all WAP usage by month and use type
+        tot_use3 = tot_use2[[date_col, 'use_type_reg', 'ann_up_allo', usage_name]].groupby([date_col, 'use_type_reg']).sum().round(2).reset_index()
+        tot_use3.columns = [date_col, 'use_type_reg', 'allo_vol.day', 'usage_vol.day']
+        tot_use3 = tot_use3.pivot(index=date_col, columns='use_type_reg')
+        tot_use3 = tot_use3[in1d(tot_use3.index, days)]
+
+        ### Estimate the number of days per each month
+        count1 = tot_use3.index.days_in_month
+
+        ### Convert to volumes per day (to remove the differences in the number of days per month)
+        tot_use3 = tot_use3.div(count1, axis=0).round(2)
+        tot_use3.loc[:, tot_use3.sum() == 0] = nan
+
+        ### Calc ratios and rates
+        nat_mon[fi].loc[tot_use3.index, tot_use3.columns] = tot_use3.values
+        nat_mon[fi]['usage_allo_ratio'] = (nat_mon[fi]['usage_vol.day']/nat_mon[fi]['allo_vol.day']).round(5)
+        nat_mon[fi].loc[:, ('tot_usage_vol.day', 'tot')] = nat_mon[fi]['usage_vol.day'].sum(axis=1)
+        nat_mon[fi].loc[:, ('usage_rate_m3.s', 'tot')] = (nat_mon[fi]['tot_usage_vol.day', 'tot'] /24/60/60).round(4)
+
+        ### Lin reg to ratios
+        sel1 = concat([nat_mon[fi]['usage_allo_ratio'], et_mon_sel_rec2], axis=1)
+        sel1.columns = ['irrigation', 'other', 'et']
+
+        reg1 = lin_reg(sel1['et'], sel1[['irrigation', 'other']])[0][reg_cols]
+
+        ## Put in mean values if missing
+        if reg1.loc['other', :].isnull()[0]:
+            reg1.loc['other', ['Slope', 'Intercept']] = [0.000241, 0.023962]
+        if reg1.loc['irrigation', :].isnull()[0]:
+            reg1.loc['irrigation', ['Slope', 'Intercept']] = [0.000452, -0.004869]
+
+        ## Append to main object
+        reg_df.loc[fi] = reg1.values
+
+        ### Estimate the historic usage from ET and allocation
+        ## Select and prepare data
+        et_mon_site = et_mon[fi]
+
+        ## calcs
+        sd_ratio = DataFrame(nan, index=et_mon_site.index, columns=['irrigation', 'other'])
+        sd_ratio['irrigation'] = et_mon_site * reg1['Slope'].values[0] + reg1['Intercept'].values[0]
+        sd_ratio['other'] = et_mon_site * reg1['Slope'].values[1] + reg1['Intercept'].values[1]
+        sd_ratio2 = sd_ratio.reset_index()
+        sd_ratio2.columns = [date_col, 'irrigation', 'other']
+
+        # Irrigation
+        irr_use1 = tot_use2[tot_use2.use_type_reg == 'irrigation']
+        irr_use2 = merge(irr_use1, sd_ratio2[[date_col, 'irrigation']], on=date_col, how='left')
+        irr_use2['usage.mon'] = irr_use2['ann_up_allo'] * irr_use2['irrigation']
+
+        # Other
+        oth_use1 = tot_use2[tot_use2.use_type_reg == 'other']
+        oth_use2 = merge(oth_use1, sd_ratio2[[date_col, 'other']], on=date_col, how='left')
+        oth_use2['usage.mon'] = oth_use2['ann_up_allo'] * oth_use2['other']
+
+        ## Combine
+        tot_use4 = concat([irr_use2.drop('irrigation', axis=1), oth_use2.drop('other', axis=1)])
+
+        ## append the recent better sd data
+#        tot_use4 = merge(tot_use3, usage2[['crc', 'wap', date_col, 'use_type', 'sd_usage_est']], on=['crc', 'wap', date_col, 'use_type'], how='left')
+        tot_use4.loc[tot_use4[usage_name].isnull(), usage_name] = tot_use4.loc[tot_use4[usage_name].isnull(), 'usage.mon'].round(2)
+        tot_use5 = tot_use4.drop(['usage.mon', 'use_type_reg'], axis=1)
+
+        ### Combine into one large object
+        usage_et_est.append(tot_use5)
+
+    ### Make the final object
+    sd_et_est1 = concat(usage_et_est)[['crc', date_col, 'take_type', 'use_type', 'sd1_150', 'mon_vol', 'up_allo_m3', 'ann_up_allo', usage_name]]
+
+    ### Calc SD usage
+    sd_et_est1[sd_usage_name] = (sd_et_est1['sd1_150'] * 0.01 * sd_et_est1[usage_name]).round(2)
+    sd_et_est1.loc[(sd_et_est1.take_type == 'Take Surface Water'), sd_usage_name] = (sd_et_est1.loc[(sd_et_est1.take_type == 'Take Surface Water'), usage_name]).round(2)
+
+
+    ## Remove negtive values and others...
+    sd_et_est1[sd_et_est1[sd_usage_name] < 0] = 0
+    sd_et_est1 = sd_et_est1[sd_et_est1.crc != 0]
+    sd_et_est1 = sd_et_est1.drop('sd1_150', axis=1)
+
+    ### Export data and return
+    if export:
+        nat_mon.to_csv(export_mon_path)
+        reg_df.to_csv(export_reg_path)
+        sd_et_est1.to_csv(export_sd_est_path, index=False)
+    return([sd_et_est1, nat_mon, reg_df])
 
 
 

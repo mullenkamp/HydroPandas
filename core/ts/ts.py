@@ -101,8 +101,8 @@ def grp_ts_agg(df, grp_col, ts_col, freq_code, agg_fun, transform=False):
             df2.loc[:, val_col] = df1a
         else:
             df2 = fun1(df_grp)
-        df3 = df2.reset_index()
-        return(df3)
+        df2 = df2.reset_index()
+        return(df2)
     else:
         print('Make one column a timeseries!')
 
