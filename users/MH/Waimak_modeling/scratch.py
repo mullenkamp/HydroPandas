@@ -8,17 +8,15 @@ import os
 from core.ecan_io import rd_sql, sql_db
 from core import env
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
+from users.MH.Waimak_modeling.models.extended_boundry.m_packages.wel_packages import get_wel_spd
 from pykrige.ok import OrdinaryKriging as okrig
 import geopandas as gpd
+from core.classes.hydro import hydro
 
 
+well_data = get_wel_spd(1)
+well_data = well_data.loc[(well_data.type=='well') & (well_data.zone == 's_wai')]
 
-old = gpd.read_file(r"C:\Users\MattH\Downloads\old_head_targets.shp")
-
-new = pd.read_csv(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\targets\head_targets\head_targets_2008_inc_error.csv", index_col=0)
-
-new = new.dropna(subset=['h2o_elv_mean'])
-
-print set(old.Well_No) - set(new.index)
+usage_data = hydro().get_data('usage',sites=list(well_data.index))
 
 print 'done'

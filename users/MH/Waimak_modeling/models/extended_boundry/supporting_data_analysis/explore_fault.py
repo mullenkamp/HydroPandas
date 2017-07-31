@@ -49,3 +49,4 @@ def get_fault_zone():
 
 if __name__ == '__main__':
     test = get_fault_zone()
+    print('done')

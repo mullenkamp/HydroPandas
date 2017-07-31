@@ -11,6 +11,7 @@ import os
 from warnings import warn
 import pickle
 import flopy
+from copy import deepcopy
 
 #todo set up exceptions is required varibles are needed
 
@@ -67,6 +68,25 @@ class ModelTools(object):
             return np.zeros(self.layers,self.rows,self.cols)
         else:
             return np.zeros(self.layers,self.rows,self.cols)
+
+    def add_mxmy_to_df(self, df): #todo make faster
+        df = deepcopy(df)
+        if 'mx' in df.keys() or 'my' in df.keys():
+            warn('mx or my present in dataframe, this will be overwritten')
+
+        try:
+            for i in df.index:
+                row, col = df.loc[i,['row','col']]
+                x,y = self.convert_matrix_to_coords(row,col)
+                df.loc[i,'mx'] = x
+                df.loc[i,'my'] = y
+        except KeyError:
+            for i in df.index:
+                row, col = df.loc[i,['i','j']]
+                x,y = self.convert_matrix_to_coords(row,col)
+                df.loc[i,'mx'] = x
+                df.loc[i,'my'] = y
+        return df
 
     def model_where(self,condition):
         """

@@ -109,7 +109,7 @@ def get_target_group_values():
                         'chb_sely': 'sel_off',
 
                         # drains
-                        'd_ash_car': None,
+                        'd_ash_c': None,
                         'd_ash_est': -1.2,  # 0.2 to 2
                         'd_ash_s': None,
                         'd_bul_avon': 'chch_str',
