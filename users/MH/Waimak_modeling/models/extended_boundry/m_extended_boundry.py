@@ -121,3 +121,4 @@ if __name__ == '__main__':
     m.write_name_file()
     m.write_input()
     m.check()
+    m.run_model()

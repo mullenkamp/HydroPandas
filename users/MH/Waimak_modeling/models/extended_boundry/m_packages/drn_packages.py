@@ -351,7 +351,7 @@ def _get_drn_spd(reach_v, wel_version, recalc=False):
 
 
 if __name__ == '__main__':
-    test = _get_drn_spd(1, 1,True)
+    test = _get_drn_spd(1, 1,False)
     test2 = test.loc[np.in1d(test.group, [
         'ashley_swaz',
         'cam_swaz',
@@ -369,6 +369,16 @@ if __name__ == '__main__':
         'waikuku_swaz',
         'waimak_drn'
     ])]
+
+    carpet_names = [
+        'ash_carpet',
+        'chch_carpet',
+        'cust_carpet',
+        'down_lincoln',
+        'down_selwyn',
+        'up_lincoln',
+        'up_selwyn',
+    ]
     for i in test2.index:
         row, col = test.loc[i, ['i', 'j']].astype(int)
         x, y = smt.convert_matrix_to_coords(row, col)

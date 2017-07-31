@@ -142,7 +142,8 @@ def _get_wel_spd_v1(recalc=False):
     lrf.loc[:,'flux'] = 86400/len(temp)
     lrf.loc[:,'type'] = 'lr_boundry_flux'
 
-    all_wells = pd.concat((all_wells,lrf))
+    swai_races = get_s_wai_races()
+    all_wells = pd.concat((all_wells,swai_races,lrf))
 
     pickle.dump(all_wells, open(pickle_path, 'w'))
     return all_wells
@@ -306,6 +307,37 @@ def _get_s_wai_rivers():
     outdata['type'] = 'river'
     outdata['consent'] = None
 
+    return outdata
+
+def get_s_wai_races():
+    no_flow = smt.get_no_flow(0)
+    race_array = smt.shape_file_to_model_array('{}/m_ex_bd_inputs/shp/s_wai_races.shp'.format(smt.sdp),'race_code',True)
+    race_array[np.isclose(no_flow,0)] = np.nan
+    nums = [1,2,3]
+    names = ['ells_race','mal_race','papa_race']
+    # for now the losses below are calculated as 80% loss over the races, and the influx volume is assumed to be the
+    # baseflow from Selwyn District Council Water Race Management Plan 30 July 2013 table 2.1 the losses in the
+    # ellesmere scheme is scaled by 38/156 because only a small portion of the scheme is in the model domain.
+    min_flow = [1.539, 1.375, 1.231] #excludes irrigation
+    max_flow = [1.732, 2.210, 1.331]
+    losses = [(i+j)/2 for i,j in zip(min_flow,max_flow)]
+    losses[0] *= 38/156
+    proportion_lost = 0.89
+    proportion_season = 0.75
+    losses = [e*86400*proportion_lost*proportion_season for e in losses]
+    outdata = pd.DataFrame()
+    for num,name,loss in zip(nums,names,losses):
+        idx = smt.model_where(np.isclose(race_array,num))
+        keys = ['{}race{:04d}'.format(num,e) for e in range(len(idx))]
+        outdata[keys,'row'] = np.array(idx)[:,0]
+        outdata[keys,'col'] = np.array(idx)[:,1]
+        outdata[keys,'flux'] = loss/len(keys)
+
+    outdata['layer'] = 0
+    outdata['zone'] = 's_wai'
+    outdata['type'] = 'race'
+    outdata['consent'] = None
+    outdata.index.names = ['well']
     return outdata
 
 
