@@ -17,7 +17,7 @@ from core.ts.gw.lsrm import poly_import, input_processing, lsrm
 irr_type_dict = {'server': 'SQL2012PROD05', 'database': 'GIS', 'table': 'AQUALINC_NZTM_IRRIGATED_AREA_20160629', 'column': 'type'}
 paw_dict = {'server': 'SQL2012PROD05', 'database': 'GIS', 'table': 'LAND_NZTM_NEWZEALANDFUNDAMENTALSOILS', 'column': 'PAW_MID'}
 
-bound_shp = r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\m_ex_bd_inputs\shp\model_grid_bound.shp" #todo
+bound_shp = env.sci(r"Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\m_ex_bd_inputs\shp\model_grid_bound.shp") #todo
 
 ### input data processing
 rain_name = 'rain'
@@ -42,9 +42,9 @@ irr_trig_dict = {'Drip/micro': 0.7, 'Unknown': 0.5, 'Gun': 0.5, 'Pivot': 0.5, 'K
 A = 6
 
 ### Output parameters
-out_dir = r"C:\Users\MattH\Downloads\david_scott_model"
-output_csv = '{}\output_model_domain.csv'.format(out_dir) #todo
-output_shp = r'E:\ecan\shared\projects\lsrm\output_model_domain.shp' #todo
+out_dir = r"D:\mh_waimak_models"
+output_csv = '{}/output_model_domain.csv'.format(out_dir) #todo
+output_shp = '{}/output_model_domain.shp'.format(out_dir) #todo
 
 ###########################################
 ### Extract data
