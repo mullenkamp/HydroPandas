@@ -55,7 +55,8 @@ def gen_sfr_full_we_flux_target_array():
     target_array = smt.shape_file_to_model_array(shp_path, 'targ_code', True)
     target_array[np.isnan(target_array)] = 0
     num_to_name = {1: 'sfx_w_all',
-                   2: 'sfx_e_all'}
+                   2: 'sfx_e_all',
+                   3: 'sfx_cd_all'}
 
     return target_array, num_to_name
 
@@ -178,8 +179,8 @@ def get_target_group_values():
                         'sfx_a2_gol': 'mid_ash_g',
                         'sfx_a3_tul': 'mid_ash_g',
                         'sfx_a4_sh1': -0.40,
-                        'sfx_c1_swa': -0.43,
-                        'sfx_c2_mil': -0.42,
+                        'sfx_c1_swa': None, # previously but doesn't add up -0.43,
+                        'sfx_c2_mil': None, # previously but doesn't add up -0.42,
                         'sfx_e1_stf': 1.6,
                         'sfx_w1_cou': 2.8,
                         'sfx_w2_tom': 1.1,
@@ -195,6 +196,7 @@ def get_target_group_values():
                         'sfx_7drn': -0.21,
                         'sfx_e_all': 1.99,
                         'sfx_w_all': 11.2,
+                        'sfx_cd_all': -0.91,
 
                         # groups
                         'mid_ash_g': 5.20,
@@ -333,4 +335,5 @@ def generate_all_data_for_brioch(outdir):
 
 
 if __name__ == '__main__':
+    test = get_head_targets()
     generate_all_data_for_brioch(r"T:\Temp\temp_gw_files\data_for_brioch_27-07-2017")

@@ -184,8 +184,12 @@ def _get_constant_heads():
     for i in range(1,_mt.layers):
         outdata[i][np.isfinite(sea)] = -999
 
-    outdata[1:,np.isfinite(temp_c_heads_down)] = mid[1:,np.isfinite(temp_c_heads_down)] * -0.025
-    #todo check if this causes heaps of inflow in the deep layers
+    constant_heads_down = False # At present decided agains propagating constant head cells all the way down as
+    # the pegusus bay is only 20ish m deep at the boundary point ergo the layers deeper than 1 are likely actually fresh
+    # water, which makes setting a constant head to the bottom quite difficult
+    if constant_heads_down:
+        outdata[1:,np.isfinite(temp_c_heads_down)] = mid[1:,np.isfinite(temp_c_heads_down)] * -0.025
+
 
 
     tops = _elvdb_calc()[0:_mt.layers]
@@ -217,5 +221,5 @@ if model_version == 'a':
 
 if __name__ == '__main__':
     start = time.time()
-    _get_constant_heads()
+    temp = _get_constant_heads()
     print('took {} seconds'.format((time.time()-start)))

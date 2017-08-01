@@ -41,9 +41,6 @@ def _get_wel_spd_v1(recalc=False):
         return well_data
 
     races = get_race_data()
-    # scale races so that they are right (see memo)
-    races.loc[races.type == 'boundry_flux', 'flux'] *= 0.6 * 86400 / races.loc[
-        races.type == 'boundry_flux', 'flux'].sum()
 
     elv_db = smt.calc_elv_db()
     for site in races.index:
