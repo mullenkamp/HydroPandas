@@ -270,9 +270,9 @@ def define_error(outdata): #todo some of these are retuning nan figure out why!!
             well, 'h2o_dpth_mean'])
         # seasonal bias correction
         sea = outdata.loc[
-            well, 'scorrection_error'] = outdata.loc[well, 'samp_time_var'] /3.3166 * 6.05
+            well, 'scorrection_error'] = outdata.loc[well, 'samp_time_var'] /3.3166 * 4.18 #todo does this make sense
         # the above is based on the coefficient of variation(CV) of the monthly data/the cv if all sample are in 1 month
-        #  * the standard deviation of the water range (sept-mar) of all samples with as CV of < 0.000001
+        #  * the mean plus one standard deviation of the water range (sept-mar) of all samples with as CV of less than 1
         # given time I would group these spatially, but I'm not that concerned. it will slightly over represent the
         # uncertainty of high seasonal CV in the coastal zone, and under-represent those with high seasonal CV in the
         # inland zone.  I plan to mostly uses only those with a seasonal CV of less than 0.1 for targets and gap fill
