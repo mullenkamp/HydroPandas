@@ -22,7 +22,7 @@ bound_shp = r'E:\ecan\shared\projects\lsrm\gis\waipara.shp'
 rain_name = 'rain'
 pet_name = 'pe'
 
-time_agg = 'W'
+time_agg = 'W' # Use 'D' for day, 'W' for week, or 'M' for month
 agg_ts_fun = 'sum'
 buffer_dis = 10000
 grid_res = 1000
@@ -34,8 +34,8 @@ min_irr_area_ratio = 0.01
 
 irr_mons = [10, 11, 12, 1, 2, 3, 4]
 
-irr_eff_dict = {'Drip/micro': 1, 'Unknown': 0.8, 'Gun': 0.8, 'Pivot': 0.8, 'K-line/Long lateral': 0.8, 'Rotorainer': 0.8, 'Solid set': 0.8}
-irr_trig_dict = {'Drip/micro': 0.7, 'Unknown': 0.5, 'Gun': 0.5, 'Pivot': 0.5, 'K-line/Long lateral': 0.5, 'Rotorainer': 0.5, 'Solid set': 0.5}
+irr_eff_dict = {'Drip/micro': 1, 'Unknown': 0.8, 'Gun': 0.8, 'Pivot': 0.8, 'K-line/Long lateral': 0.8, 'Rotorainer': 0.8, 'Solid set': 0.8, 'Borderdyke': 0.5, 'Linear boom': 0.8, 'Unknown': 0.8, 'Lateral': 0.8, 'Wild flooding': 0.5, 'Side Roll': 0.8}
+irr_trig_dict = {'Drip/micro': 0.7, 'Unknown': 0.5, 'Gun': 0.5, 'Pivot': 0.5, 'K-line/Long lateral': 0.5, 'Rotorainer': 0.5, 'Solid set': 0.5, 'Borderdyke': 0.5, 'Linear boom': 0.5, 'Unknown': 0.5, 'Lateral': 0.5, 'Wild flooding': 0.5, 'Side Roll': 0.5}
 
 ### Model parameters
 A = 6

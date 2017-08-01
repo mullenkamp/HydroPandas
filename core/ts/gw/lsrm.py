@@ -61,8 +61,8 @@ def input_processing(precip_et, crs, irr1, paw1, bound_shp, rain_name, pet_name,
     from core.ts.met.interp import poly_interp_agg
     from pandas import merge, concat
     from geopandas import read_file, overlay
-    from core.spatial.vector import xy_to_gpd, points_grid_to_poly
-    from numpy import tile, nan, full, arange, seterr
+    from core.spatial.vector import xy_to_gpd, points_grid_to_poly, spatial_overlays
+    from numpy import tile, nan, seterr
     seterr(invalid='ignore')
 
     ## Load and resample precip and et
@@ -91,30 +91,40 @@ def input_processing(precip_et, crs, irr1, paw1, bound_shp, rain_name, pet_name,
     ## process polygon data
     # Select polgons within boundary
 
-    irr2 = irr1[irr1.intersects(sites_poly.unary_union)]
+    sites_poly_union = sites_poly.unary_union
+    irr2 = irr1[irr1.intersects(sites_poly_union)]
     irr3 = irr2[irr2.irr_type.notnull()]
-    paw2 = paw1[paw1.intersects(sites_poly.unary_union)]
+    paw2 = paw1[paw1.intersects(sites_poly_union)]
     paw3 = paw2[paw2.paw.notnull()]
 
     # Overlay intersection
-    sites_poly1 = overlay(sites_poly, bound, how='intersection')[['site', 'geometry']]
+    sites_poly1 = spatial_overlays(sites_poly, bound, how='intersection')[['site', 'geometry']]
     sites_poly2 = sites_poly1.dissolve('site')
     sites_poly2.crs = sites_poly.crs
     sites_poly_area = sites_poly2.area.round(2)
+    sites_poly3 = sites_poly2.reset_index()
 
-    irr4 = overlay(irr3, sites_poly2.reset_index(), how='intersection')
-    paw4 = overlay(paw3, sites_poly2.reset_index(), how='intersection')
+    irr4 = spatial_overlays(irr3, sites_poly3, how='intersection')
+    paw4 = spatial_overlays(paw3, sites_poly3, how='intersection')
 
     irr4['area'] = irr4.geometry.area.round()
-    irr5 = irr4[irr4.area >= 1]
+    irr5 = irr4[irr4.area >= 1].drop(['idx1', 'idx2'], axis=1).copy()
 
     paw4['area'] = paw4.geometry.area.round()
-    paw5 = paw4[(paw4.area >= 1) & (paw4.paw > 0)]
+    paw5 = paw4.loc[(paw4.area >= 1)].drop(['idx1', 'idx2'], axis=1).copy()
+    paw5.loc[paw5.paw <= 0, 'paw'] = 1
+
+    # Add in missing PAW values - Change later to something more useful if needed
+    mis_sites_index = ~sites_poly3.site.isin(paw5.site)
+    sites_poly3['area'] = sites_poly3.area.round()
+
+    paw6 = concat([paw5, sites_poly3[mis_sites_index]])
+    paw6.loc[paw6.paw.isnull(), 'paw'] = 1
 
     # Aggregate by site weighted by area to estimate a volume
-    paw_area1 = paw5[['paw', 'site', 'area']].copy()
+    paw_area1 = paw6[['paw', 'site', 'area']].copy()
     paw_area1.loc[:, 'paw_vol'] = paw_area1['paw'] * paw_area1['area']
-    paw6 = ((paw_area1.groupby('site')['paw_vol'].sum() / paw_area1.groupby('site')['area'].sum()) * sites_poly_area).round()
+    paw7 = ((paw_area1.groupby('site')['paw_vol'].sum() / paw_area1.groupby('site')['area'].sum()) * sites_poly_area).round()
 
     site_irr_area = irr5.groupby('site')['area'].sum()
     irr_eff1 = irr5.replace({'irr_type': irr_eff_dict})
@@ -127,7 +137,7 @@ def input_processing(precip_et, crs, irr1, paw1, bound_shp, rain_name, pet_name,
 
     irr_area_ratio1 = (site_irr_area/sites_poly_area).round(3)
 
-    poly_data1 = concat([paw6, sites_poly_area, irr_eff2, irr_trig2, irr_area_ratio1], axis=1)
+    poly_data1 = concat([paw7, sites_poly_area, irr_eff2, irr_trig2, irr_area_ratio1], axis=1)
     poly_data1.columns = ['paw', 'site_area', 'irr_eff', 'irr_trig', 'irr_area_ratio']
     poly_data1.loc[poly_data1['irr_area_ratio'] < min_irr_area_ratio, ['irr_eff', 'irr_trig', 'irr_area_ratio']] = nan
 

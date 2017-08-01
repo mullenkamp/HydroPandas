@@ -257,6 +257,7 @@ def rd_niwa_vcsn(mtypes, sites, nc_path='Y:/VirtualClimate/vcsn_precip_et_2016-0
     ### Convert to DataFrame
     df1 = ds3.to_dataframe().reset_index()
     df1.rename(columns={'latitude': 'y', 'longitude': 'x'}, inplace=True)
+    df1 = df1.dropna()
 
     ### Convert to different crs if needed
     if out_crs is not None:
