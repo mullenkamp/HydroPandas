@@ -22,7 +22,7 @@ paw_dict = {'server': 'SQL2012PROD05', 'database': 'GIS', 'table': 'LAND_NZTM_NE
 bound_shp = r'\\fileservices02\ManagedShares\Data\VirtualClimate\examples\waipara.shp'
 
 buffer_dis = 10000
-from_date = '1999-01-01'
+from_date = '1972-01-01'
 to_date = '2016-06-06'
 paw_ratio = 0.67
 
