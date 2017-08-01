@@ -199,7 +199,7 @@ def nc_add_gis(nc, x_coord, y_coord):
     ds2.close()
 
 
-def rd_niwa_vcsn(mtypes, sites, nc_path=r'\\fileservices02\ManagedShares\Data\VirtualClimate\vcsn_precip_et_2016-06-06.nc', vcsn_sites_csv=r'\\fileservices02\ManagedShares\Data\VirtualClimate\GIS\niwa_vcsn_wgs84.csv', id_col='Network', x_col='deg_x', y_col='deg_y', buffer_dis=0, include_sites=False, out_crs=None, netcdf_out=None):
+def rd_niwa_vcsn(mtypes, sites, nc_path=r'\\fileservices02\ManagedShares\Data\VirtualClimate\vcsn_precip_et_2016-06-06.nc', vcsn_sites_csv=r'\\fileservices02\ManagedShares\Data\VirtualClimate\GIS\niwa_vcsn_wgs84.csv', id_col='Network', x_col='deg_x', y_col='deg_y', buffer_dis=0, include_sites=False, from_date=None, to_date=None, out_crs=None, netcdf_out=None):
     """
     Function to read in the NIWA vcsn netcdf file and output the data as a dataframe.
 
@@ -213,10 +213,10 @@ def rd_niwa_vcsn(mtypes, sites, nc_path=r'\\fileservices02\ManagedShares\Data\Vi
     include_sites -- Should the site names be added to the output?\n
     out_crs -- The crs epsg number for the output coordinates if different than the default WGS85 (e.g. 2193 for NZTM).
     """
-    from pandas import read_csv, Series, merge
+    from pandas import read_csv, Series, merge, to_datetime
     from core.spatial import xy_to_gpd, sel_sites_poly, convert_crs
     from geopandas import read_file
-    from numpy import ndarray
+    from numpy import ndarray, in1d
     from xarray import open_dataset
 
     mtype_name = {'precip': 'rain', 'PET': 'pe'}
@@ -251,7 +251,16 @@ def rd_niwa_vcsn(mtypes, sites, nc_path=r'\\fileservices02\ManagedShares\Data\Vi
 
     ### Read and extract data from netcdf files
     ds1 = open_dataset(nc_path)
-    ds2 = ds1.sel(longitude=site_loc1.x.unique(), latitude=site_loc1.y.unique())
+    time1 = to_datetime(ds1.time.values)
+    if isinstance(from_date, str):
+        time1 = time1[time1 >= from_date]
+    if isinstance(to_date, str):
+        time1 = time1[time1 <= to_date]
+    lat1 = ds1.latitude.values
+    lon1 = ds1.longitude.values
+    lat2 = lat1[in1d(lat1, site_loc1.y.unique())]
+    lon2 = lon1[in1d(lon1, site_loc1.x.unique())]
+    ds2 = ds1.sel(longitude=lon2, latitude=lat2, time=time1.values)
     ds3 = ds2[mtypes1]
 
     ### Convert to DataFrame
@@ -283,14 +292,5 @@ def rd_niwa_vcsn(mtypes, sites, nc_path=r'\\fileservices02\ManagedShares\Data\Vi
     if isinstance(netcdf_out, str):
         ds3.to_netcdf(netcdf_out)
     return(df4)
-
-
-
-
-
-
-
-
-
 
 
