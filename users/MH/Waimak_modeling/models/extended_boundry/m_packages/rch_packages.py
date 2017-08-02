@@ -36,19 +36,28 @@ def _get_rch():
     old_rch = get_base_rch()
     scaled_old_rch = np.zeros((190,365))*np.nan
     scaled_old_rch[part_zones==4] = old_rch[part_zones==4] # do not scale waimak
-    scaled_old_rch[part_zones==7] = old_rch[part_zones==7] * 175/1000/365/old_rch[part_zones==7].mean()
-    scaled_old_rch[part_zones==8] = old_rch[part_zones==8] * 195/1000/365/old_rch[part_zones==8].mean()
-    scaled_old_rch[part_zones==9] = old_rch[part_zones==9] * 100/1000/365/old_rch[part_zones==9].mean()
+    new_old_top = np.nanpercentile(scaled_old_rch,99)
+    scaled_old_rch[scaled_old_rch> new_old_top] = new_old_top
     # create rch values for south wai
     """use homogeneous rate of 270 mm/year based on Williams 2010 (modified from White 2008)
     estimate of 23.8 m³/s for 276,000 ha Te Waihora catchment area.
-    Use 190 mm/year for Christchurch WM zone."""
+    Use 190 mm/year for Christchurch WM zone. scaled by an implementation of the david scott model"""
+
+    ds_rch = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/dave_scott_rch.shp".format(smt.sdp), 'rch', True)/1000
+    ds_paw = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/dave_scott_rch.shp".format(smt.sdp), 'paw', True)
+    #do a bit of cleaning for the DS model
+    ds_rch[ds_paw <= 600000] = np.nan  # get rid or rch in streams, te wai, and chch urban area
+    new_top = np.nanpercentile(ds_rch,99)
+    ds_rch[ds_rch>new_top] = new_top
+    new_bot = np.nanpercentile(ds_rch,1)
+    ds_rch[ds_rch<new_bot] = new_bot
+    ds_rch[np.isnan(ds_rch)] = new_bot
 
     rch = np.zeros((smt.rows, smt.cols))
-    rch[zones == 7] = 175/1000/365
-    rch[zones == 9] = 100/1000/365
-    rch[zones == 8] = 195/1000/365
-    rch[zones == 4] = 290/1000/365
+    rch[zones == 7] = ds_rch[zones==7] * 175/1000/365/ds_rch[zones==7].mean()
+    rch[zones == 9] = ds_rch[zones==9] * 100/1000/365/ds_rch[zones==9].mean()
+    rch[zones == 8] = ds_rch[zones==8] * 195/1000/365/ds_rch[zones==8].mean()
+    rch[zones == 4] = ds_rch[zones==4] * 290/1000/365/ds_rch[zones==4].mean()
     idx = np.where(np.isfinite(scaled_old_rch))
     rch[idx]= scaled_old_rch[idx]
     # get new rch values for nwai

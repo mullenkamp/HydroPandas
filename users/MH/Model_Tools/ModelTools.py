@@ -291,6 +291,7 @@ class ModelTools(object):
 
     def plt_matrix(self, array, vmin=None, vmax=None, title=None, no_flow_layer=0, ax=None, color_bar=True, **kwargs):
         import matplotlib.pyplot as plt
+        array = deepcopy(array)
         if vmax is None:
             vmax = np.nanmax(array)
         if vmin is None:
