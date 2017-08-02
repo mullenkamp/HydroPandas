@@ -15,7 +15,6 @@ from spatial_fun import grid_interp_iter, catch_net, pts_poly_join, catch_agg, g
 from geopandas import read_file
 from ts_stats_fun import malf7d, flow_stats, est_low_flows, flow_dur
 import matplotlib.pyplot as plt
-%matplotlib inline
 import seaborn as sns
 from numpy import nan, log, in1d, polyfit, poly1d, interp, mean, median
 from scipy import stats, optimize
