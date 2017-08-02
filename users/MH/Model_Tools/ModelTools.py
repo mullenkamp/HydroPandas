@@ -289,7 +289,7 @@ class ModelTools(object):
         band.FlushCache()
         band.SetNoDataValue(-99)
 
-    def plt_matrix(self, array, vmin=None, vmax=None, title=None, no_flow_layer=0, ax=None, **kwargs):
+    def plt_matrix(self, array, vmin=None, vmax=None, title=None, no_flow_layer=0, ax=None, color_bar=True, **kwargs):
         import matplotlib.pyplot as plt
         if vmax is None:
             vmax = np.nanmax(array)
@@ -301,14 +301,23 @@ class ModelTools(object):
             if title is not None:
                 ax.set_title(title)
             ax.set_aspect('equal')
+        else:
+            fig = ax.figure
+            ax.set_aspect('equal')
         model_xs, model_ys = self.get_model_x_y()
         if self._no_flow_calc is not None and no_flow_layer is not None:
             no_flow = self.get_no_flow(no_flow_layer).astype(bool)
             ax.contour(model_xs, model_ys, no_flow)
             array[~no_flow] = np.nan
+        if 'cmap' in kwargs:
+           cmap = kwargs['cmap']
+           kwargs.pop('cmap')
+        else:
+            cmap = 'plasma'
         pcm = ax.pcolormesh(model_xs, model_ys, np.ma.masked_invalid(array),
-                            cmap='plasma', vmin=vmin, vmax=vmax, **kwargs)
-        fig.colorbar(pcm, ax=ax, extend='max')
+                            cmap=cmap, vmin=vmin, vmax=vmax, **kwargs)
+        if color_bar:
+            fig.colorbar(pcm, ax=ax, extend='max')
 
         return fig, ax
 

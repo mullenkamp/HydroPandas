@@ -221,5 +221,5 @@ if model_version == 'a':
 
 if __name__ == '__main__':
     start = time.time()
-    temp = _get_constant_heads()
+    temp = _no_flow_calc()
     print('took {} seconds'.format((time.time()-start)))
