@@ -239,7 +239,7 @@ def get_vertical_gradient_targets():
     return outdata
 
 
-def get_head_targets():  # todo check all have a total error!
+def get_head_targets():
     # lat, lon, layer, obs, weigth? i, j
     all_targets = pd.read_csv(env.sci(
         "Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/head_targets_2008_inc_error.csv"),
@@ -284,7 +284,7 @@ def get_seg_param_dict():
         39: 27,
         41: 44,
         43: 44
-        # todo it may not make sense to propogate ks from down stream in cust tributaries segs  26, 25,36,38,40,42
+
 
     }
     return seg_param_dict

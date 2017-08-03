@@ -29,7 +29,7 @@ def run_ds_model(output_results,output_shp):
                 'column': 'PAW_MID'}
 
     bound_shp = env.sci(
-        r"Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\m_ex_bd_inputs\shp\model_grid_bound.shp")  # todo
+        r"Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\m_ex_bd_inputs\shp\model_grid_bound.shp")
 
     buffer_dis = 10000
     from_date = '2007-08-01'

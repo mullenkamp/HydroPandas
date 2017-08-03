@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+"""
+Author: matth
+Date Created: 3/08/2017 1:41 PM
+"""
+
 from __future__ import division
 import numpy as np
 import pandas as pd
@@ -22,12 +28,12 @@ mike = mike.loc[(mike.time>=pd.datetime(2008,1,1)) & (mike.take_type == 'Take Gr
 mike.loc[:,'d_in_m'] = mike.time.dt.daysinmonth
 data = mike.groupby('wap').aggregate({'usage_est': np.sum, 'crc': ','.join,'d_in_m':np.sum})
 data.loc[:,'flux'] = data.loc[:,'usage_est']/(mike.time.max() - pd.datetime(2007,12,31)).days
-temp = pd.merge(well_data,data,left_index=True,right_index=True)
 
 well_details = rd_sql(**sql_db.wells_db.well_details)
 well_details = well_details.set_index('WELL_NO')
 s_wai_wells = pd.merge(data,pd.DataFrame(well_details.loc[:,'WMCRZone']), left_index=True, right_index=True)
 s_wai_wells = s_wai_wells.loc[np.in1d(s_wai_wells.WMCRZone,[7,8,4])]
+s_wai_wells.loc[:,'flux'] *= -1
 
 temp = smt.get_well_postions(np.array(s_wai_wells.index), one_val_per_well=True, raise_exct=False)
 s_wai_wells['layer'], s_wai_wells['row'], s_wai_wells['col'] = temp

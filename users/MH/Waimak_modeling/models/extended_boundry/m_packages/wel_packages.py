@@ -28,15 +28,17 @@ def create_wel_package(m, wel_version):
 
 def get_wel_spd(version,recalc=False):
     if version == 1:
-        outdata = _get_wel_spd_v1(recalc)
+        outdata = _get_wel_spd_v1(recalc,sub_version=1)
+    elif version == 0:
+        outdata = _get_wel_spd_v1(recalc, sub_version=0)
     else:
         raise ValueError('unexpected version: {}'.format(version))
     return outdata
 
 
-def _get_wel_spd_v1(recalc=False):
+def _get_wel_spd_v1(recalc=False,sub_version=1):
     pickle_path = '{}/well_spd.p'.format(smt.pickle_dir)
-    if os.path.exists(pickle_path) and not recalc:
+    if os.path.exists(pickle_path) and not recalc and sub_version!=0:
         well_data = pickle.load(open(pickle_path))
         return well_data
 
@@ -57,7 +59,7 @@ def _get_wel_spd_v1(recalc=False):
     n_wai_wells['zone'] = 'n_wai'
     n_wai_wells = n_wai_wells.set_index('well')
 
-    s_wai_wells = _get_s_wai_wells()  # there are some s_wai wells which do not have data in wells, but do in consents file fix if bored
+    s_wai_wells = _get_s_wai_wells(sub_version)  # there are some s_wai wells which do not have data in wells, but do in consents file fix if bored
     temp = smt.get_well_postions(np.array(s_wai_wells.index), one_val_per_well=True, raise_exct=False)
     s_wai_wells['layer'], s_wai_wells['row'], s_wai_wells['col'] = temp
     no_flow = smt.get_no_flow()
@@ -127,7 +129,6 @@ def _get_wel_spd_v1(recalc=False):
         all_wells.loc[well,'layer'] += overlap.loc[well,'add_layer']
         all_wells.loc[well,'row'] += overlap.loc[well,'add_row']
         all_wells.loc[well,'col'] += overlap.loc[well,'add_col']
-    #todo add southern injectino races
 
     # add little rakaia flux which will be parameterized via pest
     temp = smt.model_where(np.isfinite(smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/little_rakaia_boundry_wells.shp".format(smt.sdp),
@@ -142,39 +143,61 @@ def _get_wel_spd_v1(recalc=False):
     swai_races = get_s_wai_races()
     all_wells = pd.concat((all_wells,swai_races,lrf))
 
-    pickle.dump(all_wells, open(pickle_path, 'w'))
+    if sub_version != 0:
+        pickle.dump(all_wells, open(pickle_path, 'w'))
     return all_wells
 
 
-def _get_s_wai_wells():
-    allo = pd.read_csv("{}/inputs/wells/allo_gis.csv".format(sdp), index_col='crc')
+def _get_s_wai_wells(subversion=1):
+    if subversion==1:
+        mike = pd.read_hdf(
+            r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\m_ex_bd_inputs\sd_est_all_mon_vol.h5")
+        mike = mike.loc[(mike.time >= pd.datetime(2008, 1, 1)) & (mike.take_type == 'Take Groundwater')]
+        mike.loc[:, 'd_in_m'] = mike.time.dt.daysinmonth
+        data = mike.groupby('wap').aggregate({'usage_est': np.sum, 'crc': ','.join, 'd_in_m': np.sum})
+        data.loc[:, 'flux'] = data.loc[:, 'usage_est'] / (mike.time.max() - pd.datetime(2007, 12, 31)).days
 
-    # option 2
-    end_time = pd.datetime(2016, 12, 31)
-    start_time = pd.datetime(2008, 1, 1)
+        well_details = rd_sql(**sql_db.wells_db.well_details)
+        well_details = well_details.set_index('WELL_NO')
+        out_data = pd.merge(data, pd.DataFrame(well_details.loc[:, 'WMCRZone']), left_index=True, right_index=True)
+        out_data = out_data.loc[np.in1d(out_data.WMCRZone, [7, 8])]
+        out_data = out_data.drop('WMCRZone', axis=1)
+        out_data.loc[:,'flux'] *= -1
 
-    allo2 = allo.loc[np.in1d(allo['cwms'], ['Selwyn - Waihora', 'Christchurch - West Melton']) &
-                     (allo['take_type'] == 'Take Groundwater') &
-                     ((allo.status_details.str.contains('Terminated')) | allo.status_details.str.contains('Issued'))]
 
-    allo2.loc[:, 'to_date'] = pd.to_datetime(allo2.loc[:, 'to_date'], format='%d/%m/%Y', errors='coerce')
-    allo2.loc[:, 'from_date'] = pd.to_datetime(allo2.loc[:, 'from_date'], format='%d/%m/%Y', errors='coerce')
-    allo2.loc[allo2.loc[:, 'to_date'] > end_time, 'to_date'] = end_time
-    allo2.loc[allo2.loc[:, 'to_date'] < start_time, 'to_date'] = None
-    allo2.loc[allo2.loc[:, 'from_date'] < start_time, 'from_date'] = start_time
-    allo2.loc[allo2.loc[:, 'from_date'] > end_time, 'from_date'] = None
-    idx = (pd.notnull(allo2.loc[:, 'to_date']) & pd.notnull(allo2.loc[:, 'from_date']))
-    allo2.loc[idx, 'temp_days'] = (allo2.loc[idx, 'to_date'] - allo2.loc[idx, 'from_date'])
-    allo2.loc[:, 'days'] = [e.days for e in allo2.loc[:, 'temp_days']]
+    elif subversion ==0:
 
-    # the below appear to be an interal consents marker... and should not be included here as a replacement consent
-    # is active at the same time at the consent with negitive number of days
-    allo2.loc[allo2.loc[:, 'days'] < 0, 'days'] = 0
+        allo = pd.read_csv("{}/inputs/wells/allo_gis.csv".format(sdp), index_col='crc')
 
-    allo2.loc[:, 'flux'] = allo2.loc[:, 'cav'] / 365 * allo2.loc[:, 'days'] / (end_time - start_time).days * -1
-    allo2.loc[allo2.use_type=='irrigation','flux']*=0.5
+        # option 2
+        end_time = pd.datetime(2016, 12, 31)
+        start_time = pd.datetime(2008, 1, 1)
 
-    out_data = allo2.reset_index().groupby('wap').aggregate({'flux': np.sum, 'crc': ','.join})
+        allo2 = allo.loc[np.in1d(allo['cwms'], ['Selwyn - Waihora', 'Christchurch - West Melton']) &
+                         (allo['take_type'] == 'Take Groundwater') &
+                         ((allo.status_details.str.contains('Terminated')) | allo.status_details.str.contains('Issued'))]
+
+        allo2.loc[:, 'to_date'] = pd.to_datetime(allo2.loc[:, 'to_date'], format='%d/%m/%Y', errors='coerce')
+        allo2.loc[:, 'from_date'] = pd.to_datetime(allo2.loc[:, 'from_date'], format='%d/%m/%Y', errors='coerce')
+        allo2.loc[allo2.loc[:, 'to_date'] > end_time, 'to_date'] = end_time
+        allo2.loc[allo2.loc[:, 'to_date'] < start_time, 'to_date'] = None
+        allo2.loc[allo2.loc[:, 'from_date'] < start_time, 'from_date'] = start_time
+        allo2.loc[allo2.loc[:, 'from_date'] > end_time, 'from_date'] = None
+        idx = (pd.notnull(allo2.loc[:, 'to_date']) & pd.notnull(allo2.loc[:, 'from_date']))
+        allo2.loc[idx, 'temp_days'] = (allo2.loc[idx, 'to_date'] - allo2.loc[idx, 'from_date'])
+        allo2.loc[:, 'days'] = [e.days for e in allo2.loc[:, 'temp_days']]
+
+        # the below appear to be an interal consents marker... and should not be included here as a replacement consent
+        # is active at the same time at the consent with negitive number of days
+        allo2.loc[allo2.loc[:, 'days'] < 0, 'days'] = 0
+
+        allo2.loc[:, 'flux'] = allo2.loc[:, 'cav'] / 365 * allo2.loc[:, 'days'] / (end_time - start_time).days * -1
+        allo2.loc[allo2.use_type=='irrigation','flux']*=0.5
+
+        out_data = allo2.reset_index().groupby('wap').aggregate({'flux': np.sum, 'crc': ','.join})
+        out_data.loc[:, 'flux'] *= 0.50  # start with a 50% scaling factor from CAV come back if time
+    else:
+        raise ValueError('unexpected sub-version')
     out_data['consent'] = [tuple(e.split(',')) for e in out_data.loc[:, 'crc']]
     out_data = out_data.drop('crc', axis=1)
     out_data = out_data.dropna()
@@ -182,7 +205,6 @@ def _get_s_wai_wells():
     out_data['type'] = 'well'
     out_data['zone'] = 's_wai'
     out_data.index.names = ['well']
-    out_data.loc[:, 'flux'] *= 0.50  # start with a 50% scaling factor from CAV come back if time
 
     return out_data
 
@@ -325,10 +347,12 @@ def get_s_wai_races():
     outdata = pd.DataFrame()
     for num,name,loss in zip(nums,names,losses):
         idx = smt.model_where(np.isclose(race_array,num))
-        keys = ['{}race{:04d}'.format(num,e) for e in range(len(idx))]
-        outdata[keys,'row'] = np.array(idx)[:,0]
-        outdata[keys,'col'] = np.array(idx)[:,1]
-        outdata[keys,'flux'] = loss/len(keys)
+        keys = ['{}{:04d}'.format(name,e) for e in range(len(idx))]
+        row = np.array(idx)[:,0]
+        col= np.array(idx)[:,1]
+        flux = loss/len(keys)
+        temp = pd.DataFrame(index=keys,data={'row':row,'col':col,'flux':flux})
+        outdata = pd.concat((outdata,temp))
 
     outdata['layer'] = 0
     outdata['zone'] = 's_wai'
@@ -339,7 +363,8 @@ def get_s_wai_races():
 
 
 if __name__ == '__main__':
-    well_spd = _get_wel_spd_v1(recalc=False)
+    test = get_s_wai_races()
+    well_spd = _get_wel_spd_v1(recalc=True)
 
     n_wells_new = _check_waimak_wells()
     allo = pd.read_csv("{}/inputs/wells/allo_gis.csv".format(sdp), index_col='crc')

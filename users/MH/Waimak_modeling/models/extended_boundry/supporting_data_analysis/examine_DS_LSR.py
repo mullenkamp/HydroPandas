@@ -30,7 +30,7 @@ for zone, name in zip([4,7,9,8],['waimak','chch_wm','chch_form','selwyn']):
     idx = np.isclose(zones.astype(float),zone)
     print('{} zone: model:{}, david scott:{}'.format(name,model_rch[idx].mean(),ds_rch[idx].mean()))
 
-ds_rch[ds_paw<=400000] = 0 #todo not what I expected
+ds_rch[ds_paw<=400000] = 0
 print('no influtration with PAW')
 for zone, name in zip([4,7,9,8],['waimak','chch_wm','chch_form','selwyn']):
     idx = np.isclose(zones.astype(float),zone)
