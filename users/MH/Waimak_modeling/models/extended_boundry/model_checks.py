@@ -361,10 +361,10 @@ def check_elevations_spatially(base_dir,dpi):
 # todo check starting heads, particularyly constant heads
 
 if __name__ == '__main__':
-    #check_no_overlapping_features()
-    create_digital_appendix(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\digital_appendix",None)
+    #check_no_overlapping_features() #passed
     #check_layer_overlap() #passed
     #check_elv_db() #passed
     #check_noflow_overlap() #passed
     #check_null_spd() #passed
-
+    #create_digital_appendix(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\digital_appendix",None)
+    print('all passed')

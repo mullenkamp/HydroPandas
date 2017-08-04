@@ -17,8 +17,8 @@ import os
 import pickle
 
 
-def create_drn_package(m, wel_version, reach_version):
-    drn_data = _get_drn_spd(wel_version=wel_version, reach_v=reach_version).loc[:,
+def create_drn_package(m, wel_version, reach_version,n_car_dns=True):
+    drn_data = _get_drn_spd(wel_version=wel_version, reach_v=reach_version,n_car_dns=True).loc[:,
                ['k', 'i', 'j', 'elev', 'cond']].to_records(False)
     drn_data = drn_data.astype(flopy.modflow.ModflowDrn.get_default_dtype())
 
@@ -28,8 +28,11 @@ def create_drn_package(m, wel_version, reach_version):
                                    unitnumber=710)
 
 
-def _get_drn_spd(reach_v, wel_version, recalc=False):
-    pickle_path = '{}/drain_spd.p'.format(smt.pickle_dir)
+def _get_drn_spd(reach_v, wel_version, recalc=False, n_car_dns=True):
+    if n_car_dns:
+        pickle_path = '{}/drain_spd_with_n_car.p'.format(smt.pickle_dir)
+    else:
+        pickle_path = '{}/drain_spd_without_n_car.p'.format(smt.pickle_dir)
     if os.path.exists(pickle_path) and not recalc:
         drn_data = pickle.load(open(pickle_path))
         return drn_data
@@ -346,12 +349,20 @@ def _get_drn_spd(reach_v, wel_version, recalc=False):
     }
     drn_data.loc[:,'parameter_group'] = drn_data.loc[:,'target_group']
     drn_data = drn_data.replace({'parameter_group':p_group_map})
+    if not n_car_dns:
+        drn_data = drn_data.loc[~np.in1d(drn_data.group,['cust_carpet', 'ash_carpet'])]
     pickle.dump(drn_data, open(pickle_path, 'w'))
     return drn_data
 
 
 if __name__ == '__main__':
-    test = _get_drn_spd(1, 1,False)
+    import matplotlib.pyplot as plt
+    test = _get_drn_spd(1, 1,False,n_car_dns=True)
+    smt.plt_matrix(smt.df_to_array(test,'k'))
+    plt.show()
+    test2 = _get_drn_spd(1,1,False,n_car_dns=False)
+    smt.plt_matrix(smt.df_to_array(test2,'k'))
+    plt.show()
     test2 = test.loc[np.in1d(test.group, [
         'ashley_swaz',
         'cam_swaz',

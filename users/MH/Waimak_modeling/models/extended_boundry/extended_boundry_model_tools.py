@@ -199,6 +199,7 @@ def _get_constant_heads():
     buffer = np.array([5,5,5,5,5,5,5,5,10,10,10]) # set all within buffer to no flow
     outdata[basement+buffer[:, np.newaxis, np.newaxis] >= tops] = np.nan
 
+    outdata[(outdata<0) & (outdata>-900)] = 0
     return outdata
 
 

@@ -13,7 +13,7 @@ from future.builtins import input
 from users.MH.Waimak_modeling.supporting_data_path import sdp
 from extended_boundry_model_tools import smt
 
-def create_m_extended_boundry(name, dir_path, safe_mode=True, mt3d_link=False, version=smt.model_version, mfv='mfnwt'):
+def create_m_extended_boundry(name, dir_path, safe_mode=True, mt3d_link=False, version=smt.model_version, mfv='mfnwt',n_car_dns=True):
     # sort out paths for the model
     name = 'm_ex_bd_v{}-{}'.format(version, name)
     dir_path = '{}/m_ex_bd_v{}-{}'.format(os.path.dirname(dir_path), version, os.path.basename(dir_path))
@@ -53,7 +53,7 @@ def create_m_extended_boundry(name, dir_path, safe_mode=True, mt3d_link=False, v
     m_packages.create_lay_prop_package(m, mfv,k_version)
     m_packages.create_rch_package(m)
     m_packages.create_wel_package(m, wel_version)
-    m_packages.create_drn_package(m, wel_version=wel_version, reach_version=reach_v)
+    m_packages.create_drn_package(m, wel_version=wel_version, reach_version=reach_v,n_car_dns=n_car_dns)
     m_packages.create_sfr_package(m, sfr_version, seg_v, reach_v)
 
     # add simple packages
@@ -117,8 +117,15 @@ def create_m_extended_boundry(name, dir_path, safe_mode=True, mt3d_link=False, v
 
     return m
 if __name__ == '__main__':
-    m = create_m_extended_boundry('with_LRflux_25-7-17',r"C:\Users\matth\Desktop\fixed_str_well",safe_mode=False,mt3d_link=True)
+    outdir = r"C:\Users\MattH\Desktop\data_to_brioch_04-08-2017"
+    m = create_m_extended_boundry('with_ncarpet_04-18-2017',r"{}\with_n_carpet".format(outdir),safe_mode=False,
+                                  mt3d_link=True, n_car_dns=True)
     m.write_name_file()
     m.write_input()
     m.check()
-    m.run_model()
+
+    m2 = create_m_extended_boundry('without_ncarpet_04-18-2017',r"{}\without_n_carpet".format(outdir),safe_mode=False,
+                                  mt3d_link=True,n_car_dns=False)
+    m2.write_name_file()
+    m2.write_input()
+    m2.check()

@@ -188,7 +188,7 @@ def get_target_group_values():
                         'sfx_w4_mcl': 5.7,
                         'sfx_w5_wat': -0.1,
                         'sfx_w6_sh1': -0.5,
-                        'sfx_3drn': -0.23,
+                        'sfx_3drn': -0.22,
                         'sfx_2adrn': -0.19,
                         'sfx_4drn': -0.18,
                         'sfx_5drn': -0.05,
@@ -196,7 +196,7 @@ def get_target_group_values():
                         'sfx_7drn': -0.21,
                         'sfx_e_all': 1.99,
                         'sfx_w_all': 11.2,
-                        'sfx_cd_all': -0.91,
+                        'sfx_cd_all': -0.91, #todo this suggests no gains in the cust main stem
 
                         # groups
                         'mid_ash_g': 5.20,
@@ -243,7 +243,7 @@ def get_head_targets():
     # lat, lon, layer, obs, weigth? i, j
     all_targets = pd.read_csv(env.sci(
         "Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/head_targets_2008_inc_error.csv"),
-                              index_col=1)
+                              index_col=0)
     all_targets = all_targets.loc[(all_targets.h2o_elv_mean.notnull()) & (all_targets.row.notnull()) &
                                   (all_targets.col.notnull()) & (all_targets.layer.notnull())]
 
@@ -265,7 +265,12 @@ def get_head_targets():
         idx = (all_targets.layer == layer) & (all_targets.readings >= min_readings[layer])
         outdata = pd.concat((outdata, all_targets.loc[idx, ['nztmx', 'nztmy', 'layer', 'h2o_elv_mean',
                                                             'weight', 'row', 'col', 'total_error_m']]))
-
+    no_flow = smt.get_no_flow()
+    for i in outdata.index:
+        layer,row,col = outdata.loc[i,['layer','row','col']].astype(int)
+        if no_flow[layer, row, col] == 0:  # get rid of non-active wells
+            outdata.loc[i, 'layer'] = np.nan
+    outdata = outdata.dropna(subset=['layer','row','col'])
     return outdata
 
 
@@ -336,4 +341,4 @@ def generate_all_data_for_brioch(outdir):
 
 if __name__ == '__main__':
     test = get_head_targets()
-    generate_all_data_for_brioch(r"T:\Temp\temp_gw_files\data_for_brioch_27-07-2017")
+    generate_all_data_for_brioch(r"C:\Users\MattH\Desktop\data_to_brioch_04-08-2017")
