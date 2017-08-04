@@ -188,15 +188,15 @@ def get_target_group_values():
                         'sfx_w4_mcl': 5.7,
                         'sfx_w5_wat': -0.1,
                         'sfx_w6_sh1': -0.5,
-                        'sfx_3drn': -0.22,
-                        'sfx_2adrn': -0.19,
-                        'sfx_4drn': -0.18,
-                        'sfx_5drn': -0.05,
-                        'sfx_6drn': -0.05,
+                        'sfx_3drn': None,
+                        'sfx_2adrn': None,
+                        'sfx_4drn': None,
+                        'sfx_5drn': None,
+                        'sfx_6drn': None,
                         'sfx_7drn': -0.21,
                         'sfx_e_all': 1.99,
                         'sfx_w_all': 11.2,
-                        'sfx_cd_all': -0.91, #todo this suggests no gains in the cust main stem
+                        'sfx_cd_all': None,
 
                         # groups
                         'mid_ash_g': 5.20,
@@ -340,5 +340,4 @@ def generate_all_data_for_brioch(outdir):
 
 
 if __name__ == '__main__':
-    test = get_head_targets()
-    generate_all_data_for_brioch(r"C:\Users\MattH\Desktop\data_to_brioch_04-08-2017")
+    generate_all_data_for_brioch(r"C:\Users\MattH\Desktop\data_to_brioch_04-08-2017\target_data")
