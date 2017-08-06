@@ -36,7 +36,7 @@ def rd_hilltop_sites(hts):
     return(sites_df)
 
 
-def rd_hilltop_data(hts, sites=None, mtypes=None, start=None, end=None, agg_period=None, agg_n=1, fun='sum'):
+def rd_hilltop_data(hts, sites=None, mtypes=None, start=None, end=None, agg_period=None, agg_n=1, fun=None):
     """
     Function to read data from an hts file and optionally select specific sites and aggregate the data.
 
@@ -55,7 +55,8 @@ def rd_hilltop_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
     from pandas import DataFrame, to_datetime, Series, concat
     from core.misc import time_switch
 
-    agg_dict = {'sum': 4, 'count': 5, 'mean': 1}
+    agg_name_dict = {'sum': 4, 'count': 5, 'mean': 1}
+    agg_unit_dict = {'m3/s': 1, 'm3/hour': 1, 'mm': 1, 'm3': 4}
 
     ### First read all of the sites in the hts file and select the ones to be read
     sites_df = rd_hilltop_sites(hts)
@@ -78,8 +79,13 @@ def rd_hilltop_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
     df_lst = []
     for i in sites_df.index:
         mtype = sites_df.loc[i, 'mtype']
+        unit = sites_df.loc[i, 'unit']
         if mtype == 'Flow':
             mtype = 'Flow [Flow]'
+        if fun is None:
+            agg_val = agg_unit_dict[unit]
+        else:
+            agg_val = agg_name_dict[fun]
         dfile.FromSite(i, mtype, 1)
 
         ## Set up start and end times and aggregation initiation
@@ -96,7 +102,7 @@ def rd_hilltop_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
             end1 = end
         if (agg_period is not None):
             dfile.FromTimeRange(start1, end1)
-            dfile.SetMode(agg_dict[fun], str(agg_n) + ' ' + agg_period)
+            dfile.SetMode(agg_val, str(agg_n) + ' ' + agg_period)
         else:
             dfile.FromTimeRange(start1, end1)
 
@@ -119,7 +125,6 @@ def rd_hilltop_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
 
     dfile.Close()
     return(df2)
-
 
 
 def rd_ht_xml_sites(xml):
@@ -355,6 +360,7 @@ def convert_site_names(names):
 #    names1.loc[names1 == 'L35183/580-M1'] = 'L35/183/580-M1' What to do with this one?
     names1.loc[names1 == 'L370557-M1'] = 'L37/0557-M1'
     names1.loc[names1 == 'L370557-M72'] = 'L37/0557-M72'
+    names1.loc[names1 == 'BENNETT K38/0190-M1'] = 'K38/0190-M1'
     names1.loc[names1.str.contains(' ')] = nan
     names1 = names1.str.split('-', expand=True)[0]
     names1.loc[~names1.str.contains('\d\d\d', na=True)] = nan
@@ -363,8 +369,77 @@ def convert_site_names(names):
     return(names1)
 
 
+def proc_ht_use_data(ht_data):
+    """
+    Function for parse_ht_xml to process the data and aggregate it to a defined resolution.
+    """
+    from numpy import nan, abs
+    from pandas import Series, concat
 
+    n_std = 4
 
+    ### Groupby mtypes and sites
+    grp = ht_data.groupby(level=['mtype', 'site'])
+
+    res1 = []
+    for index, data1 in grp:
+        data = data1.copy()
+        mtype, site = index
+#        units = sites[(sites.site == site) & (sites.mtype == mtype)].unit
+
+        ### Select the process sequence based on the mtype and convert to period volume
+
+        data[data < 0] = nan
+
+        if mtype == 'Water Meter':
+            ## Check to determine whether it is cumulative or period volume
+            count1 = float(data.count())
+            diff1 = data.diff()
+            neg_index = diff1 < 0
+            neg_ratio = sum(neg_index.values)/count1
+            if neg_ratio > 0.1:
+                outliers = abs(data - data.mean()) > (data.std() * n_std)
+                data[outliers] = nan
+                vol = data
+            else:
+                # Replace the negative values with zero and the very large values
+                diff1[diff1 < 0] = data[diff1 < 0]
+                outliers = abs(diff1 - diff1.mean()) > (diff1.std() * n_std)
+                diff1.loc[outliers] = nan
+                vol = diff1
+        elif mtype == 'Abstraction Volume':
+            outliers = abs(data - data.mean()) > (data.std() * n_std)
+            data.loc[outliers] = nan
+            vol = data
+        elif mtype == 'Flow':
+            outliers = abs(data - data.mean()) > (data.std() * n_std)
+            data.loc[outliers] = nan
+
+#            # Determine the diff index
+#            t1 = Series(data.index).diff().dt.seconds.shift(-1)
+#            t1.iloc[-1] = t1.iloc[-2]
+#            t1.index = data.index
+#            # Convert to volume
+#            vol = data.multiply(t1, axis=0) * 0.001
+            vol = (data * 60*60*24).fillna(method='ffill').round(4)
+        elif mtype == 'Average Flow':
+            outliers = abs(data - data.mean()) > (data.std() * n_std)
+            data.loc[outliers] = nan
+            vol = (data * 24).fillna(method='ffill').round(4)
+
+        res1.append(vol)
+
+    ### Convert to dataframe
+    df1 = concat(res1).reset_index()
+
+    ### Drop the mtypes level and uppercase the sites
+    df2 = df1.drop('mtype', axis=1)
+    df2.loc[:, 'site'] = df2.loc[:, 'site'].str.upper()
+
+    ### Remove duplicate WAPs
+    df3 = df2.groupby(['site', 'time']).data.last()
+
+    return(df3)
 
 
 

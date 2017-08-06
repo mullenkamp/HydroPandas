@@ -892,12 +892,12 @@ def hist_sd_use(usage, allo_gis, vcn_grid2, et_col='pe', date_col='date', export
     return(sd_et_est1, nat_mon, reg_df)
 
 
-def w_use_proc(ht_use_csv=r'S:\Surface Water\shared\base_data\usage\use_daily_all_waps.csv', export=False, export_path='usage_daily.h5'):
+def w_use_proc(ht_use_hdf=r'S:\Surface Water\shared\base_data\usage\ht_usage_daily.h5', export=False, export_path='usage_daily_all.h5'):
     """
     Function to process the water use data.
     """
     from core.ecan_io import rd_sql
-    from pandas import to_datetime, read_csv
+    from pandas import to_datetime, read_hdf
 
     #### Import data
     wus = rd_sql(code='wus_day')
@@ -906,7 +906,7 @@ def w_use_proc(ht_use_csv=r'S:\Surface Water\shared\base_data\usage\use_daily_al
     wus.loc[:, 'date'] = to_datetime(wus.loc[:, 'date'])
     wus1 = wus.set_index(['wap', 'date'])
 
-    ht_use = read_csv(ht_use_csv)
+    ht_use = read_hdf(ht_use_hdf).reset_index()
     ht_use.columns = ['wap', 'date', 'usage']
     ht_use.loc[:, 'wap'] = ht_use.loc[:, 'wap'].str.upper().str.replace(',', '')
     ht_use.loc[:, 'date'] = to_datetime(ht_use.loc[:, 'date'])
@@ -916,7 +916,7 @@ def w_use_proc(ht_use_csv=r'S:\Surface Water\shared\base_data\usage\use_daily_al
     use_daily = wus1.combine_first(ht_use1)
 
     #### Aggregate waps together
-    use_daily2 = use_daily.groupby(level=['wap', 'date']).sum()
+    use_daily2 = use_daily.groupby(level=['wap', 'date']).sum().usage
 
     #### Export data
     if export:
