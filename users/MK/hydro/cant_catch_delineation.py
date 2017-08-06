@@ -15,7 +15,7 @@ from os.path import join
 
 sites_r = [69505, 69514, 69508]
 sites_m = [69515, 69520, 169535]
-qual_codes = [10, 18, 20, 30]
+qual_codes = [10, 18, 20, 30, 50]
 
 streams_shp = r'S:\Surface Water\shared\GIS_base\vector\streams\rec_mfe_cant_no_1st.shp'
 

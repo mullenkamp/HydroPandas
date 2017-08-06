@@ -2999,39 +2999,121 @@ to_date = '2017-07-23'
 
 precip1 = rd_hydrotel(mtype=mtype, from_date=from_date, to_date=to_date)
 
+##############################################
+#### Relative paths
+
+import patoolib, fnmatch, os
+
+
+base_dir = r'E:\ecan\git'
+test_dir = r'E:\ecan\git\Ecan.Science.Python.Base\core\ts\met\interp.py'
+
+d1 = os.path.relpath(test_dir, base_dir)
+path1, file1 = os.path.split(d1)
+count1 = len(path1.split(os.path.sep))
+
+# Read in the file
+with open(test_dir, 'r') as file :
+  filedata = file.read()
+
+# Replace the target string
+filedata = filedata.replace('core.', ('.' * count1) + 'core.')
+
+# Write the file out again
+with open(test_dir, 'w') as file:
+  file.write(filedata)
+
+
+
+for root, dirs, files in os.walk(folder):
+    for filename in fnmatch.filter(files, '*.' + ext):
+        print(os.path.join(root, filename))
+
+
+##############################################
+#### Browns rock
+
+from core.classes.hydro import hydro
+
+mtype = 'flow_tel'
+site = '66450'
+
+export1 = r'E:\ecan\local\Projects\requests\browns_rock_export\browns_rock_2017-08-03.csv'
+
+b1 = hydro().get_data(mtype, site)
+b1.to_csv(export1, pivot=True)
+
+##############################################
+#### 2016-2017 usage/allocation ratios
+
+from pandas import read_hdf
+
+allo_use_hdf = 'E:/ecan/shared/base_data/usage/allo_use_ts_mon_results.h5'
+allo_use_2017_export = r'E:\ecan\local\Projects\requests\Ilja\2017-08-04\allo_use_2106-2017.csv'
+
+
+allo_use1 = read_hdf(allo_use_hdf)
+allo_use2 = allo_use1[(allo_use1.date >= '2016-07-01') & (allo_use1.date < '2017-07-01')]
+allo_use3 = allo_use2[allo_use2.usage.notnull()]
+
+use1 = allo_use3.groupby(['crc', 'take_type', 'allo_block', 'wap']).sum()
+use1['usage-allo_ratio'] = (use1.usage/use1.allo).round(2)
+use1.to_csv(allo_use_2017_export)
+
+
+##############################################
+#### REC network
+
+from geopandas import read_file, GeoDataFrame
+import fiona
+from core.ecan_io import rd_sql
+from time import time
+from os.path import join
+from shapely.ops import nearest_points
+from pandas import concat
+from core.spatial.network import find_upstream_rec, extract_rec_catch, agg_rec_catch
+from core.spatial.vector import closest_line_to_pts
+
+catch_shp = r'E:\ecan\shared\GIS_base\vector\catchments\river-environment-classification-watershed-canterbury-2010.shp'
+streams_shp = r'E:\ecan\shared\GIS_base\vector\streams\rec-canterbury-2010.shp'
+
+server = 'SQL2012PROD05'
+db = 'GIS'
+table = 'MFE_NZTM_RECWATERSHEDCANTERBURY'
+cols = ['NZREACH']
+
+base_dir = r'P:\cant_catch_delin\set2'
+sites_shp = 'sites.shp'
+sites_col = 'site'
+catch_out = 'catch1.shp'
+
+streams1 = read_file(streams_shp)
+#streams2 = streams1[streams1['ORDER'] > 1]
+catch1 = read_file(catch_shp)
+
+pts1 = read_file(join(base_dir, sites_shp))
+
+pts_seg = closest_line_to_pts(pts1, streams1, line_site_col='NZREACH', dis=1000)
+nzreach = pts_seg.copy().NZREACH.unique()
+
+reaches = find_upstream_rec(nzreach)
+
+rec_catch = extract_rec_catch(reaches)
+
+rec_shed = agg_rec_catch(rec_catch)
+rec_shed.columns = ['NZREACH', 'geometry']
+rec_shed1 = rec_shed.merge(pts_seg[['site', 'NZREACH']], on='NZREACH')
+
+rec_shed1.to_file(join(base_dir, catch_out))
+
+t1 = rec_shed.loc[[13059458]]
 
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+catch2 = catch1[catch1.NZREACH.isin(sites)].dissolve('NZREACH')[['geometry']]
 
 
 

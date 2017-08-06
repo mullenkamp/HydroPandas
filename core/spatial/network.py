@@ -69,3 +69,93 @@ def str_paths(nx1):
     site_nodes = {i: iter1(p2[i], d2, i) for i in p2}
     site_paths = {i: [j[2] for j in nx1.out_edges(site_nodes[i], data='num')][0:-1] for i in site_nodes}
     return([site_nodes, site_paths])
+
+
+#####################################################
+#### MFE REC streams network and catchments
+
+
+def find_upstream_rec(nzreach):
+    """
+    Function to estimate all of the reaches (and nodes) upstream of specific reaches. Input is a list/array/Series of NZREACH IDs.
+    """
+    from core.ecan_io import rd_sql
+    from pandas import concat
+
+    ### Parameters
+    server = 'SQL2012PROD05'
+    db = 'GIS'
+    table = 'MFE_NZTM_REC'
+    cols = ['NZREACH', 'NZFNODE', 'NZTNODE']
+
+    ### Load data
+    rec = rd_sql(server, db, table, cols)
+
+    ### Run through all nzreaches
+    reaches_lst = []
+    for i in nzreach:
+        reach1 = rec[rec.NZREACH == i]
+        up1 = rec[rec.NZTNODE.isin(reach1.NZFNODE)]
+        while not up1.empty:
+            reach1 = concat([reach1, up1])
+            up1 = rec[rec.NZTNODE.isin(up1.NZFNODE)]
+        reach1.loc[:, 'start'] = i
+        reaches_lst.append(reach1)
+
+    reaches = concat(reaches_lst)
+    reaches.set_index('start', inplace=True)
+    return(reaches)
+
+
+def extract_rec_catch(reaches):
+    """
+    Function to extract the catchment polygons from the rec catchments layer. Appends to reaches layer.
+    """
+    from core.ecan_io import rd_sql
+    from pandas import concat
+
+    ### Parameters
+    server = 'SQL2012PROD05'
+    db = 'GIS'
+    table = 'MFE_NZTM_RECWATERSHEDCANTERBURY'
+    cols = ['NZREACH']
+
+    sites = reaches.NZREACH.unique().astype('int32').tolist()
+
+    ### Extract reaches from SQL
+    catch1 = rd_sql(server, db, table, cols, where_col='NZREACH', where_val=sites, geo_col=True)
+    catch2 = catch1.dissolve('NZREACH')
+
+    ### Combine with original sites
+    catch3 = catch2.reset_index().merge(reaches.reset_index(), on='NZREACH')
+
+    return(catch3)
+
+
+def agg_rec_catch(rec_catch):
+    """
+    Simple function to aggregate rec catchments.
+    """
+    rec_shed = rec_catch[['start', 'geometry']].dissolve('start')
+    rec_shed.index = rec_shed.index.astype('int32')
+    return(rec_shed.reset_index())
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

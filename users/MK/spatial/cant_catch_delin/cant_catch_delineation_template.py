@@ -4,23 +4,27 @@ Script example to delineate catchments based on site locations.
 """
 
 from pandas import read_table, DataFrame, concat, merge, Timedelta, datetime, to_datetime, DateOffset, date_range, Timestamp, read_csv, to_numeric
-from core.spatial import catch_net, pts_poly_join, flow_sites_to_shp, agg_catch, arc_catch_del, arc_spatial_join
+from core.spatial import catch_net, pts_poly_join, flow_sites_to_shp, agg_catch, arc_catch_del, arc_spatial_join, sel_sites_poly
 from geopandas import read_file
 from core.ts.sw import stream_nat
 from core.classes.hydro import hydro
 from os.path import join
+from core.ecan_io import rd_sql
 
 ###################################
 #### Parameters
 
-sites_r = [69505, 69514, 69508]
-sites_m = [69515, 69520, 169535]
-qual_codes = [10, 18, 20, 30]
+qual_codes = [10, 18, 20, 30, 50]
 
 streams_shp = r'S:\Surface Water\shared\GIS_base\vector\streams\rec_mfe_cant_no_1st.shp'
 
 base_dir = r'P:\cant_catch_delin\set1'
 bound_shp = 'orari_catch.shp'
+
+server2 = 'SQL2012PROD03'
+database2 = 'LowFlows'
+sites_table = 'LowFlows.dbo.vLowFlowSite'
+lowflow_sites_cols = ['RefDBaseKey']
 
 catch_del_shp = r'catch_del.shp'
 catch_sites_csv = r'results\catch_sites.csv'
@@ -31,12 +35,29 @@ export_catch_shp = r'results\catch_del_poly.shp'
 #### First define the necessary sites for the delineation
 #### This can come from anywhere as long as they are int flow sites
 
-#### Load in data and create shapefile
+bound = read_file(join(base_dir, bound_shp))
 
-h1 = hydro().get_data('flow', sites_r, qual_codes)
-h2 = h1.get_data('flow_m', sites_m)
+### Load in data and create shapefile
 
-sites_geo = flow_sites_to_shp(h2.sites, export=True, export_path=join(base_dir, export_sites_shp))
+h1 = hydro().get_data('flow', join(base_dir, bound_shp), qual_codes)
+
+flow_sites_geo = flow_sites_to_shp(h1.sites)
+
+### Process min flow sites
+
+min_flow1 = rd_sql(server2, database2, sites_table, lowflow_sites_cols, 'isActive', [1])
+min_flow1.columns = ['site']
+min_flow2 = to_numeric(min_flow1.site, errors='coerce').dropna().astype('int32')
+min_flow3 = min_flow2[~min_flow2.isin(h1.sites)]
+
+min_sites_geo1 = flow_sites_to_shp(min_flow3)
+min_sites_geo = sel_sites_poly(min_sites_geo1, bound)
+
+### Combine recorder sites with gauging sites and export
+
+sites_geo = concat([flow_sites_geo, min_sites_geo])
+sites_geo.to_file(join(base_dir, export_sites_shp))
+
 
 ###############################
 #### The run the arcgis catchment delineation script in arcgis

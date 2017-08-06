@@ -15,7 +15,7 @@ from core.ecan_io import rd_hydrotel
 sites = None
 mtype = 'Rainfall'
 from_date = '2017-07-21'
-to_date = '2017-07-22 23:59'
+to_date = '2017-07-23'
 
 resample = True
 period = 'day'
@@ -23,7 +23,7 @@ n_periods = 3
 fun = 'sum'
 pivot = False
 
-output_csv = r'S:\Surface Water\shared\projects\2017-07-23_flooding\precip\precip_data.csv'
+output_csv = r'S:\Surface Water\shared\projects\2017-07-23_flooding\precip\precip_data_v02.csv'
 
 ########################################
 #### Get data

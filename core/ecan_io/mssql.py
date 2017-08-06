@@ -53,9 +53,10 @@ def rd_sql(server=None, database=None, table=None, col_names=None, where_col=Non
                 raise ValueError('Must provide input for server, database, and table.')
 
         if col_names is not None:
-            if not isinstance(col_names, list):
-                col_names = [i.encode('ascii', 'ignore') for i in col_names]
-            col_stmt = ', '.join(col_names)
+            if isinstance(col_names, (str, int)):
+                col_names1 = '[' + str(col_names) + ']'
+            col_names1 = ['[' + i.encode('ascii', 'ignore') + ']' for i in col_names]
+            col_stmt = ', '.join(col_names1)
         else:
             col_stmt = '*'
 
@@ -125,10 +126,10 @@ def rd_sql(server=None, database=None, table=None, col_names=None, where_col=Non
 
         geo_col_stmt = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME=" + "\'" + table + "\'" + " AND DATA_TYPE='geometry'"
         geo_col = str(read_sql(geo_col_stmt, conn).iloc[0,0])
-        if where_col is None:
-            stmt2 = 'SELECT ' + geo_col + '.STGeometryN(1).ToString()' + ' FROM ' + table
+        if len(where_lst) > 0:
+            stmt2 = "SELECT " + geo_col + ".STGeometryN(1).ToString()" + " FROM " + table + " where " + " and ".join(where_lst)
         else:
-            stmt2 = 'SELECT ' + geo_col + '.STGeometryN(1).ToString()' + ' FROM ' + table + ' WHERE ' + where_col + ' IN (' + str(where_val)[1:-1] + ')'
+            stmt2 = "SELECT " + geo_col + ".STGeometryN(1).ToString()" + " FROM " + table
         df2 = read_sql(stmt2, conn)
         df2.columns = ['geometry']
         geometry = [loads(x) for x in df2.geometry]

@@ -25,7 +25,6 @@ def poly_interp_agg(precip, precip_crs, poly, data_col, time_col, x_col, y_col, 
     nfiles -- If output_path is a geotiff, then 'one' or 'many' geotiffs to be created.\n
     output_path -- Full path string where the output should be stored. The file extension should be one of '.tif' for geotiff, '.nc' for netcdf, or '.csv' for csv.
     """
-
     from core.spatial import sel_sites_poly, grid_interp_ts, xy_to_gpd, save_geotiff
     from geopandas import read_file, GeoDataFrame, GeoSeries
     from numpy import tile, ceil, min

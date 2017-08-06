@@ -318,9 +318,29 @@ def spatial_overlays(df1, df2, how='intersection'):
         df1['new_g'] = df1.apply(lambda x: reduce(lambda x, y: x.difference(y).buffer(0), [x.geometry]+list(df2.iloc[x.histreg].geometry)) , axis=1)
         df1.geometry = df1.new_g
         df1 = df1.loc[df1.geometry.is_empty==False].copy()
-        df1.drop(['bbox', 'histreg', new_g], axis=1, inplace=True)
+        df1.drop(['bbox', 'histreg', 'new_g'], axis=1, inplace=True)
         return(df1)
 
 
+def closest_line_to_pts(pts, lines, line_site_col, dis=None):
+    """
+    Function to determine the line closest to each point. Inputs must be GeoDataframes.
+    """
+    from geopandas import GeoDataFrame
+    from pandas import concat
 
+    if isinstance(dis, int):
+        bound = pts.buffer(dis).unary_union
+        lines1 = lines[lines.intersects(bound)]
+    else:
+        lines1 = lines.copy()
+
+    pts_line_seg = GeoDataFrame()
+    for i in pts.index:
+        near1 = lines1.distance(pts.geometry[i]).idxmin()
+        line_seg1 = lines1.loc[near1, line_site_col]
+        pts_seg = pts.loc[[i]]
+        pts_seg[line_site_col] = line_seg1
+        pts_line_seg = concat([pts_line_seg, pts_seg])
+    return(pts_line_seg)
 

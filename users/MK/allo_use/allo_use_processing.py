@@ -17,7 +17,7 @@ from geopandas import read_file
 ########################################
 #### Parameters
 
-max_date_allo = '2016-06-30'
+max_date_allo = '2017-06-30'
 max_date_use_est = '2015-06-30'
 sql_join_codes = ['swaz_gis', 'catch_gis', 'cwms_gis']
 vcn_grid_shp = r'E:\ecan\shared\GIS_base\vector\niwa\NIWA_rain_grid_Canterbury.shp'
@@ -40,7 +40,7 @@ usage_mon_est_export_path = 'E:/ecan/shared/base_data/usage/allo_est_use_mon.h5'
 export_mon_path = 'E:/ecan/shared/base_data/usage/sd_est_recent_mon_vol.csv'
 export_sd_est_path = 'E:/ecan/shared/base_data/usage/sd_est_all_mon_vol.h5'
 export_reg_path = 'E:/ecan/shared/base_data/usage/sd_est_reg.csv'
-export_use_daily = 'E:/ecan/shared/base_data/usage/usage_daily.h5'
+export_use_daily = 'E:/ecan/shared/base_data/usage/usage_daily_all.h5'
 #export_use_mon = 'C:/ecan/shared/base_data/usage/usage_mon.csv'
 
 
@@ -63,7 +63,7 @@ usage_est = read_hdf(usage_mon_est_export_path)
 #### Run functions
 
 ### allocation processing
-allo = allo_proc(export=True, export_path=allo_export_path)
+allo = allo_proc(export_path=allo_export_path)
 
 ### Determine locations based on a single WAP per consent...and stuff...
 allo_gis = allo_gis_proc(allo, export_shp=allo_loc_export_path, export_csv=allo_gis_csv)
@@ -77,10 +77,10 @@ allo_ts_mon.to_csv(allo_ts_mon_export, index=False)
 
 ### Usage
 usage = w_use_proc(export=True, export_path=export_use_daily)
-allo_use = allo_use_proc(allo_ts_mon, usage, export=True, export_path=allo_use_export)
+allo_use = allo_use_proc(allo_ts_mon, usage.reset_index(), export_path=allo_use_export)
 
 ### ROS
-allo_use_ros, allo_use_ros_ann = ros_proc(allo_use, export=True, export_use_ros_path=use_ros_export_path, export_ann_use_ros_path=ann_use_ros_export_path)
+allo_use_ros, allo_use_ros_ann = ros_proc(allo_use, export_use_ros_path=use_ros_export_path, export_ann_use_ros_path=ann_use_ros_export_path)
 
 ### Estimate usage for missing data from the years 2012 - 2016
 usage_est = est_use(allo_use, allo_use_ros, allo_gis, export=True, export_path=usage_mon_est_export_path, date_end=max_date_use_est)
@@ -204,7 +204,7 @@ a2.to_csv('E:/ecan/shared/base_data/usage/bad_fmDate_toDate.csv', index=False)
 
 
 
-
+crc_wap = rd_sql(code='crc_wap_act_acc')
 
 
 
