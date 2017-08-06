@@ -9,14 +9,6 @@ from glob import glob
 from core.classes.hydro import hydro, all_mtypes
 from matplotlib.colors import from_levels_and_colors
 
-khpaths = glob(r"C:\Users\MattH\Downloads\ppt_forplproc\*_ppk_*.txt")
-cmap, norm = from_levels_and_colors([-1, 0, 1, 2], ['blue', 'black', 'white'])
+h1= hydro().get_data(mtypes=['flow_m'], sites=[1146,1147,1148,1149,343,289],from_date='2008-01-01')
 
-for path in khpaths:
-    data =pd.read_table(path,names=['site','x','y','layer','val'])
-    layer = data.layer.iloc[0]-1
-    no_flow = smt.get_no_flow(layer)
-    fig,ax = smt.plt_matrix(no_flow,title='KV and KH pilot points layer {}'.format(layer),no_flow_layer=None,cmap=cmap,
-                            norm=norm)
-    ax.scatter(data.x,data.y)
-    plt.show(fig)
+print 'done'

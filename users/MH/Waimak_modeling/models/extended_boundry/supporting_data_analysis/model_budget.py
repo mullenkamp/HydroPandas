@@ -35,7 +35,7 @@ if __name__ == '__main__':
     races = smt.df_to_array(well_data.loc[well_data.type=='race'],'flux')
     wells = smt.df_to_array(well_data.loc[well_data.type=='well'],'flux')
     rivers = smt.df_to_array(well_data.loc[well_data.type=='river'],'flux')
-    bflux = smt.df_to_array(well_data.loc[well_data.type=='boundry_flux'],'flux')
+    bflux = smt.df_to_array(well_data.loc[well_data.type.str.contains('boundry_flux')],'flux')
     rch = _get_rch()*200*200
 
     for dat, name in zip([races,wells,rivers, bflux,rch],['races','wells','wrivers', 'bflux','rch']):

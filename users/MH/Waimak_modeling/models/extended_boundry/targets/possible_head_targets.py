@@ -22,9 +22,6 @@ def get_water_level_data(min_reading=1):
     elv_sheet = pd.read_excel(env.sci('Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/xyz.xlsx'),
                                                                                                                              index_Col=0)
     elv_sheet = elv_sheet.set_index('well')
-    elv_sheet.loc[:,'accuracy_use'] = elv_sheet.accuracy_use.str.replace('m','')
-    elv_sheet.loc[:,'accuracy_use'] = elv_sheet.accuracy_use.str.replace('<','')
-    elv_sheet.loc[:,'accuracy_use'] = elv_sheet.accuracy_use.astype(float)
 
     well_details_org = rd_sql(**sql_db.wells_db.well_details)
     well_details = well_details_org[(well_details_org['WMCRZone'] == 4) | (well_details_org['WMCRZone'] == 7) |
@@ -71,8 +68,8 @@ def get_water_level_data(min_reading=1):
             ground_ref_level = 0
         if pd.isnull(ref_level):  # if there is no reference level assume it is at the ground from DEM
             if well in np.array(elv_sheet.index):
-                ref_level = elv_sheet.loc[well,'Elevation_use']
-                out_data.loc[well, 'ref_ac'] = elv_sheet.loc[well, 'accuracy_use']
+                ref_level = elv_sheet.loc[well,'VALUE FOR USE']
+                out_data.loc[well, 'ref_ac'] = elv_sheet.loc[well, 'ACCURACY (m)']
             else:
                 out_data.loc[well, 'ref_ac'] = 10
                 x, y = well_details.loc[well, ['NZTMX', 'NZTMY']]

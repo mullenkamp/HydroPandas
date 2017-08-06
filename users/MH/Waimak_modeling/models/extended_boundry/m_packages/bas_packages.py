@@ -32,3 +32,6 @@ def create_starting_heads():
     if not all(np.isfinite(hds).flatten()):
         raise ValueError('nan values in starting heads')
     return hds
+
+if __name__ == '__main__':
+    create_starting_heads()
