@@ -220,7 +220,7 @@ def _rd_hydrotel(self, sites, input_type='number', mtype='flow_tel', from_date=N
     return(self)
 
 
-def _rd_henry(self, sites, mtype='flow_m', from_date=None, to_date=None, agg_day=True, min_filter=5):
+def _rd_henry(self, sites, mtype='flow_m', from_date=None, to_date=None, agg_day=True, min_filter=4):
     from core.ecan_io.flow import rd_henry
 
     ### Load in gaugings data
