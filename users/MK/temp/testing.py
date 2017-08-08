@@ -3088,7 +3088,6 @@ sites_col = 'site'
 catch_out = 'catch1.shp'
 
 streams1 = read_file(streams_shp)
-#streams2 = streams1[streams1['ORDER'] > 1]
 catch1 = read_file(catch_shp)
 
 pts1 = read_file(join(base_dir, sites_shp))

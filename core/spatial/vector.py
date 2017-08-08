@@ -132,7 +132,7 @@ def xy_to_gpd(id_col, x_col, y_col, df=None, crs=2193):
         x1 = select_sites(x_col)
         y1 = select_sites(y_col)
         geometry = [Point(xy) for xy in zip(x1, y1)]
-    if isinstance(id_col, str):
+    if isinstance(id_col, str) | (df is not None):
         id_data = df[id_col]
     elif isinstance(id_col, (list, ndarray, Series, Index)):
         id_data = id_col
@@ -329,18 +329,18 @@ def closest_line_to_pts(pts, lines, line_site_col, dis=None):
     from geopandas import GeoDataFrame
     from pandas import concat
 
-    if isinstance(dis, int):
-        bound = pts.buffer(dis).unary_union
-        lines1 = lines[lines.intersects(bound)]
-    else:
-        lines1 = lines.copy()
-
     pts_line_seg = GeoDataFrame()
     for i in pts.index:
+        pts_seg = pts.loc[[i]]
+        if isinstance(dis, int):
+            bound = pts_seg.buffer(dis).unary_union
+            lines1 = lines[lines.intersects(bound)]
+        else:
+            lines1 = lines.copy()
         near1 = lines1.distance(pts.geometry[i]).idxmin()
         line_seg1 = lines1.loc[near1, line_site_col]
-        pts_seg = pts.loc[[i]]
         pts_seg[line_site_col] = line_seg1
         pts_line_seg = concat([pts_line_seg, pts_seg])
+#        print(i)
     return(pts_line_seg)
 

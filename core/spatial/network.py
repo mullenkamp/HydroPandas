@@ -75,21 +75,23 @@ def str_paths(nx1):
 #### MFE REC streams network and catchments
 
 
-def find_upstream_rec(nzreach):
+def find_upstream_rec(nzreach, rec_shp=r'\\fs02\ManagedShares2\Data\Surface Water\shared\GIS_base\vector\streams\rec-canterbury-2010.shp'):
     """
     Function to estimate all of the reaches (and nodes) upstream of specific reaches. Input is a list/array/Series of NZREACH IDs.
     """
     from core.ecan_io import rd_sql
     from pandas import concat
+    from geopandas import read_file
 
     ### Parameters
-    server = 'SQL2012PROD05'
-    db = 'GIS'
-    table = 'MFE_NZTM_REC'
-    cols = ['NZREACH', 'NZFNODE', 'NZTNODE']
-
-    ### Load data
-    rec = rd_sql(server, db, table, cols)
+#    server = 'SQL2012PROD05'
+#    db = 'GIS'
+#    table = 'MFE_NZTM_REC'
+#    cols = ['NZREACH', 'NZFNODE', 'NZTNODE']
+#
+#    ### Load data
+#    rec = rd_sql(server, db, table, cols)
+    rec = read_file(rec_shp).drop('geometry', axis=1)
 
     ### Run through all nzreaches
     reaches_lst = []
@@ -107,27 +109,32 @@ def find_upstream_rec(nzreach):
     return(reaches)
 
 
-def extract_rec_catch(reaches):
+def extract_rec_catch(reaches, rec_catch_shp=r'\\fs02\ManagedShares2\Data\Surface Water\shared\GIS_base\vector\catchments\river-environment-classification-watershed-canterbury-2010.shp'):
     """
     Function to extract the catchment polygons from the rec catchments layer. Appends to reaches layer.
     """
     from core.ecan_io import rd_sql
     from pandas import concat
+    from geopandas import read_file
 
     ### Parameters
-    server = 'SQL2012PROD05'
-    db = 'GIS'
-    table = 'MFE_NZTM_RECWATERSHEDCANTERBURY'
-    cols = ['NZREACH']
-
+#    server = 'SQL2012PROD05'
+#    db = 'GIS'
+#    table = 'MFE_NZTM_RECWATERSHEDCANTERBURY'
+#    cols = ['NZREACH']
+#
     sites = reaches.NZREACH.unique().astype('int32').tolist()
-
-    ### Extract reaches from SQL
-    catch1 = rd_sql(server, db, table, cols, where_col='NZREACH', where_val=sites, geo_col=True)
-    catch2 = catch1.dissolve('NZREACH')
+#
+#    ### Extract reaches from SQL
+#    catch1 = rd_sql(server, db, table, cols, where_col='NZREACH', where_val=sites, geo_col=True)
+#    catch2 = catch1.dissolve('NZREACH')
+    catch0 = read_file(rec_catch_shp)
+    catch1 = catch0[catch0.NZREACH.isin(sites)]
+    catch2 = catch1.dissolve('NZREACH').reset_index()[['NZREACH', 'geometry']]
 
     ### Combine with original sites
-    catch3 = catch2.reset_index().merge(reaches.reset_index(), on='NZREACH')
+    catch3 = catch2.merge(reaches.reset_index(), on='NZREACH')
+    catch3.crs = catch0.crs
 
     return(catch3)
 
@@ -138,6 +145,8 @@ def agg_rec_catch(rec_catch):
     """
     rec_shed = rec_catch[['start', 'geometry']].dissolve('start')
     rec_shed.index = rec_shed.index.astype('int32')
+    rec_shed['area'] = rec_shed.area
+    rec_shed.crs = rec_catch.crs
     return(rec_shed.reset_index())
 
 

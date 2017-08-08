@@ -1,0 +1,112 @@
+# -*- coding: utf-8 -*-
+"""
+Script example to delineate catchments based on site locations.
+"""
+
+from pandas import read_table, DataFrame, concat, merge, Timedelta, datetime, to_datetime, DateOffset, date_range, Timestamp, read_csv, to_numeric
+from core.spatial import catch_net, pts_poly_join, flow_sites_to_shp, agg_catch, arc_catch_del, arc_spatial_join, sel_sites_poly
+from geopandas import read_file
+from core.ts.sw import stream_nat
+from core.classes.hydro import hydro
+from os.path import join
+from core.ecan_io import rd_sql
+
+from core.spatial.network import find_upstream_rec, extract_rec_catch, agg_rec_catch
+from core.spatial.vector import closest_line_to_pts
+
+###################################
+#### Functions
+
+
+def rd_sw_rain_geo(sites=None):
+    from core.spatial import xy_to_gpd
+    from pandas import to_numeric
+    if sites is not None:
+        site_geo = rd_sql('SQL2012PROD05', 'Bgauging', 'RSITES', col_names=['SiteNumber', 'River', 'SiteName', 'NZTMX', 'NZTMY'], where_col='SiteNumber', where_val=sites)
+
+    site_geo.columns = ['site', 'river', 'name', 'NZTMX', 'NZTMY']
+    site_geo.loc[:, 'site'] = to_numeric(site_geo.loc[:, 'site'], errors='ignore')
+
+    site_geo2 = xy_to_gpd(df=site_geo, id_col=['site', 'river', 'name'], x_col='NZTMX', y_col='NZTMY')
+    site_geo3 = site_geo2.loc[site_geo2.site > 0, :]
+    site_geo3.loc[:, 'site'] = site_geo3.loc[:, 'site'].astype('int32')
+    return(site_geo3.set_index('site'))
+
+
+###################################
+#### Parameters
+
+prod_server03 = 'SQL2012PROD03'
+dw_db = 'DataWarehouse'
+
+flow_dict = {'server': prod_server03, 'db': dw_db, 'table': 'F_HY_Flow_Data', 'site_col': 'SiteNo', 'time_col': 'DateTime', 'data_col': 'Value', 'qual_col': 'QualityCode'}
+
+flow_stmt = 'select distinct SiteNo from F_HY_Flow_Data'
+
+catch_shp = r'E:\ecan\shared\GIS_base\vector\catchments\river-environment-classification-watershed-canterbury-2010.shp'
+streams_shp = r'E:\ecan\shared\GIS_base\vector\streams\rec-canterbury-2010.shp'
+
+base_dir = r'P:\cant_catch_delin\recorders'
+
+rec_sites_shp = 'rec_sites.shp'
+
+
+server2 = 'SQL2012PROD03'
+database2 = 'LowFlows'
+sites_table = 'LowFlows.dbo.vLowFlowSite'
+lowflow_sites_cols = ['RefDBaseKey']
+
+catch_del_shp = r'catch_del.shp'
+catch_del_temp_shp = r'catch_del_temp.shp'
+
+################################
+#### First define the necessary sites for the delineation
+#### This can come from anywhere as long as they are int flow sites
+
+rec_sites = rd_sql(flow_dict['server'], flow_dict['db'], stmt=flow_stmt)
+rec_sites_geo = rd_sw_rain_geo(rec_sites.SiteNo.tolist())
+rec_sites_geo.reset_index().to_file(join(base_dir, rec_sites_shp))
+
+
+###############################
+#### Catchment delination from the REC streams layers
+
+### Load new sites layer
+streams = read_file(streams_shp)
+pts = read_file(join(base_dir, rec_sites_shp))
+
+pts_seg = closest_line_to_pts(pts, streams, line_site_col='NZREACH', dis=400)
+nzreach = pts_seg.copy().NZREACH.unique()
+
+reaches = find_upstream_rec(nzreach)
+
+rec_catch = extract_rec_catch(reaches)
+rec_catch.to_file(join(base_dir, catch_del_temp_shp))
+
+rec_shed = agg_rec_catch(rec_catch)
+rec_shed.columns = ['NZREACH', 'geometry']
+rec_shed1 = rec_shed.merge(pts_seg[['site', 'NZREACH']], on='NZREACH')
+
+rec_shed1.to_file(join(base_dir, catch_del_shp))
+
+
+##############################
+#### Then aggregate the catchments to get all of the upstream area for each location
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
