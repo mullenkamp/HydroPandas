@@ -104,14 +104,14 @@ def gen_constant_head_targets():  # watch if we have constant heads in the sw bo
 
 def get_target_group_values():
     # Note that below are in m3/s and then converted to m3/day
-    target_group_val = {'chb_ash': -5.25,  # 3.0 to 7.5
+    target_group_val = {'chb_ash': None, #-5.25,  # 3.0 to 7.5 #todo may become 1.5-8 similar to selwyn offshore
                         'chb_chch': -0.9,  # 0.3 to 1.5
                         'chb_cust': -0.3,  # 0.1 to 0.5
                         'chb_sely': 'sel_off',
 
                         # drains
                         'd_ash_c': None,
-                        'd_ash_est': -1.2,  # 0.2 to 2
+                        'd_ash_est': None, #-1.2,  #todo this may become 0.2 to 2 similar to selwyn offshore
                         'd_ash_s': None,
                         'd_bul_avon': 'chch_str',
                         'd_bul_styx': 'chch_str',
