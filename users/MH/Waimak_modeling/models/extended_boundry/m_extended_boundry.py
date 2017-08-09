@@ -117,7 +117,9 @@ def create_m_extended_boundry(name, dir_path, safe_mode=True, mt3d_link=False, v
 
     return m
 if __name__ == '__main__':
-    outdir = r"C:\Users\MattH\Desktop\data_to_brioch_04-08-2017"
+    outdir = r"C:\Users\MattH\Desktop\data_to_brioch_09-08-2017"
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
     m = create_m_extended_boundry('with_ncarpet_04-18-2017',r"{}\with_n_carpet".format(outdir),safe_mode=False,
                                   mt3d_link=True, n_car_dns=True)
     m.write_name_file()

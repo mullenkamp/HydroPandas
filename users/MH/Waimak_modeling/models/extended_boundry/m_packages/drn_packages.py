@@ -344,7 +344,6 @@ def _get_drn_spd(reach_v, wel_version, recalc=False, n_car_dns=True):
         'd_cam_s': 'd_cam_revl',
         'd_kaiapo_s': 'd_sil_ilnd',
         'd_ect': 'd_sil_ilnd',
-        'd_dwaimak': 'd_sil_ilnd',
         'd_court_s': 'd_cour_nrd',
     }
     drn_data.loc[:,'parameter_group'] = drn_data.loc[:,'target_group']

@@ -193,7 +193,7 @@ def get_target_group_values():
                         'sfx_4drn': None,
                         'sfx_5drn': None,
                         'sfx_6drn': None,
-                        'sfx_7drn': -0.21,
+                        'sfx_7drn': None,
                         'sfx_e_all': 1.99,
                         'sfx_w_all': 11.2,
                         'sfx_cd_all': None,
@@ -335,9 +335,35 @@ def generate_all_data_for_brioch(outdir):
 
     drn_data = _get_drn_spd(smt.reach_v, smt.wel_version, True)
     drn_data.to_csv('{}/drain_data.csv'.format(outdir))
+    waimak_springfed_targets = ['d_cam_mrsh',
+                        'd_cam_revl',
+                        'd_cam_yng',
+                        'd_cour_nrd',
+                        'd_emd_gard',
+                        'd_kairaki',
+                        'd_kuku_leg',
+                        'd_nbk_mrsh',
+                        'd_oho_btch',
+                        'd_oho_jefs',
+                        'd_oho_kpoi',
+                        'd_oho_misc',
+                        'd_oho_mlbk',
+                        'd_oho_whit',
+                        'd_salt_fct',
+                        'd_salt_top',
+                        'd_sbk_mrsh',
+                        'd_sil_harp',
+                        'd_sil_heyw',
+                        'd_sil_ilnd',
+                        'd_smiths',
+                        'd_tar_gre',
+                        'd_tar_stok']
+    drn_data = smt.add_mxmy_to_df(drn_data)
+    drn_data.loc[:,'has_target'] = np.in1d(drn_data.target_group, waimak_springfed_targets)
+    drn_data.to_csv('{}/drain_data_for_shapefile.csv'.format(outdir))
 
     print('done')
 
 
 if __name__ == '__main__':
-    generate_all_data_for_brioch(r"C:\Users\MattH\Desktop\data_to_brioch_04-08-2017\target_data")
+    generate_all_data_for_brioch(r"C:\Users\MattH\Desktop\data_to_brioch_09-08-2017\target_data")
