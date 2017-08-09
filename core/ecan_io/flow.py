@@ -190,7 +190,7 @@ def rd_hydstra_dir(input_path, min_filter=False, min_yrs=25, export=False, expor
     return(t1)
 
 
-def rd_hydrotel(select=None, input_type='number', mtype='Flow', from_date=None, to_date=None, use_site_name=False, resample=False, period='day', n_periods=1, fun='mean', pivot=False, export=False, export_path='hydrotel_data.csv'):
+def rd_hydrotel(select=None, input_type='number', mtype='flow_tel', from_date=None, to_date=None, use_site_name=False, resample=False, period='day', n_periods=1, fun='mean', pivot=False, export=False, export_path='hydrotel_data.csv'):
     """
     Function to extract time series data from the hydrotel database.
 
@@ -202,10 +202,13 @@ def rd_hydrotel(select=None, input_type='number', mtype='Flow', from_date=None, 
     Resampling of the time series can be performed by the w_resample function. Any associated resampling parameters can be passed.
     """
     from core.ecan_io import rd_sql
-    from pandas import to_datetime, merge, to_numeric, Grouper
+    from pandas import to_datetime, merge, to_numeric, Grouper, Series
     from numpy import ndarray, in1d, where
     from core.ts.ts import res
     from core.misc.misc import time_switch, select_sites
+
+    #### mtypes dict
+    mtypes_dict = {'flow_tel': 'Flow Rate', 'gwl_tel': 'Groundwater level', 'precip_tel': 'Rainfall Depth', 'swl_tel': 'Water Level', 'wtemp_tel': 'Water Temperature'}
 
     #### Database parameters
     server = 'SQL2012PROD05'
@@ -214,11 +217,13 @@ def rd_hydrotel(select=None, input_type='number', mtype='Flow', from_date=None, 
     data_tab = 'Hydrotel.dbo.Samples'
     points_tab = 'Hydrotel.dbo.Points'
     objects_tab = 'Hydrotel.dbo.Objects'
+    mtypes_tab = 'Hydrotel.dbo.ObjectVariants'
     sites_tab = 'Hydrotel.dbo.Sites'
 
     data_col = ['Point', 'DT', 'SampleValue']
     points_col = ['Point', 'Object']
-    objects_col = ['Object', 'Site', 'Name']
+    objects_col = ['Object', 'Site', 'Name', 'ObjectVariant']
+    mtypes_col = ['ObjectVariant', 'Name']
     sites_col = ['Site', 'Name', 'ExtSysId']
 
     #### Import data and select the correct sites
@@ -235,7 +240,16 @@ def rd_hydrotel(select=None, input_type='number', mtype='Flow', from_date=None, 
             site_index1 = [where(db_sites.Name.str.contains(i))[0][0] for i in sites]
             site_val = db_sites.loc[site_index1, 'Site'].astype('int32').tolist()
 
-        where_col = {'Site': site_val, 'Name': [mtype]}
+        if isinstance(mtype, (list, ndarray, Series)):
+            mtypes = [mtypes_dict[i] for i in mtype]
+        elif isinstance(mtype, str):
+            mtypes = [mtypes_dict[mtype]]
+        else:
+            raise ValueError('mtype must be a str, list, ndarray, or Series.')
+        mtypes_val = rd_sql(server, database, mtypes_tab, mtypes_col, 'Name', mtypes)
+
+        where_col = {'Site': site_val, 'ObjectVariant': mtypes_val.ObjectVariant.astype('int32').tolist()}
+
         object_val1 = rd_sql(server, database, objects_tab, objects_col, where_col)
         object_val = object_val1.Object.values.astype(int).tolist()
     else:

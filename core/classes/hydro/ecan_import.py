@@ -201,19 +201,14 @@ def _rd_hydstra(self, sites, start_time=0, end_time=0, datasource='A', data_type
 
 def _rd_hydrotel(self, sites, input_type='number', mtype='flow_tel', from_date=None, to_date=None, resample=False, period='day', n_periods=1, fun='mean'):
     """
-    Need to update!!! The mtypes in hydrotel are inconsistent!!!
+    Function for the Hydro class to read Hydrotel data.
     """
     from core.ecan_io.flow import rd_hydrotel
 
-    ### Mtype conversion
-    mtype_dict1 = {'flow_tel': 'Flow', 'precip_tel': 'Rainfall'}
-    mtype1 = mtype_dict1[mtype]
-
     ### Load in hydrotel data
-    data = rd_hydrotel(select=sites, input_type=input_type, mtype=mtype1, resample=resample, period=period, n_periods=n_periods, fun=fun, from_date=from_date, to_date=to_date)
-    mtype1 = mtype.lower()
+    data = rd_hydrotel(select=sites, input_type=input_type, mtype=mtype, resample=resample, period=period, n_periods=n_periods, fun=fun, from_date=from_date, to_date=to_date)
     data2 = data.reset_index()
-    data2['mtype'] = mtype1
+    data2['mtype'] = mtype
 
     ### Load into hydro class
     self.add_data(data2, 'time', 'site', 'mtype', 'value', 'long')
