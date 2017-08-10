@@ -49,8 +49,9 @@ def check_no_overlapping_features():
         for t,c,s in zip(types,colors,sizes):
             print(t)
             temp2 = temp.loc[(temp.bc_type==t) & (temp.k==layer)]
-            ax.scatter(temp2.j,temp2.i*-1,c=c,s=s)
+            ax.scatter(temp2.j,temp2.i*-1,c=c,s=s,label=t)
             ax.set_title('layer {}'.format(layer))
+        plt.legend()
         plt.show(fig)
 
     if any(all_data.duplicated(['i','j','k'],keep=False)): #I did not fix the well drain overlap s of waimak because we don't care
@@ -361,7 +362,7 @@ def check_elevations_spatially(base_dir,dpi):
 # todo check starting heads, particularyly constant heads
 
 if __name__ == '__main__':
-    #check_no_overlapping_features() #passed
+    check_no_overlapping_features() #passed
     #check_layer_overlap() #passed
     #check_elv_db() #passed
     #check_noflow_overlap() #passed
