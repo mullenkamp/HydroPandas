@@ -219,6 +219,7 @@ def _seg_data_v1(recalc=False):
     seg_data = seg_data.replace({'nseg':old_to_temp_seg,'outseg':old_to_temp_seg})
     temp_to_new_seg = dict([[125,25],[127,27],[126,26],[136,36],[137,37],[138,38],[139,39],[141,41],[142,42],[143,43],[144,44]])
     seg_data = seg_data.replace({'nseg':temp_to_new_seg,'outseg':temp_to_new_seg}).sort_values('nseg')
+    seg_data.loc[18,'flow'] = 3456
     seg_data = seg_data.to_records(False).astype(flopy.modflow.ModflowSfr2.get_default_segment_dtype())
 
     pickle.dump(seg_data,open(pickle_path,'w'))
@@ -330,7 +331,7 @@ def _define_reach_length(reach_data, mode='cornering'):
     return wrd
 
 if __name__ == '__main__':
-    seg = pd.DataFrame(_seg_data_v1(False))
+    seg = pd.DataFrame(_seg_data_v1(True))
     reach = pd.DataFrame(_reach_data_v1(False))
     elv = smt.calc_elv_db()
     g=reach.groupby(['iseg'])

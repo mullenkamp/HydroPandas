@@ -143,6 +143,10 @@ def _get_wel_spd_v1(recalc=False,sub_version=1):
     swai_races = get_s_wai_races()
     all_wells = pd.concat((all_wells,swai_races,lrf))
 
+    all_wells = all_wells.loc[~((all_wells.duplicated(subset=['row','col','layer'],keep=False)) &
+                              (all_wells.type=='lr_boundry_flux'))]
+    all_wells.loc[all_wells.type == 'lr_boundry_flux','flux'] = 86400/(all_wells.type == 'lr_boundry_flux').sum()
+
     if sub_version != 0:
         pickle.dump(all_wells, open(pickle_path, 'w'))
     return all_wells
@@ -364,6 +368,7 @@ def get_s_wai_races():
 
 if __name__ == '__main__':
     test = get_s_wai_races()
+    well_spd = _get_wel_spd_v1(recalc=False)
     well_spd = _get_wel_spd_v1(recalc=True)
 
     n_wells_new = _check_waimak_wells()

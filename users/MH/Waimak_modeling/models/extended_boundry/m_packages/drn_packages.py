@@ -18,7 +18,7 @@ import pickle
 
 
 def create_drn_package(m, wel_version, reach_version,n_car_dns=True):
-    drn_data = _get_drn_spd(wel_version=wel_version, reach_v=reach_version,n_car_dns=True).loc[:,
+    drn_data = _get_drn_spd(wel_version=wel_version, reach_v=reach_version,n_car_dns=n_car_dns).loc[:,
                ['k', 'i', 'j', 'elev', 'cond']].to_records(False)
     drn_data = drn_data.astype(flopy.modflow.ModflowDrn.get_default_dtype())
 
@@ -344,7 +344,6 @@ def _get_drn_spd(reach_v, wel_version, recalc=False, n_car_dns=True):
         'd_cam_s': 'd_cam_revl',
         'd_kaiapo_s': 'd_sil_ilnd',
         'd_ect': 'd_sil_ilnd',
-        'd_dwaimak': 'd_sil_ilnd',
         'd_court_s': 'd_cour_nrd',
     }
     drn_data.loc[:,'parameter_group'] = drn_data.loc[:,'target_group']

@@ -63,7 +63,6 @@ def _get_rch():
     # get new rch values for nwai
 
     return rch
-
 if __name__ == '__main__':
     rch=_get_rch()
     smt.plt_matrix(rch)
