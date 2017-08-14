@@ -16,10 +16,12 @@ from datetime import date
 from scipy.stats import percentileofscore
 from numpy import in1d, round
 from bokeh.plotting import figure, save, show, output_file
-from bokeh.models import ColumnDataSource, HoverTool, LogColorMapper
+from bokeh.models import ColumnDataSource, HoverTool, LogColorMapper, Legend, CategoricalColorMapper
 from bokeh.palettes import RdYlBu11 as palette
 from bokeh.palettes import brewer
 from bokeh.models.widgets import Panel, Tabs
+from bokeh.models.tools import WheelZoomTool
+from collections import OrderedDict
 
 ###################################################
 #### Parameters
@@ -33,6 +35,8 @@ rec_sites_shp = r'E:\ecan\shared\GIS_base\vector\catchments\recorder_sites_REC.s
 rec_sites_details_shp = r'E:\ecan\shared\GIS_base\vector\catchments\recorder_sites_REC_details.shp'
 
 qual_codes = [10, 18, 20, 30, 50, 11, 21, 40]
+
+month_names = ['Jan', 'Feb', 'March', 'April', 'May', 'June', 'July', 'August', 'Sept', 'Oct', 'Nov', 'Dec']
 
 std_cat = [0.1, 1]
 
@@ -160,7 +164,7 @@ mon_stats_grp = mon_stats.groupby('site')['data']
 
 mon_site_prec = mon_val['mon_median_flow'].copy()
 mon_site_prec.name = 'mon_flow_perc'
-t1_sw =
+
 for name, grp in mon_stats_grp:
     val = mon_val.loc[name][0]
     arr1 = grp.values
@@ -259,14 +263,19 @@ def getPolyCoords(row, coord_type, geom='geometry'):
 sw_precip_poly2['x'] = sw_precip_poly2.apply(getPolyCoords, coord_type='x', axis=1)
 sw_precip_poly2['y'] = sw_precip_poly2.apply(getPolyCoords, coord_type='y', axis=1)
 
-g_df = sw_precip_poly2.drop('geometry', axis=1).copy()
-c1 = brewer['RdBu'][5]
-color_dict = {'very high': c1[0], 'above average': c1[1], 'average': c1[2], 'below average': c1[3], 'very low': c1[4]}
-g_df['precip_color'] = g_df['precip_cat'].replace(color_dict)
-g_df['flow_color'] = g_df['flow_categ'].replace(color_dict)
+flow_b = sw_precip_poly2.drop('geometry', axis=1).copy().sort_values('mon_flow_p', ascending=False)
+precip_b = sw_precip_poly2.drop('geometry', axis=1).copy().sort_values('mon_precip', ascending=False)
 
-gsource = ColumnDataSource(g_df)
-color_map = LogColorMapper(palette=palette)
+c1 = brewer['RdBu'][5]
+#color_dict = {'very high': c1[0], 'above average': c1[1], 'average': c1[2], 'below average': c1[3], 'very low': c1[4]}
+#color_dict = OrderedDict([('very high', c1[0]), ('above average', c1[1]), ('average', c1[2]), ('below average', c1[3]), ('very low', c1[4])])
+#g_df['precip_color'] = g_df['precip_cat'].replace(color_dict)
+#g_df['flow_color'] = g_df['flow_categ'].replace(color_dict)
+
+flow_source = ColumnDataSource(flow_b)
+precip_source = ColumnDataSource(precip_b)
+
+color_map = CategoricalColorMapper(factors=['very high', 'above average', 'average', 'below average', 'very low'], palette=[c1[0], c1[1], c1[2], c1[3], c1[4]])
 
 
 
@@ -274,17 +283,19 @@ TOOLS = "pan,wheel_zoom,reset,hover,save"
 
 output_file(test1_html)
 
-p1 = figure(title='Test map', tools=TOOLS, logo=None)
-p1.patches('x', 'y', source=gsource, fill_color={'field': 'precip_color'}, line_color="black", line_width=0.5, legend='precip_cat')
+p1 = figure(title=month_names[mon1 - 1] + ' ' + str(start_date.year) + ' Precipitation Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom')
+p1.patches('x', 'y', source=precip_source, fill_color={'field': 'precip_cat', 'transform': color_map}, line_color="black", line_width=0.5, legend='precip_cat')
 p1.legend.location = 'top_left'
+#p1.toolbar.active_scroll = WheelZoomTool()
 hover1 = p1.select_one(HoverTool)
 hover1.point_policy = "follow_mouse"
 hover1.tooltips = [("Category", "@precip_cat"), ("Percentile", "@mon_precip{1.1}" + "%"), ]
 tab1 = Panel(child=p1, title='Precip')
 
-p2 = figure(title='Test map', tools=TOOLS, logo=None)
-p2.patches('x', 'y', source=gsource, fill_color={'field': 'flow_color'}, line_color="black", line_width=0.5, legend='flow_categ')
+p2 = figure(title=month_names[mon1 - 1] + ' ' + str(start_date.year) + ' Flow Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom')
+p2.patches('x', 'y', source=flow_source, fill_color={'field': 'flow_categ', 'transform': color_map}, line_color="black", line_width=0.5, legend='flow_categ')
 p2.legend.location = 'top_left'
+#p2.toolbar.active_scroll = WheelZoomTool()
 hover2 = p2.select_one(HoverTool)
 hover2.point_policy = "follow_mouse"
 hover2.tooltips = [("Category", "@flow_categ"), ("Percentile", "@mon_flow_p{1.1}" + "%"), ]
@@ -293,7 +304,6 @@ tab2 = Panel(child=p2, title='Flow')
 tabs = Tabs(tabs=[tab1, tab2])
 
 show(tabs)
-
 
 
 
