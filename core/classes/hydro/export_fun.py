@@ -73,7 +73,7 @@ def to_shp(self, shp_path):
         t1 = {i: in1d(sites, list(mtypes_sites[i])).astype(str).tolist() for i in mtypes_sites}
         df1 = DataFrame(t1, index=sites)
         geo2 = concat([geo1, df1], axis=1)
-        geo2.to_file(shp_path)
+        geo2.reset_index().to_file(shp_path)
 
 
 

@@ -56,13 +56,14 @@ def rd_hilltop_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
     from core.misc import time_switch
 
     agg_name_dict = {'sum': 4, 'count': 5, 'mean': 1}
-    agg_unit_dict = {'m3/s': 1, 'm3/hour': 1, 'mm': 1, 'm3': 4}
+    agg_unit_dict = {'l/s': 1, 'm3/s': 1, 'm3/hour': 1, 'mm': 1, 'm3': 4}
+    unit_convert = {'l/s': 0.001, 'm3/s': 1, 'm3/hour': 1, 'mm': 1, 'm3': 4}
 
     ### First read all of the sites in the hts file and select the ones to be read
     sites_df = rd_hilltop_sites(hts)
 
     if sites is not None:
-        sites_df = sites_df[sites_df.sites.isin(sites)]
+        sites_df = sites_df[sites_df.site.isin(sites)]
     if mtypes is not None:
         sites_df = sites_df[sites_df.mtype.isin(mtypes)]
 
@@ -121,7 +122,7 @@ def rd_hilltop_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
 
     df1 = concat(df_lst)
     df1.loc[:, 'time'] = to_datetime(df1.loc[:, 'time'])
-    df2 = df1.set_index(['mtype', 'site', 'time']).data
+    df2 = df1.set_index(['mtype', 'site', 'time']).data * unit_convert[unit]
 
     dfile.Close()
     return(df2)
@@ -300,14 +301,12 @@ def all_data_fun(data, mtype, site):
     return(data)
 
 
-def proc_use_data(data, mtype, site, time_period='D'):
+def proc_use_data(data, mtype, site, time_period='D', n_std=4):
     """
     Function for parse_ht_xml to process the data and aggregate it to a defined resolution.
     """
     from numpy import nan, abs
     from pandas import Series
-
-    n_std = 4
 
     ### Select the process sequence based on the mtype and convert to period volume
     data[data < 0] = nan
@@ -369,14 +368,12 @@ def convert_site_names(names):
     return(names1)
 
 
-def proc_ht_use_data(ht_data):
+def proc_ht_use_data(ht_data, n_std=4):
     """
     Function for parse_ht_xml to process the data and aggregate it to a defined resolution.
     """
     from numpy import nan, abs
     from pandas import Series, concat
-
-    n_std = 4
 
     ### Groupby mtypes and sites
     grp = ht_data.groupby(level=['mtype', 'site'])

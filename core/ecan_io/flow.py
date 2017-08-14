@@ -190,14 +190,14 @@ def rd_hydstra_dir(input_path, min_filter=False, min_yrs=25, export=False, expor
     return(t1)
 
 
-def rd_hydrotel(select=None, input_type='number', mtype='flow_tel', from_date=None, to_date=None, use_site_name=False, resample=False, period='day', n_periods=1, fun='mean', pivot=False, export=False, export_path='hydrotel_data.csv'):
+def rd_hydrotel(select=None, mtype='flow_tel', from_date=None, to_date=None, use_site_name=False, resample=False, period='day', n_periods=1, fun='mean', pivot=False, export=False, export_path='hydrotel_data.csv'):
     """
     Function to extract time series data from the hydrotel database.
 
     Arguments:\n
     select -- Either a list, array, dataframe, or signle column csv file of site names or numbers.\n
     input_type -- What the values in 'select' are. Either 'number' or 'name'.\n
-    mtype -- 'Water Level', 'Flow', or 'Rainfall'.\n
+    mtype -- 'flow_tel', 'gwl_tel', 'precip_tel', 'swl_tel', or 'wtemp_tel'.\n
 
     Resampling of the time series can be performed by the w_resample function. Any associated resampling parameters can be passed.
     """
@@ -229,17 +229,15 @@ def rd_hydrotel(select=None, input_type='number', mtype='flow_tel', from_date=No
     #### Import data and select the correct sites
 
     if select is not None:
-        if input_type is 'number':
-            sites = select_sites(select).astype('int32').tolist()
+        sites = select_sites(select).astype('int32').tolist()
+        if mtype == 'precip_tel':
+            site_ob1 = rd_sql(server, database, objects_tab, ['Site', 'ExtSysId'], 'ExtSysId', sites)
+            site_val0 = rd_sql(server, database, sites_tab, ['Site', 'Name'], 'Site', site_ob1.Site.tolist())
+            site_val1 = merge(site_val0, site_ob1, on='Site')
+        else:
             site_val1 = rd_sql(server, database, sites_tab, sites_col, 'ExtSysId', sites)
-            site_val1.loc[:,'ExtSysId'] = to_numeric(site_val1.loc[:,'ExtSysId'], errors='ignore').astype('int32')
-            site_val = site_val1.Site.values.tolist()
-        if input_type is 'name':
-            sites = select_sites(select).tolist()
-            db_sites = rd_sql(server, database, sites_tab, sites_col)
-            site_index1 = [where(db_sites.Name.str.contains(i))[0][0] for i in sites]
-            site_val = db_sites.loc[site_index1, 'Site'].astype('int32').tolist()
-
+        site_val1.loc[:,'ExtSysId'] = to_numeric(site_val1.loc[:,'ExtSysId'], errors='ignore').astype('int32')
+        site_val = site_val1.Site.values.tolist()
         if isinstance(mtype, (list, ndarray, Series)):
             mtypes = [mtypes_dict[i] for i in mtype]
         elif isinstance(mtype, str):

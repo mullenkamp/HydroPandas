@@ -3046,11 +3046,13 @@ b1.to_csv(export1, pivot=True)
 ##############################################
 #### 2016-2017 usage/allocation ratios
 
-from pandas import read_hdf
+from pandas import read_hdf, read_csv
 
 allo_use_hdf = 'E:/ecan/shared/base_data/usage/allo_use_ts_mon_results.h5'
-allo_use_2017_export = r'E:\ecan\local\Projects\requests\Ilja\2017-08-04\allo_use_2106-2017.csv'
-
+allo_use_2017_export = r'E:\ecan\local\Projects\requests\Ilja\2017-08-04\allo_use_2016-2017.csv'
+allo_csv = 'E:/ecan/shared/base_data/usage/allo.csv'
+allo_ts_hdf = 'E:/ecan/shared/base_data/usage/allo_ts_mon_results.h5'
+out_data_hdf = r'E:\ecan\local\Projects\hilltop\2017-08_tests\ht_usage_daily.h5'
 
 allo_use1 = read_hdf(allo_use_hdf)
 allo_use2 = allo_use1[(allo_use1.date >= '2016-07-01') & (allo_use1.date < '2017-07-01')]
@@ -3058,7 +3060,57 @@ allo_use3 = allo_use2[allo_use2.usage.notnull()]
 
 use1 = allo_use3.groupby(['crc', 'take_type', 'allo_block', 'wap']).sum()
 use1['usage-allo_ratio'] = (use1.usage/use1.allo).round(2)
-use1.to_csv(allo_use_2017_export)
+#use1.to_csv(allo_use_2017_export)
+
+t1 = allo_use2.groupby('crc').sum()
+t2 = t1[t1.allo > 1000]
+t2.usage.notnull().sum()
+
+t3 = t2[t2.usage.notnull()]
+t3.allo.sum()/t2.allo.sum()
+
+
+allo = read_csv(allo_csv)
+allo_ts = read_hdf(allo_ts_hdf)
+ht_use = read_hdf(out_data_hdf).reset_index()
+
+
+a1 = use1.reset_index()
+
+crc1 = 'CRC030012'
+c1 = a1[a1.crc == crc1]
+c1
+allo1 = allo[allo.crc == crc1]
+allo1.iloc[0]
+
+crc1 = 'CRC972160.2'
+c1 = a1[a1.crc == crc1]
+c1
+allo1 = allo[allo.crc == crc1]
+allo1.iloc[0]
+
+crc1 = 'CRC042573.2'
+c1 = a1[a1.crc == crc1]
+c1
+allo1 = allo[allo.crc == crc1]
+allo1.iloc[0]
+
+crc1 = 'CRC093599'
+c1 = a1[a1.crc == crc1]
+c1
+allo1 = allo[allo.crc == crc1]
+allo1.iloc[0]
+
+a1[a1.wap == c1.wap.values[0]]
+allo[allo.wap == c1.wap.values[0]]
+
+c2 = ht_use[ht_use.site == c1.wap.values[0]].set_index('time').drop('site', axis=1)
+c2.plot()
+
+
+
+
+
 
 
 ##############################################
@@ -3108,11 +3160,56 @@ rec_shed1.to_file(join(base_dir, catch_out))
 t1 = rec_shed.loc[[13059458]]
 
 
-
-
-
-
 catch2 = catch1[catch1.NZREACH.isin(sites)].dissolve('NZREACH')[['geometry']]
+
+
+##################################################
+#### Lake
+streams_shp = r'E:\ecan\shared\GIS_base\vector\streams\river-environment-classification-canterbury-2010.shp'
+sites_pts_shp = r'P:\Surface Water Quantity\Projects\Freshwater Report\lake1.shp'
+catch_shp = r'P:\Surface Water Quantity\Projects\Freshwater Report\lake_catch.shp'
+
+streams = read_file(streams_shp)
+pts = read_file(sites_pts_shp)
+
+pts_seg = closest_line_to_pts(pts, streams, line_site_col='NZREACH', dis=50)
+nzreach = pts_seg.copy().NZREACH.unique()
+#pts_seg.to_file(join(base_dir, rec_sites_rec_shp))
+
+reaches = find_upstream_rec(nzreach)
+
+rec_catch = extract_rec_catch(reaches)
+#rec_catch.to_file(join(base_dir, catch_del_temp_shp))
+
+rec_shed = agg_rec_catch(rec_catch)
+rec_shed.columns = ['NZREACH', 'geometry', 'area']
+rec_shed1 = rec_shed.merge(pts_seg[['id', 'NZREACH']], on='NZREACH')
+
+rec_shed1.to_file(catch_shp)
+rec_shed1.area.sum()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

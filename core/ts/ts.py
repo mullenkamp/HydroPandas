@@ -87,7 +87,7 @@ def grp_ts_agg(df, grp_col, ts_col, freq_code, agg_fun, transform=False):
     fun1 = pd_grouby_fun(agg_fun)
 
     df1 = df.copy()
-    if type(df[ts_col][0]) is Timestamp:
+    if type(df[ts_col].iloc[0]) is Timestamp:
         df1.set_index(ts_col, inplace=True)
         val_col = df1.columns.drop(grp_col)
         if type(grp_col) is list:

@@ -199,14 +199,14 @@ def _rd_hydstra(self, sites, start_time=0, end_time=0, datasource='A', data_type
     return(self)
 
 
-def _rd_hydrotel(self, sites, input_type='number', mtype='flow_tel', from_date=None, to_date=None, resample=False, period='day', n_periods=1, fun='mean'):
+def _rd_hydrotel(self, sites, mtype='flow_tel', from_date=None, to_date=None, resample=False, period='day', n_periods=1, fun='mean'):
     """
     Function for the Hydro class to read Hydrotel data.
     """
     from core.ecan_io.flow import rd_hydrotel
 
     ### Load in hydrotel data
-    data = rd_hydrotel(select=sites, input_type=input_type, mtype=mtype, resample=resample, period=period, n_periods=n_periods, fun=fun, from_date=from_date, to_date=to_date)
+    data = rd_hydrotel(select=sites, mtype=mtype, resample=resample, period=period, n_periods=n_periods, fun=fun, from_date=from_date, to_date=to_date)
     data2 = data.reset_index()
     data2['mtype'] = mtype
 

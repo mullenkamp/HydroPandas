@@ -44,11 +44,12 @@ flow_dict = {'server': prod_server03, 'db': dw_db, 'table': 'F_HY_Flow_Data', 's
 flow_stmt = 'select distinct SiteNo from F_HY_Flow_Data'
 
 catch_shp = r'E:\ecan\shared\GIS_base\vector\catchments\river-environment-classification-watershed-canterbury-2010.shp'
-streams_shp = r'E:\ecan\shared\GIS_base\vector\streams\rec-canterbury-2010.shp'
-
+streams_shp2 = r'E:\ecan\shared\GIS_base\vector\streams\rec-canterbury-2010.shp'
+streams_shp = r'E:\ecan\shared\GIS_base\vector\streams\river-environment-classification-canterbury-2010.shp'
 base_dir = r'P:\cant_catch_delin\recorders'
 
 rec_sites_shp = 'rec_sites.shp'
+rec_sites_rec_shp = 'recorder_sites_REC.shp'
 
 
 server2 = 'SQL2012PROD03'
@@ -77,6 +78,7 @@ pts = read_file(join(base_dir, rec_sites_shp))
 
 pts_seg = closest_line_to_pts(pts, streams, line_site_col='NZREACH', dis=400)
 nzreach = pts_seg.copy().NZREACH.unique()
+pts_seg.to_file(join(base_dir, rec_sites_rec_shp))
 
 reaches = find_upstream_rec(nzreach)
 
@@ -100,6 +102,7 @@ rec_shed1.to_file(join(base_dir, catch_del_shp))
 
 
 
+streams = read_file(streams_shp2)
 
 
 

@@ -344,3 +344,25 @@ def closest_line_to_pts(pts, lines, line_site_col, dis=None):
 #        print(i)
     return(pts_line_seg)
 
+
+def multipoly_to_poly(gpd):
+    """
+    Function to convert a GeoDataFrame with some MultiPolygons to only polygons. Creates additional rows in the GeoDataFrame.
+    """
+    from geopandas import GeoDataFrame
+    from pandas import concat
+
+    gpd2 = GeoDataFrame()
+    for i in gpd.index:
+        geom1 = gpd.loc[[i]]
+        geom2 = geom1.loc[i, 'geometry']
+        if geom2.type == 'MultiPolygon':
+            polys = [j for j in geom2]
+            new1 = geom1.loc[[i] * len(polys)]
+            new1.loc[:, 'geometry'] = polys
+        else:
+            new1 = geom1.copy()
+        gpd2 = concat([gpd2, new1])
+    return(gpd2.reset_index(drop=True))
+
+

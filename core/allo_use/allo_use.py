@@ -451,6 +451,9 @@ def allo_filter(allo, start='1900', end='2100', from_col='from_date', to_col='to
     ### Restrict by status_details
     allo6 = allo5[allo5.status_details.isin(['Terminated - Replaced', 'Issued - Active', 'Terminated - Surrendered', 'Terminated - Expired', 'Terminated - Lapsed', 'Issued - s124 Continuance', 'Terminated - Cancelled'])]
 
+    ### Remove Hydroelectric consents
+    allo6 = allo6[allo6.use_type != 'hydroelectric']
+
     ### In allocation columns
     if in_allo:
         allo6 = allo6[(allo6.take_type == 'Take Surface Water') | ((allo6.take_type == 'Take Groundwater') & (allo6.in_gw_allo == 'YES'))]
