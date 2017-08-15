@@ -190,7 +190,7 @@ def rd_hydstra_dir(input_path, min_filter=False, min_yrs=25, export=False, expor
     return(t1)
 
 
-def rd_hydrotel(select=None, mtype='flow_tel', from_date=None, to_date=None, use_site_name=False, resample=False, period='day', n_periods=1, fun='mean', pivot=False, export=False, export_path='hydrotel_data.csv'):
+def rd_hydrotel(select=None, mtype='flow_tel', from_date=None, to_date=None, use_site_name=False, resample='day', fun='avg', pivot=False, export=False, export_path='hydrotel_data.csv'):
     """
     Function to extract time series data from the hydrotel database.
 
@@ -202,7 +202,7 @@ def rd_hydrotel(select=None, mtype='flow_tel', from_date=None, to_date=None, use
     Resampling of the time series can be performed by the w_resample function. Any associated resampling parameters can be passed.
     """
     from core.ecan_io import rd_sql
-    from pandas import to_datetime, merge, to_numeric, Grouper, Series
+    from pandas import to_datetime, merge, to_numeric, Grouper, Series, Timestamp
     from numpy import ndarray, in1d, where
     from core.ts.ts import res
     from core.misc.misc import time_switch, select_sites
@@ -269,21 +269,43 @@ def rd_hydrotel(select=None, mtype='flow_tel', from_date=None, to_date=None, use
     comp_tab2 = merge(comp_tab1, point_val1, on='Object')
     comp_tab2.set_index('Point', inplace=True)
 
-    data1 = rd_sql(server, database, data_tab, data_col, 'Point', point_val, from_date=from_date, to_date=to_date, date_col='DT')
-    data1.columns = ['site', 'time', 'value']
+    #### Pull out the data
+    ### Make SQL statement
+    where_col_stmt = 'Point IN (' + str(point_val)[1:-1] + ')'
+
+    if isinstance(from_date, str):
+        from_date1 = to_datetime(from_date, errors='coerce')
+        if isinstance(from_date1, Timestamp):
+            from_date2 = from_date1.strftime('%Y-%m-%d')
+            where_from_date = "DT >= " + from_date2.join(['\'', '\''])
+    else:
+        where_from_date = ''
+
+    if isinstance(to_date, str):
+        to_date1 = to_datetime(to_date, errors='coerce')
+        if isinstance(to_date1, Timestamp):
+            to_date2 = to_date1.strftime('%Y-%m-%d')
+            where_to_date = "DT <= " + to_date2.join(['\'', '\''])
+    else:
+        where_to_date = ''
+
+    where_lst = [i for i in [where_col_stmt, where_from_date, where_to_date] if len(i) > 0]
+
+    if resample is not None:
+        stmt1 = "SELECT " + "Point AS site, DATEADD(" + resample + ", DATEDIFF(" + resample + ", 0, DT), 0) AS time, round(" + fun + "(SampleValue), 3) AS value" + " FROM " + data_tab + " where " + " and ".join(where_lst) + "GROUP BY Point, DATEADD(" + resample + ", DATEDIFF(" + resample + ", 0, DT), 0) ORDER BY site, time"
+    else:
+        stmt1 = "SELECT Point AS site, DT AS time, SampleValue AS value FROM " + data_tab + " where " + " and ".join(where_lst)
+
+    data1 = rd_sql(server, database, data_tab, stmt=stmt1)
+#    data1.columns = ['site', 'time', 'value']
     data1.set_index(['site', 'time'], inplace=True)
     site_numbers = [comp_tab2.loc[i, 'ExtSysId'] for i in data1.index.levels[0]]
     data1.index.set_levels(site_numbers, level='site', inplace=True)
 
-    if resample:
-        data2 = res(data1, dformat='long', period=period, n_periods=n_periods, fun=fun)['value']
-    else:
-        data2 = data1.round(3)['value']
-
     if pivot:
-        data3 = data2.unstack(0)
+        data3 = data1.unstack(0)
     else:
-        data3 = data2
+        data3 = data1
 
     #### Export and return
     if export:

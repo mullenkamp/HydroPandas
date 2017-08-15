@@ -7,6 +7,7 @@ Created on Mon Jul 17 16:27:09 2017
 
 from geopandas import read_file, overlay, sjoin, GeoDataFrame
 from core.classes.hydro import hydro, all_mtypes
+from core.ecan_io import rd_hydrotel
 from datetime import datetime
 from pandas import DateOffset, to_datetime, date_range, read_csv, concat, merge, cut, DataFrame
 from os.path import join
@@ -19,9 +20,10 @@ from bokeh.plotting import figure, save, show, output_file
 from bokeh.models import ColumnDataSource, HoverTool, LogColorMapper, Legend, CategoricalColorMapper
 from bokeh.palettes import RdYlBu11 as palette
 from bokeh.palettes import brewer
-from bokeh.models.widgets import Panel, Tabs
+from bokeh.models.widgets import Panel, Tabs, Slider
 from bokeh.models.tools import WheelZoomTool
 from collections import OrderedDict
+from bokeh.layouts import widgetbox
 
 ###################################################
 #### Parameters
@@ -110,6 +112,7 @@ flow3 = flow2.reset_index()
 
 mon_flow1 = grp_ts_agg(flow3, 'site', 'time', 'M', 'median')
 mon_flow1['mon'] = mon_flow1.time.dt.month
+mon_flow1['mtype'] = 'flow'
 
 ### precip
 precip2 = precip1.sel_ts(mtypes='precip')
@@ -118,42 +121,66 @@ precip3 = precip2.reset_index()
 
 mon_precip1 = grp_ts_agg(precip3, 'site', 'time', 'M', 'sum')
 mon_precip1['mon'] = mon_precip1.time.dt.month
+mon_precip1['mtype'] = 'precip'
+
+### Combine all mtypes
+
+mon_summ = concat([mon_flow1, mon_precip1]).reset_index(drop=True)
 
 ###############################################
 #### Pull out recent monthly data from hydrotel
 
 now1 = to_datetime(date.today())
-start_date = now1 - DateOffset(months=1) - DateOffset(days=now1.day - 1)
+start_date = now1 - DateOffset(months=7) - DateOffset(days=now1.day - 1)
 end_date = now1 - DateOffset(days=now1.day - 1)
 
 ### SW
 sites2 = sites1.copy()
 sites2.loc[sites2.site.isin([64610, 65104, 68526]), 'site'] = [164610, 165104, 168526]
 
-hy1 = hydro().get_data(mtypes='flow_tel', sites=sites2.site, from_date=start_date.strftime('%Y-%m-%d'), to_date=end_date.strftime('%Y-%m-%d'))
-if len(hy1.sites) != len(sites2):
+hy1 = rd_hydrotel(sites2.site, mtype='flow_tel', from_date=start_date.strftime('%Y-%m-%d'), to_date=end_date.strftime('%Y-%m-%d'), resample='day', fun='avg')
+hy2 = hy1.reset_index()
+if len(hy2.site.unique()) != len(sites2):
     raise ValueError("Didn't get all sites")
-hy2 = hy1.data.reset_index().drop('mtype', axis=1)
 hy2 = hy2[hy2.time != end_date]
-hy3 = hy2.groupby('site')['data'].median().reset_index()
-hy3.columns = ['site', 'mon_median_flow']
+hy3 = grp_ts_agg(hy2, 'site', 'time', 'M', 'median')
+#hy3.columns = ['site', 'mon_median_flow']
 
-hy3.loc[hy3.site.isin([164610, 165104, 168526]), 'site'] = [64610, 65104, 68526]
+hy3.loc[:, 'site'] = hy3.site.replace([164610, 165104, 168526], [64610, 65104, 68526])
+
 hy_flow = hy3.copy()
+hy_flow['mtype'] = 'flow'
 
 ### precip
-hy1 = hydro().get_data(mtypes='precip_tel', sites=mon_precip1.site.unique(), from_date=start_date.strftime('%Y-%m-%d'), to_date=end_date.strftime('%Y-%m-%d'))
-if len(hy1.sites) != len(mon_precip1.site.unique()):
+hy1 = rd_hydrotel(mon_precip1.site.unique(), mtype='precip_tel', from_date=start_date.strftime('%Y-%m-%d'), to_date=end_date.strftime('%Y-%m-%d'), resample='day', fun='sum')
+hy2 = hy1.reset_index()
+if len(hy2.site.unique()) != len(mon_precip1.site.unique()):
     raise ValueError("Didn't get all sites")
-hy2 = hy1.data.reset_index().drop('mtype', axis=1)
 hy2 = hy2[hy2.time != end_date]
-hy3 = hy2.groupby('site')['data'].sum().reset_index()
-hy3.columns = ['site', 'mon_sum_precip']
+hy3 = grp_ts_agg(hy2, 'site', 'time', 'M', 'sum')
 hy_precip = hy3.copy()
+hy_precip['mtype'] = 'precip'
 
+### combine data
+
+hy_summ = concat([hy_flow, hy_precip]).reset_index(drop=True)
 
 ##############################################
 #### Run the monthly stats comparisons
+
+time_index = hy_summ.time.unique()
+
+
+def row_perc(x, mon_summ):
+    mon1 = x.time.month
+    mon_val = mon_summ[(mon_summ.site == x.site) & (mon_summ.mon == mon1) & (mon_summ.mtype == x.mtype)].data.values
+    perc1 = percentileofscore(mon_val, x.value)
+    return(perc1)
+
+hy_summ['perc'] = hy_summ.apply(row_perc, mon_summ=mon_summ, axis=1)
+
+
+
 
 ### SW
 mon1 = start_date.month
@@ -284,21 +311,21 @@ TOOLS = "pan,wheel_zoom,reset,hover,save"
 output_file(test1_html)
 
 p1 = figure(title=month_names[mon1 - 1] + ' ' + str(start_date.year) + ' Precipitation Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom')
-p1.patches('x', 'y', source=precip_source, fill_color={'field': 'precip_cat', 'transform': color_map}, line_color="black", line_width=0.5, legend='precip_cat')
+p1.patches('x', 'y', source=precip_source, fill_color={'field': 'precip_cat', 'transform': color_map}, line_color="black", line_width=1, legend='precip_cat')
 p1.legend.location = 'top_left'
 #p1.toolbar.active_scroll = WheelZoomTool()
 hover1 = p1.select_one(HoverTool)
 hover1.point_policy = "follow_mouse"
-hover1.tooltips = [("Category", "@precip_cat"), ("Percentile", "@mon_precip{1.1}" + "%"), ]
+hover1.tooltips = [("Category", "@precip_cat"), ("Percentile", "@mon_precip{1.1}" + "%")]
 tab1 = Panel(child=p1, title='Precip')
 
 p2 = figure(title=month_names[mon1 - 1] + ' ' + str(start_date.year) + ' Flow Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom')
-p2.patches('x', 'y', source=flow_source, fill_color={'field': 'flow_categ', 'transform': color_map}, line_color="black", line_width=0.5, legend='flow_categ')
+p2.patches('x', 'y', source=flow_source, fill_color={'field': 'flow_categ', 'transform': color_map}, line_color="black", line_width=1, legend='flow_categ')
 p2.legend.location = 'top_left'
 #p2.toolbar.active_scroll = WheelZoomTool()
 hover2 = p2.select_one(HoverTool)
 hover2.point_policy = "follow_mouse"
-hover2.tooltips = [("Category", "@flow_categ"), ("Percentile", "@mon_flow_p{1.1}" + "%"), ]
+hover2.tooltips = [("Category", "@flow_categ"), ("Percentile", "@mon_flow_p{1.1}" + "%")]
 tab2 = Panel(child=p2, title='Flow')
 
 tabs = Tabs(tabs=[tab1, tab2])
