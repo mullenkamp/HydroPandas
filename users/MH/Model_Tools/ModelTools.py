@@ -270,11 +270,11 @@ class ModelTools(object):
 
         return out_locs
 
-    def array_to_raster(self, path, array, no_flow_lyr=None):
+    def array_to_raster(self, path, array, no_flow_layer=None):
         from osgeo import osr, gdal
 
-        if no_flow_lyr is not None:
-            no_flow = self.get_no_flow(no_flow_lyr).astype(bool)
+        if no_flow_layer is not None:
+            no_flow = self.get_no_flow(no_flow_layer).astype(bool)
             array[~no_flow] = -99
         output_raster = gdal.GetDriverByName('GTiff').Create(path, array.shape[1], array.shape[0], 1,
                                                              gdal.GDT_Float32)  # Open the file
