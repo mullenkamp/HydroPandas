@@ -15,6 +15,7 @@ from core.ecan_io import rd_sql, sql_db
 import os
 import pickle
 import geopandas as gpd
+from copy import deepcopy
 
 
 def create_wel_package(m, wel_version):
@@ -146,7 +147,7 @@ def _get_wel_spd_v1(recalc=False,sub_version=1):
     all_wells = all_wells.loc[~((all_wells.duplicated(subset=['row','col','layer'],keep=False)) &
                               (all_wells.type=='lr_boundry_flux'))]
     all_wells.loc[all_wells.type == 'lr_boundry_flux','flux'] = 86400/(all_wells.type == 'lr_boundry_flux').sum()
-
+    all_wells = add_use_type(all_wells) # any well that has irrigation/stockwater in it's uses is considered irrigation
     if sub_version != 0:
         pickle.dump(all_wells, open(pickle_path, 'w'))
     return all_wells
@@ -364,6 +365,18 @@ def get_s_wai_races():
     outdata['consent'] = None
     outdata.index.names = ['well']
     return outdata
+
+def add_use_type(data):
+    data = deepcopy(data)
+    allo = pd.read_csv("{}/inputs/wells/allo_gis.csv".format(sdp))
+    allo = allo.set_index('wap')
+    data.loc[:,'use_type'] = 'injection'
+    for i in data.loc[data.type=='well'].index:
+        if np.in1d(np.atleast_1d(allo.loc[i,'use_type']),['stockwater','irrigation']).any():
+            data.loc[i,'use_type'] = 'irrigation-sw'
+        else:
+            data.loc[i,'use_type'] = 'other'
+    return data
 
 
 if __name__ == '__main__':

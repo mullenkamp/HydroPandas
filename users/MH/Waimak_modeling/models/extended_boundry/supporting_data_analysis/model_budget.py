@@ -34,11 +34,13 @@ if __name__ == '__main__':
 
     races = smt.df_to_array(well_data.loc[well_data.type=='race'],'flux')
     wells = smt.df_to_array(well_data.loc[well_data.type=='well'],'flux')
+    wells_irr = smt.df_to_array(well_data.loc[(well_data.type=='well') & (well_data.use_type=='irrigation-sw')],'flux')
+    wells_oth = smt.df_to_array(well_data.loc[(well_data.type=='well') & (well_data.use_type=='other')],'flux')
     rivers = smt.df_to_array(well_data.loc[well_data.type=='river'],'flux')
     bflux = smt.df_to_array(well_data.loc[well_data.type.str.contains('boundry_flux')],'flux')
     rch = _get_rch()*200*200
 
-    for dat, name in zip([races,wells,rivers, bflux,rch],['races','wells','wrivers', 'bflux','rch']):
+    for dat, name in zip([races,wells,wells_irr,wells_oth,rivers, bflux,rch],['races','wells','wells_irr','wells_other','wrivers', 'bflux','rch']):
         for idx, zone in zip([w_idx,c_idx,s_idx,all_idx],['waimak','chch_wm', 'selwyn', 'total']):
             outdata.loc[name,zone] = np.nansum(dat[idx])
 
