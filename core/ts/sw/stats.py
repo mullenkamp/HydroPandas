@@ -4,14 +4,13 @@ Flow stats functions.
 """
 
 
-def flow_stats(x, below_median=False, export=False, export_path='', export_name='flow_stats.csv'):
+def flow_stats(x, below_median=False, export_path=None):
     """
     Function to run summary stats on time series flow data.
 
     Arguments:\n
-    export -- Should the results be exported?\n
-    export_path -- Path where the results will be exported.\n
-    export_name -- The name of the csv file to be exported.
+    below_median -- Should the average number of days below the median be added?\n
+    export_path -- Path where the results will be exported.
     """
 
     from pandas import DataFrame, concat
@@ -65,8 +64,8 @@ def flow_stats(x, below_median=False, export=False, export_path='', export_name=
     df2.index.name = 'site'
 
     # Export data and return dataframe
-    if export:
-        df2.to_csv(path.join(export_path, export_name))
+    if isinstance(export_path, str):
+        df2.to_csv(export_path)
     return(df2)
 
 

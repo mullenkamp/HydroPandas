@@ -3,40 +3,42 @@
 Created on Fri Jun 17 15:17:37 2016
 
 @author: MichaelEK
+
+Template script for naturalisation and misc stats.
 """
 
 from pandas import read_table, DataFrame, concat, merge, Timedelta, datetime, to_datetime, DateOffset, date_range, Timestamp, read_csv, to_numeric
 from core.misc import printf
-from core.ts.sw import stream_nat
-from core.stats import lin_reg
-
+from core.ts.sw import stream_nat, flow_stats, malf7d
+from core.ts.plot import hydrograph_plot
 
 ############################################
 #### Parameters
 
 sites = [69618, 69607, 69619, 69615, 69614, 69635, 69602, 69644]
-catch_shp=r'P:\cant_catch_delin\recorders\catch_del.shp'
-include_gw=True
-max_date='2015-06-30'
-sd_hdf='S:/Surface Water/shared/base_data/usage/sd_est_all_mon_vol.h5'
-flow_csv=None
-crc_shp=r'S:\Surface Water\shared\GIS_base\vector\allocations\allo_gis.shp'
-catch_col='site'
-norm_area=False
-export=False
-export_rec_flow_path='rec_flow_nat.csv'
-export_gauge_flow_path='gauge_flow_nat.csv'
 
-norm_area = False
+pivot = True
 
 export_path = r'E:\ecan\shared\projects\otop\naturalisation\nat_test1.csv'
 
 ###########################################
 #### Run stream naturalization
 
-flow_nat = stream_nat(sites, pivot=True, export_path=export_path)
+flow_nat = stream_nat(sites, pivot=pivot, export_path=export_path)
 
 
+###########################################
+#### Run other stats
+
+flow_nat1 = flow_nat['nat_flow']
+nat_stats = flow_stats(flow_nat1)
+malf, alfs, mis_alfs, min_mis_alfs, min_date_alf = malf7d(flow_nat1, return_alfs=True)
+
+##########################################
+#### Plotting hydrographs
+
+plot_data = flow_nat1[[69607]]['2010-01-01':'2015-01-01'].dropna()
+p1 = hydrograph_plot(plot_data, x_period='year')
 
 ##########################################
 #### Testing
