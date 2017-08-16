@@ -17,13 +17,14 @@ from datetime import date
 from scipy.stats import percentileofscore
 from numpy import in1d, round
 from bokeh.plotting import figure, save, show, output_file
-from bokeh.models import ColumnDataSource, HoverTool, LogColorMapper, Legend, CategoricalColorMapper
+from bokeh.models import ColumnDataSource, HoverTool, LogColorMapper, Legend, CategoricalColorMapper, CustomJS
 from bokeh.palettes import RdYlBu11 as palette
 from bokeh.palettes import brewer
-from bokeh.models.widgets import Panel, Tabs, Slider
+from bokeh.models.widgets import Panel, Tabs, Slider, Select
 from bokeh.models.tools import WheelZoomTool
 from collections import OrderedDict
-from bokeh.layouts import widgetbox
+from bokeh.layouts import widgetbox, column
+
 
 ###################################################
 #### Parameters
@@ -31,6 +32,7 @@ from bokeh.layouts import widgetbox
 base_dir = r'P:\Surface Water Quantity\Projects\Freshwater Report'
 sw_poly_shp = 'sw_boundary_v01.shp'
 precip_poly_shp = 'precip_boundary_v01.shp'
+gw_poly_shp = 'precip_boundary_v01.shp'
 rec_catch_shp = r'E:\ecan\shared\GIS_base\vector\catchments\catch_delin_recorders.shp'
 streams_shp = r'E:\ecan\shared\GIS_base\vector\streams\river-environment-classification-canterbury-2010.shp'
 rec_sites_shp = r'E:\ecan\shared\GIS_base\vector\catchments\recorder_sites_REC.shp'
@@ -39,6 +41,8 @@ rec_sites_details_shp = r'E:\ecan\shared\GIS_base\vector\catchments\recorder_sit
 qual_codes = [10, 18, 20, 30, 50, 11, 21, 40]
 
 month_names = ['Jan', 'Feb', 'March', 'April', 'May', 'June', 'July', 'August', 'Sept', 'Oct', 'Nov', 'Dec']
+
+lon_zone_names = {'L': 'Lowlands', 'F': 'Foothills', 'M': 'Mountains', 'BP': 'Banks Peninsula'}
 
 std_cat = [0.1, 1]
 
@@ -54,6 +58,7 @@ precip_zone_stats_shp = 'precip_zone_stats.shp'
 
 ## plots
 test1_html = r'E:\ecan\git\ecan_python_courses\docs\test1.html'
+test2_html = r'E:\ecan\git\ecan_python_courses\docs\test2.html'
 
 ##################################################
 #### Read in data
@@ -65,15 +70,43 @@ streams = read_file(streams_shp)
 rec_sites = read_file(rec_sites_shp)
 site_list = read_csv(join(base_dir, pot_sw_site_list_csv))
 
+sw_list = site_list.replace({'lon_zone': lon_zone_names})
+sw_list['zone'] = sw_list['lat_zone'] + ' - ' + sw_list['lon_zone']
+sw_list = sw_list.drop(['lon_zone', 'lat_zone'], axis=1)
+
+sw_zones = sw_poly.replace({'lon_zone': lon_zone_names})
+sw_zones['zone'] = sw_zones['lat_zone'] + ' - ' + sw_zones['lon_zone']
+sw_zones = sw_zones.drop(['lon_zone', 'lat_zone'], axis=1)
+sw_zones['mtype'] = 'flow'
+
 ### precip
 precip_sites = read_file(join(base_dir, precip_site_shp))
 precip_zones = read_file(join(base_dir, precip_poly_shp))
+
+precip_zones = precip_zones.replace({'lon_zone': lon_zone_names})
+precip_zones['zone'] = precip_zones['lat_zone'] + ' - ' + precip_zones['lon_zone']
+precip_zones = precip_zones.drop(['lon_zone', 'lat_zone'], axis=1)
+precip_zones['mtype'] = 'precip'
+
+### gw
+gw_sites = read_file(join(base_dir, gw_site_shp))
+gw_zones = read_file(join(base_dir, gw_poly_shp))
+
+gw_zones = gw_zones.replace({'lon_zone': lon_zone_names})
+gw_zones['zone'] = gw_zones['lat_zone'] + ' - ' + gw_zones['lon_zone']
+gw_zones = gw_zones.drop(['lon_zone', 'lat_zone'], axis=1)
+gw_zones['mtype'] = 'gw'
+
+
+### Combine
+
+zones = concat([sw_zones, precip_zones]).reset_index(drop=True)
 
 #################################################
 #### Select sites
 
 ### SW
-sites1 = site_list[site_list.Notes.isnull()]
+sites1 = sw_list[sw_list.Notes.isnull()].drop('Notes', axis=1)
 
 flow1 = hydro().get_data('flow', sites1.site, qual_codes)
 stats_flow = flow1.stats('flow')
@@ -88,19 +121,33 @@ precip1 = hydro().get_data(mtypes='precip', sites=precip_sites.site, qual_codes=
 ### SW
 site_catch1 = rec_catch[rec_catch.site.isin(sites1.site)]
 
-overlay1 = spatial_overlays(site_catch1, sw_poly, how='intersection')
+overlay1 = spatial_overlays(site_catch1, sw_zones, how='intersection')
 
-overlay2 = overlay1.merge(sites1, on=['site', 'lat_zone', 'lon_zone'])
+overlay2 = overlay1.merge(sites1, on=['site', 'zone']).drop(['idx1', 'idx2', 'NZREACH'], axis=1)
 overlay2['area'] = overlay2.area
 
-zone_sum1 = overlay2.groupby(['lat_zone', 'lon_zone']).area.transform('sum')
+zone_sum1 = overlay2.groupby(['zone']).area.transform('sum')
 overlay2['agg_area'] = zone_sum1
 
 overlay3 = overlay2.set_index('site').drop('geometry', axis=1)
-site_area_weight = (overlay3.area / overlay3.agg_area)
+sw_area_weight = (overlay3.area / overlay3.agg_area)
+sw_area_weight.name = 'sw_area_weight'
+
+sw_site_zone = overlay3[['zone']].copy()
 
 ### precip
 precip_site_zone = sjoin(precip_sites, precip_zones)
+precip_site_zone['precip_area_weight'] = 1/precip_site_zone.groupby(['zone'])['site'].transform('count')
+precip_area_weight = precip_site_zone[['site', 'precip_area_weight']].sort_values('site').set_index('site')['precip_area_weight']
+
+precip_site_zone1 = precip_site_zone[['site', 'zone']].set_index('site').copy()
+
+### Combine
+
+area_weights = concat([sw_area_weight, precip_area_weight])
+area_weights.name = 'area_weights'
+
+site_zones = concat([sw_site_zone, precip_site_zone1])
 
 #################################################
 #### Run monthly summary stats
@@ -168,7 +215,7 @@ hy_summ = concat([hy_flow, hy_precip]).reset_index(drop=True)
 ##############################################
 #### Run the monthly stats comparisons
 
-time_index = hy_summ.time.unique()
+#time_index = hy_summ.time.unique()
 
 
 def row_perc(x, mon_summ):
@@ -177,99 +224,36 @@ def row_perc(x, mon_summ):
     perc1 = percentileofscore(mon_val, x.value)
     return(perc1)
 
-hy_summ['perc'] = hy_summ.apply(row_perc, mon_summ=mon_summ, axis=1)
+hy_summ['perc_temp'] = hy_summ.apply(row_perc, mon_summ=mon_summ, axis=1)
 
 
-
-
-### SW
-mon1 = start_date.month
-mon_stats = mon_flow1[mon_flow1.mon == mon1]
-mon_val = hy_flow.set_index('site')
-
-mon_stats_grp = mon_stats.groupby('site')['data']
-
-mon_site_prec = mon_val['mon_median_flow'].copy()
-mon_site_prec.name = 'mon_flow_perc'
-
-for name, grp in mon_stats_grp:
-    val = mon_val.loc[name][0]
-    arr1 = grp.values
-    perc1 = percentileofscore(arr1, val)
-    mon_site_prec.loc[name] = perc1
-
-mon_flow_prec = mon_site_prec.copy()
-
-### precip
-mon1 = start_date.month
-mon_stats = mon_precip1[mon_precip1.mon == mon1]
-mon_val = hy_precip.set_index('site')
-
-mon_stats_grp = mon_stats.groupby('site')['data']
-
-mon_site_prec = mon_val['mon_sum_precip'].copy()
-mon_site_prec.name = 'mon_precip_perc'
-for name, grp in mon_stats_grp:
-    val = mon_val.loc[name][0]
-    arr1 = grp.values
-    perc1 = percentileofscore(arr1, val)
-    mon_site_prec.loc[name] = perc1
-
-mon_precip_prec = mon_site_prec.copy()
 
 ##############################################
 #### Calc zone stats and apply categories
 
-### SW
-mon_site = mon_flow_prec * site_area_weight
-mon_site.name = 'mon_flow_perc'
+### Catchment area weights for SW
+hy_summ1 = merge(hy_summ, area_weights.reset_index(), on='site', how='left')
+if sum(hy_summ1.area_weights.isnull()) > 0:
+    raise ValueError('Missing some site area weights!')
+hy_summ1['perc'] = hy_summ1['perc_temp'] * hy_summ1['area_weights']
 
-mon_site_area = concat([overlay3, mon_site], axis=1)
+hy_summ2 = merge(hy_summ1[['mtype', 'site', 'time', 'perc']], site_zones.reset_index(), on='site', how='left')
+hy_summ2.loc[:, 'time'] = hy_summ2.loc[:, 'time'].dt.strftime('%b %Y')
 
-zone_stats1 = mon_site_area.groupby(['lat_zone', 'lon_zone'])['mon_flow_perc'].sum().round(1)
-
-cat_val_lst = [0, 10, 40, 60, 90, 100]
-cat_name_lst = ['very low', 'below average', 'average', 'above average', 'very high']
-
-cat1 = cut(zone_stats1, cat_val_lst, labels=cat_name_lst).astype('str')
-cat1.name = 'flow_category'
-
-cat2 = concat([zone_stats1, cat1], axis=1)
-
-sw_poly2 = sw_poly.merge(cat2.reset_index(), on=['lat_zone', 'lon_zone'])
-
-sw_poly2.to_file(join(base_dir, sw_zone_stats_shp))
-
-### precip
-precip_site_zone1 = precip_site_zone.drop(['geometry', 'index_right'], axis=1).set_index('site')
-mon_site_area = concat([precip_site_zone1, mon_precip_prec], axis=1)
-
-zone_stats1 = mon_site_area.groupby(['lat_zone', 'lon_zone'])['mon_precip_perc'].mean().round(1)
+zone_stats1 = hy_summ2.groupby(['zone', 'mtype', 'time'])['perc'].sum().round(1)
 
 cat_val_lst = [0, 10, 40, 60, 90, 100]
 cat_name_lst = ['very low', 'below average', 'average', 'above average', 'very high']
 
 cat1 = cut(zone_stats1, cat_val_lst, labels=cat_name_lst).astype('str')
-cat1.name = 'precip_category'
-
+cat1.name = 'category'
 cat2 = concat([zone_stats1, cat1], axis=1)
-
-precip_poly2 = precip_zones.merge(cat2.reset_index(), on=['lat_zone', 'lon_zone'])
-
-precip_poly2.to_file(join(base_dir, precip_zone_stats_shp))
-
+cat3 = cat2.sort_values('perc', ascending=False).category
 
 #################################################
 #### Plotting
 
-
-
-precip_poly2 = read_file(join(base_dir, precip_zone_stats_shp))
-sw_poly2 = read_file(join(base_dir, sw_zone_stats_shp))
-
-sw_precip_poly = sw_poly2.merge(precip_poly2.drop('geometry', axis=1), on=['lat_zone', 'lon_zone'])
-
-sw_precip_poly2 = multipoly_to_poly(sw_precip_poly)
+### Extract x and y data for plotting
 
 
 def getPolyCoords(row, coord_type, geom='geometry'):
@@ -285,49 +269,121 @@ def getPolyCoords(row, coord_type, geom='geometry'):
         # Get the y coordinates of the exterior
         return list(exterior.coords.xy[1])
 
+zones1 = multipoly_to_poly(zones)
 
+zones1['x'] = zones1.apply(getPolyCoords, coord_type='x', axis=1)
+zones1['y'] = zones1.apply(getPolyCoords, coord_type='y', axis=1)
 
-sw_precip_poly2['x'] = sw_precip_poly2.apply(getPolyCoords, coord_type='x', axis=1)
-sw_precip_poly2['y'] = sw_precip_poly2.apply(getPolyCoords, coord_type='y', axis=1)
+zones2 = zones1.drop('geometry', axis=1)
 
-flow_b = sw_precip_poly2.drop('geometry', axis=1).copy().sort_values('mon_flow_p', ascending=False)
-precip_b = sw_precip_poly2.drop('geometry', axis=1).copy().sort_values('mon_precip', ascending=False)
+### Combine with time series data
+data1 = merge(cat1.unstack('time').reset_index(), zones2, on=['mtype', 'zone'])
+time_index = hy_summ2.time.unique().tolist()
+data1['cat'] = data1[time_index[-1]]
 
-c1 = brewer['RdBu'][5]
-#color_dict = {'very high': c1[0], 'above average': c1[1], 'average': c1[2], 'below average': c1[3], 'very low': c1[4]}
-#color_dict = OrderedDict([('very high', c1[0]), ('above average', c1[1]), ('average', c1[2]), ('below average', c1[3]), ('very low', c1[4])])
-#g_df['precip_color'] = g_df['precip_cat'].replace(color_dict)
-#g_df['flow_color'] = g_df['flow_categ'].replace(color_dict)
+### Extract the mtype dataframes
+flow_b = data1.loc[data1.mtype == 'flow']
+precip_b = data1.loc[data1.mtype == 'precip']
 
 flow_source = ColumnDataSource(flow_b)
 precip_source = ColumnDataSource(precip_b)
+time_source = ColumnDataSource(DataFrame({'index': time_index}))
 
-color_map = CategoricalColorMapper(factors=['very high', 'above average', 'average', 'below average', 'very low'], palette=[c1[0], c1[1], c1[2], c1[3], c1[4]])
+### Set up plotting parameters
+c1 = brewer['RdBu'][5]
 
-
+factors = ['very high', 'above average', 'average', 'below average', 'very low']
+color_map = CategoricalColorMapper(factors=factors, palette=[c1[0], c1[1], c1[2], c1[3], c1[4]])
 
 TOOLS = "pan,wheel_zoom,reset,hover,save"
 
+### Plot
+#output_file(test1_html)
+#
+#p1 = figure(title='Precipitation Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom')
+#p1.patches('x', 'y', source=precip_source, fill_color={'field': 'precip_cat', 'transform': color_map}, line_color="black", line_width=1, legend='precip_cat')
+#p1.legend.location = 'top_left'
+##p1.toolbar.active_scroll = WheelZoomTool()
+#hover1 = p1.select_one(HoverTool)
+#hover1.point_policy = "follow_mouse"
+#hover1.tooltips = [("Category", "@precip_cat"), ("Percentile", "@mon_precip{1.1}" + "%")]
+#tab1 = Panel(child=p1, title='Precip')
+#
+#p2 = figure(title='Flow Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom')
+#p2.patches('x', 'y', source=flow_source, fill_color={'field': 'flow_categ', 'transform': color_map}, line_color="black", line_width=1, legend='flow_categ')
+#p2.legend.location = 'top_left'
+##p2.toolbar.active_scroll = WheelZoomTool()
+#hover2 = p2.select_one(HoverTool)
+#hover2.point_policy = "follow_mouse"
+#hover2.tooltips = [("Category", "@flow_categ"), ("Percentile", "@mon_flow_p{1.1}" + "%")]
+#tab2 = Panel(child=p2, title='Flow')
+#
+#tabs = Tabs(tabs=[tab1, tab2])
+#
+#show(tabs)
+
+
 output_file(test1_html)
 
-p1 = figure(title=month_names[mon1 - 1] + ' ' + str(start_date.year) + ' Precipitation Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom')
-p1.patches('x', 'y', source=precip_source, fill_color={'field': 'precip_cat', 'transform': color_map}, line_color="black", line_width=1, legend='precip_cat')
+## Figure 1
+p1 = figure(title='Precipitation Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom')
+p1.patches('x', 'y', source=precip_source, fill_color={'field': 'cat', 'transform': color_map}, line_color="black", line_width=1, legend='cat')
 p1.legend.location = 'top_left'
-#p1.toolbar.active_scroll = WheelZoomTool()
+
 hover1 = p1.select_one(HoverTool)
 hover1.point_policy = "follow_mouse"
-hover1.tooltips = [("Category", "@precip_cat"), ("Percentile", "@mon_precip{1.1}" + "%")]
-tab1 = Panel(child=p1, title='Precip')
+hover1.tooltips = [("Category", "@cat"), ("Zone", "@zone")]
 
-p2 = figure(title=month_names[mon1 - 1] + ' ' + str(start_date.year) + ' Flow Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom')
-p2.patches('x', 'y', source=flow_source, fill_color={'field': 'flow_categ', 'transform': color_map}, line_color="black", line_width=1, legend='flow_categ')
+#it1 = [(i, [r1]) for i in factors]
+#l1 = Legend(items=it1, location=(0, -30))
+#
+#p1.add_layout(l1, 'right')
+
+callback1 = CustomJS(args=dict(source=precip_source), code="""
+    var data = source.data;
+    var f = cb_obj.value;
+    source.data.cat = data[f];
+    source.change.emit();
+""")
+
+select1 = Select(title='Month', value=time_index[-1], options=time_index)
+select1.js_on_change('value', callback1)
+#slider = Slider(start=0, end=len(time_index)-1, value=0, step=1)
+#slider.js_on_change('value', callback)
+
+layout1 = column(p1, select1)
+tab1 = Panel(child=layout1, title='Precip')
+
+## Figure 2
+p2 = figure(title='Flow Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom')
+p2.patches('x', 'y', source=flow_source, fill_color={'field': 'cat', 'transform': color_map}, line_color="black", line_width=1, legend='cat')
 p2.legend.location = 'top_left'
-#p2.toolbar.active_scroll = WheelZoomTool()
+
 hover2 = p2.select_one(HoverTool)
 hover2.point_policy = "follow_mouse"
-hover2.tooltips = [("Category", "@flow_categ"), ("Percentile", "@mon_flow_p{1.1}" + "%")]
-tab2 = Panel(child=p2, title='Flow')
+hover2.tooltips = [("Category", "@cat"), ("Zone", "@zone")]
 
+#it1 = [(i, [r1]) for i in factors]
+#l1 = Legend(items=it1, location=(0, -30))
+#
+#p1.add_layout(l1, 'right')
+
+callback2 = CustomJS(args=dict(source=flow_source), code="""
+    var data = source.data;
+    var f = cb_obj.value;
+    source.data.cat = data[f];
+    source.change.emit();
+""")
+
+select2 = Select(title='Month', value=time_index[-1], options=time_index)
+select2.js_on_change('value', callback2)
+#slider = Slider(start=0, end=len(time_index)-1, value=0, step=1)
+#slider.js_on_change('value', callback)
+
+layout2 = column(p2, select2)
+tab2 = Panel(child=layout2, title='Flow')
+
+## Combine
 tabs = Tabs(tabs=[tab1, tab2])
 
 show(tabs)
@@ -355,17 +411,10 @@ show(tabs)
 
 
 
-
-
-
-
-
-
-
 ##################################################
 #### Testing
 
-precip = hydro().get_data(mtypes='precip', sites=join(base_dir, precip_poly_shp), qual_codes=qual_codes)
+gw1 = hydro().get_data(mtypes='gwl', sites=join(base_dir, gw_poly_shp), qual_codes=qual_codes)
 
 
 mis_sites = mon_precip1.site.unique()[~in1d(mon_precip1.site.unique(), hy1.sites)]
@@ -391,15 +440,32 @@ df1.columns = ['flow_data', 'fouad', 'percentile']
 df1.to_csv(join(base_dir, 'test_output_71195.csv'), index=False)
 
 
+sl1 = Slider(start=0, end=len(time_index)-1, value=0, step=1)
 
 
+output_file(test2_html)
 
+p1 = figure(title='Precipitation Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom')
+p1.patches('x', 'y', source=precip_source, fill_color={'field': 'cat', 'transform': color_map}, line_color="black", line_width=1, legend='cat')
+p1.legend.location = 'top_left'
+hover1 = p1.select_one(HoverTool)
+hover1.point_policy = "follow_mouse"
+hover1.tooltips = [("Category", "@cat"), ("Zone", "@zone")]
 
+callback = CustomJS(args=dict(source=precip_source, index=time_source), code="""
+    var data = source.data;
+    var f = cb_obj.value
+    var i = index.index[f]
+    cat = data[i]
+    source.change.emit();
+""")
 
+slider = Slider(start=0, end=len(time_index)-1, value=0, step=1)
+slider.js_on_change('value', callback)
 
+layout = column(p1, slider)
 
-
-
+show(p1)
 
 
 
