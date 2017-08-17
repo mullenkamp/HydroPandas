@@ -24,6 +24,7 @@ from bokeh.models.widgets import Panel, Tabs, Slider, Select
 from bokeh.models.tools import WheelZoomTool
 from collections import OrderedDict
 from bokeh.layouts import widgetbox, column
+from core.ts.met import precip_stats
 
 
 ###################################################
@@ -37,6 +38,7 @@ rec_catch_shp = r'E:\ecan\shared\GIS_base\vector\catchments\catch_delin_recorder
 streams_shp = r'E:\ecan\shared\GIS_base\vector\streams\river-environment-classification-canterbury-2010.shp'
 rec_sites_shp = r'E:\ecan\shared\GIS_base\vector\catchments\recorder_sites_REC.shp'
 rec_sites_details_shp = r'E:\ecan\shared\GIS_base\vector\catchments\recorder_sites_REC_details.shp'
+gw_sites_shp = r'P:\Surface Water Quantity\Projects\Freshwater Report\gw_sites1.shp'
 
 qual_codes = [10, 18, 20, 30, 50, 11, 21, 40]
 
@@ -89,7 +91,7 @@ precip_zones = precip_zones.drop(['lon_zone', 'lat_zone'], axis=1)
 precip_zones['mtype'] = 'precip'
 
 ### gw
-gw_sites = read_file(join(base_dir, gw_site_shp))
+gw_sites = read_file(join(base_dir, gw_sites_shp))
 gw_zones = read_file(join(base_dir, gw_poly_shp))
 
 gw_zones = gw_zones.replace({'lon_zone': lon_zone_names})
@@ -97,10 +99,15 @@ gw_zones['zone'] = gw_zones['lat_zone'] + ' - ' + gw_zones['lon_zone']
 gw_zones = gw_zones.drop(['lon_zone', 'lat_zone'], axis=1)
 gw_zones['mtype'] = 'gw'
 
+gw_sites = gw_sites.replace({'lon_zone': lon_zone_names})
+gw_sites['zone'] = gw_sites['lat_zone'] + ' - ' + gw_sites['lon_zone']
+gw_sites = gw_sites.drop(['lon_zone', 'lat_zone'], axis=1)
+#gw_sites['mtype'] = 'gw'
+
 
 ### Combine
 
-zones = concat([sw_zones, precip_zones]).reset_index(drop=True)
+zones = concat([sw_zones, precip_zones, gw_zones]).reset_index(drop=True)
 
 #################################################
 #### Select sites
@@ -113,6 +120,9 @@ stats_flow = flow1.stats('flow')
 
 ### precip
 precip1 = hydro().get_data(mtypes='precip', sites=precip_sites.site, qual_codes=qual_codes)
+
+### GW
+gw1 = hydro().get_data(mtypes='gwl', sites=gw_sites.site, qual_codes=qual_codes)
 
 
 #################################################
@@ -142,12 +152,20 @@ precip_area_weight = precip_site_zone[['site', 'precip_area_weight']].sort_value
 
 precip_site_zone1 = precip_site_zone[['site', 'zone']].set_index('site').copy()
 
+### gw
+gw_site_zone = sjoin(gw_sites, gw_zones)
+gw_site_zone = gw_site_zone.rename(columns={'zone_left': 'zone'}).drop('zone_right', axis=1)
+gw_site_zone['gw_area_weight'] = 1/gw_site_zone.groupby(['zone'])['site'].transform('count')
+gw_area_weight = gw_site_zone[['site', 'gw_area_weight']].sort_values('site').set_index('site')['gw_area_weight']
+
+gw_site_zone1 = gw_site_zone[['site', 'zone']].set_index('site').copy()
+
 ### Combine
 
-area_weights = concat([sw_area_weight, precip_area_weight])
+area_weights = concat([sw_area_weight, precip_area_weight, gw_area_weight])
 area_weights.name = 'area_weights'
 
-site_zones = concat([sw_site_zone, precip_site_zone1])
+site_zones = concat([sw_site_zone, precip_site_zone1, gw_site_zone1])
 
 #################################################
 #### Run monthly summary stats
@@ -170,9 +188,18 @@ mon_precip1 = grp_ts_agg(precip3, 'site', 'time', 'M', 'sum')
 mon_precip1['mon'] = mon_precip1.time.dt.month
 mon_precip1['mtype'] = 'precip'
 
+### gw
+gw2 = gw1.sel_ts(mtypes='gwl')
+gw2.index = gw2.index.droplevel('mtype')
+gw3 = gw2.reset_index()
+
+mon_gw1 = grp_ts_agg(gw3, 'site', 'time', 'M', 'sum')
+mon_gw1['mon'] = mon_gw1.time.dt.month
+mon_gw1['mtype'] = 'gw'
+
 ### Combine all mtypes
 
-mon_summ = concat([mon_flow1, mon_precip1]).reset_index(drop=True)
+mon_summ = concat([mon_flow1, mon_precip1, mon_gw1]).reset_index(drop=True)
 
 ###############################################
 #### Pull out recent monthly data from hydrotel
@@ -207,6 +234,16 @@ hy2 = hy2[hy2.time != end_date]
 hy3 = grp_ts_agg(hy2, 'site', 'time', 'M', 'sum')
 hy_precip = hy3.copy()
 hy_precip['mtype'] = 'precip'
+
+### gw
+hy1 = rd_hydrotel(mon_gw1.site.unique(), mtype='gwl_tel', from_date=start_date.strftime('%Y-%m-%d'), to_date=end_date.strftime('%Y-%m-%d'), resample='day', fun='sum')
+hy2 = hy1.reset_index()
+if len(hy2.site.unique()) != len(mon_gw1.site.unique()):
+    raise ValueError("Didn't get all sites")
+hy2 = hy2[hy2.time != end_date]
+hy3 = grp_ts_agg(hy2, 'site', 'time', 'M', 'sum')
+hy_gw = hy3.copy()
+hy_gw['mtype'] = 'gw'
 
 ### combine data
 
@@ -325,7 +362,7 @@ TOOLS = "pan,wheel_zoom,reset,hover,save"
 
 output_file(test1_html)
 
-## Figure 1
+## Figure 1 - precip
 p1 = figure(title='Precipitation Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom')
 p1.patches('x', 'y', source=precip_source, fill_color={'field': 'cat', 'transform': color_map}, line_color="black", line_width=1, legend='cat')
 p1.legend.location = 'top_left'
@@ -354,7 +391,7 @@ select1.js_on_change('value', callback1)
 layout1 = column(p1, select1)
 tab1 = Panel(child=layout1, title='Precip')
 
-## Figure 2
+## Figure 2 - flow
 p2 = figure(title='Flow Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom')
 p2.patches('x', 'y', source=flow_source, fill_color={'field': 'cat', 'transform': color_map}, line_color="black", line_width=1, legend='cat')
 p2.legend.location = 'top_left'
@@ -414,7 +451,22 @@ show(tabs)
 ##################################################
 #### Testing
 
+gw_sites_shp = r'P:\Surface Water Quantity\Projects\Freshwater Report\gw_sites.shp'
+
 gw1 = hydro().get_data(mtypes='gwl', sites=join(base_dir, gw_poly_shp), qual_codes=qual_codes)
+
+gw2 = gw1.data
+gw2.index = gw2.index.droplevel('mtype')
+gw_stats = precip_stats(gw2)
+
+gw_stats2 = gw_stats[(gw_stats['End time'] > '2017-01-01') & (gw_stats['Tot data yrs'] > 10)]
+
+gw_geo1 = gw1.geo_loc.copy()
+
+gw_sites1 = gw_stats2.index
+
+gw_geo2 = gw_geo1.loc[gw_sites1]
+gw_geo2.reset_index().to_file(gw_sites_shp)
 
 
 mis_sites = mon_precip1.site.unique()[~in1d(mon_precip1.site.unique(), hy1.sites)]

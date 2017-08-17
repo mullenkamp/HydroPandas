@@ -166,9 +166,9 @@ ht2[ht2 < 96]
 ht1['2016-03-05']
 
 
+res1 = read_csv(join(output_base, out_data_summ_csv))
 
-
-
+res1[res1.crc == 'CRC030682']
 
 
 

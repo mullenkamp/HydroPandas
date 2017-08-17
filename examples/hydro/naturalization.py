@@ -37,15 +37,15 @@ malf, alfs, mis_alfs, min_mis_alfs, min_date_alf = malf7d(flow_nat1, return_alfs
 ##########################################
 #### Plotting hydrographs
 
-plot_data = flow_nat1[[69607]]['2010-01-01':'2015-01-01'].dropna()
-p1 = hydrograph_plot(plot_data, x_period='year')
+plot_data = flow_nat1[[69614]]['2010-01-01':'2015-01-01'].dropna()
+p1 = hydrograph_plot(plot_data, x_period='year', time_format='%Y-%m-%d')
 
 ##########################################
 #### Testing
 
 #sd1a[sd1a.wap == 'J37/0306']
 
-
+flow_nat['flow'][69614]
 
 
 

@@ -208,7 +208,7 @@ def rd_hydrotel(select=None, mtype='flow_tel', from_date=None, to_date=None, use
     from core.misc.misc import time_switch, select_sites
 
     #### mtypes dict
-    mtypes_dict = {'flow_tel': 'Flow Rate', 'gwl_tel': 'Groundwater level', 'precip_tel': 'Rainfall Depth', 'swl_tel': 'Water Level', 'wtemp_tel': 'Water Temperature'}
+    mtypes_dict = {'flow_tel': 'Flow Rate', 'gwl_tel': 'Water Level', 'precip_tel': 'Rainfall Depth', 'swl_tel': 'Water Level', 'wtemp_tel': 'Water Temperature'}
 
     #### Database parameters
     server = 'SQL2012PROD05'
@@ -229,15 +229,20 @@ def rd_hydrotel(select=None, mtype='flow_tel', from_date=None, to_date=None, use
     #### Import data and select the correct sites
 
     if select is not None:
-        sites = select_sites(select).astype('int32').tolist()
+        sites = select_sites(select)
         if mtype == 'precip_tel':
-            site_ob1 = rd_sql(server, database, objects_tab, ['Site', 'ExtSysId'], 'ExtSysId', sites)
+            site_ob1 = rd_sql(server, database, objects_tab, ['Site', 'ExtSysId'], 'ExtSysId', sites.astype('int32').tolist())
             site_val0 = rd_sql(server, database, sites_tab, ['Site', 'Name'], 'Site', site_ob1.Site.tolist())
             site_val1 = merge(site_val0, site_ob1, on='Site')
+        if mtype == 'gwl_tel':
+            site_val0 = rd_sql(server, database, sites_tab, ['Site', 'Name'])
+            site_val0.loc[:, 'Name'] = site_val0.apply(lambda x: x.Name.split(' ')[0], axis=1)
+            site_val1 = site_val0[site_val0.Name.isin(sites)]
+            site_val1.loc[:, 'ExtSysId'] = site_val1.loc[:, 'Name']
         else:
-            site_val1 = rd_sql(server, database, sites_tab, sites_col, 'ExtSysId', sites)
-        site_val1.loc[:,'ExtSysId'] = to_numeric(site_val1.loc[:,'ExtSysId'], errors='ignore').astype('int32')
-        site_val = site_val1.Site.values.tolist()
+            site_val1 = rd_sql(server, database, sites_tab, sites_col, 'ExtSysId', sites.astype('int32').tolist())
+        site_val1.loc[:, 'ExtSysId'] = to_numeric(site_val1.loc[:,'ExtSysId'], errors='ignore')
+        site_val = site_val1.Site.astype('int32').tolist()
         if isinstance(mtype, (list, ndarray, Series)):
             mtypes = [mtypes_dict[i] for i in mtype]
         elif isinstance(mtype, str):
@@ -249,6 +254,8 @@ def rd_hydrotel(select=None, mtype='flow_tel', from_date=None, to_date=None, use
         where_col = {'Site': site_val, 'ObjectVariant': mtypes_val.ObjectVariant.astype('int32').tolist()}
 
         object_val1 = rd_sql(server, database, objects_tab, objects_col, where_col)
+        if mtype == 'gwl_tel':
+            object_val1 = object_val1[object_val1.Name == 'Water Level']
         object_val = object_val1.Object.values.astype(int).tolist()
     else:
         site_val1 = rd_sql(server, database, sites_tab, sites_col)

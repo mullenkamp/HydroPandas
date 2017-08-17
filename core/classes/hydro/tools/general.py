@@ -61,5 +61,10 @@ def stats(self, mtypes=None, sites=None, below_median=False):
             data.index = data.index.droplevel('mtype')
             stats1 = precip_stats(data)
             return(stats1)
+        if mtypes == 'gwl':
+            data = self.sel_ts(mtypes=['gwl'], sites=sites)
+            data.index = data.index.droplevel('mtype')
+            stats1 = precip_stats(data)
+            return(stats1)
 
 
