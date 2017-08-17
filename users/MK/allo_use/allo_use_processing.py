@@ -9,7 +9,7 @@ from numpy import nan, logical_and, where, round, array, in1d, concatenate, isre
 from pandas import read_table, DataFrame, concat, merge, Timedelta, datetime, to_datetime, DateOffset, date_range, Timestamp, read_csv, to_numeric, read_hdf
 from core.misc import printf
 from core.ecan_io import rd_sql, rd_hydstra_csv
-from core.allo_use import allo_proc, allo_ts_proc, allo_errors, allo_use_proc, hist_sd_use, est_use, ros_proc, w_use_proc
+from core.allo_use import allo_proc, allo_ts_proc, allo_errors, allo_use_proc, hist_sd_use, est_use, ros_proc, w_use_proc, allo_gis_proc
 from core.ts import w_resample
 from core.spatial import pts_sql_join
 from geopandas import read_file

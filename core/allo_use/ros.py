@@ -140,7 +140,7 @@ def ros_proc(allo_use, date_col='date', allo_col='allo', min_days=150, export_us
     return([use_ros1b, ann_ros1])
 
 
-def restr_days(select, period='A-JUN', min_sites_shp='S:/Surface Water/shared/GIS_base/vector/low_flows/min_flows_sites_Cant.shp', sites_col='ReferenceN', export=True, export_path='restr_days.csv'):
+def restr_days(select, period='A-JUN', months=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], min_sites_shp='S:/Surface Water/shared/GIS_base/vector/low_flows/min_flows_sites_Cant.shp', sites_col='ReferenceN', export=True, export_path='restr_days.csv'):
     """
     Function to determine the number of days on restriction per period according to the LowFlows database.
 
@@ -236,6 +236,10 @@ def restr_days(select, period='A-JUN', min_sites_shp='S:/Surface Water/shared/GI
     restr1.loc[partial_index, 'band_restr'] = 101
     restr1.loc[restr1.band_restr == 100, 'band_restr'] = 103
     restr1.loc[restr1.band_restr == 0, 'band_restr'] = 102
+
+    ## Restrict by months
+    mon_index = restr1.dates.dt.month.isin(months)
+    restr1 = restr1[mon_index]
 
     ## Do the work
     def sp_count(df, num):

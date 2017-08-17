@@ -9,15 +9,15 @@ from geopandas import read_file, overlay, sjoin, GeoDataFrame
 from core.classes.hydro import hydro, all_mtypes
 from core.ecan_io import rd_hydrotel
 from datetime import datetime
-from pandas import DateOffset, to_datetime, date_range, read_csv, concat, merge, cut, DataFrame
+from pandas import DateOffset, to_datetime, date_range, read_csv, concat, merge, cut, DataFrame, MultiIndex, Series
 from os.path import join
 from core.spatial.vector import spatial_overlays, multipoly_to_poly
 from core.ts import grp_ts_agg, w_resample
 from datetime import date
 from scipy.stats import percentileofscore
-from numpy import in1d, round
+from numpy import in1d, round, nan
 from bokeh.plotting import figure, save, show, output_file
-from bokeh.models import ColumnDataSource, HoverTool, LogColorMapper, Legend, CategoricalColorMapper, CustomJS
+from bokeh.models import ColumnDataSource, HoverTool, LogColorMapper, Legend, CategoricalColorMapper, CustomJS, renderers, annotations
 from bokeh.palettes import RdYlBu11 as palette
 from bokeh.palettes import brewer
 from bokeh.models.widgets import Panel, Tabs, Slider, Select
@@ -193,7 +193,7 @@ gw2 = gw1.sel_ts(mtypes='gwl')
 gw2.index = gw2.index.droplevel('mtype')
 gw3 = gw2.reset_index()
 
-mon_gw1 = grp_ts_agg(gw3, 'site', 'time', 'M', 'sum')
+mon_gw1 = grp_ts_agg(gw3, 'site', 'time', 'M', 'median')
 mon_gw1['mon'] = mon_gw1.time.dt.month
 mon_gw1['mtype'] = 'gw'
 
@@ -209,13 +209,21 @@ start_date = now1 - DateOffset(months=7) - DateOffset(days=now1.day - 1)
 end_date = now1 - DateOffset(days=now1.day - 1)
 
 ### SW
+print('Getting HydroTel Flow Data')
 sites2 = sites1.copy()
 sites2.loc[sites2.site.isin([64610, 65104, 68526]), 'site'] = [164610, 165104, 168526]
 
-hy1 = rd_hydrotel(sites2.site, mtype='flow_tel', from_date=start_date.strftime('%Y-%m-%d'), to_date=end_date.strftime('%Y-%m-%d'), resample='day', fun='avg')
+hy_sites = sites2.site.copy()
+
+hy1 = rd_hydrotel(hy_sites, mtype='flow_tel', from_date=start_date.strftime('%Y-%m-%d'), to_date=end_date.strftime('%Y-%m-%d'), resample='day', fun='avg')
 hy2 = hy1.reset_index()
-if len(hy2.site.unique()) != len(sites2):
-    raise ValueError("Didn't get all sites")
+if len(hy2.site.unique()) != len(hy_sites):
+    print(str(len(hy_sites) - len(hy2.site.unique())) + " sites are not in Hydrotel")
+last1 = hy2.groupby('site').last()
+last_index = (last1.time >= end_date - DateOffset(days=1))
+if not all(last_index):
+    print(str(sum(~last_index)) + " sites have less than a full months record")
+    hy2 = hy2[hy2.site.isin(last_index.index[last_index])]
 hy2 = hy2[hy2.time != end_date]
 hy3 = grp_ts_agg(hy2, 'site', 'time', 'M', 'median')
 #hy3.columns = ['site', 'mon_median_flow']
@@ -226,33 +234,51 @@ hy_flow = hy3.copy()
 hy_flow['mtype'] = 'flow'
 
 ### precip
-hy1 = rd_hydrotel(mon_precip1.site.unique(), mtype='precip_tel', from_date=start_date.strftime('%Y-%m-%d'), to_date=end_date.strftime('%Y-%m-%d'), resample='day', fun='sum')
+print('Getting HydroTel Precip Data')
+
+hy_sites = mon_precip1.site.unique().copy()
+hy1 = rd_hydrotel(select=hy_sites, mtype='precip_tel', from_date=start_date.strftime('%Y-%m-%d'), to_date=end_date.strftime('%Y-%m-%d'), resample='day', fun='sum')
 hy2 = hy1.reset_index()
-if len(hy2.site.unique()) != len(mon_precip1.site.unique()):
-    raise ValueError("Didn't get all sites")
+if len(hy2.site.unique()) != len(hy_sites):
+    print(str(len(hy_sites) - len(hy2.site.unique())) + " sites are not in Hydrotel")
+last1 = hy2.groupby('site').last()
+last_index = (last1.time == end_date)
+if not all(last_index):
+    print(str(sum(~last_index)) + " sites have less than a full months record")
+    hy2 = hy2[hy2.site.isin(last_index.index[last_index])]
 hy2 = hy2[hy2.time != end_date]
 hy3 = grp_ts_agg(hy2, 'site', 'time', 'M', 'sum')
 hy_precip = hy3.copy()
 hy_precip['mtype'] = 'precip'
 
 ### gw
-hy1 = rd_hydrotel(mon_gw1.site.unique(), mtype='gwl_tel', from_date=start_date.strftime('%Y-%m-%d'), to_date=end_date.strftime('%Y-%m-%d'), resample='day', fun='sum')
+print('Getting HydroTel GWL Data')
+
+hy_sites = mon_gw1.site.unique().copy()
+hy1 = rd_hydrotel(hy_sites, mtype='gwl_tel', from_date=start_date.strftime('%Y-%m-%d'), to_date=end_date.strftime('%Y-%m-%d'), resample='day', fun='avg')
 hy2 = hy1.reset_index()
-if len(hy2.site.unique()) != len(mon_gw1.site.unique()):
-    raise ValueError("Didn't get all sites")
+if len(hy2.site.unique()) != len(hy_sites):
+    print(str(len(hy_sites) - len(hy2.site.unique())) + " sites are not in Hydrotel")
+last1 = hy2.groupby('site').last()
+last_index = (last1.time == end_date)
+if not all(last_index):
+    print(str(sum(~last_index)) + " sites have less than a full months record")
+    hy2 = hy2[hy2.site.isin(last_index.index[last_index])]
 hy2 = hy2[hy2.time != end_date]
-hy3 = grp_ts_agg(hy2, 'site', 'time', 'M', 'sum')
+hy3 = grp_ts_agg(hy2, 'site', 'time', 'M', 'median')
 hy_gw = hy3.copy()
 hy_gw['mtype'] = 'gw'
 
-### combine data
+### combine data and update sites
 
-hy_summ = concat([hy_flow, hy_precip]).reset_index(drop=True)
+hy_summ = concat([hy_flow, hy_precip, hy_gw]).reset_index(drop=True)
+hy_sites = hy_summ.site.unique()
+mon_summ = mon_summ[mon_summ.site.isin(hy_sites)]
+site_zones = site_zones[site_zones.index.isin(hy_sites)]
+area_weights = area_weights[area_weights.index.isin(hy_sites)]
 
 ##############################################
 #### Run the monthly stats comparisons
-
-#time_index = hy_summ.time.unique()
 
 
 def row_perc(x, mon_summ):
@@ -262,7 +288,6 @@ def row_perc(x, mon_summ):
     return(perc1)
 
 hy_summ['perc_temp'] = hy_summ.apply(row_perc, mon_summ=mon_summ, axis=1)
-
 
 
 ##############################################
@@ -275,16 +300,22 @@ if sum(hy_summ1.area_weights.isnull()) > 0:
 hy_summ1['perc'] = hy_summ1['perc_temp'] * hy_summ1['area_weights']
 
 hy_summ2 = merge(hy_summ1[['mtype', 'site', 'time', 'perc']], site_zones.reset_index(), on='site', how='left')
-hy_summ2.loc[:, 'time'] = hy_summ2.loc[:, 'time'].dt.strftime('%b %Y')
+#hy_summ2.loc[:, 'time'] = hy_summ2.loc[:, 'time'].dt.strftime('%b %Y')
+hy_summ2.loc[:, 'time'] = hy_summ2.loc[:, 'time'].dt.strftime('%Y-%m')
 
+prod1 = [sw_zones.zone.values, hy_summ2.mtype.unique(), hy_summ2.time.unique()]
+mindex = MultiIndex.from_product(prod1, names=[u'zone', u'mtype', u'time'])
+blank1 = Series(nan, index=mindex, name='temp')
 zone_stats1 = hy_summ2.groupby(['zone', 'mtype', 'time'])['perc'].sum().round(1)
+zone_stats2 = concat([zone_stats1, blank1], axis=1).perc
+zone_stats2[zone_stats2.isnull()] = -1
 
-cat_val_lst = [0, 10, 40, 60, 90, 100]
-cat_name_lst = ['very low', 'below average', 'average', 'above average', 'very high']
+cat_val_lst = [-10, -0.5, 10, 40, 60, 90, 100]
+cat_name_lst = ['No data', 'Very low', 'Below average', 'Average', 'Above average', 'Very high']
 
-cat1 = cut(zone_stats1, cat_val_lst, labels=cat_name_lst).astype('str')
+cat1 = cut(zone_stats2, cat_val_lst, labels=cat_name_lst).astype('str')
 cat1.name = 'category'
-cat2 = concat([zone_stats1, cat1], axis=1)
+cat2 = concat([zone_stats2, cat1], axis=1)
 cat3 = cat2.sort_values('perc', ascending=False).category
 
 #################################################
@@ -321,16 +352,24 @@ data1['cat'] = data1[time_index[-1]]
 ### Extract the mtype dataframes
 flow_b = data1.loc[data1.mtype == 'flow']
 precip_b = data1.loc[data1.mtype == 'precip']
+gw_b = data1.loc[data1.mtype == 'gw']
 
 flow_source = ColumnDataSource(flow_b)
 precip_source = ColumnDataSource(precip_b)
+gw_source = ColumnDataSource(gw_b)
 time_source = ColumnDataSource(DataFrame({'index': time_index}))
 
 ### Set up plotting parameters
 c1 = brewer['RdBu'][5]
+grey1 = brewer['Greys'][7][5]
 
-factors = ['very high', 'above average', 'average', 'below average', 'very low']
-color_map = CategoricalColorMapper(factors=factors, palette=[c1[0], c1[1], c1[2], c1[3], c1[4]])
+factors = cat_name_lst[::-1]
+color_map = CategoricalColorMapper(factors=factors, palette=[c1[0], c1[1], c1[2], c1[3], c1[4], grey1])
+
+### Set up dummy source for the legend
+dummy_b = flow_b[['zone', 'cat', 'x', 'y']].sort_values('zone')
+dummy_b.loc[:, 'cat'].iloc[0:len(factors)] = factors
+dummy_source = ColumnDataSource(dummy_b)
 
 TOOLS = "pan,wheel_zoom,reset,hover,save"
 
@@ -359,22 +398,28 @@ TOOLS = "pan,wheel_zoom,reset,hover,save"
 #
 #show(tabs)
 
+w = 700
+h = w
+
 
 output_file(test1_html)
 
-## Figure 1 - precip
-p1 = figure(title='Precipitation Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom')
-p1.patches('x', 'y', source=precip_source, fill_color={'field': 'cat', 'transform': color_map}, line_color="black", line_width=1, legend='cat')
-p1.legend.location = 'top_left'
+## dummy figure - for legend consistency
+p0 = figure(title='dummy Index', tools=[], logo=None, height=h, width=w)
+p0.patches('x', 'y', source=dummy_source, fill_color={'field': 'cat', 'transform': color_map}, line_color="black", line_width=1, legend='cat')
+p0.renderers = [i for i in p0.renderers if (type(i) == renderers.GlyphRenderer) | (type(i) == annotations.Legend)]
+p0.renderers[1].visible = False
 
+## Figure 1 - precip
+p1 = figure(title='Precipitation Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom', plot_height=h, plot_width=w)
+p1.patches('x', 'y', source=precip_source, fill_color={'field': 'cat', 'transform': color_map}, line_color="black", line_width=1, fill_alpha=1)
+p1.renderers.extend(p0.renderers)
+#p1.legend = p0.legend
+p1.legend.location = 'top_left'
+#Legend(p0)
 hover1 = p1.select_one(HoverTool)
 hover1.point_policy = "follow_mouse"
 hover1.tooltips = [("Category", "@cat"), ("Zone", "@zone")]
-
-#it1 = [(i, [r1]) for i in factors]
-#l1 = Legend(items=it1, location=(0, -30))
-#
-#p1.add_layout(l1, 'right')
 
 callback1 = CustomJS(args=dict(source=precip_source), code="""
     var data = source.data;
@@ -392,18 +437,14 @@ layout1 = column(p1, select1)
 tab1 = Panel(child=layout1, title='Precip')
 
 ## Figure 2 - flow
-p2 = figure(title='Flow Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom')
+p2 = figure(title='Surface Water Flow Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom', plot_height=h, plot_width=w)
 p2.patches('x', 'y', source=flow_source, fill_color={'field': 'cat', 'transform': color_map}, line_color="black", line_width=1, legend='cat')
+p2.renderers.extend(p0.renderers)
 p2.legend.location = 'top_left'
 
 hover2 = p2.select_one(HoverTool)
 hover2.point_policy = "follow_mouse"
 hover2.tooltips = [("Category", "@cat"), ("Zone", "@zone")]
-
-#it1 = [(i, [r1]) for i in factors]
-#l1 = Legend(items=it1, location=(0, -30))
-#
-#p1.add_layout(l1, 'right')
 
 callback2 = CustomJS(args=dict(source=flow_source), code="""
     var data = source.data;
@@ -418,10 +459,35 @@ select2.js_on_change('value', callback2)
 #slider.js_on_change('value', callback)
 
 layout2 = column(p2, select2)
-tab2 = Panel(child=layout2, title='Flow')
+tab2 = Panel(child=layout2, title='SW Flow')
+
+## Figure 3 - GW
+p3 = figure(title='Groundwater Level Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom', plot_height=h, plot_width=w)
+p3.patches('x', 'y', source=gw_source, fill_color={'field': 'cat', 'transform': color_map}, line_color="black", line_width=1, legend='cat')
+p3.renderers.extend(p0.renderers)
+p3.legend.location = 'top_left'
+
+hover3 = p3.select_one(HoverTool)
+hover3.point_policy = "follow_mouse"
+hover3.tooltips = [("Category", "@cat"), ("Zone", "@zone")]
+
+callback3 = CustomJS(args=dict(source=gw_source), code="""
+    var data = source.data;
+    var f = cb_obj.value;
+    source.data.cat = data[f];
+    source.change.emit();
+""")
+
+select3 = Select(title='Month', value=time_index[-1], options=time_index)
+select3.js_on_change('value', callback3)
+#slider = Slider(start=0, end=len(time_index)-1, value=0, step=1)
+#slider.js_on_change('value', callback)
+
+layout3 = column(p3, select3)
+tab3 = Panel(child=layout3, title='GW Level')
 
 ## Combine
-tabs = Tabs(tabs=[tab1, tab2])
+tabs = Tabs(tabs=[tab1, tab2, tab3])
 
 show(tabs)
 
@@ -521,10 +587,10 @@ show(p1)
 
 
 
+[i for i in p1.renderers if not type(i) == renderers.GlyphRenderer]
 
 
-
-
+d1 = 'M36/5894'
 
 
 

@@ -234,7 +234,7 @@ def rd_hydrotel(select=None, mtype='flow_tel', from_date=None, to_date=None, use
             site_ob1 = rd_sql(server, database, objects_tab, ['Site', 'ExtSysId'], 'ExtSysId', sites.astype('int32').tolist())
             site_val0 = rd_sql(server, database, sites_tab, ['Site', 'Name'], 'Site', site_ob1.Site.tolist())
             site_val1 = merge(site_val0, site_ob1, on='Site')
-        if mtype == 'gwl_tel':
+        elif mtype == 'gwl_tel':
             site_val0 = rd_sql(server, database, sites_tab, ['Site', 'Name'])
             site_val0.loc[:, 'Name'] = site_val0.apply(lambda x: x.Name.split(' ')[0], axis=1)
             site_val1 = site_val0[site_val0.Name.isin(sites)]
@@ -256,6 +256,8 @@ def rd_hydrotel(select=None, mtype='flow_tel', from_date=None, to_date=None, use
         object_val1 = rd_sql(server, database, objects_tab, objects_col, where_col)
         if mtype == 'gwl_tel':
             object_val1 = object_val1[object_val1.Name == 'Water Level']
+        if mtype == 'precip_tel':
+            object_val1 = object_val1[object_val1.Name == 'Rainfall']
         object_val = object_val1.Object.values.astype(int).tolist()
     else:
         site_val1 = rd_sql(server, database, sites_tab, sites_col)
@@ -272,7 +274,7 @@ def rd_hydrotel(select=None, mtype='flow_tel', from_date=None, to_date=None, use
     point_val = point_val1.Point.values.astype(int).tolist()
 
     #### Big merge
-    comp_tab1 = merge(site_val1, object_val1, on='Site')
+    comp_tab1 = merge(site_val1, object_val1[['Object', 'Site']], on='Site')
     comp_tab2 = merge(comp_tab1, point_val1, on='Object')
     comp_tab2.set_index('Point', inplace=True)
 
