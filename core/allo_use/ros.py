@@ -275,7 +275,7 @@ def restr_days(select, period='A-JUN', months=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
     return(restr2)
 
 
-def flow_ros(select=all, start_date='1900-01-01', end_date='2016-06-30', fill_na=False, flow_csv='S:/Surface Water/shared/base_data/flow/all_flow_data.csv', min_flow_cond_csv='S:/Surface Water/shared/base_data/usage/restrictions/min_flow_cond.csv', min_flow_id_csv='S:/Surface Water/shared/base_data/usage/restrictions/min_flow_id.csv', min_flow_mon_csv='S:/Surface Water/shared/base_data/usage/restrictions/mon_min_flow.csv', min_flow_restr_csv='S:/Surface Water/shared/base_data/usage/restrictions/min_flow_restr.csv'):
+def flow_ros(select=all, start_date='1900-01-01', end_date='2016-06-30', fill_na=False, flow_csv='S:/Surface Water/shared/base_data/flow/flow_data.csv', min_flow_cond_csv='S:/Surface Water/shared/base_data/usage/restrictions/min_flow_cond.csv', min_flow_id_csv='S:/Surface Water/shared/base_data/usage/restrictions/min_flow_id.csv', min_flow_mon_csv='S:/Surface Water/shared/base_data/usage/restrictions/mon_min_flow.csv', min_flow_restr_csv='S:/Surface Water/shared/base_data/usage/restrictions/min_flow_restr.csv'):
     """
     Function to estimate the percent allowable abstraction per band_id.
 
@@ -285,7 +285,7 @@ def flow_ros(select=all, start_date='1900-01-01', end_date='2016-06-30', fill_na
     *_csv -- csv files necessary for the analysis.
     """
     from pandas import read_csv, DataFrame, merge, concat, Series, MultiIndex
-    from ast import literal_eval
+    from ast import literal_eval, parse
     from numpy import nan, in1d, where
     from core.misc import select_sites
     from core.ecan_io import rd_ts, rd_hydrotel
@@ -336,10 +336,12 @@ def flow_ros(select=all, start_date='1900-01-01', end_date='2016-06-30', fill_na
     min_flow_mon = read_csv(min_flow_mon_csv).dropna(how='all')
     min_flow_restr = read_csv(min_flow_restr_csv).dropna(how='all')
     if type(flow_csv) is str:
-        flow = rd_ts(flow_csv)
+        flow1 = read_csv(flow_csv)
+        flow1.loc[:, 'time'] = to_datetime(flow1.loc[:, 'time'])
+        flow = flow1.pivot_table('data', 'time', 'site')
     else:
         flow = flow_csv
-    flow.columns = flow.columns.astype(int)
+    flow.columns = flow.columns.astype('int32')
 
     ### Select specific site bands
     if select is not all:
@@ -350,8 +352,9 @@ def flow_ros(select=all, start_date='1900-01-01', end_date='2016-06-30', fill_na
     if sum(min_flow_id.site == 69607) > 0:
         hydrotel_flow_sites = [696501]
         hydrotel_wl_sites = [69660]
-        opuha_flow = rd_hydrotel(hydrotel_flow_sites, resample=True, period='day', fun='mean')
-        wl = rd_hydrotel(hydrotel_wl_sites, dtype='Water Level', resample=True, period='day', fun='mean')
+        opuha_flow = rd_hydrotel(hydrotel_flow_sites, mtype='flow_tel', resample='day', fun='avg', pivot=True).value
+        opuha_flow.columns = opuha_flow.columns.astype(int)
+        wl = rd_hydrotel(hydrotel_wl_sites, mtype='swl_tel', resample='day', fun='avg', pivot=True).value
         wl.columns = wl.columns.astype(int)
 
         UF = (1.288 * flow[69615] + 0.673 * flow[69616] + 2.438 * flow[69618] - 2.415)
