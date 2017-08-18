@@ -9,17 +9,23 @@ from glob import glob
 from core.classes.hydro import hydro, all_mtypes
 from matplotlib.colors import from_levels_and_colors
 import statsmodels.formula.api as sm
+from scipy.stats import skewnorm
 
+_min, _q1, m, _q2, _max = 0,10,11,12,20
 
-h1= pd.DataFrame(hydro().get_data(mtypes=['flow'], sites=[66417]).data['flow',66417])
-h2= pd.DataFrame(hydro().get_data(mtypes=['flow_m'], sites=[343]).data['flow_m',343])
+samples = 10000
 
-temp = pd.merge(h2,h1,right_index=True,left_index=True)
-temp[temp<=0] = np.nan
-temp[temp>20] = np.nan
-temp = temp.dropna()
+min_q1_samples = samples/4
+q1 = np.linspace(_min, _q1,samples/4)
+q2 = np.linspace(_q1, m,samples/4)
+q3 = np.linspace(m, _q2,samples/4)
+q4 = np.linspace(_q2, _max,samples/4)
 
-result = sm.ols(formula="data_x ~ data_y", data=temp).fit()
-print result.params
+test = np.concatenate((q1,q2,q3,q4))
 
-print 'done'
+a = 3*(test.mean() - np.median(test))
+loc = m
+scale = test.std()
+
+skewnorm.pdf()
+print'done'

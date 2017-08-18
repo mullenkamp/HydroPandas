@@ -231,7 +231,7 @@ def get_vertical_gradient_targets():
     idx = vert_targets.index
     vert_targets.loc[idx, 'weight'] = 1 / all_targets.loc[idx, 'total_error_m']
 
-    outdata = vert_targets.loc[:, ['NZTM_x', 'NZTM_y', 'layer', 'GWL_RL', 'weight', 'row', 'col']].rename(
+    outdata = vert_targets.loc[:, ['NZTM_x', 'NZTM_y', 'layer', 'GWL_RL', 'weight', 'row', 'col', 'group', 'Location']].rename(
         columns={'NZTM_x': 'x', 'NZTM_y': 'y', 'GWL_RL': 'obs', 'row': 'i', 'col': 'j'})
     # return a dataframe: lat, lon, layer, obs, weight?, i,j
     # pull weight from uncertainty
@@ -366,4 +366,5 @@ def generate_all_data_for_brioch(outdir):
 
 
 if __name__ == '__main__':
-    generate_all_data_for_brioch(r"C:\Users\MattH\Desktop\data_to_brioch_09-08-2017\target_data")
+    temp = get_vertical_gradient_targets()
+    generate_all_data_for_brioch(r"C:\Users\MattH\Desktop\data_to_brioch_18-08-2017\target_data")
