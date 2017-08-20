@@ -9,8 +9,11 @@ from core import env
 import pandas as pd
 import os
 from glob import glob
-from file_set_up import user_codes, users, minor_qoi, major_qoi, values
+from file_set_up import user_codes, users, minor_qoi, major_qoi, values, minor_qoi_shapes
 from warnings import warn
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.stats import skewnorm
 
 all_dir = "C:/Users/MattH/OneDrive - Environment Canterbury/waimakariri_elicitation/all_qois"
 if not os.path.exists(all_dir):
@@ -21,25 +24,74 @@ def combine_QOI (qoi):
         os.makedirs(qoi_dir)
     base_dir = "C:/Users/MattH/OneDrive - Environment Canterbury/waimakariri_elicitation/*/*{}*".format(qoi)
     paths = glob(base_dir)
+    allout_data = []
     for sub_qoi in minor_qoi[qoi]:
-        out_data = pd.DataFrame(index=user_codes.values().sort(),columns=values)
+        out_data = pd.DataFrame(index=users.sort(),columns=values)
         for path in paths:
             if 'all_qois' in path:
                 continue
-            user = path.split('\\')[-2] #todo check
-            ucode = user_codes[user]
+            user = path.split('\\')[-2]
             temp = pd.read_excel(path, index_col=0)
-            out_data.loc[ucode,:] = temp.loc[sub_qoi,:]
+            out_data.loc[user,:] = temp.loc[sub_qoi,:]
 
-        if any(out_data.isnull()):
-            print('{} has null values from users: {}'.format(sub_qoi, list(out_data.index[out_data.isnull().any(1)])))
+        if out_data.isnull().any().any():
+            raise ValueError('{} has null values from users: {}'.format(sub_qoi, list(out_data.index[out_data.isnull().any(1)])))
 
         out_data.to_csv('{}/{}_combined.csv'.format(qoi_dir,sub_qoi))
+        allout_data.append(out_data)
+    return allout_data
 
+def plot_pdfs(datasets, names, colors, dims, linear_pool=False): #todo an ability to define
+    if not isinstance(datasets, tuple):
+        raise ValueError('expected tuple of datasets')
+    fig, axs = plt.subplots(*dims)
+    for i, data in enumerate(datasets):
+        ax = np.atleast_1d(axs).flatten()[i]
+        x = np.linspace(data.lower_limit.min(), data.upper_limit.max(), 100)
+        for j, person in enumerate(data.index):
+            _min, _q1, m, _q2, _max = data.loc[person, ['lower_limit', 'lower_quartile', 'median',
+                                                        'upper_quartile','upper_limit']]
+
+            samples = 10000
+
+            q1 = np.linspace(_min, _q1, samples / 4)
+            q2 = np.linspace(_q1, m, samples / 4)
+            q3 = np.linspace(m, _q2, samples / 4)
+            q4 = np.linspace(_q2, _max, samples / 4)
+
+            temp = np.concatenate((q1, q2, q3, q4))
+            if linear_pool:
+                if j==0:
+                    alldata=temp
+                else:
+                    alldata = np.concatenate((alldata,temp))
+                line_style = '--'
+            else:
+                line_style = '-'
+
+            a, loc, scale = skewnorm.fit(temp)
+            ax.plot(x, skewnorm.pdf(x, a, loc=loc, scale=scale), linestyle=line_style, color=colors[j], lw=1, label=person)
+        if linear_pool:
+            a, loc, scale = skewnorm.fit(alldata)
+            x = np.linspace(skewnorm.ppf(0.001, a, loc=loc, scale=scale),
+                            skewnorm.ppf(0.999, a, loc=loc, scale=scale), 100)
+            ax.plot(x, skewnorm.pdf(x, a, loc=loc, scale=scale), linestyle='-', color='blue', lw=2,
+                    label='linear pool')
+        ax.set_title(names[i])
+    plt.legend()
+    return fig, axs
+
+
+def combine_and_plot(qoi,linear_pool=False):
+    colors = ['red', 'darkgreen', 'fuchsia', 'black','orange','teal','darkmagenta']
+    datasets = tuple(combine_QOI(qoi))
+    fig,axs = plot_pdfs(datasets,minor_qoi[qoi],colors,minor_qoi_shapes[qoi],linear_pool)
+    plt.show(fig)
 
 
 if __name__ == '__main__':
-    combine_QOI(major_qoi[0])
+    print 'start'
+    combine_and_plot(major_qoi[0])
 
 
 
