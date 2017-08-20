@@ -39,6 +39,7 @@ streams_shp = r'E:\ecan\shared\GIS_base\vector\streams\river-environment-classif
 rec_sites_shp = r'E:\ecan\shared\GIS_base\vector\catchments\recorder_sites_REC.shp'
 rec_sites_details_shp = r'E:\ecan\shared\GIS_base\vector\catchments\recorder_sites_REC_details.shp'
 gw_sites_shp = r'P:\Surface Water Quantity\Projects\Freshwater Report\gw_sites1.shp'
+veiw_bound_shp = r'P:\Surface Water Quantity\Projects\Freshwater Report\boundary_v02.shp'
 
 qual_codes = [10, 18, 20, 30, 50, 11, 21, 40]
 
@@ -64,6 +65,12 @@ test2_html = r'E:\ecan\git\ecan_python_courses\docs\test2.html'
 
 ##################################################
 #### Read in data
+
+### Overall veiw
+veiw_zones = read_file(veiw_bound_shp)
+veiw_zones = veiw_zones.replace({'lon_zone': lon_zone_names})
+veiw_zones['zone'] = veiw_zones['lat_zone'] + ' - ' + veiw_zones['lon_zone']
+veiw_zones = veiw_zones.drop(['lon_zone', 'lat_zone'], axis=1)
 
 ### SW
 sw_poly = read_file(join(base_dir, sw_poly_shp))[['lat_zone', 'lon_zone', 'geometry']]
@@ -124,49 +131,6 @@ precip1 = hydro().get_data(mtypes='precip', sites=precip_sites.site, qual_codes=
 ### GW
 gw1 = hydro().get_data(mtypes='gwl', sites=gw_sites.site, qual_codes=qual_codes)
 
-
-#################################################
-#### Estimate the catchment area weights
-
-### SW
-site_catch1 = rec_catch[rec_catch.site.isin(sites1.site)]
-
-overlay1 = spatial_overlays(site_catch1, sw_zones, how='intersection')
-
-overlay2 = overlay1.merge(sites1, on=['site', 'zone']).drop(['idx1', 'idx2', 'NZREACH'], axis=1)
-overlay2['area'] = overlay2.area
-
-zone_sum1 = overlay2.groupby(['zone']).area.transform('sum')
-overlay2['agg_area'] = zone_sum1
-
-overlay3 = overlay2.set_index('site').drop('geometry', axis=1)
-sw_area_weight = (overlay3.area / overlay3.agg_area)
-sw_area_weight.name = 'sw_area_weight'
-
-sw_site_zone = overlay3[['zone']].copy()
-
-### precip
-precip_site_zone = sjoin(precip_sites, precip_zones)
-precip_site_zone['precip_area_weight'] = 1/precip_site_zone.groupby(['zone'])['site'].transform('count')
-precip_area_weight = precip_site_zone[['site', 'precip_area_weight']].sort_values('site').set_index('site')['precip_area_weight']
-
-precip_site_zone1 = precip_site_zone[['site', 'zone']].set_index('site').copy()
-
-### gw
-gw_site_zone = sjoin(gw_sites, gw_zones)
-gw_site_zone = gw_site_zone.rename(columns={'zone_left': 'zone'}).drop('zone_right', axis=1)
-gw_site_zone['gw_area_weight'] = 1/gw_site_zone.groupby(['zone'])['site'].transform('count')
-gw_area_weight = gw_site_zone[['site', 'gw_area_weight']].sort_values('site').set_index('site')['gw_area_weight']
-
-gw_site_zone1 = gw_site_zone[['site', 'zone']].set_index('site').copy()
-
-### Combine
-
-area_weights = concat([sw_area_weight, precip_area_weight, gw_area_weight])
-area_weights.name = 'area_weights'
-
-site_zones = concat([sw_site_zone, precip_site_zone1, gw_site_zone1])
-
 #################################################
 #### Run monthly summary stats
 
@@ -209,7 +173,7 @@ start_date = now1 - DateOffset(months=7) - DateOffset(days=now1.day - 1)
 end_date = now1 - DateOffset(days=now1.day - 1)
 
 ### SW
-print('Getting HydroTel Flow Data')
+print('Getting HydroTel Flow Data:')
 sites2 = sites1.copy()
 sites2.loc[sites2.site.isin([64610, 65104, 68526]), 'site'] = [164610, 165104, 168526]
 
@@ -234,7 +198,7 @@ hy_flow = hy3.copy()
 hy_flow['mtype'] = 'flow'
 
 ### precip
-print('Getting HydroTel Precip Data')
+print('Getting HydroTel Precip Data:')
 
 hy_sites = mon_precip1.site.unique().copy()
 hy1 = rd_hydrotel(select=hy_sites, mtype='precip_tel', from_date=start_date.strftime('%Y-%m-%d'), to_date=end_date.strftime('%Y-%m-%d'), resample='day', fun='sum')
@@ -252,7 +216,7 @@ hy_precip = hy3.copy()
 hy_precip['mtype'] = 'precip'
 
 ### gw
-print('Getting HydroTel GWL Data')
+print('Getting HydroTel GWL Data:')
 
 hy_sites = mon_gw1.site.unique().copy()
 hy1 = rd_hydrotel(hy_sites, mtype='gwl_tel', from_date=start_date.strftime('%Y-%m-%d'), to_date=end_date.strftime('%Y-%m-%d'), resample='day', fun='avg')
@@ -274,8 +238,50 @@ hy_gw['mtype'] = 'gw'
 hy_summ = concat([hy_flow, hy_precip, hy_gw]).reset_index(drop=True)
 hy_sites = hy_summ.site.unique()
 mon_summ = mon_summ[mon_summ.site.isin(hy_sites)]
-site_zones = site_zones[site_zones.index.isin(hy_sites)]
-area_weights = area_weights[area_weights.index.isin(hy_sites)]
+
+#################################################
+#### Estimate the catchment area weights
+
+### SW
+site_catch1 = rec_catch[rec_catch.site.isin(hy_summ.site[hy_summ.mtype == 'flow'].unique())]
+
+overlay1 = spatial_overlays(site_catch1, sw_zones, how='intersection')
+
+overlay2 = overlay1.merge(sites1, on=['site', 'zone']).drop(['idx1', 'idx2', 'NZREACH'], axis=1)
+overlay2['area'] = overlay2.area
+
+zone_sum1 = overlay2.groupby(['zone']).area.transform('sum')
+overlay2['agg_area'] = zone_sum1
+
+overlay3 = overlay2.set_index('site').drop('geometry', axis=1)
+sw_area_weight = (overlay3.area / overlay3.agg_area)
+sw_area_weight.name = 'sw_area_weight'
+
+sw_site_zone = overlay3[['zone']].copy()
+
+### precip
+precip_sites1 = precip_sites[precip_sites.site.isin(hy_summ.site[hy_summ.mtype == 'precip'].unique())]
+precip_site_zone = sjoin(precip_sites1, precip_zones)
+precip_site_zone['precip_area_weight'] = 1/precip_site_zone.groupby(['zone'])['site'].transform('count')
+precip_area_weight = precip_site_zone[['site', 'precip_area_weight']].sort_values('site').set_index('site')['precip_area_weight']
+
+precip_site_zone1 = precip_site_zone[['site', 'zone']].set_index('site').copy()
+
+### gw
+gw_sites1 = gw_sites[gw_sites.site.isin(hy_summ.site[hy_summ.mtype == 'gw'].unique())]
+gw_site_zone = sjoin(gw_sites1, gw_zones)
+gw_site_zone = gw_site_zone.rename(columns={'zone_left': 'zone'}).drop('zone_right', axis=1)
+gw_site_zone['gw_area_weight'] = 1/gw_site_zone.groupby(['zone'])['site'].transform('count')
+gw_area_weight = gw_site_zone[['site', 'gw_area_weight']].sort_values('site').set_index('site')['gw_area_weight']
+
+gw_site_zone1 = gw_site_zone[['site', 'zone']].set_index('site').copy()
+
+### Combine
+
+area_weights = concat([sw_area_weight, precip_area_weight, gw_area_weight])
+area_weights.name = 'area_weights'
+
+site_zones = concat([sw_site_zone, precip_site_zone1, gw_site_zone1])
 
 ##############################################
 #### Run the monthly stats comparisons
@@ -337,7 +343,7 @@ def getPolyCoords(row, coord_type, geom='geometry'):
         # Get the y coordinates of the exterior
         return list(exterior.coords.xy[1])
 
-zones1 = multipoly_to_poly(zones)
+zones1 = multipoly_to_poly(veiw_zones)
 
 zones1['x'] = zones1.apply(getPolyCoords, coord_type='x', axis=1)
 zones1['y'] = zones1.apply(getPolyCoords, coord_type='y', axis=1)
@@ -345,7 +351,7 @@ zones1['y'] = zones1.apply(getPolyCoords, coord_type='y', axis=1)
 zones2 = zones1.drop('geometry', axis=1)
 
 ### Combine with time series data
-data1 = merge(cat1.unstack('time').reset_index(), zones2, on=['mtype', 'zone'])
+data1 = merge(cat1.unstack('time').reset_index(), zones2, on=['zone'])
 time_index = hy_summ2.time.unique().tolist()
 data1['cat'] = data1[time_index[-1]]
 
@@ -510,87 +516,87 @@ show(tabs)
 
 
 
-
-
-
-
-##################################################
-#### Testing
-
-gw_sites_shp = r'P:\Surface Water Quantity\Projects\Freshwater Report\gw_sites.shp'
-
-gw1 = hydro().get_data(mtypes='gwl', sites=join(base_dir, gw_poly_shp), qual_codes=qual_codes)
-
-gw2 = gw1.data
-gw2.index = gw2.index.droplevel('mtype')
-gw_stats = precip_stats(gw2)
-
-gw_stats2 = gw_stats[(gw_stats['End time'] > '2017-01-01') & (gw_stats['Tot data yrs'] > 10)]
-
-gw_geo1 = gw1.geo_loc.copy()
-
-gw_sites1 = gw_stats2.index
-
-gw_geo2 = gw_geo1.loc[gw_sites1]
-gw_geo2.reset_index().to_file(gw_sites_shp)
-
-
-mis_sites = mon_precip1.site.unique()[~in1d(mon_precip1.site.unique(), hy1.sites)]
-
-
-
-
-t1 = grp.copy()
-min1 = t1.min()
-max1 = t1.max()
-
-f1 = round((t1.values - min1)/(max1 - min1) *100, 1)
-
-f3 = []
-for i in t1.values:
-    f2 = percentileofscore(t1.values, i)
-    f3.append(f2)
-
-
-df1 = DataFrame([t1.values, f1, f3]).T
-df1.columns = ['flow_data', 'fouad', 'percentile']
-
-df1.to_csv(join(base_dir, 'test_output_71195.csv'), index=False)
-
-
-sl1 = Slider(start=0, end=len(time_index)-1, value=0, step=1)
-
-
-output_file(test2_html)
-
-p1 = figure(title='Precipitation Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom')
-p1.patches('x', 'y', source=precip_source, fill_color={'field': 'cat', 'transform': color_map}, line_color="black", line_width=1, legend='cat')
-p1.legend.location = 'top_left'
-hover1 = p1.select_one(HoverTool)
-hover1.point_policy = "follow_mouse"
-hover1.tooltips = [("Category", "@cat"), ("Zone", "@zone")]
-
-callback = CustomJS(args=dict(source=precip_source, index=time_source), code="""
-    var data = source.data;
-    var f = cb_obj.value
-    var i = index.index[f]
-    cat = data[i]
-    source.change.emit();
-""")
-
-slider = Slider(start=0, end=len(time_index)-1, value=0, step=1)
-slider.js_on_change('value', callback)
-
-layout = column(p1, slider)
-
-show(p1)
-
-
-
-[i for i in p1.renderers if not type(i) == renderers.GlyphRenderer]
-
-
-d1 = 'M36/5894'
+#
+#
+#
+#
+###################################################
+##### Testing
+#
+#gw_sites_shp = r'P:\Surface Water Quantity\Projects\Freshwater Report\gw_sites.shp'
+#
+#gw1 = hydro().get_data(mtypes='gwl', sites=join(base_dir, gw_poly_shp), qual_codes=qual_codes)
+#
+#gw2 = gw1.data
+#gw2.index = gw2.index.droplevel('mtype')
+#gw_stats = precip_stats(gw2)
+#
+#gw_stats2 = gw_stats[(gw_stats['End time'] > '2017-01-01') & (gw_stats['Tot data yrs'] > 10)]
+#
+#gw_geo1 = gw1.geo_loc.copy()
+#
+#gw_sites1 = gw_stats2.index
+#
+#gw_geo2 = gw_geo1.loc[gw_sites1]
+#gw_geo2.reset_index().to_file(gw_sites_shp)
+#
+#
+#mis_sites = mon_precip1.site.unique()[~in1d(mon_precip1.site.unique(), hy1.sites)]
+#
+#
+#
+#
+#t1 = grp.copy()
+#min1 = t1.min()
+#max1 = t1.max()
+#
+#f1 = round((t1.values - min1)/(max1 - min1) *100, 1)
+#
+#f3 = []
+#for i in t1.values:
+#    f2 = percentileofscore(t1.values, i)
+#    f3.append(f2)
+#
+#
+#df1 = DataFrame([t1.values, f1, f3]).T
+#df1.columns = ['flow_data', 'fouad', 'percentile']
+#
+#df1.to_csv(join(base_dir, 'test_output_71195.csv'), index=False)
+#
+#
+#sl1 = Slider(start=0, end=len(time_index)-1, value=0, step=1)
+#
+#
+#output_file(test2_html)
+#
+#p1 = figure(title='Precipitation Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom')
+#p1.patches('x', 'y', source=precip_source, fill_color={'field': 'cat', 'transform': color_map}, line_color="black", line_width=1, legend='cat')
+#p1.legend.location = 'top_left'
+#hover1 = p1.select_one(HoverTool)
+#hover1.point_policy = "follow_mouse"
+#hover1.tooltips = [("Category", "@cat"), ("Zone", "@zone")]
+#
+#callback = CustomJS(args=dict(source=precip_source, index=time_source), code="""
+#    var data = source.data;
+#    var f = cb_obj.value
+#    var i = index.index[f]
+#    cat = data[i]
+#    source.change.emit();
+#""")
+#
+#slider = Slider(start=0, end=len(time_index)-1, value=0, step=1)
+#slider.js_on_change('value', callback)
+#
+#layout = column(p1, slider)
+#
+#show(p1)
+#
+#
+#
+#[i for i in p1.renderers if not type(i) == renderers.GlyphRenderer]
+#
+#
+#d1 = 'M36/5894'
 
 
 

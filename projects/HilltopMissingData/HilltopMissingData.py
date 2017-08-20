@@ -6,6 +6,7 @@ Created on Thu Aug 03 15:37:50 2017
 """
 
 from core.ecan_io.hilltop import rd_hilltop_data, rd_hilltop_sites, proc_ht_use_data, convert_site_names
+from core.ecan_io import write_sql
 from core.misc import rd_dir
 from os.path import join, split
 from pandas import concat, Series, read_csv, read_hdf, DataFrame, merge, Grouper

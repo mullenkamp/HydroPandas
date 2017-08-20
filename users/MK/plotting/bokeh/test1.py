@@ -109,3 +109,38 @@ if __name__ == "__main__":
         f.write(file_html(doc, INLINE, "Daylight Plot"))
     print("Wrote %s" % filename)
     view(filename)
+
+
+#################################################
+#### Bokeh server
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
