@@ -284,7 +284,7 @@ def flow_ros(select=all, start_date='1900-01-01', end_date='2016-06-30', fill_na
     start_date / end_date -- The start and/or end date for the results as a string.\n
     *_csv -- csv files necessary for the analysis.
     """
-    from pandas import read_csv, DataFrame, merge, concat, Series, MultiIndex
+    from pandas import read_csv, DataFrame, merge, concat, Series, MultiIndex, to_datetime
     from ast import literal_eval, parse
     from numpy import nan, in1d, where
     from core.misc import select_sites

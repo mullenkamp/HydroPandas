@@ -4,6 +4,33 @@ Hilltop read functions.
 Hilltop uses a fixed base date as 1940-01-01, while the standard unix/POSIT base date is 1970-01-01.
 """
 
+
+def parse_dsn(dsn_path):
+    """
+    Function to parse a dsn file and all sub-dsn files into paths to hts files. Returns a list of hts paths.
+    """
+    from ConfigParser import ConfigParser
+    from os import path
+
+    base_path = path.dirname(dsn_path)
+
+    dsn = ConfigParser()
+    dsn.read(dsn_path)
+    files1 = [path.join(base_path, i[1]) for i in dsn.items('Hilltop') if 'file' in i[0]]
+    hts1 = [i for i in files1 if i.endswith('.hts')]
+    dsn1 = [i for i in files1 if i.endswith('.dsn')]
+    while dsn1:
+        for f in dsn1:
+            base_path = path.dirname(f)
+            p1 = ConfigParser()
+            p1.read(f)
+            files1 = [path.join(base_path, i[1]) for i in p1.items('Hilltop') if 'file' in i[0]]
+            hts1.extend([i for i in files1 if i.endswith('.hts')])
+            dsn1.remove(f)
+            dsn1[0:0] = [i for i in files1 if i.endswith('.dsn')]
+    return(hts1)
+
+
 def rd_hilltop_sites(hts):
     """
     Function to read the site names, measurement types, and units of a Hilltop hts file. Returns a DataFrame.
