@@ -34,6 +34,14 @@ out_data = 'ht_usage_no_Ms.csv'
 out_data_hdf = 'ht_usage_daily.h5'
 out_data_summ_csv = 'ht_use_allo_2016-2017.csv'
 
+server = 'SQL2012DEV01'
+database = 'Hilltop'
+
+sites_table = 'ecan_hilltop_sites'
+sites_dtype = {'site': 'VARCHAR(50)', 'mtype': 'VARCHAR(50)', 'unit': 'VARCHAR(19)', 'hts_file': 'VARCHAR(50)', 'folder': 'VARCHAR(50)'}
+
+
+
 ########################################################
 #### Functions
 
@@ -63,10 +71,12 @@ for i in fpath:
                     else:
                         ht_data = ht_data.combine_first(ht_data1)
 
-ht_sites = concat(ht_sites_lst)
+ht_sites = concat(ht_sites_lst).apply(lambda x: x.str.encode('utf-8'), axis=1)
 #ht_data = concat(ht_data_lst)
 
-ht_sites.to_csv(join(output_base, sites_csv), index=False, encoding='utf8')
+write_sql(server, database, sites_table, ht_sites, sites_dtype, drop_table=True)
+
+ht_sites.to_csv(join(output_base, sites_csv), index=False)
 
 #ht_data = rd_hilltop_data(hts1, sites=None, mtypes=None, start=None, end=None, agg_period='day', agg_n=1, fun=None)
 
