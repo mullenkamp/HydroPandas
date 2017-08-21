@@ -202,10 +202,9 @@ def rd_hydrotel(select=None, mtype='flow_tel', from_date=None, to_date=None, use
     Resampling of the time series can be performed by the w_resample function. Any associated resampling parameters can be passed.
     """
     from core.ecan_io import rd_sql
-    from pandas import to_datetime, merge, to_numeric, Grouper, Series, Timestamp
-    from numpy import ndarray, in1d, where
-    from core.ts.ts import res
-    from core.misc.misc import time_switch, select_sites
+    from pandas import to_datetime, merge, to_numeric, Series, Timestamp
+    from numpy import ndarray
+    from core.misc.misc import select_sites
 
     #### mtypes dict
     mtypes_dict = {'flow_tel': 'Flow Rate', 'gwl_tel': 'Water Level', 'precip_tel': 'Rainfall Depth', 'swl_tel': 'Water Level', 'wtemp_tel': 'Water Temperature'}

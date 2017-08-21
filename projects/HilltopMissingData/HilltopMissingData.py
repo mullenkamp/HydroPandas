@@ -56,11 +56,12 @@ for i in fpath:
 
             ## Data
             if not sdata.empty:
-                ht_data1 = rd_hilltop_data(join(fpath[i], j), agg_period='day')
-                if ht_data.empty:
-                    ht_data = ht_data1.copy()
-                else:
-                    ht_data = ht_data.combine_first(ht_data1)
+                ht_data1 = rd_hilltop_data(join(fpath[i], j), start='2016-07-01', agg_period='day')
+                if not ht_data1.empty:
+                    if ht_data.empty:
+                        ht_data = ht_data1.copy()
+                    else:
+                        ht_data = ht_data.combine_first(ht_data1)
 
 ht_sites = concat(ht_sites_lst)
 #ht_data = concat(ht_data_lst)
@@ -68,6 +69,8 @@ ht_sites = concat(ht_sites_lst)
 ht_sites.to_csv(join(output_base, sites_csv), index=False, encoding='utf8')
 
 #ht_data = rd_hilltop_data(hts1, sites=None, mtypes=None, start=None, end=None, agg_period='day', agg_n=1, fun=None)
+
+#ht_data1 = ht_data.reset_index()
 
 ht2 = proc_ht_use_data(ht_data, n_std=20)
 ht2.to_csv(join(output_base, out_data_w_m), header=True, encoding='utf8')

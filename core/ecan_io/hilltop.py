@@ -55,6 +55,9 @@ def rd_hilltop_sites(hts):
         mtype1 = cat.DataSource
         cat.GetNextMeasurement
         unit1 = cat.Units
+        if unit1 == '%':
+            print('Site ' + name1 + ' has no units')
+            unit1 = 'mm'
         iter2 = cat.GetNextSite
         sites.append([name1, mtype1, unit1])
 
@@ -142,17 +145,23 @@ def rd_hilltop_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
             data.append(dfile.value)
             time.append(dfile.time.Format('%Y-%m-%d %H:%M:%S'))
             iter1 = dfile.getsinglevbs
-        df_temp = DataFrame({'time': time, 'data': data})
-        df_temp['site'] = i
-        df_temp['mtype'] = sites_df.loc[i, 'mtype']
-        df_lst.append(df_temp)
-
-    df1 = concat(df_lst)
-    df1.loc[:, 'time'] = to_datetime(df1.loc[:, 'time'])
-    df2 = df1.set_index(['mtype', 'site', 'time']).data * unit_convert[unit]
+        if data:
+            if isinstance(data[0], (str, unicode)):
+                print('site ' + i + ' has nonsense data')
+            else:
+                df_temp = DataFrame({'time': time, 'data': data})
+                df_temp['site'] = i
+                df_temp['mtype'] = sites_df.loc[i, 'mtype']
+                df_lst.append(df_temp)
 
     dfile.Close()
-    return(df2)
+    if df_lst:
+        df1 = concat(df_lst)
+        df1.loc[:, 'time'] = to_datetime(df1.loc[:, 'time'])
+        df2 = df1.set_index(['mtype', 'site', 'time']).data * unit_convert[unit]
+        return(df2)
+    else:
+        return(DataFrame())
 
 
 def rd_ht_xml_sites(xml):

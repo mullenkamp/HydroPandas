@@ -314,24 +314,28 @@ def allo_gis_proc(allo, export=True, export_shp='allo_gis.shp', export_csv='allo
 
     #### Put GIS data into the allo object
     allo1 = allo.copy()
-    allo1 = merge(allo1, all_wap_loc1.drop('geometry', axis=1), on='wap', how='left')
-    allo2 = merge(allo, mis_wap_loc1.drop('geometry', axis=1), on='crc')
-    allo2.loc[allo2.wap.isnull(), 'wap'] = allo2.loc[allo2.wap.isnull(), 'wap_new']
-    allo3 = concat([allo1[~in1d(allo1.crc, mis_wap_loc1.crc)], allo2]).drop('wap_new', axis=1)
+#    allo1 = merge(allo1, all_wap_loc1.drop('geometry', axis=1), on='wap', how='left')
+#    allo2 = merge(allo, mis_wap_loc1.drop('geometry', axis=1), on='crc')
+#    allo2.loc[allo2.wap.isnull(), 'wap'] = allo2.loc[allo2.wap.isnull(), 'wap_new']
+#    allo3 = concat([allo1[~in1d(allo1.crc, mis_wap_loc1.crc)], allo2]).drop('wap_new', axis=1)
 
-    gis1 = merge(all_wap_loc1, allo, on='wap', how='left')
-    gis2 = merge(mis_wap_loc1, allo, on='crc', how='left')
+    gis1 = merge(all_wap_loc1, allo1, on='wap', how='left')
+    gis2 = merge(mis_wap_loc1, allo1, on='crc', how='left')
     gis2.loc[gis2.wap.isnull(), 'wap'] = gis2.loc[gis2.wap.isnull(), 'wap_new']
 
     gis3 = concat([gis1, gis2]).drop('wap_new', axis=1)
 
     gis3.loc[:, ['from_date', 'to_date']] = gis3.loc[:, ['from_date', 'to_date']].astype('str')
 
+    ## Add in the x and y coordinates
+    gis3['x'] = gis3.geometry.apply(lambda i: i.x)
+    gis3['y'] = gis3.geometry.apply(lambda i: i.y)
+
     #### Save data
     if export:
         gis3.to_file(export_shp)
-        allo3.to_csv(export_csv, encoding='utf-8', index=False)
-    return(allo3)
+        gis3.drop('geometry', axis=1).to_csv(export_csv, encoding='utf-8', index=False)
+    return(gis3)
 
 
 def allo_ts_apply(wap, start_date='2014-07-01', end_date='2016-06-30', from_col='from_date', to_col='to_date', freq='D', mon_col='from_month', daily_vol_col='daily_vol', cav_col='cav'):
