@@ -13,5 +13,6 @@
     <file src="*.*" target="scripts" exclude="*.nuspec*" />
 	<file src="..\..\core\**\*.*" target="core" />
 	<file src="..\ReplacePythonPath.py" />
+	<file src="..\PostDeploy.ps1" />
   </files>
 </package>
