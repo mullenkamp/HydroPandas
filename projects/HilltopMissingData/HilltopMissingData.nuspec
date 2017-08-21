@@ -7,7 +7,7 @@
     <authors>Ecan</authors>
     <owners>Ecan</owners>
     <description>This package contains the deployable artifacts for the python scripts to extract missing data from the Hilltop HTS files.</description>
-    <releaseNotes>New version of scripts.</releaseNotes>
+    <releaseNotes>New version of the python scripts.</releaseNotes>
    </metadata>
    <files>
     <file src="*.*" target="scripts" exclude="*.nuspec*" />
