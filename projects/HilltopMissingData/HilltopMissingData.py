@@ -5,187 +5,56 @@ Created on Thu Aug 03 15:37:50 2017
 @author: MichaelEK
 """
 
-from core.ecan_io.hilltop import rd_hilltop_data, rd_hilltop_sites, proc_ht_use_data, convert_site_names
+from core.ecan_io.hilltop import rd_hilltop_data, rd_hilltop_sites, proc_ht_use_data, convert_site_names, parse_dsn
 from core.ecan_io import write_sql
-from core.misc import rd_dir
-from os.path import join, split
-from pandas import concat, Series, read_csv, read_hdf, DataFrame, merge, Grouper
-from core.misc import save_df
-from core.allo_use import allo_proc, allo_ts_proc, allo_errors, allo_use_proc, hist_sd_use, est_use, ros_proc, w_use_proc
-from core.ts import grp_ts_agg
+from os.path import split
+from pandas import concat, Series, read_csv, read_hdf, DataFrame, merge, Grouper, to_datetime, to_numeric
+from ConfigParser import ConfigParser
+from os import path, getcwd
 
 #######################################################
 #### Parameters
 
-#fpath = {'tel': r'E:\ecan\hilltop\xml_test\tel', 'annual': r'E:\ecan\hilltop\xml_test\annual', 'archive': r'E:\ecan\hilltop\xml_test\archive'}
-#fpath = {'tel': r'\\hilltop01\Hilltop\Data\Telemetry', 'annual': r'\\hilltop01\Hilltop\Data\Annual', 'archive': r'\\hilltop01\Hilltop\Data\Archive'}
-fpath = {'tel': r'\\hilltop01\Hilltop\Data\Telemetry', 'annual': r'\\hilltop01\Hilltop\Data\Annual', 'archive': r'\\hilltop01\Hilltop\Data\Archive', 'ending_2017': r'\\hilltop01\Hilltop\Data\Annual\ending_2017'}
-exclude_hts = ['Anonymous_AccToVol.hts', 'Anonymous_FlowToVolume.hts', 'RenameSites.hts', 'Telemetry.hts', 'Boraman2015-16.hts', 'FromWUS.hts', 'WUS_Consent2015.hts']
+ini_file = 'HilltopMissingData.ini'
 
-hts1 = r'\\hilltop01\Hilltop\Data\Telemetry\WaterMetrics.hts'
-allo_gis_csv = 'E:/ecan/shared/base_data/usage/allo_gis.csv'
-allo_use_2017_export = r'E:\ecan\local\Projects\requests\Ilja\2017-08-04\allo_use_2016-2017_v02.csv'
+sites_dtype = {'site': 'VARCHAR(64)', 'mtype': 'VARCHAR(19)', 'unit': 'VARCHAR(19)', 'hts_file': 'VARCHAR(31)', 'folder': 'VARCHAR(44)', 'start_date': 'DATETIME', 'end_date': 'DATETIME'}
 
-output_base = r'E:\ecan\local\Projects\hilltop\2017-08_tests'
-sites_csv = 'ht_site_info.csv'
-sites_csv2 = 'ht_site_info2.csv'
-out_data_w_m = 'ht_usage_with_Ms.csv'
-out_data = 'ht_usage_no_Ms.csv'
-out_data_hdf = 'ht_usage_daily.h5'
-out_data_summ_csv = 'ht_use_allo_2016-2017.csv'
+#### Load in ini parameters
+py_dir = path.realpath(path.join(getcwd(), path.dirname(__file__)))
 
-server = 'SQL2012DEV01'
-database = 'Hilltop'
+ini1 = ConfigParser()
+ini1.read(path.join(py_dir, ini_file))
 
-sites_table = 'ecan_hilltop_sites'
-sites_dtype = {'site': 'VARCHAR(50)', 'mtype': 'VARCHAR(50)', 'unit': 'VARCHAR(19)', 'hts_file': 'VARCHAR(50)', 'folder': 'VARCHAR(50)'}
-
-
+dsn_path = ini1.get('Input', 'dsn_file')
+server = ini1.get('SQLOutput', 'server')
+database = ini1.get('SQLOutput', 'database')
+sites_table = ini1.get('SQLOutput', 'sites_table')
 
 ########################################################
-#### Functions
+### Run through all hts files
 
-
-
-####################################################
+hts_files = parse_dsn(dsn_path)
 
 ht_sites_lst = []
 ht_data = DataFrame()
-for i in fpath:
-    hts_files = rd_dir(fpath[i], '.hts')
-    for j in hts_files:
-        if j not in exclude_hts:
-            print(join(fpath[i], j))
-            ## Sites
-            sdata = rd_hilltop_sites(join(fpath[i], j))
-            sdata['hts_file'] = j
-            sdata['folder'] = split(fpath[i])[1]
-            ht_sites_lst.append(sdata)
-
-            ## Data
-            if not sdata.empty:
-                ht_data1 = rd_hilltop_data(join(fpath[i], j), start='2016-07-01', agg_period='day')
-                if not ht_data1.empty:
-                    if ht_data.empty:
-                        ht_data = ht_data1.copy()
-                    else:
-                        ht_data = ht_data.combine_first(ht_data1)
+for j in hts_files:
+    print(j)
+    ## Sites
+    sdata = rd_hilltop_sites(j)
+    base_path, filename = split(j)
+    sdata['hts_file'] = filename
+    sdata['folder'] = base_path
+    ht_sites_lst.append(sdata)
 
 ht_sites = concat(ht_sites_lst).apply(lambda x: x.str.encode('utf-8'), axis=1)
-#ht_data = concat(ht_data_lst)
+
+#ht_sites.apply(lambda x: x.str.len(), axis=1).max()
+ht_sites.loc[:, 'site'] = ht_sites.loc[:, 'site'].apply(lambda x: x.split('-M')[0])
+ht_sites.loc[:, 'start_date'] = to_datetime(ht_sites.loc[:, 'start_date'])
+ht_sites.loc[:, 'end_date'] = to_datetime(ht_sites.loc[:, 'end_date'])
+ht_sites.loc[:, 'folder'] = ht_sites.loc[:, 'folder'].str.replace('\\', '-').str.replace('--', '')
 
 write_sql(server, database, sites_table, ht_sites, sites_dtype, drop_table=True)
-
-ht_sites.to_csv(join(output_base, sites_csv), index=False)
-
-#ht_data = rd_hilltop_data(hts1, sites=None, mtypes=None, start=None, end=None, agg_period='day', agg_n=1, fun=None)
-
-#ht_data1 = ht_data.reset_index()
-
-ht2 = proc_ht_use_data(ht_data, n_std=20)
-ht2.to_csv(join(output_base, out_data_w_m), header=True, encoding='utf8')
-
-ht3 = ht2.reset_index()
-site_names = ht3.site
-
-site_names1 = convert_site_names(site_names)
-ht3.loc[:, 'site'] = site_names1
-ht4 = ht3[ht3.site.notnull()]
-
-ht5 = ht4.groupby(['site', 'time']).data.sum().round(2)
-ht5.to_csv(join(output_base, out_data), header=True)
-save_df(ht5, join(output_base, out_data_hdf))
-
-###################################################
-#### Load in the allocation info
-
-start = '2016-07-01'
-end = '2017-06-30'
-
-allo_gis = read_csv(allo_gis_csv)
-ht5 = read_hdf(join(output_base, out_data_hdf))
-ht6 = ht5.reset_index()
-ht6 = ht6[(ht6.time >= start) & (ht6.time <= end)]
-ht6.columns = ['wap', 'date', 'usage']
-allo_ts_mon = allo_ts_proc(allo_gis, start=start, end=end, freq='M', in_allo=False)
-allo_use = allo_use_proc(allo_ts_mon, ht6)
-count1 = ht6.groupby('wap')['usage'].count()
-first1 = ht6.groupby('wap')['date'].first()
-last1 = ht6.groupby('wap')['date'].last()
-
-stats1 = concat([first1, last1, count1], axis=1)
-stats1.columns = ['first_date', 'last_date', 'data_count']
-
-ht_sites1 = ht_sites.copy()
-ht_sites1.loc[:, 'site'] = convert_site_names(ht_sites.site)
-ht_sites2 = ht_sites1[ht_sites1.site.notnull()]
-ht_sites2.to_csv(join(output_base, sites_csv2), index=False, encoding='utf8')
-
-allo_use1 = grp_ts_agg(allo_use, ['crc', 'take_type', 'wap'], 'date', 'A-JUN', 'sum')
-
-#################################################
-#### Combine all results
-
-res1 = merge(allo_use1, stats1.reset_index(), on='wap', how='left')
-res1.to_csv(join(output_base, out_data_summ_csv), index=False)
-
-
-
-
-
-
-
-
-
-#
-######################################################
-##### Testing
-#
-#hts1 = r'\\hilltop01\Hilltop\Data\Telemetry\WaterMetrics.hts'
-#hts2 = r'\\hilltop01\Hilltop\Data\Telemetry\WaterCheck.hts'
-#
-#site = ['K38/1845-M1']
-#
-#ht1 = rd_hilltop_data(hts1, sites=site, mtypes=None, start=None, end=None, agg_period='day', agg_n=1, fun=None)
-#
-#ht1.index = ht1.index.droplevel(['mtype', 'site'])
-#
-#ht1.plot()
-#
-#ht2 = proc_ht_use_data(ht1, n_std=20)
-#ht2.index = ht2.index.droplevel(['site'])
-#ht2.plot()
-#
-#data = read_csv(join(output_base, out_data_summ_csv))
-#site_info = read_csv(join(output_base, sites_csv2))
-#
-#wap1 = 'M35/11235'
-#
-#s1 = site_info[site_info.site == wap1]
-#d1 = data[data.wap == wap1]
-#
-#ht1 = rd_hilltop_data(hts2, sites=[wap1 + '-M1'], mtypes=None, start=None, end=None, agg_period=None, agg_n=1, fun=None)
-#
-#ht1.index = ht1.index.droplevel(['mtype', 'site'])
-#start1 = ht1.idxmin()
-#end1 = ht1.idxmax()
-#diff1 = end1 - start1
-#diff1.days
-#
-#ht1.count()/4/24
-#
-#ht2 = ht1.groupby(Grouper(level='time', freq='D')).count()
-#ht2[ht2 < 96]
-#
-#ht1['2016-03-05']
-#
-#
-#res1 = read_csv(join(output_base, out_data_summ_csv))
-#
-#res1[res1.crc == 'CRC030682']
-#
-#
-
 
 
 

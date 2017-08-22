@@ -39,11 +39,17 @@ def rd_hilltop_sites(hts):
     hts -- Path to the hts file (str).
     """
     from win32com.client import Dispatch
-    from pandas import DataFrame
+    from pandas import DataFrame, to_datetime
 
     cat = Dispatch("Hilltop.Catalogue")
     if not cat.Open(hts):
         raise ValueError(cat.errmsg)
+
+    dfile = Dispatch("Hilltop.DataRetrieval")
+    try:
+        dfile.Open(hts)
+    except ValueError:
+        print(dfile.errmsg)
 
     sites = []
 
@@ -55,13 +61,26 @@ def rd_hilltop_sites(hts):
         mtype1 = cat.DataSource
         cat.GetNextMeasurement
         unit1 = cat.Units
+
+        try:
+            start1 = to_datetime(cat.DataStartTime.Format('%Y-%m-%d %H:%M'))
+            end1 = to_datetime(cat.DataEndTime.Format('%Y-%m-%d %H:%M'))
+        except ValueError:
+            bool_site = dfile.FromSite(name1, mtype1, 1)
+            if bool_site:
+                start1 = to_datetime(dfile.DataStartTime.Format('%Y-%m-%d %H:%M'))
+                end1 = to_datetime(dfile.DataEndTime.Format('%Y-%m-%d %H:%M'))
+            else:
+                print('No site data for ' + name1 + '...for some reason...')
+
         if unit1 == '%':
             print('Site ' + name1 + ' has no units')
-            unit1 = 'mm'
+            unit1 = ''
         iter2 = cat.GetNextSite
-        sites.append([name1, mtype1, unit1])
+        sites.append([name1, mtype1, unit1, start1.strftime('%Y-%m-%d %H:%M'), end1.strftime('%Y-%m-%d %H:%M')])
 
-    sites_df = DataFrame(sites, columns=['site', 'mtype', 'unit'])
+    sites_df = DataFrame(sites, columns=['site', 'mtype', 'unit', 'start_date', 'end_date'])
+    dfile.Close()
     cat.Close()
     return(sites_df)
 
