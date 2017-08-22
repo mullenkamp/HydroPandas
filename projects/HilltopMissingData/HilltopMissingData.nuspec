@@ -2,17 +2,16 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata>
     <id>Ecan.Python.HilltopMissingData</id>
-    <title>Python Hilltop Missing Data Scripts</title>
+    <title>Hilltop Missing Data Scripts</title>
     <version>$version$</version>
     <authors>Ecan</authors>
     <owners>Ecan</owners>
-    <description>This package contains the deployable artifacts for the Hilltop Manager and Hydro applications.</description>
-    <releaseNotes>New version of Manager and Hydro executables.</releaseNotes>
+    <description>This package contains the deployable artifacts for the python scripts to extract missing data from the Hilltop HTS files.</description>
+    <releaseNotes>New version of the python scripts.</releaseNotes>
    </metadata>
    <files>
     <file src="*.*" target="scripts" exclude="*.nuspec*" />
 	<file src="..\..\core\**\*.*" target="core" />
 	<file src="..\ReplacePythonPath.py" />
-	<file src="..\PostDeploy.ps1" />
   </files>
 </package>

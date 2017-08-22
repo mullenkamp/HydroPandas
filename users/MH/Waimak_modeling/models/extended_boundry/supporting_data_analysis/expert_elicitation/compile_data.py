@@ -83,7 +83,7 @@ def plot_pdfs(datasets, names, colors, dims, linear_pool=False):
 def combine_and_plot(qoi,linear_pool=False,additional=False):
     colors = ['red', 'darkgreen', 'fuchsia', 'black','orange','teal','darkmagenta']
     datasets = tuple(combine_QOI(qoi))
-    if additional is not None:
+    if additional:
         linear_pool = True
     fig, axs = plot_pdfs(datasets,minor_qoi[qoi],colors,minor_qoi_shapes[qoi],linear_pool)
 
@@ -115,7 +115,8 @@ def combine_and_plot(qoi,linear_pool=False,additional=False):
 
 if __name__ == '__main__':
     print 'start'
-    combine_and_plot(major_qoi[0],linear_pool=False,additional=False)
+    qois = ['LSR', 'pumping', 'LRZ_flux', 'offshore', 'possible_ks', 'race_loss'] #todo make sure this is in order
+    combine_and_plot(major_qoi[1],linear_pool=True,additional=False)
 
 
 

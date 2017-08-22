@@ -10,7 +10,8 @@ import os
 import pandas as pd
 from copy import deepcopy
 
-users = ['paul_white',
+users = [
+         'paul_white',
          'peter_callander',
          'scott_wilson',
          'jens_rekker',

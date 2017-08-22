@@ -167,10 +167,10 @@ def get_target_group_values():
                         'sfo_7drn': None,
                         'sfo_c_benn': 0.13,
                         'sfo_c_oxf': 0.99,
-                        'sfo_c_pat': 0.0,
+                        'sfo_c_pat': None,  # was previously 0 but this meant no data
                         'sfo_c_skew': 1.75,
                         'sfo_c_swan': 0.85,
-                        'sfo_c_tip': 0.0,
+                        'sfo_c_tip': None,  # was previously 0 but this meant no data
                         'sfo_c_tlks': 1.75,
                         'sfo_e_wolf': 0.0,
 
