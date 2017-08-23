@@ -30,7 +30,7 @@ print('Path 2 is ' + path2)
 
 append_path1 = os.path.relpath(path2, py_path)
 append_path2 = append_path1.replace('\\', '.') + '.'
-append_path3 = append_path1.replace('\\', '.')
+append_path3 = append_path1.replace('\\', '.') + ' '
 
 print('Append path 1 is ' + append_path1)
 print('Append path 2 is ' + append_path2)
@@ -58,7 +58,7 @@ for root, dirs, files in os.walk(path_base):
             filedata = file.read()
 
         # Replace the target string
-        filedata = filedata.replace('from core. ', 'from ' +  append_path2)
+        filedata = filedata.replace('from core.', 'from ' +  append_path2)
         filedata = filedata.replace('from core ', 'from ' +  append_path3)
 
         # Write the file out again
