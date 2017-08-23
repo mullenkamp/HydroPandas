@@ -132,10 +132,12 @@ def xy_to_gpd(id_col, x_col, y_col, df=None, crs=2193):
         x1 = select_sites(x_col)
         y1 = select_sites(y_col)
         geometry = [Point(xy) for xy in zip(x1, y1)]
-    if isinstance(id_col, str) | (df is not None):
+    if isinstance(id_col, str) & (df is not None):
         id_data = df[id_col]
     elif isinstance(id_col, (list, ndarray, Series, Index)):
         id_data = id_col
+    else:
+        raise ValueError('id_data could not be determined')
     if isinstance(crs, int):
         crs1 = convert_crs(crs)
     elif isinstance(crs, (str, dict)):
