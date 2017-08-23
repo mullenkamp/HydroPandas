@@ -58,6 +58,7 @@ def _get_wel_spd_v1(recalc=False,sub_version=1):
         temp = smt.convert_coords_to_matix(x, y, z, elv_db=elv_db)
         n_wai_wells.loc[site, 'layer'], n_wai_wells.loc[site, 'row'], n_wai_wells.loc[site, 'col'] = temp
     n_wai_wells['zone'] = 'n_wai'
+    n_wai_wells['cwms'] = 'waimak'
     n_wai_wells = n_wai_wells.set_index('well')
 
     s_wai_wells = _get_s_wai_wells(sub_version)  # there are some s_wai wells which do not have data in wells, but do in consents file fix if bored
@@ -166,6 +167,7 @@ def _get_s_wai_wells(subversion=1):
         well_details = well_details.set_index('WELL_NO')
         out_data = pd.merge(data, pd.DataFrame(well_details.loc[:, 'WMCRZone']), left_index=True, right_index=True)
         out_data = out_data.loc[np.in1d(out_data.WMCRZone, [7, 8])]
+        out_data.loc[:,'cwms'] = out_data.oc[:,'WMCRZone'].replace({7:'chch',8:'selwyn'})
         out_data = out_data.drop('WMCRZone', axis=1)
         out_data.loc[:,'flux'] *= -1
 
