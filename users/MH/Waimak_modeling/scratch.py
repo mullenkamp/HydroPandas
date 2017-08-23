@@ -14,8 +14,6 @@ import geopandas as gpd
 from core.classes.hydro import hydro
 
 
-h1 = hydro().get_data(['flow'],sites=[67801], from_date='1991-04-01',to_date='2006-12-31')
-h2 = hydro().get_data(['flow'],sites=[67801], from_date='2008-01-01',to_date='2016-12-31')
-print h1
-print h2
+h2 = hydro().get_data(['flow_m'],sites=[167]).data['flow_m',167]
+h1 = hydro().get_data(['flow'],sites=[68001]).data['flow',68001]
 print 'done'

@@ -19,8 +19,8 @@ sites = [69618, 69607, 69619, 69615, 69614, 69635, 69602, 69644]
 
 pivot = True
 
-export_path = r'S:\Surface Water\shared\projects\otop\naturalisation\nat_test1.csv'
-export_allo_data = r'S:\Surface Water\shared\projects\otop\naturalisation\nat_test_data.csv'
+export_path = r'S:\Surface Water\shared\projects\otop\naturalisation\nat_opihi1.csv'
+export_allo_data = r'S:\Surface Water\shared\projects\otop\naturalisation\nat_opihi_allo_data.csv'
 
 ###########################################
 #### Run stream naturalization

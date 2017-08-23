@@ -4,15 +4,24 @@ Stream naturalisation functions.
 """
 
 
-def stream_nat(sites, catch_shp=r'P:\cant_catch_delin\recorders\catch_del.shp', include_gw=True, max_date='2015-06-30', sd_hdf='S:/Surface Water/shared/base_data/usage/sd_est_all_mon_vol.h5', flow_csv=None, crc_shp=r'S:\Surface Water\shared\GIS_base\vector\allocations\allo_gis.shp', catch_col='site', pivot=False, norm_area=False, export_path=None):
+def stream_nat(sites, catch_shp=r'P:\cant_catch_delin\recorders\catch_del.shp', include_gw=True, max_date='2015-06-30', sd_hdf='S:/Surface Water/shared/base_data/usage/sd_est_all_mon_vol.h5', flow_csv=None, crc_shp=r'S:\Surface Water\shared\GIS_base\vector\allocations\allo_gis.shp', catch_col='site', pivot=False, return_data=False, export_path=None):
     """
     Function to naturalize stream flows from monthly sums of usage.
+
+    sites -- A list of recorder sites to be naturalised.\n
+    catch_shp -- A shapefile of the delineated catchments for all recorders.\n
+    include_gw -- Should stream depleting GW takes be included?\n
+    max_date -- The last date to be naturalised. In the form of '2015-06-30'.\n
+    sd_hdf -- The hdf file of all the crc/waps with estimated usage and allocation.\n
+    flow_csv -- If None, then use the hydro class to import the data. Otherwise, flow data can be imported as a csv file with the first column as dattime and each other column as a recorder site in m3/s.\n
+    crc_shp -- A shapefile of all of th locations of the crc/waps.\n
+    pivot -- Should the output be pivotted?\n
+    return_data -- Should the allocation/usage time series be returned?
     """
-    from pandas import read_csv, to_datetime, concat, datetime, DataFrame, date_range, merge, read_hdf, DateOffset, to_timedelta, Grouper
+    from pandas import to_datetime, concat, DataFrame, merge, read_hdf, to_timedelta
     from core.ecan_io import rd_henry, rd_ts
-    from numpy import nan, in1d, append
     from geopandas import read_file
-    from core.spatial import pts_poly_join, catch_net
+    from core.spatial import pts_poly_join
     from core.misc import select_sites
     from core.classes.hydro import hydro
     from core.misc import save_df
@@ -133,4 +142,7 @@ def stream_nat(sites, catch_shp=r'P:\cant_catch_delin\recorders\catch_del.shp', 
         nat2 = nat1.round(3)
     if isinstance(export_path, str):
         save_df(nat2, export_path)
-    return(nat2)
+    if return_data:
+        return(nat2, sd1a)
+    else:
+        return(nat2)

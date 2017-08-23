@@ -207,11 +207,13 @@ a2.to_csv('E:/ecan/shared/base_data/usage/bad_fmDate_toDate.csv', index=False)
 crc_wap = rd_sql(code='crc_wap_act_acc')
 
 
+c1 = usage_est.sort_values('crc')
 
+c1[c1.crc == 'CRC000265.2'].wap
+allo[allo.crc == 'CRC000345.1']
+allo[allo.crc == 'CRC000265.2']
 
-
-
-
+sd[sd.wap == 'J38/0342']
 
 
 
