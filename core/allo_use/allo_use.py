@@ -256,11 +256,18 @@ def allo_proc(in_allo=True, corr_csv='S:/Surface Water/shared/base_data/database
     #### Add in the stream depletion percentages
     allo2 = merge(allo.drop('sd', axis=1), sd[['wap', 'sd1_150']], on='wap', how='left')
 
+    #### Reorder the columns
+    cols = allo2.columns.tolist()
+    init_cols = ['crc', 'take_type', 'allo_block', 'wap', 'use_type', 'max_rate', 'daily_vol', 'cav', 'max_vol', 'return_period', 'from_date', 'to_date', 'status_details']
+    t1 = [cols.remove(i) for i in init_cols]
+    cols[0:0] = init_cols
+    allo3 = allo2[cols]
+
     #### Save data and return object
     if isinstance(export_path, str):
-        save_df(allo2, export_path, index=False)
+        save_df(allo3, export_path, index=False)
 
-    return(allo2)
+    return(allo3)
 
 
 def allo_gis_proc(allo, export=True, export_shp='allo_gis.shp', export_csv='allo_gis.csv'):
@@ -331,11 +338,18 @@ def allo_gis_proc(allo, export=True, export_shp='allo_gis.shp', export_csv='allo
     gis3['x'] = gis3.geometry.apply(lambda i: i.x)
     gis3['y'] = gis3.geometry.apply(lambda i: i.y)
 
+    ## Reorder columns
+    cols = gis3.columns.tolist()
+    init_cols = ['crc', 'take_type', 'allo_block', 'wap', 'use_type', 'max_rate', 'daily_vol', 'cav', 'max_vol', 'return_period', 'from_date', 'to_date', 'status_details']
+    t1 = [cols.remove(i) for i in init_cols]
+    cols[0:0] = init_cols
+    gis4 = gis3[cols]
+
     #### Save data
     if export:
-        gis3.to_file(export_shp)
-        gis3.drop('geometry', axis=1).to_csv(export_csv, encoding='utf-8', index=False)
-    return(gis3)
+        gis4.to_file(export_shp)
+        gis4.drop('geometry', axis=1).to_csv(export_csv, encoding='utf-8', index=False)
+    return(gis4)
 
 
 def allo_ts_apply(wap, start_date='2014-07-01', end_date='2016-06-30', from_col='from_date', to_col='to_date', freq='D', mon_col='from_month', daily_vol_col='daily_vol', cav_col='cav'):
