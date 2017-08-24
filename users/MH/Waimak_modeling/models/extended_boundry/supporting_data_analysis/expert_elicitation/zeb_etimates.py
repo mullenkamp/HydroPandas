@@ -13,6 +13,8 @@ from scipy.stats import skewnorm, norm
 
 
 def individual_pdf(path, distribution):
+    print('')
+    print(path)
     data = pd.read_excel(path, index_col=0)
 
     for person in data.index:
@@ -34,6 +36,7 @@ def individual_pdf(path, distribution):
         x = np.linspace(_min, _max, 100)
         ax.plot(x, distribution.pdf(x, *params), label=person)
         #plt.show()
+        plt.close(fig)
 
 
 if __name__ == '__main__':
