@@ -167,7 +167,7 @@ def _get_s_wai_wells(subversion=1):
         well_details = well_details.set_index('WELL_NO')
         out_data = pd.merge(data, pd.DataFrame(well_details.loc[:, 'WMCRZone']), left_index=True, right_index=True)
         out_data = out_data.loc[np.in1d(out_data.WMCRZone, [7, 8])]
-        out_data.loc[:,'cwms'] = out_data.oc[:,'WMCRZone'].replace({7:'chch',8:'selwyn'})
+        out_data.loc[:,'cwms'] = out_data.loc[:,'WMCRZone'].replace({7:'chch',8:'selwyn'})
         out_data = out_data.drop('WMCRZone', axis=1)
         out_data.loc[:,'flux'] *= -1
 
