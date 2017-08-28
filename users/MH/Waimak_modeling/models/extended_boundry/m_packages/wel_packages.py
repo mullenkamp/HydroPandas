@@ -132,22 +132,39 @@ def _get_wel_spd_v1(recalc=False,sub_version=1):
         all_wells.loc[well,'row'] += overlap.loc[well,'add_row']
         all_wells.loc[well,'col'] += overlap.loc[well,'add_col']
 
-    # add little rakaia flux which will be parameterized via pest
-    temp = smt.model_where(np.isfinite(smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/little_rakaia_boundry_wells.shp".format(smt.sdp),
+    # add little rakaia flux which will be parameterized via pest in two groups upper flux is north of SH1, lower is coastal of SH1
+    temp = smt.model_where(np.isfinite(smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/little_rakaia_boundry_wells.shp".format(smt.sdp), #todo expand shape
                                          'Id', True)))
-    lrf = pd.DataFrame(index=['lrz_flux{:04d}'.format(e) for e in range(len(temp))],columns=all_wells.keys())
-    lrf.loc[:,'row'] = np.array(temp)[:,0]
-    lrf.loc[:,'col'] = np.array(temp)[:,1]
-    lrf.loc[:,'layer'] = 0
-    lrf.loc[:,'flux'] = 86400/len(temp)
-    lrf.loc[:,'type'] = 'lr_boundry_flux'
+    all_llrf = pd.DataFrame(columns=all_wells.keys())
+    for i in range(smt.layers):
+        llrf = pd.DataFrame(index=['llrz_flux{:04d}'.format(e) for e in range(i*len(temp),(i+1)*len(temp))],columns=all_wells.keys())
+        llrf.loc[:,'row'] = np.array(temp)[:,0]
+        llrf.loc[:,'col'] = np.array(temp)[:,1]
+        llrf.loc[:,'layer'] = i
+        llrf.loc[:,'flux'] = -9999999  # identifier flux, parameterised in pest
+        llrf.loc[:,'type'] = 'llr_boundry_flux'
+        llrf.loc[:,'zone'] = 's_wai'
+        all_llrf = pd.concat((all_llrf,llrf))
+
+    up_temp = smt.model_where(np.isfinite(smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/upper_lRZF.shp".format(smt.sdp),
+                                         'Id', True)))
+
+    all_ulrf = pd.DataFrame(columns=all_wells.keys())
+    for i in range(smt.layers):
+        ulrf = pd.DataFrame(index=['ulrz_flux{:04d}'.format(e) for e in range(i*len(up_temp),(i+1)*len(up_temp))],columns=all_wells.keys())
+        ulrf.loc[:,'row'] = np.array(up_temp)[:,0]
+        ulrf.loc[:,'col'] = np.array(up_temp)[:,1]
+        ulrf.loc[:,'layer'] = i
+        ulrf.loc[:,'flux'] = -8888888  # identifier flux, parameterised in pest
+        ulrf.loc[:,'type'] = 'ulr_boundry_flux'
+        ulrf.loc[:, 'zone'] = 's_wai'
+        all_ulrf = pd.concat((all_ulrf,ulrf))
 
     swai_races = get_s_wai_races()
-    all_wells = pd.concat((all_wells,swai_races,lrf))
+    all_wells = pd.concat((all_wells,swai_races,all_llrf,all_ulrf))
 
     all_wells = all_wells.loc[~((all_wells.duplicated(subset=['row','col','layer'],keep=False)) &
-                              (all_wells.type=='lr_boundry_flux'))]
-    all_wells.loc[all_wells.type == 'lr_boundry_flux','flux'] = 86400/(all_wells.type == 'lr_boundry_flux').sum()
+                              (all_wells.type.str.contains('lr_boundry_flux')))]
     all_wells = add_use_type(all_wells) # any well that has irrigation/stockwater in it's uses is considered irrigation
     if sub_version != 0:
         pickle.dump(all_wells, open(pickle_path, 'w'))
@@ -383,8 +400,8 @@ def add_use_type(data):
 
 if __name__ == '__main__':
     test = get_s_wai_races()
-    well_spd = _get_wel_spd_v1(recalc=False)
-    well_spd = _get_wel_spd_v1(recalc=True)
+    old = _get_wel_spd_v1(recalc=False)
+    new = _get_wel_spd_v1(recalc=True)
 
     n_wells_new = _check_waimak_wells()
     allo = pd.read_csv("{}/inputs/wells/allo_gis.csv".format(sdp), index_col='crc')

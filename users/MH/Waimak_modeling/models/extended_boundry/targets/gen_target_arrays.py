@@ -111,7 +111,7 @@ def get_target_group_values():
 
                         # drains
                         'd_ash_c': None,
-                        'd_ash_est': None, #-1.2,  #todo this may become 0.2 to 2 similar to selwyn offshore
+                        'd_ash_est': None, #-.15,  #todo this may become 0 to 0.3 similar to selwyn offshore
                         'd_ash_s': None,
                         'd_bul_avon': 'chch_str',
                         'd_bul_styx': 'chch_str',
@@ -367,4 +367,4 @@ def generate_all_data_for_brioch(outdir):
 
 if __name__ == '__main__':
     temp = get_vertical_gradient_targets()
-    generate_all_data_for_brioch(r"C:\Users\MattH\Desktop\data_to_brioch_18-08-2017\target_data")
+    generate_all_data_for_brioch(r"C:\Users\MattH\Desktop\data_to_brioch_28-08-2017\target_data")

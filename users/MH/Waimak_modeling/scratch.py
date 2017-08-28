@@ -13,7 +13,11 @@ from pykrige.ok import OrdinaryKriging as okrig
 import geopandas as gpd
 from core.classes.hydro import hydro
 
+site2 = 66402
+site1 = 66403
+h1 = hydro().get_data(['flow'],sites=[66403]).data['flow',site1]
+h2 = hydro().get_data(['flow'],sites=[66402]).data['flow',site2]
 
-h2 = hydro().get_data(['flow_m'],sites=[167]).data['flow_m',167]
-h1 = hydro().get_data(['flow'],sites=[68001]).data['flow',68001]
+temp = pd.merge(pd.DataFrame(h1,columns=['otara']),pd.DataFrame(h2,columns=['gorge']),right_index=True,left_index=True)
+print temp.describe()
 print 'done'
