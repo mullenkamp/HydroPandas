@@ -3,40 +3,38 @@
 Author: mattH
 Date Created: 28/08/2017 4:14 PM
 """
-
 from __future__ import division
-from pandas import read_csv
-path = '' #todo define
-data = read_csv(path)
-""" make a csv of col, row, layer, flux, type, cwms  or just make a NSMC_type that would be better"""
 
-chch_pump_mult = None #todo
-sel_pump_mult = None #todo
-wai_pump_mult = None #todo
-sriv_mult = None #todo
-n_race_mult = None #todo
-s_race_mult = None #todo
-llrzf = None #todo
-ulrzf = None #todo
-n_bound_mult = None #todo
+def create_nsmc_well():
+    from pandas import read_csv
+    from numpy import float32, int32, sum
+    path = r"C:\Users\MattH\Downloads\test_nsmc_well.csv"  # todo define this one is temp
+    data = read_csv(path, dtype={'layer': int32, 'row': int32, 'col': int32, 'flux': float32})
+    mult_path = r"C:\Users\MattH\Desktop\waimak_wel_adjuster.csv" #todo temp
+    multipliers = read_csv(mult_path,index_col=0)
 
-# pumping wells
-data.loc[data.nsmc_type == 'p_c', 'flux'] *= chch_pump_mult
-data.loc[data.nsmc_type == 'p_s', 'flux'] *= sel_pump_mult
-data.loc[data.nsmc_type == 'p_w', 'flux'] *= wai_pump_mult
+    mult_groups = ['pump_c', 'pump_s', 'pump_w', 'sriv', 'n_race', 's_race', 'nbndf']
+    for group in mult_groups:
+        data.loc[data.nsmc_type == group, 'flux'] *= multipliers.loc[group,'value']
 
-# selwyn_hillfeds
-data.loc[data.nsmc_type == 'sriv', 'flux'] *= sriv_mult
+    add_groups = ['llrzf', 'ulrzf']
+    for group in add_groups:
+        data.loc[data.nsmc_type == group, 'flux'] = multipliers.loc[group,'value']/(data.nsmc_type==group).sum()
 
-# races
-data.loc[data.nsmc_type=='n_rc', 'flux'] *= n_race_mult
-data.loc[data.nsmc_type=='s_rc', 'flux'] *= s_race_mult
+    g = data.groupby(['layer', 'row', 'col'])
+    well_ag = g.aggregate({'flux': sum}).reset_index()
 
-# boundary fluxes
-data.loc[data.nsmc_type == 'l_sf', 'flux'] = llrzf #todo think about how this will come out
-data.loc[data.nsmc_type == 'u_sf', 'flux'] = ulrzf #todo think about how this will come out
-data.loc[data.nsmc_type == 'nf', 'flux'] *= n_bound_mult
+    outdata = well_ag.loc[:, ['layer', 'row', 'col', 'flux']]
+    outdata = outdata.rename(columns={'layer': 'k', 'row': 'i', 'col': 'j'})
+    outdata.loc[:,['k','i','j']] += 1
+    # todo save as well package? I think this should work... I need to test it
+    out_file = r"C:\Users\MattH\Downloads\test_speed.wel"
+    with open(out_file,'w') as f:
+        f.writelines(['11095    740    AUX    IFACE\n', '11095    0    # stress period 0\n'])
+    outdata.to_csv(out_file,header=None,index=None,sep=' ', mode='a')
 
-#todo save as well package
-ln1 = '     11095       740   AUX  IFACE'
-ln2 = '     11095         0  # stress period 0'
+
+
+
+if __name__ == '__main__':
+    create_nsmc_well()
