@@ -111,7 +111,7 @@ def get_target_group_values():
 
                         # drains
                         'd_ash_c': None,
-                        'd_ash_est': None, #-.15,  #todo this may become 0 to 0.3 similar to selwyn offshore
+                        'd_ash_est': None, #0.15,  #todo this may become 0 to 0.3 similar to selwyn offshore
                         'd_ash_s': None,
                         'd_bul_avon': 'chch_str',
                         'd_bul_styx': 'chch_str',
