@@ -9,9 +9,7 @@ from core import env
 import pandas as pd
 from users.MH.Waimak_modeling.models.extended_boundry.m_packages.wel_packages import _get_wel_spd_v1
 
-
-if __name__ == '__main__':
-
+def get_well_NSMC_base():
     all_wells = _get_wel_spd_v1()
     all_wells.loc[:,'nsmc_type'] = ''
     #pumping wells
@@ -32,4 +30,10 @@ if __name__ == '__main__':
     all_wells.loc[all_wells.type == 'boundry_flux','nsmc_type'] = 'nbndf'
 
     all_wells = all_wells.loc[:,['layer','row','col', 'flux','nsmc_type']]
-    all_wells.to_csv(r"C:\Users\MattH\Downloads\test_nsmc_well.csv") #todo add path this one is temp
+    return all_wells
+
+def get_template_data():
+    groups = ['pump_c', 'pump_s', 'pump_w', 'sriv', 'n_race', 's_race', 'nbndf','llrzf', 'ulrzf']
+    pram_id = ['${}$'.format(e) for e in groups]
+    out_data = pd.DataFrame(index=groups,data=pram_id)
+    return out_data

@@ -46,7 +46,10 @@ def gen_sfr_flow_target_array():
                    11: 'sfo_7drn',
                    12: 'sfo_c_tlks',
                    13: 'sfo_c_skew',
-                   14: 'sfo_e_wolf'}
+                   14: 'sfo_e_wolf',
+                   15: 'sfo_e_poyn',
+                   16: 'sfo_e_down',
+                   17: 'sfo_e_seyr'} #todo add more here
     return target_array, num_to_name
 
 
@@ -173,6 +176,9 @@ def get_target_group_values():
                         'sfo_c_tip': None,  # was previously 0 but this meant no data
                         'sfo_c_tlks': 1.75,
                         'sfo_e_wolf': 0.0,
+                        'sfo_e_poyn': 0.0,
+                        'sfo_e_down': 0.0,
+                        'sfo_e_seyr': 0.0,
 
                         # surface water flux #from pervious shapefiles of targets
                         'sfx_a1_con': 'mid_ash_g',
@@ -366,5 +372,5 @@ def generate_all_data_for_brioch(outdir):
 
 
 if __name__ == '__main__':
-    temp = get_vertical_gradient_targets()
-    generate_all_data_for_brioch(r"C:\Users\MattH\Desktop\data_to_brioch_28-08-2017\target_data")
+    temp = gen_sfr_flow_target_array()
+    generate_all_data_for_brioch(r"C:\Users\MattH\Desktop\data_to_brioch_30-08-2017\target_data")
