@@ -29,8 +29,14 @@ def data_to_cath(base_dir):
     points.loc[:,'name'] = ['rch_ppt_{:02d}'.format(e) for e in range(len(points.index))]
     points.loc[:, 'x'] = [e.x for e in points.geometry]
     points.loc[:, 'y'] = [e.y for e in points.geometry]
-    points = points.loc[:,['name','x','y','group']]
-    points.to_csv('{}/rch_ppts.txt'.format(base_dir),header=False, sep=' ',index=False)
+    points.loc[:, 'value'] = ['${}$'.format(e) for e in points.loc[:,'name']]
+    points2 = points.loc[:,['name','x','y','group']]
+    points2.to_csv('{}/rch_ppts.txt'.format(base_dir),header=False, sep=' ',index=False,mode='a')
+    out_file = '{}/rch_ppts.tpl'.format(base_dir)
+    points3 = points.loc[:,['name','x','y','group','value']]
+    with open(out_file,'w') as f:
+        f.write('ptf $\n')
+    points3.to_csv(out_file,header=False, sep=' ',index=False,mode='a')
 
     # well template
     well_temp = get_template_data()
