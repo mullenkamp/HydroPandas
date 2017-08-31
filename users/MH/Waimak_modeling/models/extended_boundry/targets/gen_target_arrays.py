@@ -188,12 +188,24 @@ def get_target_group_values():
                         'sfx_c1_swa': None, # previously but doesn't add up -0.43,
                         'sfx_c2_mil': None, # previously but doesn't add up -0.42,
                         'sfx_e1_stf': 1.6,
-                        'sfx_w1_cou': 2.8,
-                        'sfx_w2_tom': 1.1,
-                        'sfx_w3_ros': 2.2,
-                        'sfx_w4_mcl': 5.7,
-                        'sfx_w5_wat': -0.1,
-                        'sfx_w6_sh1': -0.5,
+                        'sfx_w1_cou': -0.9,  # Waimakariri Gorge- Courtenay Road
+                        'sfx_w2_tom': 1.1,  # Courtenay Road - Halkett
+                        'sfx_w3_ros': 2.8,  # Halkett- Weedons Ross Road
+                        'sfx_w4_mcl': 4.7,  # Weedons Ross Road - Crossbank
+                        'sfx_w5_wat': 3.2,  # Crossbank - Wrights Cut
+                        'sfx_w6_sh1': 1.1,  # Wrights Cut - Old State Highway Bridge
+
+                        # below are the old waimak targets kept here for posterity
+                        # these targets assume that the model can model underflow in the
+                        # waimakariri river, which we think is implausable given the 30m+
+                        # layer 0 thickness
+                        #'sfx_w1_cou': 2.8, # old kept for posterity
+                        #'sfx_w2_tom': 1.1, # old kept for posterity
+                        #'sfx_w3_ros': 2.2, # old kept for posterity
+                        #'sfx_w4_mcl': 5.7, # old kept for posterity
+                        #'sfx_w5_wat': -0.1, # old kept for posterity
+                        #'sfx_w6_sh1': -0.5, # old kept for posterity
+
                         'sfx_3drn': None,
                         'sfx_2adrn': None,
                         'sfx_4drn': None,
@@ -201,7 +213,7 @@ def get_target_group_values():
                         'sfx_6drn': None,
                         'sfx_7drn': None,
                         'sfx_e_all': 1.99,
-                        'sfx_w_all': 11.2,
+                        'sfx_w_all': 12,
                         'sfx_cd_all': None,
 
                         # groups
@@ -373,4 +385,4 @@ def generate_all_data_for_brioch(outdir):
 
 if __name__ == '__main__':
     temp = gen_sfr_flow_target_array()
-    generate_all_data_for_brioch(r"C:\Users\MattH\Desktop\data_to_brioch_30-08-2017\target_data")
+    generate_all_data_for_brioch(r"C:\Users\MattH\Desktop\data_to_brioch_31-08-2017\target_data")

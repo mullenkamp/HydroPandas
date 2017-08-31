@@ -38,5 +38,13 @@ for idx, name in zip([w_idx,c_idx,s_idx],['waimak','chch','selwyn']):
     print('confined {}% {} cells'.format(conf/total_area,conf))
     print((conf+non_irr+irrigated_area)/total_area)
     print('average recharge: {}'.format(rch[idx].mean()*1000*365))
+# todo check rch_ values
 
-
+dryland =rch[np.isnan(confined) & np.isnan(irrigation) & (no_flow.astype(bool))].mean()*1000*365
+print ('average rch in dryland: {} mm/yr'.format(dryland))
+confined_drl = rch[np.isfinite(confined) & np.isnan(irrigation)].mean()*1000*365
+print ('average rch in confined dryland: {} mm/yr'.format(confined_drl))
+waiir = rch[np.isfinite(irrigation) & (zones==4)].mean()*1000*365
+print ('average rch in waimak irrigated: {} mm/yr'.format(waiir))
+sel_ir = rch[np.isfinite(irrigation) & (~(zones==4))].mean()*1000*365
+print ('average rch in selwyn irrigated: {} mm/yr'.format(sel_ir))

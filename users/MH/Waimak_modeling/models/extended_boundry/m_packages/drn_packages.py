@@ -339,7 +339,7 @@ def _get_drn_spd(reach_v, wel_version, recalc=False, n_car_dns=True):
     p_group_map = {
         'd_salt_s': 'd_salt_fct',
         'd_waikuk_s': 'd_kuku_leg',
-        'd_ash_s': 'd_kuku_leg',
+        #'d_ash_s': 'd_kuku_leg', removed as it seems to cause problems hitting the waikuku
         'd_taran_s': 'd_tar_stok',
         'd_cam_s': 'd_cam_revl',
         'd_kaiapo_s': 'd_sil_ilnd',
@@ -356,7 +356,7 @@ def _get_drn_spd(reach_v, wel_version, recalc=False, n_car_dns=True):
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    test = _get_drn_spd(1, 1,False,n_car_dns=True)
+    test = _get_drn_spd(1, 1,True,n_car_dns=True)
     smt.plt_matrix(smt.df_to_array(test,'k'))
     plt.show()
     test2 = _get_drn_spd(1,1,False,n_car_dns=False)
