@@ -338,7 +338,7 @@ def _get_s_wai_rivers():
     horo = pd.DataFrame(smt.model_where(rivers[np.newaxis, :, :] == 105), columns=['layer', 'row', 'col'])
     horo['well'] = ['horo{:04d}'.format(e) for e in horo.index]
     # evenly distribute flux from scott thorley 2009 but only including 7/32 of the river in my model
-    horo['flux'] = 0.554 * 86400 / len(horo)
+    horo['flux'] = 0.554*7./32 * 86400 / len(horo)
 
     # the hawkins 0.25 m3/s equally distributed between watsons bridge road and homebush road
     hawkins = pd.DataFrame(smt.model_where(rivers[np.newaxis, :, :] == 103), columns=['layer', 'row', 'col'])

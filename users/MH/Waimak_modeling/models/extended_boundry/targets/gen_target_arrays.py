@@ -15,7 +15,6 @@ from users.MH.Waimak_modeling.models.extended_boundry.m_packages.drn_packages im
 import geopandas as gpd
 import os
 
-
 def gen_drn_target_array():
     drn_data = _get_drn_spd(smt.reach_v, smt.wel_version)
     out_dict = {}
@@ -94,22 +93,28 @@ def gen_sfr_flux_target_array():
 def gen_constant_head_targets():  # watch if we have constant heads in the sw boundary also note that this is 3d
     chbs = _get_constant_heads()
     shp_path = "{}/m_ex_bd_inputs/shp/coastal_head_target_zones.shp".format(smt.sdp)
-    zones = np.repeat(smt.shape_file_to_model_array(shp_path, 'Id', alltouched=True)[np.newaxis, :, :], smt.layers,
-                      axis=0)
-    zones[np.isnan(chbs) | (chbs < -900)] = 0
+    zones = smt.shape_file_to_model_array(shp_path, 'Id', alltouched=True)
+    zones[np.isnan(chbs[0]) ] = 0
     zones[np.isnan(zones)] = 0
+    inland = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/inland_zones.shp".format(smt.sdp),'Id',alltouched=True)
+    zones[np.isfinite(inland) & (np.isclose(zones,0))] = 9
+    zones = np.repeat(zones[np.newaxis,:,:],11,axis=0)
+    no_flow = smt.get_no_flow()
+    zones[np.isclose(no_flow,0)] = 0
     zone_data = gpd.read_file(shp_path)
     zone_data = zone_data.set_index('Id')
     zone_data = zone_data.loc[:, 'name'].to_dict()
+    zone_data['onshore'] = 9
 
-    return zones, zone_data
+
+    return zones.astype(int), zone_data
 
 
 def get_target_group_values():
     # Note that below are in m3/s and then converted to m3/day
-    target_group_val = {'chb_ash': None, #-5.25,  # 3.0 to 7.5 #todo may become 1.5-8 similar to selwyn offshore
-                        'chb_chch': -0.9,  # 0.3 to 1.5
-                        'chb_cust': -0.3,  # 0.1 to 0.5
+    target_group_val = {'chb_ash': -2.4, #-5.25,  # 3.0 to 7.5 #todo may become 1.5-8 similar to selwyn offshore
+                        'chb_chch': -0.0,  # 0.3 to 1.5
+                        'chb_cust': -0.35,  # 0.1 to 0.5
                         'chb_sely': 'sel_off',
 
                         # drains
@@ -218,7 +223,7 @@ def get_target_group_values():
 
                         # groups
                         'mid_ash_g': 5.20,
-                        'sel_off': None,  # 1.2-17 # to much range- just observe
+                        'sel_off': 5.9,  # 1.2-17 # to much range- just observe in NSMC
                         'chch_str': -10,  # 7.5 to 12.5
                         'sel_str': -9.8  # no range
                         }
@@ -248,11 +253,14 @@ def get_vertical_gradient_targets():
                               index_col=0)
     idx = vert_targets.index
     vert_targets.loc[idx, 'weight'] = 1 / all_targets.loc[idx, 'total_error_m']
+    vert_targets.loc[idx,'GWL_RL'] = all_targets.loc[idx,'h2o_elv_mean']
 
-    outdata = vert_targets.loc[:, ['NZTM_x', 'NZTM_y', 'layer', 'GWL_RL', 'weight', 'row', 'col', 'group', 'Location']].rename(
+    outdata = vert_targets.loc[:, ['NZTM_x', 'NZTM_y', 'layer', 'GWL_RL', 'weight', 'row', 'col', 'group', 'Location','code']].rename(
         columns={'NZTM_x': 'x', 'NZTM_y': 'y', 'GWL_RL': 'obs', 'row': 'i', 'col': 'j'})
     # return a dataframe: lat, lon, layer, obs, weight?, i,j
     # pull weight from uncertainty
+    outdata = outdata.dropna()
+    outdata = outdata.loc[outdata.duplicated('group',keep=False)]
 
     return outdata
 
@@ -266,12 +274,12 @@ def get_head_targets():
                                   (all_targets.col.notnull()) & (all_targets.layer.notnull())]
 
     # pull out targets for each layer
-    min_readings = {0: 20,
-                    1: 20,
-                    2: 2,
-                    3: 2,
-                    4: 2,
-                    5: 2,
+    min_readings = {0: 5,
+                    1: 2,
+                    2: 1,
+                    3: 1,
+                    4: 1,
+                    5: 1,
                     6: 1,
                     7: 1,
                     8: 1,
@@ -280,7 +288,7 @@ def get_head_targets():
 
     outdata = pd.DataFrame()
     for layer in range(smt.layers - 1):  # pull out targets for layers 0-9 layer 10 has no targets
-        idx = (all_targets.layer == layer) & (all_targets.readings >= min_readings[layer])
+        idx = (all_targets.layer == layer) & (all_targets.readings_nondry >= min_readings[layer])
         outdata = pd.concat((outdata, all_targets.loc[idx, ['nztmx', 'nztmy', 'layer', 'h2o_elv_mean',
                                                             'weight', 'row', 'col', 'total_error_m']]))
     no_flow = smt.get_no_flow()
@@ -318,71 +326,3 @@ def save_dict_to_csv(path, indict, from_lab, to_lab):
     pd.DataFrame(temp).to_csv(path)
 
 
-def generate_all_data_for_brioch(outdir):
-    if not os.path.exists(outdir):
-        os.makedirs(outdir)
-
-    head_targets = get_head_targets()
-    head_targets.to_csv('{}/head_targets.csv'.format(outdir))
-
-    vert_targets = get_vertical_gradient_targets()
-    vert_targets.to_csv('{}/vertical_gradient_targets.csv'.format(outdir))
-
-    target_group_val = get_target_group_values()
-    save_dict_to_csv('{}/target_values.csv'.format(outdir), target_group_val, 'group_name', 'value')
-
-    constant_head_targets, constant_head_zones = gen_constant_head_targets()
-    for i in range(smt.layers):
-        np.savetxt('{}/constant_head_target_0idlayer_{}.txt'.format(outdir, i), constant_head_targets[i])
-    save_dict_to_csv('{}/constant_heads_dict.csv'.format(outdir), constant_head_zones, 'num_id', 'chb_id')
-
-    futns = [gen_sfr_flux_target_array, gen_sfr_full_we_flux_target_array, gen_sfr_flow_target_array,
-             gen_drn_target_array]
-    names = ['sfr_flux', 'sfr_full_str_flux', 'sfr_flow', 'drn_flux']
-    for f, n in zip(futns, names):
-        temp_array, temp_dict = f()
-        np.savetxt('{}/{}_array.txt'.format(outdir, n), temp_array)
-        save_dict_to_csv('{}/{}_dict.csv'.format(outdir, n), temp_dict, 'num_id', '{}_id'.format(n))
-
-    seg_dict = get_seg_param_dict()
-    save_dict_to_csv('{}/segment_k_param_group.csv'.format(outdir), seg_dict, 'seg', 'use_k_of_seg')
-    # well_ data
-    well_data = get_wel_spd(smt.wel_version, True)
-    well_data = well_data.loc[:, ['layer', 'row', 'col', 'flux', 'type']]
-    well_data.to_csv('{}/well_data.csv'.format(outdir))
-
-    drn_data = _get_drn_spd(smt.reach_v, smt.wel_version, True)
-    drn_data.to_csv('{}/drain_data.csv'.format(outdir))
-    waimak_springfed_targets = ['d_cam_mrsh',
-                        'd_cam_revl',
-                        'd_cam_yng',
-                        'd_cour_nrd',
-                        'd_emd_gard',
-                        'd_kairaki',
-                        'd_kuku_leg',
-                        'd_nbk_mrsh',
-                        'd_oho_btch',
-                        'd_oho_jefs',
-                        'd_oho_kpoi',
-                        'd_oho_misc',
-                        'd_oho_mlbk',
-                        'd_oho_whit',
-                        'd_salt_fct',
-                        'd_salt_top',
-                        'd_sbk_mrsh',
-                        'd_sil_harp',
-                        'd_sil_heyw',
-                        'd_sil_ilnd',
-                        'd_smiths',
-                        'd_tar_gre',
-                        'd_tar_stok']
-    drn_data = smt.add_mxmy_to_df(drn_data)
-    drn_data.loc[:,'has_target'] = np.in1d(drn_data.target_group, waimak_springfed_targets)
-    drn_data.to_csv('{}/drain_data_for_shapefile.csv'.format(outdir))
-
-    print('done')
-
-
-if __name__ == '__main__':
-    temp = gen_sfr_flow_target_array()
-    generate_all_data_for_brioch(r"C:\Users\MattH\Desktop\data_to_brioch_31-08-2017\target_data")

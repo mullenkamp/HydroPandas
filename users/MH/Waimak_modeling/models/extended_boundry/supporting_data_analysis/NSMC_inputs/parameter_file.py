@@ -46,21 +46,21 @@ parameters = {  # todo note that these are in m3/s or %
               'inital': 1,
               'units': 'fraction'},
 
-    's_race': {'sd': np.nan,  # fraction
-               'min': 0.39,
-               'max': 1.16,
+    's_race': {'sd': 0.2,  # fraction
+               'min': np.nan,
+               'max': np.nan,
                'inital': 1,
                'units': 'fraction'},
 
-    'ulrzf': {'sd': np.nan,  # m3/s this is the total value it is distributed in my well adjust script
-              'min': 0,
-              'max': 4,
+    'ulrzf': {'sd': 2/3,  # m3/s this is the total value it is distributed in my well adjust script
+              'min': np.nan,
+              'max': np.nan,
               'inital': 3,
               'units': 'm3/s'},
 
-    'llrzf': {'sd': np.nan,  # m3/s this is the total value it is distributed in my well adjust script
-              'min': -2.1,
-              'max': 3,
+    'llrzf': {'sd': 1,  # m3/s this is the total value it is distributed in my well adjust script
+              'min': np.nan,
+              'max': np.nan,
               'inital': 0,
               'units': 'm3/s'},
 
@@ -137,11 +137,11 @@ def create_parameter_file(unc_file_path):
         '\n'
     ]
 
-    normal_actual_parameters = ['top_e_flo', 'top_c_flo', 'mid_c_flo']
-    normal_mult_parameters = ['pump_c', 'pump_s', 'pump_w', 'sriv', 'n_race', 'nbndf']
+    normal_actual_parameters = ['top_e_flo', 'top_c_flo', 'mid_c_flo','llrzf', 'ulrzf']
+    normal_mult_parameters = ['pump_c', 'pump_s', 'pump_w', 'sriv', 'n_race', 'nbndf','s_race']
 
-    uniform_actual_parameters = ['llrzf', 'ulrzf']  # todo still not sure how uniforms are being handled
-    uniform_mult_parameters = ['s_race']
+    uniform_actual_parameters = []  # no uniforms used
+    uniform_mult_parameters = []
 
     with open(unc_file_path, 'w') as f:
         f.writelines(inital_lines)
@@ -158,7 +158,7 @@ def create_parameter_file(unc_file_path):
             _max = parameters[param]['max']
             if np.isnan(sd) or np.isfinite(_min) or np.isfinite(_max):
                 raise ValueError('{} has a nan or actual value where it should not'.format(param))
-            f.write('{} {}\n'.format(param, sd / 86400))
+            f.write('{} {}\n'.format(param, sd * 86400))
 
         # write normal multiplicitve paramters
         for param in normal_mult_parameters:
@@ -180,7 +180,7 @@ def create_parameter_file(unc_file_path):
             _max = parameters[param]['max']
             if np.isfinite(sd) or np.isnan(_min) or np.isnan(_max):
                 raise ValueError('{} has a nan or actual value where it should not'.format(param))
-            f.write('{} {} {}\n'.format(param, _min / 86400, _max / 86400))  # todo check with cath if this is right
+            f.write('{} {} {}\n'.format(param, _min * 86400, _max * 86400))  # todo check with cath if this is right
 
         for param in uniform_mult_parameters:
             sd = parameters[param]['sd']

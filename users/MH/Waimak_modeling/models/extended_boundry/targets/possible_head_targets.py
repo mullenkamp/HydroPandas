@@ -15,6 +15,7 @@ from users.MH.Waimak_modeling.supporting_data_path import sdp
 import rasterio
 import geopandas as gpd
 import matplotlib.pyplot as plt
+from copy import deepcopy
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 
 
@@ -93,10 +94,11 @@ def get_water_level_data(min_reading=1):
             out_data.loc[well, 'mid_screen_depth'] = well_details.loc[well, 'DEPTH'] - 2
 
     out_data.loc[:, 'mid_screen_elv'] = out_data.loc[:, 'ground_level'] - out_data.loc[:, 'mid_screen_depth']
-
+    out_data_org = deepcopy(out_data)
     data2008 = data.loc[data['year'] >= 2008]
     outputs = []
     for val, dat in zip(['_2008', '_all'], [data2008, data]):
+        out_data = deepcopy(out_data_org)
         g = dat.loc[(dat.data > -999) & (dat.data < 999)].groupby('site')
         out_data['h2o_dpth_mean'] = g.aggregate({'data': np.mean})
         out_data['h2o_dpth_min'] = g.aggregate({'data': np.min})

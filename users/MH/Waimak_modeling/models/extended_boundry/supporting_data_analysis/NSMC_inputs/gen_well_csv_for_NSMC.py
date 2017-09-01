@@ -10,7 +10,7 @@ import pandas as pd
 from users.MH.Waimak_modeling.models.extended_boundry.m_packages.wel_packages import _get_wel_spd_v1
 
 def get_well_NSMC_base():
-    all_wells = _get_wel_spd_v1()
+    all_wells = _get_wel_spd_v1(recalc=True)
     all_wells.loc[:,'nsmc_type'] = ''
     #pumping wells
     all_wells.loc[(all_wells.type=='well') & (all_wells.cwms=='chch'),'nsmc_type'] = 'pump_c'
