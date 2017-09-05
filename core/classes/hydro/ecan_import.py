@@ -16,19 +16,19 @@ prod_server03 = 'SQL2012PROD03'
 prod_server05 = 'SQL2012PROD05'
 dw_db = 'DataWarehouse'
 
-flow_dict = {'server': prod_server03, 'db': dw_db, 'table': 'F_HY_Flow_Data', 'site_col': 'SiteNo', 'time_col': 'DateTime', 'data_col': 'Value', 'qual_col': 'QualityCode'}
+flow_dict = {'server': prod_server03, 'db': dw_db, 'table': 'F_HY_Flow_Data', 'site_col': 'SiteNo', 'time_col': 'DateTime', 'data_col': 'Value', 'qual_col': 'QualityCode', 'add_where': None}
 
-precip_dict = {'server': prod_server03, 'db': dw_db, 'table': 'F_HY_Precip_data', 'site_col': 'site', 'time_col': 'time', 'data_col': 'data', 'qual_col': 'qual_code'}
+precip_dict = {'server': prod_server03, 'db': dw_db, 'table': 'F_HY_Precip_data', 'site_col': 'site', 'time_col': 'time', 'data_col': 'data', 'qual_col': 'qual_code', 'add_where': None}
 
-swl_dict = {'server': prod_server03, 'db': dw_db, 'table': 'F_HY_SWL_data', 'site_col': 'site', 'time_col': 'time', 'data_col': 'data', 'qual_col': 'qual_code'}
+swl_dict = {'server': prod_server03, 'db': dw_db, 'table': 'F_HY_SWL_data', 'site_col': 'site', 'time_col': 'time', 'data_col': 'data', 'qual_col': 'qual_code', 'add_where': None}
 
-gwl_dict = {'server': prod_server03, 'db': dw_db, 'table': 'F_HY_GWL_data', 'site_col': 'site', 'time_col': 'time', 'data_col': 'data', 'qual_col': 'qual_code'}
+gwl_dict = {'server': prod_server03, 'db': dw_db, 'table': 'F_HY_GWL_data', 'site_col': 'site', 'time_col': 'time', 'data_col': 'data', 'qual_col': 'qual_code', 'add_where': None}
 
-gwl_m_dict = {'server': prod_server05, 'db': 'Wells', 'table': 'DTW_READINGS', 'site_col': 'WELL_NO', 'time_col': 'DATE_READ', 'data_col': 'DEPTH_TO_WATER', 'qual_col': None}
+gwl_m_dict = {'server': prod_server05, 'db': 'Wells', 'table': 'DTW_READINGS', 'site_col': 'WELL_NO', 'time_col': 'DATE_READ', 'data_col': 'DEPTH_TO_WATER', 'qual_col': None, 'add_where': "TIDEDA_FLAG='N'"}
 
-usage_dict = {'server': prod_server03, 'db': dw_db, 'table': 'F_HY_Usage_data', 'site_col': 'site', 'time_col': 'time', 'data_col': 'data', 'qual_col': None}
+usage_dict = {'server': prod_server03, 'db': dw_db, 'table': 'F_HY_Usage_data', 'site_col': 'site', 'time_col': 'time', 'data_col': 'data', 'qual_col': None, 'add_where': None}
 
-wus_usage_dict = {'server': prod_server03, 'db': 'WUS', 'table': 'vw_WUS_Fact_DailyUsageByUsageSite', 'site_col': 'UsageSite', 'time_col': 'Day', 'data_col': 'Usage', 'qual_col': None}
+wus_usage_dict = {'server': prod_server03, 'db': 'WUS', 'table': 'vw_WUS_Fact_DailyUsageByUsageSite', 'site_col': 'UsageSite', 'time_col': 'Day', 'data_col': 'Usage', 'qual_col': None, 'add_where': None}
 
 #usage_server = 'SQL2012DEV01'
 #usage_db = 'Hydro'

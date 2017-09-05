@@ -3190,11 +3190,13 @@ rec_shed1.area.sum()
 
 
 ############################################
-### Read ini files
+### Manual GW readings
 
-if [1]:
-    print('true')
+from core.classes.hydro import hydro
 
+wap = 'BT27/5020'
+
+gw1 = hydro().get_data('gwl_m', sites=wap)
 
 
 
