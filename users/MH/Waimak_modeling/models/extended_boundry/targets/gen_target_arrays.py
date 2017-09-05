@@ -14,6 +14,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.m_packages.wel_packages im
 from users.MH.Waimak_modeling.models.extended_boundry.m_packages.drn_packages import _get_drn_spd
 import geopandas as gpd
 import os
+import matplotlib.pyplot as plt
 
 def gen_drn_target_array():
     drn_data = _get_drn_spd(smt.reach_v, smt.wel_version)
@@ -24,6 +25,10 @@ def gen_drn_target_array():
         temp_array = smt.df_to_array(temp, 'k')
         out_array[np.isfinite(temp_array)] = i
         out_dict[i] = group
+
+    kspit = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/kspit.shp".format(smt.sdp),'Id',True)
+    out_array[np.isfinite(kspit) & (np.isclose(out_array,22) | np.isclose(out_array,3))] = out_array.max()+1
+    out_dict[out_array.max()] = 'd_kspit'
 
     return out_array, out_dict
 
@@ -56,8 +61,8 @@ def gen_sfr_full_we_flux_target_array():
     shp_path = '{}/m_ex_bd_inputs/shp/full_w_e_flux_targets.shp'.format(smt.sdp)
     target_array = smt.shape_file_to_model_array(shp_path, 'targ_code', True)
     target_array[np.isnan(target_array)] = 0
-    num_to_name = {1: 'sfx_w_all',
-                   2: 'sfx_e_all',
+    num_to_name = {2: 'sfx_w_all',
+                   1: 'sfx_e_all',
                    3: 'sfx_cd_all'}
 
     return target_array, num_to_name
@@ -104,7 +109,7 @@ def gen_constant_head_targets():  # watch if we have constant heads in the sw bo
     zone_data = gpd.read_file(shp_path)
     zone_data = zone_data.set_index('Id')
     zone_data = zone_data.loc[:, 'name'].to_dict()
-    zone_data['onshore'] = 9
+    zone_data[9] = 'onshore'
 
 
     return zones.astype(int), zone_data
@@ -116,10 +121,11 @@ def get_target_group_values():
                         'chb_chch': -0.8,  # 0.3 to 1.5
                         'chb_cust': -0.35,  # 0.1 to 0.5
                         'chb_sely': 'sel_off',
+                        'onshore': None,
 
                         # drains
                         'd_ash_c': None,
-                        'd_ash_est': None, #0.15,  #todo this may become 0 to 0.3 similar to selwyn offshore
+                        'd_ash_est': 0.15, #0.15,  #todo this may become 0 to 0.3 similar to selwyn offshore
                         'd_ash_s': None,
                         'd_bul_avon': 'chch_str',
                         'd_bul_styx': 'chch_str',
@@ -140,6 +146,7 @@ def get_target_group_values():
                         'd_uwaimak': None,
                         'd_waihora': 'sel_off',
                         'd_waikuk_s': None,
+                        'd_kspit': 'sel_off',
 
                         # from previous shapefile of targets
                         'd_cam_mrsh': -0.17,
@@ -223,7 +230,7 @@ def get_target_group_values():
 
                         # groups
                         'mid_ash_g': 5.20,
-                        'sel_off': 5.9,  # 1.2-17 # to much range- just observe in NSMC
+                        'sel_off': -5.9,  # 1.2-17 # to much range- just observe in NSMC
                         'chch_str': -10,  # 7.5 to 12.5
                         'sel_str': -9.8  # no range
                         }
@@ -326,3 +333,39 @@ def save_dict_to_csv(path, indict, from_lab, to_lab):
     pd.DataFrame(temp).to_csv(path)
 
 
+def check_non_head_targets():
+    functions = [gen_constant_head_targets, gen_sfr_flux_target_array, gen_sfr_full_we_flux_target_array,
+                 gen_sfr_flow_target_array, gen_drn_target_array]
+    target_values = get_target_group_values()
+    for f in functions:
+        target_array,target_dict = f()
+        if f == gen_constant_head_targets:
+            for l in range(smt.layers):
+                fig,ax = smt.plt_matrix(target_array[l],no_flow_layer=l)
+                for j in target_dict.keys():
+                    if target_values[target_dict[j]] is None:
+                        temp_lab = target_values[target_dict[j]]
+                    elif isinstance(target_values[target_dict[j]],str):
+                        temp_lab = target_values[target_values[target_dict[j]]]/86400
+                    else:
+                        temp_lab= target_values[target_dict[j]]/86400
+                    print('idx: {}, name: {}, value: {}'.format(j,target_dict[j],temp_lab))
+                #plt.show(fig)
+                plt.close(fig)
+            continue
+        for i in target_dict.keys():
+            if target_values[target_dict[i]] is None:
+                temp_lab = target_values[target_dict[i]]
+            elif isinstance(target_values[target_dict[i]], str):
+                temp_lab = target_values[target_values[target_dict[i]]] / 86400
+            else:
+                temp_lab = target_values[target_dict[i]] / 86400
+
+            fig,ax = smt.plt_matrix(target_array,title='idx: {}, name: {}, value: {}'.format(i,target_dict[i],temp_lab),vmin=i-0.5,vmax=i+0.5)
+            plt.show(fig)
+
+
+if __name__ == '__main__':
+    ar,dict = gen_drn_target_array()
+    check_non_head_targets()
+    print('done')
