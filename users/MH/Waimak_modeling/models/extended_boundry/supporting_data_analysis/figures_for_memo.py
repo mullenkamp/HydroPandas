@@ -13,8 +13,27 @@ from glob import glob
 from matplotlib.colors import from_levels_and_colors, LogNorm
 import numpy as np
 from users.MH.Waimak_modeling.models.extended_boundry.targets.gen_target_arrays import get_head_targets
+from users.MH.Waimak_modeling.models.extended_boundry.m_packages.drn_packages import _get_drn_spd
+
+
+
 
 outdir = "{}/figs_for_report".format(smt.sdp)
+
+carpets = ['d_ash_c','d_chch_c','d_dlin_c','d_dsel_c','d_ulin_c', 'd_usel_c','d_cust_c']
+drn_data = _get_drn_spd(1,1)
+temp = drn_data.loc[~np.in1d(drn_data.parameter_group,carpets)]
+temp = smt.add_mxmy_to_df(temp)
+temp.to_csv('{}/drn_data_non_carpet.csv'.format(outdir))
+
+maper = dict(zip(carpets,range(1,len(carpets)+1)))
+drn_data = drn_data.loc[np.in1d(drn_data.parameter_group,carpets)]
+drn_data = drn_data.replace({'parameter_group': maper})
+smt.array_to_raster('{}/carpet_drains2.tif'.format(outdir),smt.df_to_array(drn_data,'parameter_group'))
+
+
+
+
 cmap, norm = from_levels_and_colors([-1, 0, 1, 2], ['blue', 'black', 'white'])
 
 # plots of head targets

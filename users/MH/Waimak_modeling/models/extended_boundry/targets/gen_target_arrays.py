@@ -27,10 +27,10 @@ def gen_drn_target_array():
         out_dict[i] = group
 
     kspit = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/kspit.shp".format(smt.sdp),'Id',True)
-    out_array[np.isfinite(kspit) & (np.isclose(out_array,22) | np.isclose(out_array,3))] = out_array.max()+1
-    out_dict[out_array.max()] = 'd_kspit'
+    out_array[np.isfinite(kspit) & (np.isclose(out_array,22) | np.isclose(out_array,3))] = 45
+    out_dict[45] = 'd_kspit'
 
-    return out_array, out_dict
+    return out_array.astype(int), out_dict
 
 
 def gen_sfr_flow_target_array():
@@ -54,7 +54,7 @@ def gen_sfr_flow_target_array():
                    15: 'sfo_e_poyn',
                    16: 'sfo_e_down',
                    17: 'sfo_e_seyr'}
-    return target_array, num_to_name
+    return target_array.astype(int), num_to_name
 
 
 def gen_sfr_full_we_flux_target_array():
@@ -65,7 +65,7 @@ def gen_sfr_full_we_flux_target_array():
                    1: 'sfx_e_all',
                    3: 'sfx_cd_all'}
 
-    return target_array, num_to_name
+    return target_array.astype(int), num_to_name
 
 
 def gen_sfr_flux_target_array():
@@ -92,7 +92,7 @@ def gen_sfr_flux_target_array():
                    119: 'sfx_2adrn',
                    120: 'sfx_7drn'}
 
-    return target_array, num_to_name
+    return target_array.astype(int), num_to_name
 
 
 def gen_constant_head_targets():  # watch if we have constant heads in the sw boundary also note that this is 3d
@@ -125,7 +125,7 @@ def get_target_group_values():
 
                         # drains
                         'd_ash_c': None,
-                        'd_ash_est': 0.15,
+                        'd_ash_est': -0.15,
                         'd_ash_s': None,
                         'd_bul_avon': 'chch_str',
                         'd_bul_styx': 'chch_str',
@@ -316,6 +316,7 @@ def get_seg_param_dict():
         24: 30,
         28: 32,
 
+        #todo I don't think these got implmented
         # link up small bits of the cust
         19: 21,
         37: 27,
