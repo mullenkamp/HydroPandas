@@ -15,7 +15,7 @@ from core.misc import select_sites
 ###################################
 #### Parameters
 
-base_dir = r'E:\ecan\shared\projects\climate_change\waimak_gw_model'
+base_dir = r'\\fileservices02\ManagedShares\Data\VirtualClimate\examples'
 
 sites_csv = 'flow_sites.csv'
 sites_shp = 'sites.shp'
