@@ -142,19 +142,40 @@ def rd_sql(server=None, database=None, table=None, col_names=None, where_col=Non
     return(df)
 
 
-def rd_site_geo():
-    """
-    Convenience function to read in all flow sites shapefile and reformat.
-    """
-    from core.ecan_io import rd_sql
-    site_geo = rd_sql('SQL2012PROD05', 'GIS', 'vGAUGING_NZTM', col_names=['SiteNumber', 'RIVER', 'SITENAME'], geo_col=True)
-    site_geo.columns = ['site', 'river', 'site_name', 'geometry']
-    site_geo['river'] = site_geo.river.apply(lambda x: x.title())
-    site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.title())
-    site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.replace(' (Recorder)', ''))
-    site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.replace('Sh', 'SH'))
-    site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.replace('Ecs', 'ECS'))
-    return(site_geo)
+#def rd_site_geo():
+#    """
+#    Convenience function to read in all flow sites shapefile and reformat.
+#    """
+#    from core.ecan_io import rd_sql
+#    site_geo = rd_sql('SQL2012PROD05', 'GIS', 'vGAUGING_NZTM', col_names=['SiteNumber', 'RIVER', 'SITENAME'], geo_col=True)
+#    site_geo.columns = ['site', 'river', 'site_name', 'geometry']
+#    site_geo['river'] = site_geo.river.apply(lambda x: x.title())
+#    site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.title())
+#    site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.replace(' (Recorder)', ''))
+#    site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.replace('Sh', 'SH'))
+#    site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.replace('Ecs', 'ECS'))
+#    return(site_geo)
+
+
+def rd_sw_rain_geo(sites=None):
+    from core.spatial import xy_to_gpd
+    from pandas import to_numeric
+
+    if sites is not None:
+        site_geo = rd_sql('SQL2012PROD05', 'Bgauging', 'RSITES', col_names=['SiteNumber', 'River', 'SiteName', 'NZTMX', 'NZTMY'], where_col='SiteNumber', where_val=sites)
+
+    site_geo.columns = ['site', 'river', 'name', 'NZTMX', 'NZTMY']
+    site_geo.loc[:, 'site'] = to_numeric(site_geo.loc[:, 'site'], errors='ignore')
+
+    site_geo2 = xy_to_gpd(df=site_geo, id_col=['site', 'river', 'name'], x_col='NZTMX', y_col='NZTMY')
+    site_geo3 = site_geo2.loc[site_geo2.site > 0, :]
+    site_geo3.loc[:, 'site'] = site_geo3.loc[:, 'site'].astype('int32')
+    site_geo3['river'] = site_geo3.river.apply(lambda x: x.title())
+    site_geo3['name'] = site_geo3.name.apply(lambda x: x.title())
+    site_geo3['name'] = site_geo3.name.apply(lambda x: x.replace(' (Recorder)', ''))
+    site_geo3['name'] = site_geo3.name.apply(lambda x: x.replace('Sh', 'SH'))
+    site_geo3['name'] = site_geo3.name.apply(lambda x: x.replace('Ecs', 'ECS'))
+    return(site_geo3.set_index('site'))
 
 
 def rd_squalarc(sites, mtypes=None, from_date=None, to_date=None, convert_dtl=False, dtl_method=None, export_path=None):

@@ -51,7 +51,7 @@ pot_sw_site_list_csv = 'potential_sw_site_list.csv'
 
 ### Output
 catch_shp = 'recorder_catch.shp'
-pot_sites_shp = 'potential_sites.shp'
+pot_sites_shp = 'sw_sites.shp'
 pot_catch_sites_shp = 'potential_catch_sites.shp'
 sw_zone_stats_shp = 'sw_zone_stats.shp'
 precip_site_shp = 'precip_sites.shp'

@@ -7,7 +7,7 @@ Created on Fri Jun 16 11:38:19 2017
 
 from xarray import open_dataset, open_mfdataset, concat
 from os.path import join
-from core.misc import rd_dir
+from core.misc import rd_dir, unarchive_dir
 from geopandas import read_file
 from core.ecan_io.met import nc_add_gis
 from pandas import to_datetime
@@ -16,13 +16,15 @@ from core.ts.met.topnet import proc_topnet_nc
 ###########################################
 #### Parameters
 
-base_path = r'I:\niwa_data\topnet\waimak'
-out_path = r'E:\ecan\shared\base_data\niwa\climate_projections\topnet\waimak'
+base_path = r'I:\niwa_data\topnet\waimak2'
+out_path = r'E:\ecan\shared\base_data\niwa\climate_projections\topnet\waimak2'
 start_str = 'waimak_topnet'
 
 
 ##########################################
 #### Process data
+
+#unarchive_dir(out_path, 'gz', True)
 
 proc_topnet_nc(base_path, out_path, start_str)
 

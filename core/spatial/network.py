@@ -81,7 +81,7 @@ def find_upstream_rec(nzreach, rec_shp=r'\\fs02\ManagedShares2\Data\Surface Wate
     """
     from core.ecan_io import rd_sql
     from pandas import concat
-    from geopandas import read_file
+    from geopandas import read_file, GeoDataFrame
 
     ### Parameters
 #    server = 'SQL2012PROD05'
@@ -91,7 +91,13 @@ def find_upstream_rec(nzreach, rec_shp=r'\\fs02\ManagedShares2\Data\Surface Wate
 #
 #    ### Load data
 #    rec = rd_sql(server, db, table, cols)
-    rec = read_file(rec_shp).drop('geometry', axis=1)
+    if isinstance(rec_shp, GeoDataFrame):
+        rec = rec_shp.copy().drop('geometry', axis=1)
+    elif isinstance(rec_shp, str):
+        if rec_shp.endswith('shp'):
+            rec = read_file(rec_shp).drop('geometry', axis=1)
+    else:
+        raise TypeError('rec_shp must be either a GeoDataFrame or a shapefile')
 
     ### Run through all nzreaches
     reaches_lst = []
@@ -115,7 +121,7 @@ def extract_rec_catch(reaches, rec_catch_shp=r'\\fs02\ManagedShares2\Data\Surfac
     """
     from core.ecan_io import rd_sql
     from pandas import concat
-    from geopandas import read_file
+    from geopandas import read_file, GeoDataFrame
 
     ### Parameters
 #    server = 'SQL2012PROD05'
@@ -128,7 +134,14 @@ def extract_rec_catch(reaches, rec_catch_shp=r'\\fs02\ManagedShares2\Data\Surfac
 #    ### Extract reaches from SQL
 #    catch1 = rd_sql(server, db, table, cols, where_col='NZREACH', where_val=sites, geo_col=True)
 #    catch2 = catch1.dissolve('NZREACH')
-    catch0 = read_file(rec_catch_shp)
+    if isinstance(rec_catch_shp, GeoDataFrame):
+        catch0 = rec_catch_shp.copy()
+    elif isinstance(rec_catch_shp, str):
+        if rec_catch_shp.endswith('shp'):
+            catch0 = read_file(rec_catch_shp)
+    else:
+        raise TypeError('rec_shp must be either a GeoDataFrame or a shapefile')
+
     catch1 = catch0[catch0.NZREACH.isin(sites)]
     catch2 = catch1.dissolve('NZREACH').reset_index()[['NZREACH', 'geometry']]
 

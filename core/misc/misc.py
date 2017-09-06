@@ -99,7 +99,7 @@ def select_sites(x):
         x1 = x.values
     elif isinstance(x, DataFrame):
         x1 = x1.iloc[:, 0].values
-    elif type(x) is str:
+    elif isinstance(x, str):
         if x.endswith('.shp'):
             x1 = read_file(x)
         else:
