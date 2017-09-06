@@ -49,7 +49,7 @@ def data_to_cath(base_dir):
     all_wells =  get_well_NSMC_base()
     all_wells.to_csv('{}/wel_pkg_base_data.csv'.format(base_dir))
 
-    #todo parameter file this is not correct yet cath is finishing it
+    # parameter file this is not correct yet cath is finishing it
     create_parameter_file('{}/nsmc_par.unc'.format(base_dir))
 
     # script?
@@ -64,6 +64,5 @@ def data_to_cath(base_dir):
     nsmc_weights.to_csv('{}/nsmc_weights.txt'.format(base_dir), header=False, sep=' ')
 
 
-#todo check everything
 if __name__ == '__main__':
-    data_to_cath(r"C:\Users\MattH\Desktop\NSMC_data_to_cath_01-09-2017")
+    data_to_cath(r"C:\Users\MattH\Desktop\NSMC_data_to_cath_check")

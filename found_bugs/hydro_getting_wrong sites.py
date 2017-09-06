@@ -24,7 +24,7 @@ def get_mean_water_level():
 
     well_details.loc[:,'WELL_NO'] = [e.strip() for e in well_details.loc[:,'WELL_NO']]
     well_details = well_details.set_index('WELL_NO')
-    # todo why are missing sites coming up ask mike?
+    # why are missing sites coming up ask mike?
 
     data = hydro().get_data(mtypes=['gwl_m'], sites=list(well_details.index))
     temp = data.groupby(level=['mtype', 'site']).describe()[['min', '25%', '50%', '75%', 'mean', 'max', 'count']].round(2)

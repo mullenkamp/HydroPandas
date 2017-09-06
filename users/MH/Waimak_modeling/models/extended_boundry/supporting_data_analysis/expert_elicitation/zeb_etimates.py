@@ -43,6 +43,6 @@ if __name__ == '__main__':
     paths = [r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\Expert judgement elicitation\elicitation_23-08-2017_zeb_etheridge_ChchSFS.xlsx",
              r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\Expert judgement elicitation\elicitation_23-08-2017_zeb_etheridge_AshleyRiverlosses.xlsx",
              r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\Expert judgement elicitation\elicitation_22-08-2017_zeb_etheridge_racelosses.xlsx",
-             r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\Expert judgement elicitation\elicitation_22-08-2017_zeb_etheridge_northernboundary.xlsx"] #todo
+             r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\Expert judgement elicitation\elicitation_22-08-2017_zeb_etheridge_northernboundary.xlsx"]
     for path in paths:
         individual_pdf(path, norm)

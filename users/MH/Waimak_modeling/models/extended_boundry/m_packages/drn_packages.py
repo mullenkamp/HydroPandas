@@ -110,7 +110,7 @@ def _get_drn_spd(reach_v, wel_version, recalc=False, n_car_dns=True):
     # add a carpet drain south of the waimakariri to loosely represent the low land streams
     # only add drains where there are not other model conditions
     drain_to_add = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/s_carpet_drns.shp".format(smt.sdp), 'group',
-                                                 alltouched=True)
+                                                 alltouched=True) #todo update with backup when I get it
     index = np.zeros((smt.rows, smt.cols))
 
     # wel
@@ -348,6 +348,9 @@ def _get_drn_spd(reach_v, wel_version, recalc=False, n_car_dns=True):
     }
     drn_data.loc[:,'parameter_group'] = drn_data.loc[:,'target_group']
     drn_data = drn_data.replace({'parameter_group':p_group_map})
+    kspit = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/kspit.shp".format(smt.sdp), 'Id', True)
+    for row,col in smt.model_where(np.isfinite(kspit)):
+        drn_data.loc[(drn_data.i == row) & (drn_data.j == col) & (np.in1d(drn_data.target_group,['d_dlin_c','d_dsel_c'])),'target_group'] = 'd_kspit'
     if not n_car_dns:
         drn_data = drn_data.loc[~np.in1d(drn_data.group,['cust_carpet', 'ash_carpet'])]
     pickle.dump(drn_data, open(pickle_path, 'w'))

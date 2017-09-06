@@ -9,7 +9,7 @@ from core import env
 import numpy as np
 import pandas as pd
 
-parameters = {  # todo note that these are in m3/s or %
+parameters = {  # note that these are in m3/s or %
     'pump_c': {'sd': 0.0682,  # fraction
                'min': np.nan,
                'max': np.nan,
@@ -123,7 +123,7 @@ def get_param_table(convert_to_m3day = True):
 
 
 def create_parameter_file(unc_file_path):
-    # todo inital lines just a place holder for now
+    # inital lines just a place holder for now updated by cath
     inital_lines = [
         'START COVARIANCE_MATRIX\n',
         'file hk_cov.mat\n',
@@ -172,15 +172,14 @@ def create_parameter_file(unc_file_path):
         f.write('END STANDARD_DEVIATION\n')
         f.write('\n')
 
-        # write uniform actual parameters
-        # todo proably another start line here
+        # write uniform actual parameters never used this
         for param in uniform_actual_parameters:
             sd = parameters[param]['sd']
             _min = parameters[param]['min']
             _max = parameters[param]['max']
             if np.isfinite(sd) or np.isnan(_min) or np.isnan(_max):
                 raise ValueError('{} has a nan or actual value where it should not'.format(param))
-            f.write('{} {} {}\n'.format(param, _min * 86400, _max * 86400))  # todo check with cath if this is right
+            f.write('{} {} {}\n'.format(param, _min * 86400, _max * 86400))
 
         for param in uniform_mult_parameters:
             sd = parameters[param]['sd']
@@ -188,10 +187,7 @@ def create_parameter_file(unc_file_path):
             _max = parameters[param]['max']
             if np.isfinite(sd) or np.isnan(_min) or np.isnan(_max):
                 raise ValueError('{} has a nan or actual value where it should not'.format(param))
-            f.write('{} {} {}\n'.format(param, _min, _max))  # todo check with cath if this is right
-
-
-            # todo probably another end line here
+            f.write('{} {} {}\n'.format(param, _min, _max))
 
 
 if __name__ == '__main__':
