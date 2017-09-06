@@ -11,12 +11,12 @@ import pandas as pd
 from copy import deepcopy
 
 users = [
-         'paul_white',
+         #'paul_white',
          'peter_callander',
          'scott_wilson',
          'jens_rekker',
          'john_talbot',
-         'lee_burbery',
+         #'lee_burbery',
          'zeb_etheridge']
 
 user_codes = {'jens_rekker': 'A',
@@ -27,7 +27,7 @@ user_codes = {'jens_rekker': 'A',
               'scott_wilson': 'F',
               'zeb_etheridge': 'G'}
 
-major_qoi = ['LSR', 'pumping', 'LRZ_flux', 'offshore', 'possible_ks', 'race_loss'] #todo make sure this is in order
+major_qoi = ['LSR', 'pumping', 'LRZ_flux', 'offshore', 'possible_ks', 'race_loss']
 minor_qoi = {'pumping': ['model_average_pumping'], #, 'extra_1', 'extra_2', 'extra_3'],
              'possible_ks': ['possible_ks'], #'extra_1', 'extra_2', 'extra_3'],
              'offshore': ['N_waimak', 'S_waimak', 'CHCH', 'Selwyn'], #  'extra_1', 'extra_2', 'extra_3'],

@@ -70,7 +70,47 @@ def w_agg(x, fun='sum', axis=1):
     return(agg1)
 
 
-def grp_ts_agg(df, grp_col, ts_col, freq_code, agg_fun, transform=False):
+#def grp_ts_agg(df, grp_col, ts_col, freq_code, agg_fun, transform=False):
+#    """
+#    Simple function to aggregate time series with dataframes with a single column of sites and a column of times.
+#
+#    Arguments:\n
+#    df -- dataframe with a datetime column.\n
+#    grp_col -- Column name that contains the sites.\n
+#    ts_col -- The column name of the datetime column.\n
+#    freq_code -- The pandas frequency code for the aggregation (e.g. 'M', 'A-JUN').\n
+#    agg_fun -- Either 'mean' or 'sum'.
+#    """
+#    from pandas import TimeGrouper, Timestamp
+#    from core.ts import pd_grouby_fun
+#
+#    fun1 = pd_grouby_fun(agg_fun)
+#
+#    df1 = df.copy()
+#    if type(df[ts_col].iloc[0]) is Timestamp:
+#        df1.set_index(ts_col, inplace=True)
+#        val_col = df1.columns.drop(grp_col)
+#        if type(grp_col) is list:
+#            grp_col.extend([TimeGrouper(freq_code)])
+#        else:
+#            grp_col = [grp_col, TimeGrouper(freq_code)]
+#        df_grp = df1.groupby(grp_col)
+#        if transform:
+#            df1a = df_grp.transform(agg_fun)
+#            df2 = df1.copy()
+#            df2.loc[:, val_col] = df1a
+#        else:
+#            try:
+#                df2 = fun1(df_grp)
+#            except NotImplementedError:
+#                df2 = df_grp.apply(agg_fun)
+#        df2 = df2.reset_index()
+#        return(df2)
+#    else:
+#        print('Make one column a timeseries!')
+
+
+def grp_ts_agg(df, grp_col, ts_col, freq_code):
     """
     Simple function to aggregate time series with dataframes with a single column of sites and a column of times.
 
@@ -82,27 +122,16 @@ def grp_ts_agg(df, grp_col, ts_col, freq_code, agg_fun, transform=False):
     agg_fun -- Either 'mean' or 'sum'.
     """
     from pandas import TimeGrouper, Timestamp
-    from core.ts import pd_grouby_fun
-
-    fun1 = pd_grouby_fun(agg_fun)
 
     df1 = df.copy()
     if type(df[ts_col].iloc[0]) is Timestamp:
         df1.set_index(ts_col, inplace=True)
-        val_col = df1.columns.drop(grp_col)
         if type(grp_col) is list:
             grp_col.extend([TimeGrouper(freq_code)])
         else:
             grp_col = [grp_col, TimeGrouper(freq_code)]
         df_grp = df1.groupby(grp_col)
-        if transform:
-            df1a = df_grp.transform(agg_fun)
-            df2 = df1.copy()
-            df2.loc[:, val_col] = df1a
-        else:
-            df2 = fun1(df_grp)
-        df2 = df2.reset_index()
-        return(df2)
+        return(df_grp)
     else:
         print('Make one column a timeseries!')
 

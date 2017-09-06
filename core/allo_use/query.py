@@ -4,7 +4,7 @@ Functions to query the allocation and usage data.
 """
 
 
-def allo_query(shp=None, grp_by=['date', 'take_type', 'use_type'], allo_col=['allo'], use_col=['usage'], agg_yr=True, crc='all', crc_rem='none', wap_rem='none', wap='all', take_type='all', use_type='all', catch_num='all', gw_zone='all', swaz='all', cwms_zone='all', swaz_grp='all', years='all', gr_than='all', sd_only=False, allo_use_file='S:/Surface Water/shared/base_data/usage/allo_use_ts_mon_results.csv', allo_gis_file=r'S:\Surface Water\shared\GIS_base\vector\allocations\allo_gis.shp', export=True, export_path='summary1.csv', debug=False):
+def allo_query(shp=None, grp_by=['date', 'take_type', 'use_type'], allo_col=['allo'], use_col=['usage'], agg_yr=True, crc='all', crc_rem='none', wap_rem='none', wap='all', take_type='all', use_type='all', catch_num='all', gw_zone='all', swaz='all', cwms_zone='all', swaz_grp='all', years='all', gr_than='all', sd_only=False, allo_use_file='S:/Surface Water/shared/base_data/usage/allo_use_ts_mon_results.h5', allo_gis_file=r'S:\Surface Water\shared\GIS_base\vector\allocations\allo_gis.shp', export=True, export_path='summary1.csv', debug=False):
     """
     Function to query the water use and allocation results data. Allows for the selection/filtering and aggregation of many imbedded fields. Create a list only when you want to filter the data. Otherwise, leave the srguments default.
     """
@@ -16,7 +16,7 @@ def allo_query(shp=None, grp_by=['date', 'take_type', 'use_type'], allo_col=['al
 
     ### Read in the data
 #    data = read_hdf(allo_use_file)[['crc', 'dates', 'take_type', 'use_type', 'mon_vol', 'up_allo_m3', 'usage', 'usage_est']]
-    data = read_csv(allo_use_file)
+    data = read_hdf(allo_use_file)
     data.loc[:, 'date'] = to_datetime(data.loc[:, 'date'])
     allo_gis = read_file(allo_gis_file)
 

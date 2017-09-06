@@ -110,7 +110,7 @@ def _get_drn_spd(reach_v, wel_version, recalc=False, n_car_dns=True):
     # add a carpet drain south of the waimakariri to loosely represent the low land streams
     # only add drains where there are not other model conditions
     drain_to_add = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/s_carpet_drns.shp".format(smt.sdp), 'group',
-                                                 alltouched=True)
+                                                 alltouched=True) #todo update with backup when I get it
     index = np.zeros((smt.rows, smt.cols))
 
     # wel
@@ -339,7 +339,7 @@ def _get_drn_spd(reach_v, wel_version, recalc=False, n_car_dns=True):
     p_group_map = {
         'd_salt_s': 'd_salt_fct',
         'd_waikuk_s': 'd_kuku_leg',
-        'd_ash_s': 'd_kuku_leg',
+        #'d_ash_s': 'd_kuku_leg', removed as it seems to cause problems hitting the waikuku
         'd_taran_s': 'd_tar_stok',
         'd_cam_s': 'd_cam_revl',
         'd_kaiapo_s': 'd_sil_ilnd',
@@ -348,6 +348,7 @@ def _get_drn_spd(reach_v, wel_version, recalc=False, n_car_dns=True):
     }
     drn_data.loc[:,'parameter_group'] = drn_data.loc[:,'target_group']
     drn_data = drn_data.replace({'parameter_group':p_group_map})
+    #todo make the kateritir spit target group, but keep parameter groups the same
     if not n_car_dns:
         drn_data = drn_data.loc[~np.in1d(drn_data.group,['cust_carpet', 'ash_carpet'])]
     pickle.dump(drn_data, open(pickle_path, 'w'))
@@ -356,7 +357,7 @@ def _get_drn_spd(reach_v, wel_version, recalc=False, n_car_dns=True):
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    test = _get_drn_spd(1, 1,False,n_car_dns=True)
+    test = _get_drn_spd(1, 1,True,n_car_dns=True)
     smt.plt_matrix(smt.df_to_array(test,'k'))
     plt.show()
     test2 = _get_drn_spd(1,1,False,n_car_dns=False)

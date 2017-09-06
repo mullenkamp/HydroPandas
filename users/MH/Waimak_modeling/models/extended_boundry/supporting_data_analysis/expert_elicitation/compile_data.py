@@ -13,7 +13,7 @@ from file_set_up import user_codes, users, minor_qoi, major_qoi, values, minor_q
 from warnings import warn
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.stats import skewnorm
+from scipy.stats import skewnorm, norm
 
 all_dir = "C:/Users/MattH/OneDrive - Environment Canterbury/waimakariri_elicitation/all_qois"
 if not os.path.exists(all_dir):
@@ -37,7 +37,7 @@ def combine_QOI (qoi):
         allout_data.append(out_data)
     return allout_data
 
-def plot_pdfs(datasets, names, colors, dims, linear_pool=False):
+def plot_pdfs(datasets, names, colors, dims, linear_pool=False, distribution=skewnorm):
     if not isinstance(datasets, tuple):
         raise ValueError('expected tuple of datasets')
     fig, axs = plt.subplots(*dims)
@@ -66,26 +66,27 @@ def plot_pdfs(datasets, names, colors, dims, linear_pool=False):
             else:
                 line_style = '-'
 
-            a, loc, scale = skewnorm.fit(temp)
-            ax.plot(x, skewnorm.pdf(x, a, loc=loc, scale=scale), linestyle=line_style, color=colors[j], lw=1, label=person)
+            params = distribution.fit(temp)
+            ax.plot(x, distribution.pdf(x, *params), linestyle=line_style, color=colors[j], lw=1, label=person)
         if linear_pool:
-            a, loc, scale = skewnorm.fit(alldata)
-            x = np.linspace(skewnorm.ppf(0.001, a, loc=loc, scale=scale),
-                            skewnorm.ppf(0.999, a, loc=loc, scale=scale), 100)
-            ax.plot(x, skewnorm.pdf(x, a, loc=loc, scale=scale), linestyle='-', color='blue', lw=2,
+            params = distribution.fit(alldata)
+            x = np.linspace(distribution.ppf(0.001, *params),
+                            distribution.ppf(0.999, *params))
+            ax.plot(x, distribution.pdf(x, *params), linestyle='-', color='blue', lw=2,
                     label='linear pool')
+            print ('parameters for {}: {}'.format(names[i], params))
         ax.set_title(names[i])
         out_axes[names[i]] = ax
     plt.legend()
     return fig, out_axes
 
 
-def combine_and_plot(qoi,linear_pool=False,additional=False):
+def combine_and_plot(qoi,linear_pool=False,additional=False, distribution=skewnorm):
     colors = ['red', 'darkgreen', 'fuchsia', 'black','orange','teal','darkmagenta']
     datasets = tuple(combine_QOI(qoi))
     if additional:
         linear_pool = True
-    fig, axs = plot_pdfs(datasets,minor_qoi[qoi],colors,minor_qoi_shapes[qoi],linear_pool)
+    fig, axs = plot_pdfs(datasets,minor_qoi[qoi],colors,minor_qoi_shapes[qoi],linear_pool,distribution=distribution)
 
     if additional:
         for name in minor_qoi[qoi]:
@@ -104,8 +105,8 @@ def combine_and_plot(qoi,linear_pool=False,additional=False):
             temp = np.concatenate((q1, q2, q3, q4))
             line_style = '-'
 
-            a, loc, scale = skewnorm.fit(temp)
-            ax.plot(x, skewnorm.pdf(x, a, loc=loc, scale=scale), linestyle=line_style, color='green', lw=3,
+            params = distribution.fit(temp)
+            ax.plot(x, distribution.pdf(x, *params), linestyle=line_style, color='green', lw=3,
                     label='group')
 
         plt.legend()
@@ -115,8 +116,8 @@ def combine_and_plot(qoi,linear_pool=False,additional=False):
 
 if __name__ == '__main__':
     print 'start'
-    qois = ['LSR', 'pumping', 'LRZ_flux', 'offshore', 'possible_ks', 'race_loss'] #todo make sure this is in order
-    combine_and_plot(major_qoi[1],linear_pool=True,additional=False)
+    qois = ['LSR', 'pumping', 'LRZ_flux', 'offshore', 'possible_ks', 'race_loss']
+    combine_and_plot(major_qoi[0],linear_pool=True,additional=False,distribution=norm)
 
 
 

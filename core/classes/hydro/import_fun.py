@@ -379,7 +379,7 @@ def rd_netcdf(self, nc_path):
 ### mssql
 
 
-def _rd_hydro_mssql(self, server, database, table, mtype, time_col, site_col, data_col, qual_col, sites=None, from_date=None, to_date=None, qual_codes=None):
+def _rd_hydro_mssql(self, server, database, table, mtype, time_col, site_col, data_col, qual_col, sites=None, from_date=None, to_date=None, qual_codes=None, add_where=None):
     """
     Function to import data from a MSSQL database. Specific columns can be selected and specific queries within columns can be selected. Requires the pymssql package, which must be separately installed.
 
@@ -407,7 +407,6 @@ def _rd_hydro_mssql(self, server, database, table, mtype, time_col, site_col, da
     else:
         where_qual = ''
 
-
     if isinstance(sites, list):
         sites = [str(i) for i in sites]
         where_sites = site_col + " IN (" + str(sites)[1:-1] + ")"
@@ -430,8 +429,11 @@ def _rd_hydro_mssql(self, server, database, table, mtype, time_col, site_col, da
     else:
         where_to_date = ''
 
+    if not isinstance(add_where, str):
+        add_where = ''
+
     ## join where stmts
-    where_list = [where_qual, where_sites, where_from_date,  where_to_date]
+    where_list = [where_qual, where_sites, where_from_date, where_to_date, add_where]
     where_list2 = [i for i in where_list if len(i) > 0]
 
     if len(where_list2) > 0:
@@ -448,7 +450,7 @@ def _rd_hydro_mssql(self, server, database, table, mtype, time_col, site_col, da
     df.columns = ['site', 'time', 'data']
 
     ## Remove spaces in site names and duplicate data
-    df.loc[:, 'site'] = df.loc[:, 'site'].astype(str).str.replace(' ', '')
+    df.loc[:, 'site'] = df.loc[:, 'site'].astype(str).str.replace(' ', '').str.upper()
     df = df.drop_duplicates(['site', 'time'])
 
     df['mtype'] = mtype
@@ -493,11 +495,12 @@ def _proc_hydro_sql(self, sites_sql_fun, db_dict, mtype, sites=None, from_date=N
             site1 = mtype_dict[i]['site_col']
             data1 = mtype_dict[i]['data_col']
             qual1 = mtype_dict[i]['qual_col']
+            add_where1 = mtype_dict[i]['add_where']
 
             sites_stmt = 'select distinct ' + site1 + ' from ' + tab1
             sites2 = rd_sql(server1, db1, stmt=sites_stmt).astype(str)[site1]
             sites3 = sites2[sites2.isin(sites1)].astype(str).tolist()
-            h1 = h1._rd_hydro_mssql(server=server1, database=db1, table=tab1, sites=sites3, from_date=from_date, to_date=to_date, mtype=mtype, time_col=time1, site_col=site1, data_col=data1, qual_col=qual1, qual_codes=qual_codes)
+            h1 = h1._rd_hydro_mssql(server=server1, database=db1, table=tab1, sites=sites3, from_date=from_date, to_date=to_date, mtype=mtype, time_col=time1, site_col=site1, data_col=data1, qual_col=qual1, qual_codes=qual_codes, add_where=add_where1)
     elif isinstance(mtype_dict, dict):
         server1 = mtype_dict['server']
         db1 = mtype_dict['db']
@@ -506,11 +509,12 @@ def _proc_hydro_sql(self, sites_sql_fun, db_dict, mtype, sites=None, from_date=N
         site1 = mtype_dict['site_col']
         data1 = mtype_dict['data_col']
         qual1 = mtype_dict['qual_col']
+        add_where1 = mtype_dict['add_where']
 
         sites_stmt = 'select distinct ' + site1 + ' from ' + tab1
         sites2 = rd_sql(server1, db1, stmt=sites_stmt).astype(str)[site1]
         sites3 = sites2[sites2.isin(sites1)].astype(str).tolist()
-        h1 = h1._rd_hydro_mssql(server=server1, database=db1, table=tab1, sites=sites3, from_date=from_date, to_date=to_date, mtype=mtype, time_col=time1, site_col=site1, data_col=data1, qual_col=qual1, qual_codes=qual_codes)
+        h1 = h1._rd_hydro_mssql(server=server1, database=db1, table=tab1, sites=sites3, from_date=from_date, to_date=to_date, mtype=mtype, time_col=time1, site_col=site1, data_col=data1, qual_col=qual1, qual_codes=qual_codes, add_where=add_where1)
     elif callable(mtype_dict):
         h1 = mtype_dict(h1, sites=sites1, mtype=mtype, from_date=from_date, to_date=to_date)
 

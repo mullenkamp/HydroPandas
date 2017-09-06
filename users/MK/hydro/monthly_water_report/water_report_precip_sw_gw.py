@@ -47,8 +47,6 @@ month_names = ['Jan', 'Feb', 'March', 'April', 'May', 'June', 'July', 'August', 
 
 lon_zone_names = {'L': 'Lowlands', 'F': 'Foothills', 'M': 'Mountains', 'BP': 'Banks Peninsula'}
 
-std_cat = [0.1, 1]
-
 pot_sw_site_list_csv = 'potential_sw_site_list.csv'
 
 ### Output
@@ -60,8 +58,8 @@ precip_site_shp = 'precip_sites.shp'
 precip_zone_stats_shp = 'precip_zone_stats.shp'
 
 ## plots
-test1_html = r'E:\ecan\git\ecan_python_courses\docs\test1.html'
-test2_html = r'E:\ecan\git\ecan_python_courses\docs\test2.html'
+precip_sw_gw1_html = r'E:\ecan\git\ecan_python_courses\docs\precip_sw_gw1.html'
+precip_sw1_html = r'E:\ecan\git\ecan_python_courses\docs\precip_sw1.html'
 
 ##################################################
 #### Read in data
@@ -139,7 +137,7 @@ flow2 = flow1.sel_ts(mtypes='flow')
 flow2.index = flow2.index.droplevel('mtype')
 flow3 = flow2.reset_index()
 
-mon_flow1 = grp_ts_agg(flow3, 'site', 'time', 'M', 'median')
+mon_flow1 = grp_ts_agg(flow3, 'site', 'time', 'M').median().reset_index()
 mon_flow1['mon'] = mon_flow1.time.dt.month
 mon_flow1['mtype'] = 'flow'
 
@@ -148,7 +146,7 @@ precip2 = precip1.sel_ts(mtypes='precip')
 precip2.index = precip2.index.droplevel('mtype')
 precip3 = precip2.reset_index()
 
-mon_precip1 = grp_ts_agg(precip3, 'site', 'time', 'M', 'sum')
+mon_precip1 = grp_ts_agg(precip3, 'site', 'time', 'M').sum().reset_index()
 mon_precip1['mon'] = mon_precip1.time.dt.month
 mon_precip1['mtype'] = 'precip'
 
@@ -157,7 +155,7 @@ gw2 = gw1.sel_ts(mtypes='gwl')
 gw2.index = gw2.index.droplevel('mtype')
 gw3 = gw2.reset_index()
 
-mon_gw1 = grp_ts_agg(gw3, 'site', 'time', 'M', 'median')
+mon_gw1 = grp_ts_agg(gw3, 'site', 'time', 'M').median().reset_index()
 mon_gw1['mon'] = mon_gw1.time.dt.month
 mon_gw1['mtype'] = 'gw'
 
@@ -189,7 +187,7 @@ if not all(last_index):
     print(str(sum(~last_index)) + " sites have less than a full months record")
     hy2 = hy2[hy2.site.isin(last_index.index[last_index])]
 hy2 = hy2[hy2.time != end_date]
-hy3 = grp_ts_agg(hy2, 'site', 'time', 'M', 'median')
+hy3 = grp_ts_agg(hy2, 'site', 'time', 'M').median().reset_index()
 #hy3.columns = ['site', 'mon_median_flow']
 
 hy3.loc[:, 'site'] = hy3.site.replace([164610, 165104, 168526], [64610, 65104, 68526])
@@ -211,7 +209,7 @@ if not all(last_index):
     print(str(sum(~last_index)) + " sites have less than a full months record")
     hy2 = hy2[hy2.site.isin(last_index.index[last_index])]
 hy2 = hy2[hy2.time != end_date]
-hy3 = grp_ts_agg(hy2, 'site', 'time', 'M', 'sum')
+hy3 = grp_ts_agg(hy2, 'site', 'time', 'M').sum().reset_index()
 hy_precip = hy3.copy()
 hy_precip['mtype'] = 'precip'
 
@@ -229,7 +227,7 @@ if not all(last_index):
     print(str(sum(~last_index)) + " sites have less than a full months record")
     hy2 = hy2[hy2.site.isin(last_index.index[last_index])]
 hy2 = hy2[hy2.time != end_date]
-hy3 = grp_ts_agg(hy2, 'site', 'time', 'M', 'median')
+hy3 = grp_ts_agg(hy2, 'site', 'time', 'M').median().reset_index()
 hy_gw = hy3.copy()
 hy_gw['mtype'] = 'gw'
 
@@ -379,36 +377,12 @@ dummy_source = ColumnDataSource(dummy_b)
 
 TOOLS = "pan,wheel_zoom,reset,hover,save"
 
-### Plot
-#output_file(test1_html)
-#
-#p1 = figure(title='Precipitation Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom')
-#p1.patches('x', 'y', source=precip_source, fill_color={'field': 'precip_cat', 'transform': color_map}, line_color="black", line_width=1, legend='precip_cat')
-#p1.legend.location = 'top_left'
-##p1.toolbar.active_scroll = WheelZoomTool()
-#hover1 = p1.select_one(HoverTool)
-#hover1.point_policy = "follow_mouse"
-#hover1.tooltips = [("Category", "@precip_cat"), ("Percentile", "@mon_precip{1.1}" + "%")]
-#tab1 = Panel(child=p1, title='Precip')
-#
-#p2 = figure(title='Flow Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom')
-#p2.patches('x', 'y', source=flow_source, fill_color={'field': 'flow_categ', 'transform': color_map}, line_color="black", line_width=1, legend='flow_categ')
-#p2.legend.location = 'top_left'
-##p2.toolbar.active_scroll = WheelZoomTool()
-#hover2 = p2.select_one(HoverTool)
-#hover2.point_policy = "follow_mouse"
-#hover2.tooltips = [("Category", "@flow_categ"), ("Percentile", "@mon_flow_p{1.1}" + "%")]
-#tab2 = Panel(child=p2, title='Flow')
-#
-#tabs = Tabs(tabs=[tab1, tab2])
-#
-#show(tabs)
-
 w = 700
 h = w
 
+### All three parameters
 
-output_file(test1_html)
+output_file(precip_sw_gw1_html)
 
 ## dummy figure - for legend consistency
 p0 = figure(title='dummy Index', tools=[], logo=None, height=h, width=w)
@@ -498,105 +472,13 @@ tabs = Tabs(tabs=[tab1, tab2, tab3])
 show(tabs)
 
 
+### Only precip and SW
 
+output_file(precip_sw1_html)
 
+tabs_alt = Tabs(tabs=[tab1, tab2])
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#
-#
-#
-#
-###################################################
-##### Testing
-#
-#gw_sites_shp = r'P:\Surface Water Quantity\Projects\Freshwater Report\gw_sites.shp'
-#
-#gw1 = hydro().get_data(mtypes='gwl', sites=join(base_dir, gw_poly_shp), qual_codes=qual_codes)
-#
-#gw2 = gw1.data
-#gw2.index = gw2.index.droplevel('mtype')
-#gw_stats = precip_stats(gw2)
-#
-#gw_stats2 = gw_stats[(gw_stats['End time'] > '2017-01-01') & (gw_stats['Tot data yrs'] > 10)]
-#
-#gw_geo1 = gw1.geo_loc.copy()
-#
-#gw_sites1 = gw_stats2.index
-#
-#gw_geo2 = gw_geo1.loc[gw_sites1]
-#gw_geo2.reset_index().to_file(gw_sites_shp)
-#
-#
-#mis_sites = mon_precip1.site.unique()[~in1d(mon_precip1.site.unique(), hy1.sites)]
-#
-#
-#
-#
-#t1 = grp.copy()
-#min1 = t1.min()
-#max1 = t1.max()
-#
-#f1 = round((t1.values - min1)/(max1 - min1) *100, 1)
-#
-#f3 = []
-#for i in t1.values:
-#    f2 = percentileofscore(t1.values, i)
-#    f3.append(f2)
-#
-#
-#df1 = DataFrame([t1.values, f1, f3]).T
-#df1.columns = ['flow_data', 'fouad', 'percentile']
-#
-#df1.to_csv(join(base_dir, 'test_output_71195.csv'), index=False)
-#
-#
-#sl1 = Slider(start=0, end=len(time_index)-1, value=0, step=1)
-#
-#
-#output_file(test2_html)
-#
-#p1 = figure(title='Precipitation Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom')
-#p1.patches('x', 'y', source=precip_source, fill_color={'field': 'cat', 'transform': color_map}, line_color="black", line_width=1, legend='cat')
-#p1.legend.location = 'top_left'
-#hover1 = p1.select_one(HoverTool)
-#hover1.point_policy = "follow_mouse"
-#hover1.tooltips = [("Category", "@cat"), ("Zone", "@zone")]
-#
-#callback = CustomJS(args=dict(source=precip_source, index=time_source), code="""
-#    var data = source.data;
-#    var f = cb_obj.value
-#    var i = index.index[f]
-#    cat = data[i]
-#    source.change.emit();
-#""")
-#
-#slider = Slider(start=0, end=len(time_index)-1, value=0, step=1)
-#slider.js_on_change('value', callback)
-#
-#layout = column(p1, slider)
-#
-#show(p1)
-#
-#
-#
-#[i for i in p1.renderers if not type(i) == renderers.GlyphRenderer]
-#
-#
-#d1 = 'M36/5894'
+show(tabs_alt)
 
 
 
