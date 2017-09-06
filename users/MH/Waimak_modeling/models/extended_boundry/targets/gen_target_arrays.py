@@ -53,7 +53,7 @@ def gen_sfr_flow_target_array():
                    14: 'sfo_e_wolf',
                    15: 'sfo_e_poyn',
                    16: 'sfo_e_down',
-                   17: 'sfo_e_seyr'} #todo add more here
+                   17: 'sfo_e_seyr'}
     return target_array, num_to_name
 
 
@@ -117,15 +117,15 @@ def gen_constant_head_targets():  # watch if we have constant heads in the sw bo
 
 def get_target_group_values():
     # Note that below are in m3/s and then converted to m3/day
-    target_group_val = {'chb_ash': -2.4, #-5.25,  # 3.0 to 7.5 #todo may become 1.5-8 similar to selwyn offshore
-                        'chb_chch': -0.8,  # 0.3 to 1.5
-                        'chb_cust': -0.35,  # 0.1 to 0.5
+    target_group_val = {'chb_ash': -2.4,
+                        'chb_chch': -0.8,
+                        'chb_cust': -0.35,
                         'chb_sely': 'sel_off',
                         'onshore': None,
 
                         # drains
                         'd_ash_c': None,
-                        'd_ash_est': 0.15, #0.15,  #todo this may become 0 to 0.3 similar to selwyn offshore
+                        'd_ash_est': 0.15,
                         'd_ash_s': None,
                         'd_bul_avon': 'chch_str',
                         'd_bul_styx': 'chch_str',

@@ -348,6 +348,7 @@ def _get_drn_spd(reach_v, wel_version, recalc=False, n_car_dns=True):
     }
     drn_data.loc[:,'parameter_group'] = drn_data.loc[:,'target_group']
     drn_data = drn_data.replace({'parameter_group':p_group_map})
+    #todo make the kateritir spit target group, but keep parameter groups the same
     if not n_car_dns:
         drn_data = drn_data.loc[~np.in1d(drn_data.group,['cust_carpet', 'ash_carpet'])]
     pickle.dump(drn_data, open(pickle_path, 'w'))

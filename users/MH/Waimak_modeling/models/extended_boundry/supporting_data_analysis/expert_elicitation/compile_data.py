@@ -116,7 +116,7 @@ def combine_and_plot(qoi,linear_pool=False,additional=False, distribution=skewno
 
 if __name__ == '__main__':
     print 'start'
-    qois = ['LSR', 'pumping', 'LRZ_flux', 'offshore', 'possible_ks', 'race_loss'] #todo make sure this is in order
+    qois = ['LSR', 'pumping', 'LRZ_flux', 'offshore', 'possible_ks', 'race_loss']
     combine_and_plot(major_qoi[0],linear_pool=True,additional=False,distribution=norm)
 
 

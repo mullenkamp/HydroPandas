@@ -69,7 +69,7 @@ target_sd_actual = { # in m3/s
 
 #calculated from relative
 #sfr flux
-'mid_ash_g': 5.20 * 0.29, # 29%#todo check par to par but should be right
+'mid_ash_g': 5.20 * 0.29, # 29%
 'sfx_a4_sh1': 0.4 * 0.29, # 29%
 
 #drain flux
@@ -93,7 +93,6 @@ def get_NSMC_weights():
     heads = get_head_targets()
     heads = pd.DataFrame(heads.weight)
 
-    #todo check if anything else
     outdata = pd.concat((actual,vert_targets,heads))
     outdata = outdata.loc[:,'weight']
     return outdata

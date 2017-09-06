@@ -250,7 +250,7 @@ def calc_target_offset(all_targets):
 
     return all_targets
 
-def define_error(outdata): #todo some of these are retuning nan figure out why!!!
+def define_error(outdata):
     # error as a percentage
     outdata.loc[:, 'total_error_m'] = np.nan
     outdata.loc[:, 'include_non-gap'] = False
@@ -269,7 +269,7 @@ def define_error(outdata): #todo some of these are retuning nan figure out why!!
             well, 'h2o_dpth_mean'])
         # seasonal bias correction
         sea = outdata.loc[
-            well, 'scorrection_error'] = outdata.loc[well, 'samp_time_var'] /3.3166 * 4.18 #todo does this make sense
+            well, 'scorrection_error'] = outdata.loc[well, 'samp_time_var'] /3.3166 * 4.18
         # the above is based on the coefficient of variation(CV) of the monthly data/the cv if all sample are in 1 month
         #  * the mean plus one standard deviation of the water range (sept-mar) of all samples with as CV of less than 1
         # given time I would group these spatially, but I'm not that concerned. it will slightly over represent the

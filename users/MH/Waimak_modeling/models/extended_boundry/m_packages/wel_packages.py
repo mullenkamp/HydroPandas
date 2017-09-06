@@ -133,7 +133,7 @@ def _get_wel_spd_v1(recalc=False,sub_version=1):
         all_wells.loc[well,'col'] += overlap.loc[well,'add_col']
 
     # add little rakaia flux which will be parameterized via pest in two groups upper flux is north of SH1, lower is coastal of SH1
-    temp = smt.model_where(np.isfinite(smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/little_rakaia_boundry_wells.shp".format(smt.sdp), #todo expand shape
+    temp = smt.model_where(np.isfinite(smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/little_rakaia_boundry_wells.shp".format(smt.sdp),
                                          'Id', True)))
     all_llrf = pd.DataFrame(columns=all_wells.keys())
     for i in range(smt.layers):

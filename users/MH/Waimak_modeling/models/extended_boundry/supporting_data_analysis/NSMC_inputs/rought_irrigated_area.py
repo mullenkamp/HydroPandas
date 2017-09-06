@@ -29,7 +29,7 @@ for idx, name in zip([w_idx,c_idx,s_idx],['waimak','chch','selwyn']):
     print('')
     print(name)
     irrigated_area = ((np.isfinite(irrigation[idx])) & (~np.isfinite(confined[idx]))).sum()
-    total_area = idx.sum() #todo check
+    total_area = idx.sum()
     conf = np.isfinite(confined[idx]).sum()
     non_irr = total_area - irrigated_area - conf
     print('total_area {} cells'.format(total_area))
@@ -38,7 +38,6 @@ for idx, name in zip([w_idx,c_idx,s_idx],['waimak','chch','selwyn']):
     print('confined {}% {} cells'.format(conf/total_area,conf))
     print((conf+non_irr+irrigated_area)/total_area)
     print('average recharge: {}'.format(rch[idx].mean()*1000*365))
-# todo check rch_ values
 
 dryland =rch[np.isnan(confined) & np.isnan(irrigation) & (no_flow.astype(bool))].mean()*1000*365
 print ('average rch in dryland: {} mm/yr'.format(dryland))
