@@ -7,7 +7,7 @@ Date Created: 8/09/2017 8:28 AM
 from __future__ import division
 from core import env
 
-def get_forward_rch(naturalised, pc5=False, rcm=None, rcp=None, period=None, amag_type=None):
+def get_forward_rch(naturalised, pc5=False, rcm=None, rcp=None, period=None, amag_type=None): #todo
     """
     get the rch for the forward runs
     :param naturalised: boolean if True then get rch for

@@ -22,12 +22,13 @@ def run_cc_senarios(base_kwargs):
     periods = range(2010, 2100, 10)  # todo how many itterations is this! 720! talk to zeb about this
     rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
     rcps = ['RCP2.6', 'RCP4.5', 'RCP6.0', 'RCP8.5']
-    amalg_types = ['tym', 'min', 'low_3_m']  # todo itertools may be neceisarry
+    amalg_types = ['tym', 'min', 'low_3_m']
     for per, rcm, rcp, at in itertools.product(periods, rcms, rcps, amalg_types):
         temp = deepcopy(base_kwargs)
         temp['cc_inputs'] = {'rmc': rcm, 'rcp': rcp, 'period': per, 'amag_type': at}
         temp['name'] = '{}_{}_{}_{}_{}'.format(temp['name'], rcm, rcp, per, at)
         runs.append(temp)
+    return runs
 
 
 def setup_run_args(model_id, forward_run_dir):
@@ -167,3 +168,7 @@ def run_forward_runs():
 
 
     # todo debug
+
+if __name__ == '__main__':
+    runs = setup_run_args('test','test')
+    print('done')
