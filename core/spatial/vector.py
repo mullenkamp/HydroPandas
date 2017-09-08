@@ -342,11 +342,20 @@ def closest_line_to_pts(pts, lines, line_site_col, dis=None):
             lines1 = lines[lines.intersects(bound)]
         else:
             lines1 = lines.copy()
+        if lines1.empty:
+            continue
         near1 = lines1.distance(pts.geometry[i]).idxmin()
         line_seg1 = lines1.loc[near1, line_site_col]
         pts_seg[line_site_col] = line_seg1
         pts_line_seg = concat([pts_line_seg, pts_seg])
 #        print(i)
+
+    ### Determine points that did not find a line
+    mis_pts = pts.loc[~pts.index.isin(pts_line_seg.index)]
+    if not mis_pts.empty:
+        print(mis_pts)
+        print('Did not find a line segment for these sites')
+
     return(pts_line_seg)
 
 

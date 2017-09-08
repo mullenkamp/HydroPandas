@@ -222,7 +222,12 @@ def save_df(df, path_str, index=True, header=True):
         df.to_csv(path_str, index=index, header=header)
 
 
-
+def get_subdir(a_dir):
+    """
+    Simple function to get all subdirectories from a directory.
+    """
+    from os import path, listdir
+    return [name for name in listdir(a_dir) if path.isdir(path.join(a_dir, name))]
 
 
 
