@@ -221,23 +221,16 @@ hover3 = p3.select_one(HoverTool)
 hover3.point_policy = "follow_mouse"
 hover3.tooltips = [("Category", "@cat"), ("Zone", "@zone")]
 
-callback3 = CustomJS(args=dict(source=gw_source), code="""
-    var data = source.data;
-    var f = cb_obj.value;
-    source.data.cat = data[f];
-    source.change.emit();
-""")
+def callback1(source=gw_source, window=None):
+    data = source.data
+    f = cb_obj.value
+    source.data.cat = data[f]
+    source.change.emit()
 
 select3 = Select(title='Month', value=time_index[-1], options=time_index)
-select3.js_on_change('value', callback3)
-#slider = Slider(start=0, end=len(time_index)-1, value=0, step=1)
-#slider.js_on_change('value', callback)
+select3.js_on_change('value', CustomJS.from_py_func(callback1))
 
 layout3 = column(p3, select3)
-#tab3 = Panel(child=layout3, title='GW Level')
-
-## Combine
-#tabs = Tabs(tabs=[tab1, tab2, tab3])
 
 show(layout3)
 
