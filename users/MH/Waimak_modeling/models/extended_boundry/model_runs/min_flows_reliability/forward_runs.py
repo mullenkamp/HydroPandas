@@ -64,7 +64,7 @@ def setup_run_args(model_id, forward_run_dir):
     }
     runs.append(full_abs)
 
-    # todo full allocation (full abstraction)
+    # full allocation (full abstraction)
     full_abs_allo = {
         'model_id': model_id,
         'name': 'full_abs_allo',
@@ -74,7 +74,8 @@ def setup_run_args(model_id, forward_run_dir):
         'wil_eff': 1,
         'naturalised': False,
         'full_abs': True,
-        'pumping_well_scale': 1  # todo this needs some thought probably add one more argument
+        'pumping_well_scale': 1,
+        'full_allo': True
     }
     runs.append(full_abs_allo)
 
@@ -96,7 +97,7 @@ def setup_run_args(model_id, forward_run_dir):
     runs.extend(run_cc_senarios(current))
 
     # pc5
-    pc5 = {
+    pc5 = { #todo should pumping be altered by PC5?
         'model_id': model_id,
         'name': 'pc5',
         'base_dir': None,

@@ -31,6 +31,14 @@ def get_max_rate(): #todo
 
 # for forward runs
 
-def get_forward_wells (full_abstraction, cc_inputs, naturalised):
+def get_forward_wells (full_abstraction, cc_inputs, naturalised, full_allo): #todo should pumping be altered by PC5?
+    """
+    gets the pumping data for the forward runs
+    :param full_abstraction: use the CAV (think about what happens with irrigation abstraction)
+    :param cc_inputs: use these to apply scaling factors for the pumping (think about how to work with these spatially)
+    :param naturalised: boolean, if True use only the fixed inputs (e.g. rivers, boundary fluxes.  No races)
+    :param full_allo: boolean, if True scale the wells by the amount allocated in each zone (could be a dictionary of boolean for each subzone)
+    :return:
+    """
     #todo options for cc_inputs with None
     raise NotImplementedError()

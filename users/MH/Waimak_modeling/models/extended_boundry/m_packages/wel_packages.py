@@ -23,7 +23,7 @@ def create_wel_package(m, wel_version):
                                          ipakcb=740,
                                          stress_period_data={
                                              0: smt.convert_well_data_to_stresspd(get_wel_spd(wel_version))},
-                                         options=['AUX IFACE'],
+                                         options=['AUX IFACE'],  # next time don't include this unless I use it
                                          unitnumber=709)
 
 
