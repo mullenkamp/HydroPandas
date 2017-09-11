@@ -17,7 +17,7 @@ from core.ts import grp_ts_agg
 
 from bokeh.layouts import widgetbox, column, row
 from bokeh.plotting import figure, save, show, output_file, curdoc
-from bokeh.models import ColumnDataSource, HoverTool, LogColorMapper, Legend, CategoricalColorMapper, CustomJS, renderers, annotations, Circle
+from bokeh.models import ColumnDataSource, HoverTool, LogColorMapper, Legend, CategoricalColorMapper, CustomJS, renderers, annotations, Circle, CDSView, GroupFilter
 from bokeh.palettes import RdYlBu11 as palette
 from bokeh.palettes import brewer
 from bokeh.models.widgets import Panel, Tabs, Slider, Select
@@ -143,12 +143,15 @@ bound1 = multipoly_to_poly(bound)
 
 bound2 = getCoords(bound1).drop('geometry', axis=1)
 bound2.rename(columns={'catch': 'name'}, inplace=True)
+bound2.loc[:, 'name'] = bound2.loc[:, 'name'] + ' catchment'
 
 sites_catch1 = getCoords(sites_catch).drop('geometry', axis=1)
 
 name1 = sites_catch1['name'] + ' on ' + sites_catch1['river']
 sites_catch1.loc[:, 'name'] = name1
 sites_catch1.loc[:, 'test'] = 'test'
+
+sites_catch1.loc[:, 'site'] = sites_catch1.loc[:, 'site'].astype(str)
 
 ### Combine with time series data
 #data1 = merge(cat1.unstack('time').reset_index(), zones2, on=['zone'])
@@ -163,7 +166,12 @@ rcps = ['RCP2.6', 'RCP4.5', 'RCP6.0', 'RCP8.5']
 mean4[rcps] = mean4.iloc[:, range(len(rcps))]
 
 
-data_s = ColumnDataSource(mean4.reset_index())
+#data_s = ColumnDataSource(mean4.reset_index())
+data = mean1.reset_index()
+data.loc[:, 'nrch'] = data.loc[:, 'nrch'].astype(str)
+data_s = ColumnDataSource(data)
+view_s = CDSView(source=data_s, filters=[GroupFilter(column_name='nrch', group=sites_catch1.site.iloc[0])])
+
 #ts_view_s = ColumnDataSource(data[data.nrch == sites_catch1.site.iloc[0]])
 
 bound_s = ColumnDataSource(bound2)
@@ -201,138 +209,141 @@ hover1.tooltips = "@name"
 
 p2 = figure(title='Site data', tools=TOOLS, logo=None, active_scroll='wheel_zoom', plot_height=h, plot_width=w, x_axis_type="datetime")
 for i in rcps:
-    p2.line(x='time', y=i, source=data_s)
+    p2.line(x='time', y=i, source=data_s, view=view_s)
 
 ## Tap/selection
 
 
-def callback1(data=data_s, pts=site_s):
-    data1 = data.data
+def callback1(data=data_s, pts=site_s, view=view_s):
     pt_data = pts.data
-    data_cols = ['RCP2.6', 'RCP4.5', 'RCP6.0', 'RCP8.5']
     ind1 = pts.selected['1d']['indices'][0]
     site = pt_data['site'][ind1]
-    ind2 = [str(site) + ' ' + i for i in data_cols]
-    for d in range(len(data_cols)):
-        new_data = data1[ind2[d]]
-        data1[data_cols[d]] = new_data
-
+    view.filters[0].group = site
+    view.change.emit()
     data.change.emit()
-#
-#
-#callback1 = CustomJS(args=dict(source=ts_view_s), code="""
-#        var view = source.data;
-#        var new_data = data['RCP8.5'];
-#        view['RCP2.6'].push(new_data);
-#        source.change.emit();
-#    """)
 
 tt = TapTool(renderers = [renderer])
 p1.add_tools(tt)
 sel1 = p1.select_one(TapTool)
 sel1.callback = CustomJS.from_py_func(callback1)
-#site_s.callback = CustomJS.from_py_func(callback1)
-#p2.js_on_change('data', CustomJS.from_py_func(callback1))
 
 show(row(p1, p2))
 #curdoc().add_root(row(p1, p2))
 
-#
-#
-#show(p1)
-#
-#
-# active_tap='tap',
-#
-#
-#
-#
-#
-#
-#def callback1(source=ts_view_s, window=None):
-#    data = source.data
-#    f = cb_obj.value
-#    source.data.cat = data[f]
-#    source.change.emit()
-#
-#
-#
-#site_col='nrch', data_cols=cols1
+
+
+
+
+
+
+
+
+
+
+
 
 
 #
-#def callback1(source=ts_view_s, data=data_s, pts=site_s):
+#w = 700
+#h = w
+#
+#output_file(map1_html)
+#
+#TOOLS = "pan,wheel_zoom,reset,save"
+#
+#p1 = figure(title='Sites Map', tools=TOOLS, logo=None, active_scroll='wheel_zoom', plot_height=h, plot_width=w)
+#p1.patches('x', 'y', source=bound_s, fill_color=grey1, line_color="black", line_width=1)
+#renderer = p1.circle('x', 'y', source=site_s, size=10)
+#
+#selected_circle = Circle(fill_alpha=1, fill_color="firebrick", line_color=None)
+#nonselected_circle = Circle(fill_alpha=0.2, fill_color="blue", line_color="firebrick")
+#
+#renderer.selection_glyph = selected_circle
+#renderer.nonselection_glyph = nonselected_circle
+#
+#p1.add_tools(HoverTool())
+#hover1 = p1.select_one(HoverTool)
+#hover1.point_policy = "follow_mouse"
+#hover1.tooltips = "@name"
+#
+#p2 = figure(title='Site data', tools=TOOLS, logo=None, active_scroll='wheel_zoom', plot_height=h, plot_width=w, x_axis_type="datetime")
+#for i in rcps:
+#    p2.line(x='time', y=i, source=data_s)
+#
+### Tap/selection
+#
+#
+#def callback1(data=data_s, pts=site_s):
 #    data1 = data.data
-#    site_col = 'nrch'
+#    pt_data = pts.data
 #    data_cols = ['RCP2.6', 'RCP4.5', 'RCP6.0', 'RCP8.5']
-#    ind1 = cb_obj.selected['1d'].indices
-#    f = pts.data['site'][ind1]
-#    site_index = [i for i in range(len(data1[site_col])) if data1[site_col][i] == f]
-#    for d in data_cols:
-#        data_col = data1[d][site_index]
-#        source.data[d] = data_col
-#    source.change.emit()
+#    ind1 = pts.selected['1d']['indices'][0]
+#    site = pt_data['site'][ind1]
+#    ind2 = [str(site) + ' ' + i for i in data_cols]
+#    for d in range(len(data_cols)):
+#        new_data = data1[ind2[d]]
+#        data1[data_cols[d]] = new_data
+#
+#    data.change.emit()
+##
+##
+##callback1 = CustomJS(args=dict(source=ts_view_s), code="""
+##        var view = source.data;
+##        var new_data = data['RCP8.5'];
+##        view['RCP2.6'].push(new_data);
+##        source.change.emit();
+##    """)
+#
+#tt = TapTool(renderers = [renderer])
+#p1.add_tools(tt)
+#sel1 = p1.select_one(TapTool)
+#sel1.callback = CustomJS.from_py_func(callback1)
+##site_s.callback = CustomJS.from_py_func(callback1)
+##p2.js_on_change('data', CustomJS.from_py_func(callback1))
+#
+#show(row(p1, p2))
 
 
 
-#
-#
-#def callback1(source=ts_view_s, data=data_s, pts=site_s):
-#    data1 = data.data
-#    view = source.data
-#    site_col = 'nrch'
-#    data_cols = ['RCP2.6', 'RCP4.5', 'RCP6.0', 'RCP8.5']
-#    ind1 = cb_obj.selected['1d'].indices
-#    sites = pts.data['site'][ind1]
-#    site_index = [i for i in range(len(data1[site_col])) if data1[site_col][i] == sites]
-#    for d in data_cols:
-#        data_col = data1[d][site_index]
-#        view[d].push(data_col)
-#    source.change.emit()
-#
-#
-#
-#
-#
-#
-#callback1 = CustomJS(args=dict(source=ts_view_s, data=data_s), code="""
-#        var inds = cb_obj.selected['1d'].indices;
-#        var data1 = data.data;
-#        var view = source.data;
-#        new_data = data1['RCP2.6']
-#        view['RCP2.6'].push(new_data)
-#        source.change.emit();
-#    """)
-#
-#
-#
-#from bokeh.plotting import figure, curdoc
-#from bokeh.layouts import column
-#from bokeh.models import ColumnDataSource
-#
-#TOOLS = "tap"
-#p = figure(title="Some Figure", tools=TOOLS)
-#
-#source = ColumnDataSource(dict(x=[[1, 3, 2], [3, 4, 6, 6]],
-#                y=[[2, 1, 4], [4, 7, 8, 5]], name=['A', 'B']))
-#
-#pglyph = p.patches('x', 'y', source=source, color=["firebrick", "navy"],
-#                                alpha=[0.8, 0.3], line_width=2)
-#
-#def callback(attr, old, new):
-#    # The index of the selected glyph is : new['1d']['indices'][0]
-#    patch_name =  source.data['name'][new['1d']['indices'][0]]
-#    print("TapTool callback executed on Patch {}".format(patch_name))
-#
-#pglyph.data_source.on_change('selected',callback)
-#
-##curdoc().add_root(column(p))
-#
-#show(p)
 
 
 
-#ind1 = cb_obj.selected['1d'].indices[0]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
