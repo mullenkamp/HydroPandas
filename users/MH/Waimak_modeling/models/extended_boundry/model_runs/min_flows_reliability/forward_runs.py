@@ -22,12 +22,13 @@ def run_cc_senarios(base_kwargs):
     periods = range(2010, 2100, 10)  # todo how many itterations is this! 720! talk to zeb about this
     rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
     rcps = ['RCP2.6', 'RCP4.5', 'RCP6.0', 'RCP8.5']
-    amalg_types = ['tym', 'min', 'low_3_m']  # todo itertools may be neceisarry
+    amalg_types = ['tym', 'min', 'low_3_m']
     for per, rcm, rcp, at in itertools.product(periods, rcms, rcps, amalg_types):
         temp = deepcopy(base_kwargs)
         temp['cc_inputs'] = {'rmc': rcm, 'rcp': rcp, 'period': per, 'amag_type': at}
         temp['name'] = '{}_{}_{}_{}_{}'.format(temp['name'], rcm, rcp, per, at)
         runs.append(temp)
+    return runs
 
 
 def setup_run_args(model_id, forward_run_dir):
@@ -63,7 +64,7 @@ def setup_run_args(model_id, forward_run_dir):
     }
     runs.append(full_abs)
 
-    # todo full allocation (full abstraction)
+    # full allocation (full abstraction)
     full_abs_allo = {
         'model_id': model_id,
         'name': 'full_abs_allo',
@@ -73,7 +74,8 @@ def setup_run_args(model_id, forward_run_dir):
         'wil_eff': 1,
         'naturalised': False,
         'full_abs': True,
-        'pumping_well_scale': 1  # todo this needs some thought probably add one more argument
+        'pumping_well_scale': 1,
+        'full_allo': True
     }
     runs.append(full_abs_allo)
 
@@ -95,7 +97,7 @@ def setup_run_args(model_id, forward_run_dir):
     runs.extend(run_cc_senarios(current))
 
     # pc5
-    pc5 = {
+    pc5 = { #todo should pumping be altered by PC5?
         'model_id': model_id,
         'name': 'pc5',
         'base_dir': None,
@@ -167,3 +169,7 @@ def run_forward_runs():
 
 
     # todo debug
+
+if __name__ == '__main__':
+    runs = setup_run_args('test','test')
+    print('done')

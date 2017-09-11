@@ -13,7 +13,7 @@ def setup_run_forward_run_mp (kwargs):
     setup_run_forward_run(**kwargs)
 
 def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, wil_eff=1, naturalised=False,
-                          full_abs=False, pumping_well_scale=1):
+                          full_abs=False, pumping_well_scale=1, full_allo=False):
     """
     sets up and runs a forward run with a number of options
     :param model_id: which NSMC version to user (see mod_gns_model)
@@ -33,6 +33,7 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
     :param pumping_well_scale: as factor that is applied to the pumping wells (e.g. .2 = 20%)
                                this factor is separate to any scaling due to additional demand under climate
                                change senarios (this is handled when getting the well data)
+    :param full_allo: boolean if true use the full allocation of pumping
     :return:
     """
     # cc inputs are a dict
@@ -41,7 +42,7 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
     if not isinstance(cc_inputs,dict):
         raise ValueError('incorrect type for cc_inputs {} expected dict or None'.format(type(cc_inputs)))
 
-    well_data = get_forward_wells(full_abstraction=full_abs, cc_inputs=cc_inputs, naturalised=naturalised)
+    well_data = get_forward_wells(full_abstraction=full_abs, cc_inputs=cc_inputs, naturalised=naturalised, full_allo=full_allo)
     well_data.loc[well_data.type=='well','flux'] *= pumping_well_scale #todo how should s waimak wells be handled
     well_data.loc[(well_data.type=='race') & (well_data.zone == 'n_wai'),'flux'] *= wil_eff
 

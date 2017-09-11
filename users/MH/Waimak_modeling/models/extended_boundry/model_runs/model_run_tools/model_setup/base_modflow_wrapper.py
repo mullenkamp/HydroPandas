@@ -15,9 +15,11 @@ import warnings
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 from copy import deepcopy
 from users.MH.Waimak_modeling.supporting_data_path import sdp
-from users.MH.Waimak_modeling.model_tools.well_values import get_original_well_data, convert_well_data_to_stresspd
 
 org_data_dir = "{}/from_GNS".format(sdp)
+
+
+# todo as part of this make another function which gets the name file (or copies the files across)
 
 def get_model(model_id):
     """
@@ -25,9 +27,12 @@ def get_model(model_id):
     :param model_id:
     :return: m flopy model instance
     """
-    #todo as part of this make another function which gets the name file (or copies the files across)
+    # todo check well packaged loads appropriately! yep this is a problem because we define the iface value,
+    # todo but it isn't used, remove iface manually?
+    # todo if it doesn't exist I will need to add the options flags to SFR package manually?
     m = None
-    raise NotImplementedError() #todo
+    raise NotImplementedError()  # todo
+
 
 def import_gns_model(model_id, name, dir_path, safe_mode=True, mt3d_link=False, exe_path=None):
     """
@@ -58,57 +63,35 @@ def import_gns_model(model_id, name, dir_path, safe_mode=True, mt3d_link=False, 
     else:
         os.makedirs(dir_path)
 
-
     # load modflow and check certain packages exist only load certain packages so that others can be loaded explicitly
-    m = get_model(model_id)
+    # m = get_model(model_id) #todo reinstate later
+    m = flopy.modflow.Modflow.load(
+        r"C:\Users\MattH\Desktop\to_test_write\m_ex_bd_va-with_n_carpet\m_ex_bd_va-to_test_load.nam")  # todo only a test
 
     # change the naming and paths to files (essentially duplicate all data)
     m._set_name(name)
     m.change_model_ws(dir_path)
     if exe_path is None:
-        m.exe_name = "{}/models_exes/MODFLOW-NWT_1.1.2/MODFLOW-NWT_1.1.2/bin/MODFLOW-NWT_64.exe".format(sdp) #todo confirm 64 bit version
+        m.exe_name = "{}/models_exes/MODFLOW-NWT_1.1.2/MODFLOW-NWT_1.1.2/bin/MODFLOW-NWT_64.exe".format(sdp)
     else:
         m.exe_name = exe_path
-
-    # remove all old output files
-    units = deepcopy(m.output_units)
-    for u in units:
-        m.remove_output(unit=u)
-
-    # set package output units for those that need to be specified #todo think about this
-    m.get_package('DRN').ipakcb = 741
-    m.get_package('RCH').ipakcb = 742
-    m.get_package('STR').ipakcb = 743 # between reach and model cells
-    m.get_package('STR').istcb2 = 744 # between reach and reach
 
     # remove LMT package (will recreate if needed)
     if 'LMT6' in m.get_package_list():
         m.remove_package('LMT6')
 
-
-    # add output to name file
-    fnames = [m.name + e for e in ['.hds', '.ddn', '.cbb', '.cbd', '.crc', '.cstm', '.csts', '.cbw']]  # output extension
-    funits = [30, 31, 740, 741, 742, 743, 744, 745] #fortran unit
-    fbinflag = [True, True, True, True, True, True, True, True, True] #is binary #todo this needs adjusting to new packages
-    fpackage = [[], [], ['LPF'], ['DRN'], ['RCH'], ['STR'], ['STR'], ['WEL']]
-
     # if needed create MT3D link files
     if mt3d_link:
         mt3d_outunit = 54
         mt3d_outname = '{}_mt3d_link.ftl'.format(m.name)
-        link = flopy.modflow.ModflowLmt(m, output_file_name=mt3d_outname, output_file_unit=mt3d_outunit,unitnumber=21)
-
-        fnames.append(mt3d_outname)
-        funits.append(mt3d_outunit)
-        fbinflag.append(True)
-        fpackage.append(['LMT'])
-
-    for fn, fu, fb, fp, in zip(fnames, funits, fbinflag, fpackage):
-        m.add_output(fn,fu,fb,fp)
+        link = flopy.modflow.ModflowLmt(m, output_file_name=mt3d_outname, output_file_unit=mt3d_outunit, unitnumber=21)
+        m.add_output(mt3d_outname, mt3d_outunit, True, 'LMT')
 
     return m
 
-def mod_gns_model(model_id, name, dir_path, safe_mode=True, stress_period_vals=None, well=None, drain=None, recharge=None,
+
+def mod_gns_model(model_id, name, dir_path, safe_mode=True, stress_period_vals=None, well=None, drain=None,
+                  recharge=None,
                   stream=None, mt3d_link=False, start_heads=None, exe_path=None):
     """
     modify the gns model by changing the stress period data for one of the following packages WEL, DRN, RCH, STR, DIS
@@ -134,8 +117,8 @@ def mod_gns_model(model_id, name, dir_path, safe_mode=True, stress_period_vals=N
            default GNS data
     :param recharge: dictionary format stress period data for the RCH package (see flopy.ModflowWell) or None and use
            default GNS data
-    :param stream: dictionary format stress period data for the STR package (see flopy.ModflowWell) or None and use
-           default GNS data
+    :param stream: tuple or list of (segment_data, reach_data) for the SFR package or None and use
+           default model data.  Varying stress period data is not yet implemented.
     :param mt3d_link: boolean if true write a MT3D-link module
     :param start_heads: None or array for the starting heads of the simulation.
     :param exe_path: path to the modflow NWT exicutable
@@ -153,7 +136,7 @@ def mod_gns_model(model_id, name, dir_path, safe_mode=True, stress_period_vals=N
         nper = stress_period_vals['nper']
     print_lg_warning = False
     if nper == 1:
-        pass # do not raise stress period data warnings for 1 stress period models
+        pass  # do not raise stress period data warnings for 1 stress period models
     else:
         for var_name in ['well', 'drain', 'recharge', 'stream']:
             if eval(var_name) is None:
@@ -163,7 +146,7 @@ def mod_gns_model(model_id, name, dir_path, safe_mode=True, stress_period_vals=N
             elif len(eval(var_name)) != nper:
                 print_lg_warning = True
                 warnings.warn('{} has stress period data for {} out '
-                              'of {} stress periods'.format(var_name,len(eval(var_name)),nper))
+                              'of {} stress periods'.format(var_name, len(eval(var_name)), nper))
     if print_lg_warning:
         warnings.warn('One or more stress period data warnings: \n'
                       'Note that if the number of lists is smaller than the number of stress periods,\n'
@@ -183,51 +166,67 @@ def mod_gns_model(model_id, name, dir_path, safe_mode=True, stress_period_vals=N
     if stress_period_vals is not None:
         change_stress_period_settings(m, stress_period_vals)
 
-    # add well stress period data #todo check all package options
+    # add well stress period data
     if well is not None:
-        wel = flopy.modflow.ModflowWel(m, ipakcb=745, stress_period_data=well, options=['AUX IFACE'])
+        wel = flopy.modflow.ModflowWel(m, ipakcb=740, stress_period_data=well, unitnumber=709)
 
     # add drain stress period data
     if drain is not None:
         drn = flopy.modflow.ModflowDrn(m,
-                                       ipakcb=741,
+                                       ipakcb=740,
                                        stress_period_data=drain,
                                        unitnumber=710,
                                        options=[])
 
     # add recharge stress period data
     if recharge is not None:
-        rch = flopy.modflow.ModflowRch(m, nrchop=3, ipakcb=742, rech=recharge, unitnumber=716)
+        rch = flopy.modflow.ModflowRch(m, nrchop=3, ipakcb=740, rech=recharge, unitnumber=716)
 
-
-    # add stream stress period data #todo this has changed
+    # add stream stress period data
     if stream is not None:
-        seg = m.str.segment_data
-        for key in stream.keys():
-            if key == 0:
-                continue
-            seg[key] = seg[0]
-        str_ = flopy.modflow.mfstr.ModflowStr(m,
-                                               mxacts=1217,
-                                               nss=44,
-                                               ntrib=3,
-                                               ndiv=0,
-                                               icalc=1,
-                                               const=86400.0,
-                                               ipakcb=743,
-                                               istcb2=744,
-                                               dtype=None,
-                                               stress_period_data=stream,
-                                               segment_data=seg,
-                                               extension='str',
-                                               unitnumber=717)
+        if (not isinstance(stream, tuple) and not isinstance(stream, list)) and len(stream) != 2:
+            raise ValueError('incorrect input type for stream')
+        segment_data = stream[0]
+        reach_data = stream[1]
+        if isinstance(segment_data, dict) or isinstance(reach_data, dict):
+            raise NotImplementedError('varying SFR stress period data not yet implemented')
+        sfr = flopy.modflow.ModflowSfr2(m,
+                                        nstrm=len(reach_data),
+                                        nss=len(segment_data),
+                                        nsfrpar=0,  # this is not implemented in flopy not using
+                                        nparseg=0,  # this is not implemented in flopy not using
+                                        const=86400,
+                                        dleak=0.0001,  # default, likely ok
+                                        ipakcb=740,
+                                        istcb2=0,
+                                        isfropt=1,  # Not using as nstrm >0 therfore no Unsaturated zone flow
+                                        nstrail=10,  # not using as no unsaturated zone flow
+                                        isuzn=1,  # not using as no unsaturated zone flow
+                                        nsfrsets=30,  # not using as no unsaturated zone flow
+                                        irtflg=0,  # no transient sf routing
+                                        numtim=2,  # Not using transient SFR
+                                        weight=0.75,  # not using if irtflg = 0 (no transient SFR)
+                                        flwtol=0.0001,  # not using if irtflg = 0 (no transient SFR)
+                                        reach_data=reach_data,
+                                        segment_data=segment_data,
+                                        channel_geometry_data=None,  # using rectangular profile so not used
+                                        channel_flow_data=None,  # icalc = 1 or 2 so not using
+                                        dataset_5={0: [len(segment_data), 0, 0]},
+                                        reachinput=True,  # using for reach input
+                                        transroute=False,  # no transient sf routing
+                                        tabfiles=False,  # not using
+                                        tabfiles_dict=None,  # not using
+                                        unit_number=717)
+
+        raise NotImplementedError()
 
     if start_heads is not None:
         temp = m.get_package('BAS6').strt
-        m.get_package('BAS6').strt = flopy.utils.Util3d(m,temp.shape,temp.dtype,start_heads, temp.name)
+        m.get_package('BAS6').strt = flopy.utils.Util3d(m, temp.shape, temp.dtype, start_heads, temp.name)
     return m
-#todo I need to handle the SFR writing error and any other flopy errors
-def _check_stress_period_values (spv):
+
+
+def _check_stress_period_values(spv):
     """
     check that the provided parameters are in the correct formats for a description of parameter see DIS object of flopy
     :param stress_period_values: dictionary of: 
@@ -262,18 +261,18 @@ def _check_stress_period_values (spv):
     except:
         raise ValueError('perlen must be castable to float')
     try:
-        spv['tsmult ']= spv['tsmult'].astype(float)
+        spv['tsmult '] = spv['tsmult'].astype(float)
     except:
         raise ValueError('tsmult must be castable to float')
 
     try:
-        if all(spv['nstp'].astype(int)/spv['nstp'].astype(float) == 1):
+        if all(spv['nstp'].astype(int) / spv['nstp'].astype(float) == 1):
             spv['nstp'] = spv['nstp'].astype(int)
     except:
         raise ValueError('nstp must be castable to int')
 
     if not all(spv['nstp'].astype(int) / spv['nstp'].astype(float) == 1):
-            raise ValueError('expected whole number for nstp')
+        raise ValueError('expected whole number for nstp')
 
     # check lengths and propigate single values
 
@@ -282,14 +281,14 @@ def _check_stress_period_values (spv):
             raise ValueError('{} must be 1-d')
         elif len(spv[name]) != spv['nper']:
             if len(spv[name]) == 1:
-                spv[name] =(np.ones((spv['nper'],))*spv[name]).astype(spv[name].dtype)
+                spv[name] = (np.ones((spv['nper'],)) * spv[name]).astype(spv[name].dtype)
             else:
-                raise ValueError('{} must have the same length as the number of periods ({})'.format(name,spv['nper']))
+                raise ValueError('{} must have the same length as the number of periods ({})'.format(name, spv['nper']))
 
     return spv
 
 
-def change_stress_period_settings (m, spv):
+def change_stress_period_settings(m, spv):
     """
     changes a model dis object to a new set of stress period values and run a check
     For more info on variables see flopy.modflow.ModflowDis
@@ -306,7 +305,7 @@ def change_stress_period_settings (m, spv):
     """
     # takes the model object (as input) and changes all of the stress period conditions
     # does not change stress period data e.g. well stress peiod data
-    spv =_check_stress_period_values(spv)
+    spv = _check_stress_period_values(spv)
     dis = m.get_package('dis')
     nper = spv['nper']
     if 'oc_stress_per_data' not in spv.keys():
@@ -314,16 +313,17 @@ def change_stress_period_settings (m, spv):
     else:
         oc_stress_per_data = spv['oc_stress_per_data']
     dis.nper = nper
-    dis.perlen = flopy.utils.Util2d(m,(nper,),np.float32,spv['perlen'],'perlen')
-    dis.nstp = flopy.utils.Util2d(m,(nper,),int,spv['nstp'],'nstp')
-    dis.steady = flopy.utils.Util2d(m,(nper,),bool,spv['steady'],'steady')
-    dis.tsmult = flopy.utils.Util2d(m,(nper,),np.float32,spv['tsmult'],'tsmult')
+    dis.perlen = flopy.utils.Util2d(m, (nper,), np.float32, spv['perlen'], 'perlen')
+    dis.nstp = flopy.utils.Util2d(m, (nper,), int, spv['nstp'], 'nstp')
+    dis.steady = flopy.utils.Util2d(m, (nper,), bool, spv['steady'], 'steady')
+    dis.tsmult = flopy.utils.Util2d(m, (nper,), np.float32, spv['tsmult'], 'tsmult')
     dis.check()
     if oc_stress_per_data is None:
-        m.oc.stress_period_data = {(0,0):['save head', 'save drawdown', 'save budget', 'print budget']}
+        m.oc.stress_period_data = {(0, 0): ['save head', 'save drawdown', 'save budget', 'print budget']}
     else:
         m.oc.stress_period_data = oc_stress_per_data
 
 
 if __name__ == '__main__':
-    print('done') #todo this all needs checking
+    import_gns_model(1, 'test', r"C:\Users\MattH\Desktop\test", False, True)
+    print('done')  # todo check modGNS model (though it should be pretty good)

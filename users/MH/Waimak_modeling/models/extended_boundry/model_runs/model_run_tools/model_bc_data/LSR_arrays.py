@@ -7,7 +7,7 @@ Date Created: 8/09/2017 8:28 AM
 from __future__ import division
 from core import env
 
-def get_forward_rch(naturalised, pc5=False, rcm=None, rcp=None, period=None, amag_type=None):
+def get_forward_rch(naturalised, pc5=False, rcm=None, rcp=None, period=None, amag_type=None): #todo
     """
     get the rch for the forward runs
     :param naturalised: boolean if True then get rch for
@@ -20,4 +20,7 @@ def get_forward_rch(naturalised, pc5=False, rcm=None, rcp=None, period=None, ama
     :param pc5: boolean if true use assumed PC5 efficency
     :return: rch array (11,364,365)
     """
+    name_convention_current = '{base_dir}/vcsn_climate/{rch|ird}_{current|pc5|nat}.txt'
+    name_convention_cc = '{base_dir}/climate_change/{RCP}/{RCM}/{current|pc5|nat}/{rch|ird}_{10yrm|3yrm|low}_{period}.txt'
+
     raise NotImplementedError
