@@ -11,22 +11,44 @@ import pandas as pd
 import flopy
 import os
 from warnings import warn
+from copy import deepcopy
+from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.all_well_layer_col_row import get_all_well_row_col
 
 hds_no_data = -999.99 #todo check with BRIOCH this has changed
+unc_no_data = -999.99 #todo confirm this
 
-def get_well_positions(well_list, nan_handeling='raise'): #todo
+def get_well_positions(well_list, missing_handeling='warn'): #todo
     """
 
     :param well_list: list of well numbers or a well number
-    :param nan_handeling: one of: 'raise' : raise an exception for any nan values with well numbers
+    :param missing_handeling: one of: 'raise' : raise an exception for any nan values with well numbers
                                   'forgive': silently remove nan values
                                   'warn': remove nan values, but issue a warning with well numbers
     :return: dataframe of well: k,i,j,x,y,z
     """
+
     well_list = np.atleast_1d(well_list)
-    #todo how to handle NAN values? flag either raise an exception, warning, or silently remove
-    #todo make sure to only return values in active cells (no CHB)
-    raise NotImplementedError
+    all_wells = get_all_well_row_col()
+    t = set(well_list) - set(all_wells)
+    if len(t) > 0:
+        if missing_handeling == 'raise':
+            raise ValueError('missing wells from list {}'.format(t))
+        elif missing_handeling == 'forgive':
+            pass
+        elif missing_handeling == 'warn':
+            warn('missing wells from list {}'.format(t))
+    all_wells.rename(columns={'layer': 'k', 'row': 'i', 'col': 'j'})
+    outdata = all_wells.loc[well_list,['k', 'i', 'j', 'nztmx', 'nztmy', 'depth', 'mid_screen_elv']]
+    missing = outdata.loc[:,['k', 'i', 'j']].isnull().values.sum()
+    if missing > 0:
+        if missing_handeling == 'raise':
+            raise ValueError('returned {} wells, missing i, j, or k'.format(missing))
+        elif missing_handeling == 'forgive':
+            pass
+        elif missing_handeling == 'warn':
+            warn('returned  {} wells, missing i, j, or k'.format(missing))
+
+    return outdata
 
 def get_hds_file_path(name_file_path=None, hds_path=None, m=None):
     loc_inputs = 0
@@ -84,11 +106,9 @@ def get_hds_at_wells(well_list, kstpkpers=None, rel_kstpkpers=None, name_file_pa
         outdata = pd.merge(outdata,well_locs,right_index=True,left_index=True)
 
     hds = hds_file.get_alldata(nodata=hds_no_data)
-    #TODO how to handle the ntimes component of hds for the indexing... check some stuff with old models
-    #todo how to efficiently get data out
 
-
-    raise NotImplementedError
+    outdata = _fill_df_with_bindata(hds_file, kstpkpers, kstpkper_names, outdata, hds_no_data, well_locs)
+    #todo check this
     return outdata
 
 def get_con_at_wells(well_list, unc_file_path, kstpkpers=None, rel_kstpkpers=None, add_loc=False): #todo
@@ -107,16 +127,13 @@ def get_con_at_wells(well_list, unc_file_path, kstpkpers=None, rel_kstpkpers=Non
     kstpkpers = _get_kstkpers(unc_file, kstpkpers, rel_kstpkpers)
     kstpkper_names = ['{}_{}'.format(e[0],e[1]) for e in kstpkpers]
     well_locs = get_well_positions(well_list)
-    outdata = pd.DataFrame(index=well_list,columns=kstpkper_names)
+    outdata = pd.DataFrame(index=well_list, columns=kstpkper_names)
     if add_loc:
         outdata = pd.merge(outdata,well_locs,right_index=True,left_index=True)
 
-    con_data = unc_file.get_alldata()
-    #todo this will be the same for the hds file and unc file
-
-
-
-    raise NotImplementedError
+    outdata = _fill_df_with_bindata(unc_file, kstpkpers, kstpkper_names, outdata, unc_no_data, well_locs)
+    #todo check this
+    return outdata
 
 def _get_kstkpers(bud_file, kstpkpers, rel_kstpkpers):
     if kstpkpers is not None and rel_kstpkpers is not None:
@@ -138,3 +155,30 @@ def _get_kstkpers(bud_file, kstpkpers, rel_kstpkpers):
         raise ValueError('must define one of kstpkpers or rel_kstpkpers')
 
     return kstpkpers
+
+def _fill_df_with_bindata(bin_file,kstpkpers,kstpkper_names,df,nodata_value,locations):
+    df = deepcopy(df)
+    data = bin_file.get_alldata(nodata=nodata_value)
+    mkstpkper = bin_file.get_kstpkper()
+    for kstpkper, name in zip(kstpkpers,kstpkper_names):
+        kstpkper = tuple(kstpkper)
+        temp = [e == kstpkper for e in mkstpkper]
+
+        if not any(temp):
+            raise ValueError('{} kstpkper not in model kstpkpers'.format(kstpkper))
+        temp2 = np.where(temp)
+
+        if len(temp2 != 1) or len(temp2[0]) !=1:
+            raise ValueError('indexing error getting kstpkper location')
+        idx = temp2[0][0]
+
+        time = np.ones((len(locations.index),))*idx
+        k = locations.k.values
+        i = locations.i.values
+        j = locations.j.values
+        locs = zip(time, k, i, j)
+        df.loc[:, name] = data[locs] #todo check this thouroughly in a multi dimensional space
+
+        return df
+
+
