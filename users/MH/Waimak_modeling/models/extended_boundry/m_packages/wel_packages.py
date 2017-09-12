@@ -399,6 +399,8 @@ def add_use_type(data):
 
 
 if __name__ == '__main__':
+    s_wells = _get_s_wai_wells()
+
     test = get_s_wai_races()
     old = _get_wel_spd_v1(recalc=False)
     new = _get_wel_spd_v1(recalc=True)

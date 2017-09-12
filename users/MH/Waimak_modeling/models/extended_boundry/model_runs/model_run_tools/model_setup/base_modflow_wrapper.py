@@ -55,7 +55,7 @@ def import_gns_model(model_id, name, dir_path, safe_mode=True, mt3d_link=False, 
         if safe_mode:
             cont = input(
                 'create_base_modflow_files will delete the directory:\n {} \n continue y/n\n'.format(dir_path)).lower()
-            if cont == 'n':
+            if cont != 'y':
                 raise ValueError('script aborted so as not to overwrite {}'.format(dir_path))
 
         shutil.rmtree(dir_path)
