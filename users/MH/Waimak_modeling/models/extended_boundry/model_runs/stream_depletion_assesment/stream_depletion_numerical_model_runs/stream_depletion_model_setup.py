@@ -78,8 +78,7 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
         input_wells = deepcopy(base_well)
         for well in wells_to_turn_on[sp]:
             if sd_7_150 == 'sd150':
-                add_well = full_consent.loc[well] #todo this needs to be handled
-                add_well.loc['flux'] *= 12/5 #todo EAV check with this
+                add_well = full_consent.loc[well]
                 input_wells.loc[well] = add_well
             elif sd_7_150 == 'sd7':
                 add_well = sd7_flux.loc[well]
@@ -113,7 +112,7 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
     m.upw.ss = flopy.utils.Util3d(m, m.lpf.ss.shape, m.lpf.ss.dtype, ss, m.lpf.ss.name)
     m.upw.sy = flopy.utils.Util3d(m, m.lpf.sy.shape, m.lpf.sy.dtype, sy, m.lpf.sy.name)
 
-    #todo do I need to include this?
+    # below included for easy manipulation
     flopy.modflow.mfnwt.ModflowNwt(m,
                                    headtol=0.01,
                                    fluxtol=500,
