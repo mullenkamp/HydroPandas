@@ -17,7 +17,7 @@ from core.ts import grp_ts_agg
 
 from bokeh.layouts import widgetbox, column, row
 from bokeh.plotting import figure, save, show, output_file, curdoc
-from bokeh.models import ColumnDataSource, HoverTool, LogColorMapper, Legend, CategoricalColorMapper, CustomJS, renderers, annotations, Circle, CDSView, GroupFilter
+from bokeh.models import ColumnDataSource, HoverTool, LogColorMapper, Legend, CategoricalColorMapper, CustomJS, renderers, annotations, Circle, CDSView, GroupFilter, LabelSet, Label
 from bokeh.palettes import RdYlBu11 as palette
 from bokeh.palettes import brewer
 from bokeh.models.widgets import Panel, Tabs, Slider, Select
@@ -33,6 +33,7 @@ rcppast_hdf = 'rcppast.h5'
 rcpproj_hdf = 'rcpproj.h5'
 sites_rec_shp = 'sites_rec.shp'
 bound_shp = 'catch_grps.shp'
+streams_shp = 'streams_4th.shp'
 
 ### Plot output
 map1_html = r'E:\ecan\git\ecan_python_courses\docs\map_climate1.html'
@@ -48,6 +49,8 @@ sites.rename(columns={'NZREACH': 'nrch'}, inplace=True)
 site_dict = dict(zip(sites.nrch, sites.site))
 bound = read_file(path.join(base_path, bound_shp))[['Catchmen_1', 'geometry']]
 bound.columns = ['catch', 'geometry']
+streams = read_file(path.join(base_path, streams_shp))
+
 
 #############################################
 #### Resample data
@@ -135,6 +138,9 @@ def sel_site(lst, site):
 
 ### Bokeh
 
+streams.loc[:, 'geometry'] = streams.simplify(50)
+streams2 = getCoords(streams).drop('geometry', axis=1)
+
 sites_catch = sjoin(sites, bound).drop('index_right', axis=1)
 
 bound.loc[:, 'geometry'] = bound.simplify(30)
@@ -169,17 +175,19 @@ mean4[rcps] = mean4.iloc[:, range(len(rcps))]
 #data_s = ColumnDataSource(mean4.reset_index())
 data = mean1.reset_index()
 data.loc[:, 'nrch'] = data.loc[:, 'nrch'].astype(str)
+data.loc[:, 'time_str'] = data.loc[:, 'time'].dt.strftime('%Y')
 data_s = ColumnDataSource(data)
 view_s = CDSView(source=data_s, filters=[GroupFilter(column_name='nrch', group=sites_catch1.site.iloc[0])])
 
-#ts_view_s = ColumnDataSource(data[data.nrch == sites_catch1.site.iloc[0]])
-
+streams_s = ColumnDataSource(streams2)
 bound_s = ColumnDataSource(bound2)
 site_s = ColumnDataSource(sites_catch1)
 
 ### Set up plotting parameters
-c1 = brewer['RdBu'][5]
+c1 = brewer['Set2'][4]
 grey1 = brewer['Greys'][7][5]
+
+line_color_dict = dict(zip(rcps, c1))
 
 #factors = cat_name_lst[::-1]
 #color_map = CategoricalColorMapper(factors=factors, palette=[c1[0], c1[1], c1[2], c1[3], c1[4], grey1])
@@ -193,115 +201,60 @@ output_file(map1_html)
 TOOLS = "pan,wheel_zoom,reset,save"
 
 p1 = figure(title='Sites Map', tools=TOOLS, logo=None, active_scroll='wheel_zoom', plot_height=h, plot_width=w)
-p1.patches('x', 'y', source=bound_s, fill_color=grey1, line_color="black", line_width=1)
-renderer = p1.circle('x', 'y', source=site_s, size=10)
+catch_rend = p1.patches('x', 'y', source=bound_s, fill_color=grey1, line_color="black", line_width=1)
+streams_rend = p1.multi_line('x', 'y', source=streams_s, color='blue', line_width=2, alpha=0.3)
+sites_rend = p1.circle('x', 'y', source=site_s, size=10)
+
+p1.title.text_font_size = '16pt'
 
 selected_circle = Circle(fill_alpha=1, fill_color="firebrick", line_color=None)
 nonselected_circle = Circle(fill_alpha=0.2, fill_color="blue", line_color="firebrick")
 
-renderer.selection_glyph = selected_circle
-renderer.nonselection_glyph = nonselected_circle
+sites_rend.selection_glyph = selected_circle
+sites_rend.nonselection_glyph = nonselected_circle
 
-p1.add_tools(HoverTool())
+p1.add_tools(HoverTool(renderers = [catch_rend, sites_rend]))
 hover1 = p1.select_one(HoverTool)
 hover1.point_policy = "follow_mouse"
 hover1.tooltips = "@name"
 
-p2 = figure(title='Site data', tools=TOOLS, logo=None, active_scroll='wheel_zoom', plot_height=h, plot_width=w, x_axis_type="datetime")
+site_labels = LabelSet(x='x', y='y', source=site_s, text='site', level='glyph', x_offset=5, y_offset=5, render_mode='canvas', border_line_color='black', border_line_alpha=0,  background_fill_color='white', background_fill_alpha=0.8, text_font_style='bold')
+p1.add_layout(site_labels)
+
+p2 = figure(tools=TOOLS, logo=None, active_scroll='wheel_zoom', plot_height=h, plot_width=w, x_axis_type="datetime")
 for i in rcps:
-    p2.line(x='time', y=i, source=data_s, view=view_s)
+    p2.line(x='time', y=i, source=data_s, view=view_s, color=line_color_dict[i], line_width=3, legend=i+' ')
+p2.title.text = view_s.filters[0].group
+p2.title.text_font_size = '16pt'
+
+p2.add_tools(HoverTool(tooltips=[('Year', '@time_str'), ('Value', '$y')]))
+hover2 = p2.select_one(HoverTool)
+hover2.point_policy = "follow_mouse"
+#tooltips1 = zip(rcps, ('@RCP2.6', '@RCP4.5', '@RCP6.0', '@RCP8.5'))
+#tooltips1.insert(0, ('Decade', '@time'))
+#hover2.tooltips = [('Time', '$x'), ('Value', '$y')]
+
 
 ## Tap/selection
 
 
-def callback1(data=data_s, pts=site_s, view=view_s):
+def callback1(data=data_s, pts=site_s, view=view_s, plt2=p2):
     pt_data = pts.data
     ind1 = pts.selected['1d']['indices'][0]
     site = pt_data['site'][ind1]
     view.filters[0].group = site
+    plt2.title.text = site
     view.change.emit()
     data.change.emit()
+    plt2.trigger('change')
 
-tt = TapTool(renderers = [renderer])
+tt = TapTool(renderers = [sites_rend])
 p1.add_tools(tt)
 sel1 = p1.select_one(TapTool)
 sel1.callback = CustomJS.from_py_func(callback1)
 
 show(row(p1, p2))
 #curdoc().add_root(row(p1, p2))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#
-#w = 700
-#h = w
-#
-#output_file(map1_html)
-#
-#TOOLS = "pan,wheel_zoom,reset,save"
-#
-#p1 = figure(title='Sites Map', tools=TOOLS, logo=None, active_scroll='wheel_zoom', plot_height=h, plot_width=w)
-#p1.patches('x', 'y', source=bound_s, fill_color=grey1, line_color="black", line_width=1)
-#renderer = p1.circle('x', 'y', source=site_s, size=10)
-#
-#selected_circle = Circle(fill_alpha=1, fill_color="firebrick", line_color=None)
-#nonselected_circle = Circle(fill_alpha=0.2, fill_color="blue", line_color="firebrick")
-#
-#renderer.selection_glyph = selected_circle
-#renderer.nonselection_glyph = nonselected_circle
-#
-#p1.add_tools(HoverTool())
-#hover1 = p1.select_one(HoverTool)
-#hover1.point_policy = "follow_mouse"
-#hover1.tooltips = "@name"
-#
-#p2 = figure(title='Site data', tools=TOOLS, logo=None, active_scroll='wheel_zoom', plot_height=h, plot_width=w, x_axis_type="datetime")
-#for i in rcps:
-#    p2.line(x='time', y=i, source=data_s)
-#
-### Tap/selection
-#
-#
-#def callback1(data=data_s, pts=site_s):
-#    data1 = data.data
-#    pt_data = pts.data
-#    data_cols = ['RCP2.6', 'RCP4.5', 'RCP6.0', 'RCP8.5']
-#    ind1 = pts.selected['1d']['indices'][0]
-#    site = pt_data['site'][ind1]
-#    ind2 = [str(site) + ' ' + i for i in data_cols]
-#    for d in range(len(data_cols)):
-#        new_data = data1[ind2[d]]
-#        data1[data_cols[d]] = new_data
-#
-#    data.change.emit()
-##
-##
-##callback1 = CustomJS(args=dict(source=ts_view_s), code="""
-##        var view = source.data;
-##        var new_data = data['RCP8.5'];
-##        view['RCP2.6'].push(new_data);
-##        source.change.emit();
-##    """)
-#
-#tt = TapTool(renderers = [renderer])
-#p1.add_tools(tt)
-#sel1 = p1.select_one(TapTool)
-#sel1.callback = CustomJS.from_py_func(callback1)
-##site_s.callback = CustomJS.from_py_func(callback1)
-##p2.js_on_change('data', CustomJS.from_py_func(callback1))
-#
-#show(row(p1, p2))
 
 
 
