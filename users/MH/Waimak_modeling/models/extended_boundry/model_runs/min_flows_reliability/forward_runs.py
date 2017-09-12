@@ -97,7 +97,7 @@ def setup_run_args(model_id, forward_run_dir):
     runs.extend(run_cc_senarios(current))
 
     # pc5
-    pc5 = { #todo should pumping be altered by PC5?
+    pc5 = {
         'model_id': model_id,
         'name': 'pc5',
         'base_dir': None,

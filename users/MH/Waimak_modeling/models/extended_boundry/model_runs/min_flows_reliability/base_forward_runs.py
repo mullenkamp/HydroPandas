@@ -33,6 +33,7 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
     :param pumping_well_scale: as factor that is applied to the pumping wells (e.g. .2 = 20%)
                                this factor is separate to any scaling due to additional demand under climate
                                change senarios (this is handled when getting the well data)
+                               this factor applies to all wells
     :param full_allo: boolean if true use the full allocation of pumping
     :return:
     """
@@ -43,7 +44,7 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
         raise ValueError('incorrect type for cc_inputs {} expected dict or None'.format(type(cc_inputs)))
 
     well_data = get_forward_wells(full_abstraction=full_abs, cc_inputs=cc_inputs, naturalised=naturalised, full_allo=full_allo)
-    well_data.loc[well_data.type=='well','flux'] *= pumping_well_scale #todo how should s waimak wells be handled
+    well_data.loc[well_data.type=='well','flux'] *= pumping_well_scale
     well_data.loc[(well_data.type=='race') & (well_data.zone == 'n_wai'),'flux'] *= wil_eff
 
     rch = get_forward_rch(naturalised, pc5, **cc_inputs)

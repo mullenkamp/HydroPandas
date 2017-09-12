@@ -17,10 +17,10 @@ def get_forward_rch(naturalised, pc5=False, rcm=None, rcp=None, period=None, ama
     :param amag_type: the amalgamation type one of: tym: ten year mean,
                                                     min: minimum annual average,
                                                     low_3_m: average of the 3 lowest consecutive years
-    :param pc5: boolean if true use assumed PC5 efficency
+    :param pc5: boolean if true use assumed PC5 efficency (only applied to the WILS and {something} areas)
     :return: rch array (11,364,365)
     """
     name_convention_current = '{base_dir}/vcsn_climate/{rch|ird}_{current|pc5|nat}.txt'
     name_convention_cc = '{base_dir}/climate_change/{RCP}/{RCM}/{current|pc5|nat}/{rch|ird}_{10yrm|3yrm|low}_{period}.txt'
-
+    #todo PC5 only applied to surface water schemes assume no change for GW schemes
     raise NotImplementedError

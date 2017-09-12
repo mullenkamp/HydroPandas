@@ -23,6 +23,7 @@ def get_well_positions(well_list, nan_handeling='raise'): #todo
     """
     well_list = np.atleast_1d(well_list)
     #todo how to handle NAN values? flag either raise an exception, warning, or silently remove
+    #todo make sure to only return values in active cells (no CHB)
     raise NotImplementedError
 
 def get_hds_at_wells(well_list, kstpkpers, name_file_path=None, hds_path=None, m=None, add_loc=False): #todo
