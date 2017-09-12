@@ -17,7 +17,7 @@ from core.ts import grp_ts_agg
 
 from bokeh.layouts import widgetbox, column, row
 from bokeh.plotting import figure, save, show, output_file, curdoc
-from bokeh.models import ColumnDataSource, HoverTool, LogColorMapper, Legend, CategoricalColorMapper, CustomJS, renderers, annotations, Circle, CDSView, GroupFilter, LabelSet, Label
+from bokeh.models import ColumnDataSource, HoverTool, LogColorMapper, Legend, CategoricalColorMapper, CustomJS, renderers, annotations, Circle, CDSView, GroupFilter, LabelSet, Label, GMapPlot, GMapOptions, DataRange1d
 from bokeh.palettes import RdYlBu11 as palette
 from bokeh.palettes import brewer
 from bokeh.models.widgets import Panel, Tabs, Slider, Select
@@ -200,12 +200,24 @@ output_file(map1_html)
 
 TOOLS = "pan,wheel_zoom,reset,save"
 
+### Figures and glyphs
+
+## Figure 1
+
 p1 = figure(title='Sites Map', tools=TOOLS, logo=None, active_scroll='wheel_zoom', plot_height=h, plot_width=w)
 catch_rend = p1.patches('x', 'y', source=bound_s, fill_color=grey1, line_color="black", line_width=1)
-streams_rend = p1.multi_line('x', 'y', source=streams_s, color='blue', line_width=2, alpha=0.3)
+streams_rend = p1.multi_line('x', 'y', source=streams_s, color='blue', line_width=1, alpha=0.3)
 sites_rend = p1.circle('x', 'y', source=site_s, size=10)
 
-p1.title.text_font_size = '16pt'
+## Figure 2
+
+p2 = figure(tools=TOOLS, logo=None, active_scroll='wheel_zoom', plot_height=h, plot_width=w, x_axis_type="datetime")
+for i in rcps:
+    p2.line(x='time', y=i, source=data_s, view=view_s, color=line_color_dict[i], line_width=3, legend=i+' ')
+
+### Tools
+
+## Figure 1
 
 selected_circle = Circle(fill_alpha=1, fill_color="firebrick", line_color=None)
 nonselected_circle = Circle(fill_alpha=0.2, fill_color="blue", line_color="firebrick")
@@ -217,25 +229,6 @@ p1.add_tools(HoverTool(renderers = [catch_rend, sites_rend]))
 hover1 = p1.select_one(HoverTool)
 hover1.point_policy = "follow_mouse"
 hover1.tooltips = "@name"
-
-site_labels = LabelSet(x='x', y='y', source=site_s, text='site', level='glyph', x_offset=5, y_offset=5, render_mode='canvas', border_line_color='black', border_line_alpha=0,  background_fill_color='white', background_fill_alpha=0.8, text_font_style='bold')
-p1.add_layout(site_labels)
-
-p2 = figure(tools=TOOLS, logo=None, active_scroll='wheel_zoom', plot_height=h, plot_width=w, x_axis_type="datetime")
-for i in rcps:
-    p2.line(x='time', y=i, source=data_s, view=view_s, color=line_color_dict[i], line_width=3, legend=i+' ')
-p2.title.text = view_s.filters[0].group
-p2.title.text_font_size = '16pt'
-
-p2.add_tools(HoverTool(tooltips=[('Year', '@time_str'), ('Value', '$y')]))
-hover2 = p2.select_one(HoverTool)
-hover2.point_policy = "follow_mouse"
-#tooltips1 = zip(rcps, ('@RCP2.6', '@RCP4.5', '@RCP6.0', '@RCP8.5'))
-#tooltips1.insert(0, ('Decade', '@time'))
-#hover2.tooltips = [('Time', '$x'), ('Value', '$y')]
-
-
-## Tap/selection
 
 
 def callback1(data=data_s, pts=site_s, view=view_s, plt2=p2):
@@ -253,6 +246,27 @@ p1.add_tools(tt)
 sel1 = p1.select_one(TapTool)
 sel1.callback = CustomJS.from_py_func(callback1)
 
+## Figure 2
+
+p2.add_tools(HoverTool(tooltips=[('Year', '@time_str'), ('Value', '$y')]))
+hover2 = p2.select_one(HoverTool)
+hover2.point_policy = "follow_mouse"
+
+### Formatting
+
+## Figure 1
+
+p1.title.text_font_size = '16pt'
+site_labels = LabelSet(x='x', y='y', source=site_s, text='site', level='glyph', x_offset=5, y_offset=5, render_mode='canvas', border_line_color='black', border_line_alpha=0,  background_fill_color='white', background_fill_alpha=0.8, text_font_style='bold')
+p1.add_layout(site_labels)
+
+## Figure 2
+
+p2.title.text = view_s.filters[0].group
+p2.title.text_font_size = '16pt'
+
+### Show
+
 show(row(p1, p2))
 #curdoc().add_root(row(p1, p2))
 
@@ -260,9 +274,11 @@ show(row(p1, p2))
 
 
 
-
-
-
+#map_options = GMapOptions(lat=-45.1, lng=-97.73, map_type="roadmap", zoom=11)
+#
+#plot = GMapPlot(x_range=DataRange1d(), y_range=DataRange1d(), map_options=map_options)
+#
+#plot.api_key = 'AIzaSyBQCQHe5MCckvW3tSy7dr_oJSDVFI7pr30'
 
 
 
