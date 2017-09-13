@@ -29,15 +29,28 @@ def get_flux_at_points(sites, kstpkpers=None, rel_kstpkpers=None, name_file_path
 
 
 
-    bud_file = None #todo this is a bit of a bigie
+    bud_file = flopy.utils.CellBudgetFile() #todo this is a bit of a bigie
 
     kstpkpers = _get_kstkpers(bud_file=bud_file,kstpkpers=kstpkpers,rel_kstpkpers=rel_kstpkpers)
     kstpkper_names = ['{}_{}'.format(e[0],e[1]) for e in kstpkpers]
     outdata = pd.DataFrame(index=sites, columns=kstpkper_names)
 
-    for kstpkper in kstpkpers:
+    for kstpkper, name in zip(kstpkpers, kstpkper_names):
         for site in sites:
-            raise NotImplementedError #todo start here.
+            drn_array, sfr_array = _get_flux_flow_arrays(site,sw_samp_pts_dict,sw_samp_pts_df)
+            #todo looks like get record may be my way in, not sure how to use kstpkper for this
+            #todo it looks like get data is the way forward with both teh text and kstpkper functions set though check this
+            if drn_array is not None and sfr_array is not None:
+                flux = None
+                raise NotImplementedError('combined not defined')
+            elif drn_array is not None:
+                flux = None # todo think about sign, and others and label
+            elif sfr_array is not None:
+                flux = None #todo
+            else:
+                raise ValueError('should not get here')
+            outdata.loc[site,name] = flux
+
 
 
 
@@ -164,7 +177,7 @@ def _get_sw_samp_pts_dict(recalc=False):
     return sw_samp_pts
 
 
-
+#todo make SWAZ sites
 
 
 
