@@ -54,4 +54,6 @@ def _get_no_pumping_ss_hds(model_id, recalc=False):
 
 
 def get_ss_sy():  # todo
+    sy = 0.1
+    ss = None #todo
     raise NotImplementedError
