@@ -358,31 +358,6 @@ def _get_drn_spd(reach_v, wel_version, recalc=False, n_car_dns=True):
 
 
 if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    test = _get_drn_spd(1, 1,True,n_car_dns=True)
-    smt.plt_matrix(smt.df_to_array(test,'k'))
-    plt.show()
-    test2 = _get_drn_spd(1,1,False,n_car_dns=False)
-    smt.plt_matrix(smt.df_to_array(test2,'k'))
-    plt.show()
-    test2 = test.loc[np.in1d(test.group, [
-        'ashley_swaz',
-        'cam_swaz',
-        'courtenay_swaz',
-        'greigs_swaz',
-        'kaiapoi_swaz',
-        'kairaki_swaz',
-        'northbrook_swaz',
-        'ohoka_swaz',
-        'other',
-        'saltwater_swaz',
-        'southbrook_swaz',
-        'taranaki_swaz',
-        'up_waimak',
-        'waikuku_swaz',
-        'waimak_drn'
-    ])]
-
     carpet_names = [
         'ash_carpet',
         'chch_carpet',
@@ -392,11 +367,7 @@ if __name__ == '__main__':
         'up_lincoln',
         'up_selwyn',
     ]
-    for i in test2.index:
-        row, col = test.loc[i, ['i', 'j']].astype(int)
-        x, y = smt.convert_matrix_to_coords(row, col)
-        test2.loc[i, 'nztmx'] = x
-        test2.loc[i, 'nztmy'] = y
-
-    smt.plt_matrix(smt.df_to_array(test2, 'i'))
-    print('done')
+    test = _get_drn_spd(1, 1,False,n_car_dns=True)
+    test = test.loc[~np.in1d(test.group,carpet_names)]
+    test = smt.add_mxmy_to_df(test)
+    test.to_csv(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\m_ex_bd_inputs\raw_sw_samp_points\drn\non_carpet.csv")

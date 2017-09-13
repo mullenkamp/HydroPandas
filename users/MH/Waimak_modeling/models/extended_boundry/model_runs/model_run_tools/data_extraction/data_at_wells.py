@@ -17,7 +17,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.a
 hds_no_data = -999.99 #todo check with BRIOCH this has changed
 unc_no_data = -999.99 #todo confirm this
 
-def get_well_positions(well_list, missing_handeling='warn'): #todo
+def get_well_positions(well_list, missing_handeling='warn'):
     """
 
     :param well_list: list of well numbers or a well number
@@ -47,7 +47,7 @@ def get_well_positions(well_list, missing_handeling='warn'): #todo
             pass
         elif missing_handeling == 'warn':
             warn('returned  {} wells, missing i, j, or k'.format(missing))
-
+    # todo check this
     return outdata
 
 def get_hds_file_path(name_file_path=None, hds_path=None, m=None):
