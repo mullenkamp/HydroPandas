@@ -27,11 +27,31 @@ def get_model(model_id):
     :param model_id:
     :return: m flopy model instance
     """
-    # todo check well packaged loads appropriately! yep this is a problem because we define the iface value,
-    # todo but it isn't used, remove iface manually?
-    # todo if it doesn't exist I will need to add the options flags to SFR package manually?
-    m = None
-    raise NotImplementedError()  # todo
+    # check well packaged loads appropriately! yep this is a problem because we define the iface value,
+    #  but it isn't used, remove iface manually?
+    # if it doesn't exist I will need to add the options flags to SFR package manually?
+    #todo just a tester, model id needs to be non-numeric (start with a letter)
+    name_file_path = r"C:\Users\MattH\Desktop\Waimak_modeling\ex_bd_tester\test_import_gns_mod\mf_aw_ex.nam"
+    well_path = name_file_path.strip('.nam') + '.wel'
+    with open(well_path) as f:
+        counter = 0
+        while counter < 10:
+            line = f.readline()
+            counter += 1
+            if 'aux' in line.lower():
+                raise ValueError('AUX in well package will cause reading error {}'.format(well_path))
+
+    # check SFR package is correct
+    sfr_path = name_file_path.strip('.nam') + '.sfr'
+    with open(sfr_path) as f:
+        lines = [next(f).lower().strip() for x in range(10)]
+
+    if any(~np.in1d(['options', 'reachinput', 'end'], lines)):
+        raise ValueError('options needed in sfr package {}'.format(sfr_path))
+
+    m = flopy.modflow.Modflow.load(name_file_path, model_ws=os.path.dirname(name_file_path), forgive=False)
+    warnings.warn('get model not yet finished, just a placerholder for debugging')  # todo
+    return m
 
 
 def import_gns_model(model_id, name, dir_path, safe_mode=True, mt3d_link=False, exe_path=None):
@@ -48,8 +68,8 @@ def import_gns_model(model_id, name, dir_path, safe_mode=True, mt3d_link=False, 
     :return: model object
     """
     # set name to incorporate the model version as the start of the name
-    name = '{}-{}'.format(model_id, name)
-    dir_path = '{}/{}-{}'.format(os.path.dirname(dir_path), model_id, os.path.basename(dir_path))
+    name = '{}_{}'.format(model_id, name)
+    dir_path = '{}/{}_{}'.format(os.path.dirname(dir_path), model_id, os.path.basename(dir_path))
     # remove all previous files in the directory
     if os.path.exists(dir_path):
         if safe_mode:
@@ -78,19 +98,28 @@ def import_gns_model(model_id, name, dir_path, safe_mode=True, mt3d_link=False, 
     if 'LMT6' in m.get_package_list():
         m.remove_package('LMT6')
 
+    units = deepcopy(m.output_units)
+    for u in units:
+        m.remove_output(unit=u)
+
+    fnames = [m.name + e for e in ['.hds', '.ddn', '.cbc', '.sfo']]  # output extension
+    funits = [30, 31, 740, 741]  # fortran unit
+    fbinflag = [True, True, True, True, ]  # is binary
+    fpackage = [[], [], ['UPW', 'DRN', 'RCH', 'SFR', 'WEL'], ['SFR']]
+    for fn, fu, fb, fp, in zip(fnames, funits, fbinflag, fpackage):
+        m.add_output(fn, fu, fb, fp)
+
     # if needed create MT3D link files
     if mt3d_link:
         mt3d_outunit = 54
         mt3d_outname = '{}_mt3d_link.ftl'.format(m.name)
         link = flopy.modflow.ModflowLmt(m, output_file_name=mt3d_outname, output_file_unit=mt3d_outunit, unitnumber=21)
         m.add_output(mt3d_outname, mt3d_outunit, True, 'LMT')
-
     return m
 
 
 def mod_gns_model(model_id, name, dir_path, safe_mode=True, stress_period_vals=None, well=None, drain=None,
-                  recharge=None,
-                  stream=None, mt3d_link=False, start_heads=None, exe_path=None):
+                  recharge=None, stream=None, mt3d_link=False, start_heads=None, exe_path=None):
     """
     modify the gns model by changing the stress period data for one of the following packages WEL, DRN, RCH, STR, DIS
 
@@ -127,6 +156,12 @@ def mod_gns_model(model_id, name, dir_path, safe_mode=True, stress_period_vals=N
     if stress_period_vals is not None:
         stress_period_vals = _check_stress_period_values(stress_period_vals)
 
+    possible_pack = ['well', 'drain', 'recharge']
+    for pac in possible_pack:
+        if eval(pac) is not None:
+            if not isinstance(eval(pac),dict):
+                raise ValueError('incorrect input type for {} expected dict'.format(pac))
+
     # check stress period data and raise warnings if it is not the same length as the number of periods
     if stress_period_vals is None:
         nper = 1
@@ -162,14 +197,19 @@ def mod_gns_model(model_id, name, dir_path, safe_mode=True, stress_period_vals=N
     m = import_gns_model(model_id, name, dir_path, safe_mode=safe_mode, mt3d_link=mt3d_link, exe_path=exe_path)
 
     if stress_period_vals is not None:
+        print('changing stress periods')
         change_stress_period_settings(m, stress_period_vals)
 
     # add well stress period data
     if well is not None:
+        print('changing well package')
+        m.remove_package('WEL')
         wel = flopy.modflow.ModflowWel(m, ipakcb=740, stress_period_data=well, unitnumber=709)
 
     # add drain stress period data
     if drain is not None:
+        print('changing drain package')
+        m.remove_package('DRN')
         drn = flopy.modflow.ModflowDrn(m,
                                        ipakcb=740,
                                        stress_period_data=drain,
@@ -178,16 +218,24 @@ def mod_gns_model(model_id, name, dir_path, safe_mode=True, stress_period_vals=N
 
     # add recharge stress period data
     if recharge is not None:
+        print('changing recharge package')
+        m.remove_package('RCH')
         rch = flopy.modflow.ModflowRch(m, nrchop=3, ipakcb=740, rech=recharge, unitnumber=716)
 
     # add stream stress period data
     if stream is not None:
+        print('changing SFR package')
+        m.remove_package('SFR')
+        warnings.warn('changing sfr package not fully implemented or checked, be cautious')
         if (not isinstance(stream, tuple) and not isinstance(stream, list)) and len(stream) != 2:
             raise ValueError('incorrect input type for stream')
-        segment_data = stream[0]
+        segment_data = stream[0] #todo this can be a straight dictionary and we're sorted for stress periods
         reach_data = stream[1]
         if isinstance(segment_data, dict) or isinstance(reach_data, dict):
             raise NotImplementedError('varying SFR stress period data not yet implemented')
+            # to do this I would need to implment both dataset 5 and dataset 6 as dictionaries or modflow lists...
+            # it would be kind of a pain in the ass
+            # if i were to fix this I would also need to fix the fact that sfr.nper is not linked to sfr.parent.nper
         sfr = flopy.modflow.ModflowSfr2(m,
                                         nstrm=len(reach_data),
                                         nss=len(segment_data),
@@ -209,7 +257,7 @@ def mod_gns_model(model_id, name, dir_path, safe_mode=True, stress_period_vals=N
                                         segment_data=segment_data,
                                         channel_geometry_data=None,  # using rectangular profile so not used
                                         channel_flow_data=None,  # icalc = 1 or 2 so not using
-                                        dataset_5={0: [len(segment_data), 0, 0]},
+                                        dataset_5={0: [len(segment_data), 0, 0]}, #todo fix this e.g. check it and propogate it if negative does not read new segment data
                                         reachinput=True,  # using for reach input
                                         transroute=False,  # no transient sf routing
                                         tabfiles=False,  # not using
@@ -219,8 +267,22 @@ def mod_gns_model(model_id, name, dir_path, safe_mode=True, stress_period_vals=N
         raise NotImplementedError()
 
     if start_heads is not None:
+        print('changing starting heads')
         temp = m.get_package('BAS6').strt
         m.get_package('BAS6').strt = flopy.utils.Util3d(m, temp.shape, temp.dtype, start_heads, temp.name)
+
+    # hackish fix to flopy's SFR's poor support for changing to longer stress period simulation
+    if m.nper >1:
+        m.get_package('SFR').nper = m.nper
+        data_set5_vals = deepcopy(m.get_package('SFR').dataset_5[0])
+        data_set5_vals[0] *= -1
+        data_set_5 ={0: m.get_package('SFR').dataset_5[0]}
+        for per in range(m.nper):
+            if per == 0:
+                continue
+            data_set_5[per] = data_set5_vals
+        m.get_package('SFR').dataset_5 = data_set_5
+
     return m
 
 
@@ -323,5 +385,31 @@ def change_stress_period_settings(m, spv):
 
 
 if __name__ == '__main__':
-    import_gns_model(1, 'test', r"C:\Users\MattH\Desktop\test", False, True)
-    print('done')  # todo check modGNS model (though it should be pretty good)
+    from users.MH.Waimak_modeling.models.extended_boundry.m_packages.drn_packages import _get_drn_spd
+    from users.MH.Waimak_modeling.models.extended_boundry.m_packages.wel_packages import _get_wel_spd_v1
+    drn_data = _get_drn_spd(wel_version=1, reach_v=1,n_car_dns=True)
+    drn_data.loc[:,'cond'] = 5
+    drn_data = drn_data.loc[:,['k', 'i', 'j', 'elev', 'cond']].to_records(False)
+    drn_data = drn_data.astype(flopy.modflow.ModflowDrn.get_default_dtype())
+
+    wells = _get_wel_spd_v1()
+    wells = wells.loc[wells.type=='race']
+
+    spv = {'nper': 7,
+           'perlen': 1,
+           'nstp': 1,
+           'steady': [False, False, False, False, False, False, False],
+           'tsmult': 1.1}
+
+    m = mod_gns_model('a', 'test', r"C:\Users\MattH\Desktop\test", safe_mode=False,
+                      stress_period_vals=spv,
+                      well=None,
+                      drain=None,
+                      recharge=None,
+                      stream=None, # not fully implemented, so have not checked
+                      mt3d_link=True,
+                      start_heads=None)
+    m.write_name_file()
+    m.write_input()
+    m.run_model()
+    print('done')

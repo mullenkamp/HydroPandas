@@ -261,4 +261,4 @@ def _get_sw_samp_pts_dict(recalc=False):
     return sw_samp_pts
 
 
-#todo make SWAZ sites
+#todo make SWAZ sites most drain groups plus 2x cust, eyre, num7?, ashley
