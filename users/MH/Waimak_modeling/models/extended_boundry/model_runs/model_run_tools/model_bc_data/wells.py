@@ -108,7 +108,7 @@ def get_max_rate(recalc=False):
     return outdata
 
 
-def get_forward_wells(full_abstraction, cc_inputs, naturalised, full_allo):
+def get_forward_wells(full_abstraction=False, cc_inputs=None, naturalised=False, full_allo=False):
     """
     gets the pumping data for the forward runs
     :param full_abstraction: boolean use the CAV (think about what happens with irrigation abstraction)
@@ -135,7 +135,7 @@ def get_forward_wells(full_abstraction, cc_inputs, naturalised, full_allo):
 
     if naturalised:
         outdata = outdata.loc[
-            np.in1d(outdata.loc['type'], ['boundry_flux', 'llr_boundry_flux', 'river', 'ulr_boundry_flux'])]
+            np.in1d(outdata.loc[:,'type'], ['boundry_flux', 'llr_boundry_flux', 'river', 'ulr_boundry_flux'])]
 
     if cc_inputs is not None and any(pd.notnull(cc_inputs)):
         cc_mult = get_cc_pumping_muliplier(cc_inputs)
@@ -152,7 +152,7 @@ def get_forward_wells(full_abstraction, cc_inputs, naturalised, full_allo):
         idx = outdata.index
         outdata.loc[outdata.loc[idx, 'flux'] > max_pumping.loc[idx, 'flux'], 'flux'] = max_pumping.loc[idx, 'flux']
 
-    # todo check this thourally
+        # todo check CC thourally when I have inputs
     return outdata
 
 
@@ -178,7 +178,7 @@ def get_full_allo_multipler(recalc=False):
         https://punakorero/groups/plansec/WaimakAsh/research/Current%20State
         /Current%20State%20Groundwater%20Quantity%20Waimakariri_DRAFT_RevC.docx?web=1
     """
-    pickle_path = "{}/model_well_max_rate.p".format(smt.pickle_dir)
+    pickle_path = "{}/model_well_allo_mult.p".format(smt.pickle_dir)
     if (os.path.exists(pickle_path)) and (not recalc):
         outdata = pickle.load(open(pickle_path))
         return outdata
@@ -200,5 +200,5 @@ def get_full_allo_multipler(recalc=False):
     return outdata
 
 if __name__ == '__main__':
-    # todo check all components throughly
-    test = get_max_rate()
+    test = get_forward_wells(naturalised=True)
+    print test
