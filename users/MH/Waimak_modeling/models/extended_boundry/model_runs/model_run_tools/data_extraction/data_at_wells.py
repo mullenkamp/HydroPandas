@@ -80,7 +80,7 @@ def get_hds_file_path(name_file_path=None, hds_path=None, m=None):
         raise ValueError('must define only one of: name_file_path, hds_path, m')
     return hds_path
 
-def get_hds_at_wells(well_list, kstpkpers=None, rel_kstpkpers=None, name_file_path=None, hds_path=None, m=None, add_loc=False): #todo
+def get_hds_at_wells(well_list, kstpkpers=None, rel_kstpkpers=None, name_file_path=None, hds_path=None, m=None, add_loc=False):
     """
     return dataframe of heads at wells in well list
     :param well_list: list of well numbers to export data at
@@ -111,7 +111,7 @@ def get_hds_at_wells(well_list, kstpkpers=None, rel_kstpkpers=None, name_file_pa
     #todo check this
     return outdata
 
-def get_con_at_wells(well_list, unc_file_path, kstpkpers=None, rel_kstpkpers=None, add_loc=False): #todo
+def get_con_at_wells(well_list, unc_file_path, kstpkpers=None, rel_kstpkpers=None, add_loc=False):
     """
 
     :param well_list: list of well numbers to export data at

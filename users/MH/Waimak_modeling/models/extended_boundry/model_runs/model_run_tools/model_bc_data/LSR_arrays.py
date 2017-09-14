@@ -6,6 +6,7 @@ Date Created: 8/09/2017 8:28 AM
 
 from __future__ import division
 from core import env
+from users.MH.Waimak_modeling.models.extended_boundry.m_packages.rch_packages import _get_rch
 
 def get_forward_rch(naturalised, pc5=False, rcm=None, rcp=None, period=None, amag_type=None): #todo
     """
@@ -23,4 +24,7 @@ def get_forward_rch(naturalised, pc5=False, rcm=None, rcp=None, period=None, ama
     name_convention_current = '{base_dir}/vcsn_climate/{rch|ird}_{current|pc5|nat}.txt'
     name_convention_cc = '{base_dir}/climate_change/{RCP}/{RCM}/{current|pc5|nat}/{rch|ird}_{10yrm|3yrm|low}_{period}.txt'
     #todo PC5 only applied to surface water schemes assume no change for GW schemes
-    raise NotImplementedError
+    from warnings import warn
+    warn('get forward rch not complete, returning original rch array for debugging')
+    rch = _get_rch()
+    return rch

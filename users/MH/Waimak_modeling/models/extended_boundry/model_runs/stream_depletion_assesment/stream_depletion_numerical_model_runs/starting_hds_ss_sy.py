@@ -12,8 +12,10 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
     mod_gns_model
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.data_extraction.data_at_wells import \
     get_hds_file_path, hds_no_data
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.wells import get_race_data
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.wells import \
+    get_race_data
 import flopy
+import numpy as np
 
 
 def get_starting_heads_sd150(model_id):
@@ -37,7 +39,7 @@ def _get_no_pumping_ss_hds(model_id, recalc=False):
         hds = pickle.load(open(pickle_path))
         return hds
     dirpath = "{}/forward_supporting_models/base_str_dep".format(smt.sdp)  # model Id is added in import gns model
-    well = {0:smt.convert_well_data_to_stresspd(get_race_data())}
+    well = {0: smt.convert_well_data_to_stresspd(get_race_data())}
     m = mod_gns_model(model_id, 'base_for_str_dep', dir_path=dirpath, safe_mode=False, well=well)
     m.write_name_file()
     m.write_input()
@@ -53,7 +55,9 @@ def _get_no_pumping_ss_hds(model_id, recalc=False):
     return hds
 
 
-def get_ss_sy():  # todo
+def get_ss_sy():
     sy = 0.1
-    ss = None #todo
-    raise NotImplementedError
+    ss = np.zeros(smt.model_array_size)
+    ss[0, :, :] = 3.87E-3
+    ss[1:, :, :] = 1.6E-5
+    return ss, sy

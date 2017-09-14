@@ -158,7 +158,9 @@ def get_forward_wells(full_abstraction, cc_inputs, naturalised, full_allo):
 
 def get_cc_pumping_muliplier(cc_inputs):  # todo waiting on mike
     # return a single value for now
-    raise NotImplementedError
+    from warnings import warn
+    warn('cc_pumping_multiplier not completed, returning 1 for debugging purposes')
+    return 1
 
 
 def get_full_allo_multipler(recalc=False):

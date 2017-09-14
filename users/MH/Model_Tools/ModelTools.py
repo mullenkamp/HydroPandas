@@ -48,6 +48,7 @@ class ModelTools(object):
             os.makedirs(self.pickle_dir)
         self.base_mod_path = base_mod_path
         self._elv_calculator = elv_calculator
+        self.model_array_size = (self.layers,self.rows,self.cols)
 
 
 

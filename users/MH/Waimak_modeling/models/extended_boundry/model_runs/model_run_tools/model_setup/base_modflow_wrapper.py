@@ -64,9 +64,7 @@ def import_gns_model(model_id, name, dir_path, safe_mode=True, mt3d_link=False, 
         os.makedirs(dir_path)
 
     # load modflow and check certain packages exist only load certain packages so that others can be loaded explicitly
-    # m = get_model(model_id) #todo reinstate later
-    m = flopy.modflow.Modflow.load(
-        r"C:\Users\MattH\Desktop\to_test_write\m_ex_bd_va-with_n_carpet\m_ex_bd_va-to_test_load.nam")  # todo only a test
+    m = get_model(model_id)
 
     # change the naming and paths to files (essentially duplicate all data)
     m._set_name(name)

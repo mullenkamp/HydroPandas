@@ -54,4 +54,5 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
     m.write_name_file()
     m.write_inputs()
     m.run_model()
+    #todo compress files after the fact?
 
