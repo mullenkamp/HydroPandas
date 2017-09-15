@@ -98,7 +98,7 @@ def get_model(model_id):
     # if it doesn't exist I will need to add the options flags to SFR package manually?
 
     name_file_path = get_model_name_path(model_id)
-    well_path = name_file_path.strip('.nam') + '.wel'
+    well_path = name_file_path.replace('.nam','.wel')
     with open(well_path) as f:
         counter = 0
         while counter < 10:
@@ -108,7 +108,7 @@ def get_model(model_id):
                 raise ValueError('AUX in well package will cause reading error {}'.format(well_path))
 
     # check SFR package is correct
-    sfr_path = name_file_path.strip('.nam') + '.sfr'
+    sfr_path = name_file_path.replace('.nam','.sfr')
     with open(sfr_path) as f:
         lines = [next(f).lower().strip() for x in range(10)]
 

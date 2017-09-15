@@ -16,7 +16,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_too
 from data_at_wells import _get_kstkpers
 from warnings import warn
 
-def get_flux_at_points(sites, base_path, kstpkpers=None, rel_kstpkpers=None):
+def get_flux_at_points(sites, base_path, kstpkpers=None, rel_kstpkpers=None,skip_1_sfr=True):
     """
     get fluxes a pre-defined sites for drain and sfr packages. modflow directions apply e.g. negative values are flux
     out of the model cells into the sw feature
@@ -26,7 +26,7 @@ def get_flux_at_points(sites, base_path, kstpkpers=None, rel_kstpkpers=None):
     :param rel_kstpkpers: relative kstpkpers to use as general indexer (e.g. [0,1,2,3]) or all
     :return: flux for the sites passed as a dataframe index sites, cols = kstpkpers
     """
-    base_path = base_path.strip('.nam')
+    base_path = base_path.replace('.nam','')
     cbb_path = base_path + '.cbc'
     sites = np.atleast_1d(sites)
     sw_samp_pts_df = get_samp_points_df()
@@ -39,43 +39,48 @@ def get_flux_at_points(sites, base_path, kstpkpers=None, rel_kstpkpers=None):
     flux_bud_file = flopy.utils.CellBudgetFile(cbb_path)
 
     kstpkpers = _get_kstkpers(bud_file=flux_bud_file,kstpkpers=kstpkpers,rel_kstpkpers=rel_kstpkpers)
-    kstpkper_names = ['{}_{}'.format(e[0],e[1]) for e in kstpkpers]
+    kstpkper_names = ['flux_m3d_kstp{}_kper{}'.format(e[0],e[1]) for e in kstpkpers]
     outdata = pd.DataFrame(index=sites, columns=kstpkper_names)
 
     for kstpkper, name in zip(kstpkpers, kstpkper_names):
+        sfr_bud = flux_bud_file.get_data(kstpkper=kstpkper,text='stream leakage', full3D=True)[0][0]
+        drn_bud = flux_bud_file.get_data(kstpkper=kstpkper, text='drain', full3D=True)[0][0]
         for site in sites:
             drn_array, sfr_array = _get_flux_flow_arrays(site,sw_samp_pts_dict,sw_samp_pts_df)
-            if sfr_array.sum()==1:
-                warn('{} only examining flux at 1 point, likley a flow point'.format(site))
+            if sfr_array is not None:
+                if sfr_array.sum()==1:
+                    if skip_1_sfr:
+                        inputer = 'skipping'
+                    else:
+                        inputer = 'still including'
+                    warn('{} only examining flux at 1 point, likley a flow point {}'.format(site, inputer))
+                    if skip_1_sfr:
+                        continue
 
             if drn_array is not None and sfr_array is not None:
-                drn_bud = flux_bud_file.get_data(kstpkper=kstpkper, text='drain', full3D=True)[0]
                 if drn_bud[drn_array].mask.sum() != 0:
                     raise ValueError('masked values returned for {}'.format(site))
 
                 # flux is returned using modflow standard convention - is flow out of model + is flow in to model
                 flux = drn_bud[drn_array].sum()
-                sfr_bud = flux_bud_file.get_data(kstpkper=kstpkper,text='stream leakage', full3D=True)[0]
                 if sfr_bud[sfr_array].mask.sum() != 0:
                     raise ValueError('masked values returned for {}'.format(site))
 
                 # flux is returned using modflow standard convention - is flow out of model + is flow in to model
                 flux += sfr_bud[sfr_array].sum()
-                #todo check
+                warn('flux from combined site has not been tested')
 
             elif drn_array is not None:
-                bud = flux_bud_file.get_data(kstpkper=kstpkper,text='drain', full3D=True)[0]
-                if bud[drn_array].mask.sum() != 0:
+                if drn_bud[drn_array].mask.sum() != 0:
                     raise ValueError('masked values returned for {}'.format(site))
                 # flux is returned using modflow standard convention - is flow out of model + is flow in to model
-                flux = bud[drn_array].sum()  #todo check
+                flux = drn_bud[drn_array].sum()
 
             elif sfr_array is not None:
-                bud = flux_bud_file.get_data(kstpkper=kstpkper,text='stream leakage', full3D=True)[0]
-                if bud[sfr_array].mask.sum() != 0:
+                if sfr_bud[sfr_array].mask.sum() != 0:
                     raise ValueError('masked values returned for {}'.format(site))
                 # flux is returned using modflow standard convention - is flow out of model + is flow in to model
-                flux = bud[sfr_array].sum() #todo check
+                flux = sfr_bud[sfr_array].sum()
 
             else:
                 raise ValueError('should not get here')
@@ -93,7 +98,7 @@ def get_flow_at_points(sites,base_path, kstpkpers=None, rel_kstpkpers=None):
     :param rel_kstpkpers: relative kstpkpers to use as general indexer (e.g. [0,1,2,3]) or all
     :return: flow for the sites passed as a dataframe index sites, cols = kstpkpers
     """
-    base_path = base_path.strip('nam')
+    base_path = base_path.replace('.nam','')
     cbb_path = base_path + '.cbc'
     flow_path = base_path + '.sfo'
     sites = np.atleast_1d(sites)
@@ -107,45 +112,48 @@ def get_flow_at_points(sites,base_path, kstpkpers=None, rel_kstpkpers=None):
     flow_bud_file = flopy.utils.CellBudgetFile(flow_path)
 
     kstpkpers = _get_kstkpers(bud_file=flux_bud_file,kstpkpers=kstpkpers,rel_kstpkpers=rel_kstpkpers)
-    kstpkper_names = ['{}_{}'.format(e[0],e[1]) for e in kstpkpers]
+    kstpkper_names = ['flow_m3d_kstp{}_kper{}'.format(e[0], e[1]) for e in kstpkpers]
     outdata = pd.DataFrame(index=sites, columns=kstpkper_names)
 
     for kstpkper, name in zip(kstpkpers, kstpkper_names):
+        drn_bud = flux_bud_file.get_data(kstpkper=kstpkper, text='drain', full3D=True)[0][0]
+        sfr_bud = flow_bud_file.get_data(kstpkper=kstpkper,text='STREAMFLOW OUT', full3D=True)[0][0]
         for site in sites:
             drn_array, sfr_array = _get_flux_flow_arrays(site,sw_samp_pts_dict,sw_samp_pts_df)
 
+            if sfr_array is not None:
+                if sfr_array.sum()>1:
+                    warn('{} examining flow at more than 1 point, this duplicates flow, skipping'.format(site))
+                    continue
+
             if drn_array is not None and sfr_array is not None:
-                drn_bud = flux_bud_file.get_data(kstpkper=kstpkper, text='drain', full3D=True)[0]
                 if drn_bud[drn_array].mask.sum() != 0:
                     raise ValueError('masked values returned for {}'.format(site))
                 # flux is returned using modflow standard convention - is flow out of model + is flow in to model
-                flow = drn_bud[drn_array].sum()*-1 #flow should be positive  #todo check
-                sfr_bud = flow_bud_file.get_data(kstpkper=kstpkper,text='STREAMFLOW OUT', full3D=True)[0]
+                flow = drn_bud[drn_array].sum()*-1 #flow should be positive
                 if sfr_bud[sfr_array].mask.sum() != 0:
                     raise ValueError('masked values returned for {}'.format(site))
                 # flux is returned using modflow standard convention - is flow out of model + is flow in to model
                 flow += sfr_bud[sfr_array].sum()
-                raise NotImplementedError('combined not defined')
+                warn('flow from combined site has not been tested')
 
             elif drn_array is not None:
-                bud = flux_bud_file.get_data(kstpkper=kstpkper,text='drain', full3D=True)[0]
-                if bud[drn_array].mask.sum() != 0:
+                if drn_bud[drn_array].mask.sum() != 0:
                     raise ValueError('masked values returned for {}'.format(site))
                 # flux is returned using modflow standard convention - is flow out of model + is flow in to model
-                flow = bud[drn_array].sum()*-1 #flow should be positive  #todo check
+                flow = drn_bud[drn_array].sum()*-1 #flow should be positive
 
             elif sfr_array is not None:
-                bud = flow_bud_file.get_data(kstpkper=kstpkper,text='STREAMFLOW OUT', full3D=True)[0]
-                if bud[sfr_array].mask.sum() != 0:
+                if sfr_bud[sfr_array].mask.sum() != 0:
                     raise ValueError('masked values returned for {}'.format(site))
                 # flux is returned using modflow standard convention - is flow out of model + is flow in to model
-                flow = bud[sfr_array].sum()
+                flow = sfr_bud[sfr_array].sum()
 
             else:
                 raise ValueError('should not get here')
 
             outdata.loc[site,name] = flow
-    if (outdata<0).any():
+    if (outdata<0).any().any():
         raise ValueError('negative values returned for flow')
     return outdata
 
@@ -163,7 +171,7 @@ def _get_flux_flow_arrays(site, sw_samp_pts_dict, sw_samp_pts_df):
         raise NotImplementedError('{} not implemented'.format(site))
 
     if sw_samp_pts_df.loc[site, 'm_type'] == 'comp':
-        raise NotImplementedError
+        raise NotImplementedError #todo need to implment for ashley swaz make possible to include as many together as wanted
     else:
         if sw_samp_pts_df.loc[site, 'bc_type'] == 'drn':
             drn_array = sw_samp_pts_dict[site]
@@ -172,7 +180,7 @@ def _get_flux_flow_arrays(site, sw_samp_pts_dict, sw_samp_pts_df):
         if sfr_array is not None and drn_array is not None:
             raise ValueError('returned both sfr and drn array, when non component site passed')
 
-    if sfr_array is None & drn_array is None:
+    if sfr_array is None and drn_array is None:
         raise ValueError('shouldnt get here')
 
     return drn_array, sfr_array
@@ -215,14 +223,23 @@ def get_samp_points_df(recalc=False):
         'sfr_swaz': {'path': "{}/m_ex_bd_inputs/raw_sw_samp_points/sfr/swaz/*.shp".format(smt.sdp),
                      'bc_type': 'sfr',
                      'm_type': 'swaz',
-                     'comps': None}
+                     'comps': None},
+
+        'drn_other': {'path': "{}/m_ex_bd_inputs/raw_sw_samp_points/drn/other/*.shp".format(smt.sdp),
+                     'bc_type': 'drn',
+                     'm_type': 'other',
+                     'comps': None},
     }
+
 
     for key, vals in identifiers.items():
         paths = glob.glob(vals['path'])
-        names = [os.path.basename(e).strip('.shp') for e in paths]
-        for itm in ['bc_type', 'm_type', 'n', 'comps']:
-            outdata.loc[names, itm] = vals[itm]
+        names = [os.path.basename(e).replace('.shp','') for e in paths]
+        for itm in ['bc_type', 'm_type', 'comps']:
+            for name in names:
+                outdata.loc[name, itm] = vals[itm]
+
+    # todo add combined
 
     samp_dict = _get_sw_samp_pts_dict(recalc)
     for itm in outdata.index:
@@ -248,7 +265,7 @@ def _get_sw_samp_pts_dict(recalc=False):
     # load all shapefiles in base_shp_path
     base_shp_path = "{}/m_ex_bd_inputs/raw_sw_samp_points/*/*/*.shp".format(smt.sdp)
     temp_lst = glob.glob(base_shp_path)
-    temp_kys = [os.path.basename(e).strip('.shp') for e in temp_lst]
+    temp_kys = [os.path.basename(e).replace('.shp','') for e in temp_lst]
 
     shp_dict = dict(zip(temp_kys, temp_lst))
 
@@ -261,4 +278,24 @@ def _get_sw_samp_pts_dict(recalc=False):
     return sw_samp_pts
 
 
-#todo make SWAZ sites most drain groups plus 2x cust, eyre, num7?, ashley
+def _make_swaz_drn_points():
+    # only run one set
+    import geopandas as gpd
+    paths = [
+        "{}/m_ex_bd_inputs/raw_sw_samp_points/drn/non_carpet_drains.shp".format(smt.sdp),
+        "{}/m_ex_bd_inputs/raw_sw_samp_points/drn/carpet_drains.shp".format(smt.sdp)
+    ]
+    for path in paths:
+        data = gpd.read_file(path)
+        base_dir = "{}/m_ex_bd_inputs/raw_sw_samp_points/drn/other".format(smt.sdp)
+        for group in set(data.group):
+            temp = data.loc[data.group==group]
+            temp.to_file('{}/{}.shp'.format(base_dir,group),driver='ESRI Shapefile')
+
+
+if __name__ == '__main__':
+    test = get_samp_points_df(True)
+    path = r"C:\Users\MattH\Desktop\forward_run_test\test_current\test_current.nam"
+
+    test2 = get_flux_at_points(test.index,path,rel_kstpkpers='all')
+    print test2/86400
