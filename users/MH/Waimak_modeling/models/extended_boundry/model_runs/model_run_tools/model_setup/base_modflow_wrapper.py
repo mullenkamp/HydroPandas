@@ -15,43 +15,12 @@ import warnings
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 from copy import deepcopy
 from users.MH.Waimak_modeling.supporting_data_path import sdp
+from realisation_id import get_base_rch, get_base_well, get_model_name_path, get_model
 
 org_data_dir = "{}/from_GNS".format(sdp)
 
 
 # todo as part of this make another function which gets the name file (or copies the files across)
-
-def get_model(model_id):
-    """
-    load a flopy model instance of the model id
-    :param model_id:
-    :return: m flopy model instance
-    """
-    # check well packaged loads appropriately! yep this is a problem because we define the iface value,
-    #  but it isn't used, remove iface manually?
-    # if it doesn't exist I will need to add the options flags to SFR package manually?
-    #todo just a tester, model id needs to be non-numeric (start with a letter)
-    name_file_path = r"C:\Users\MattH\Desktop\Waimak_modeling\ex_bd_tester\test_import_gns_mod\mf_aw_ex.nam"
-    well_path = name_file_path.strip('.nam') + '.wel'
-    with open(well_path) as f:
-        counter = 0
-        while counter < 10:
-            line = f.readline()
-            counter += 1
-            if 'aux' in line.lower():
-                raise ValueError('AUX in well package will cause reading error {}'.format(well_path))
-
-    # check SFR package is correct
-    sfr_path = name_file_path.strip('.nam') + '.sfr'
-    with open(sfr_path) as f:
-        lines = [next(f).lower().strip() for x in range(10)]
-
-    if any(~np.in1d(['options', 'reachinput', 'end'], lines)):
-        raise ValueError('options needed in sfr package {}'.format(sfr_path))
-
-    m = flopy.modflow.Modflow.load(name_file_path, model_ws=os.path.dirname(name_file_path), forgive=False)
-    warnings.warn('get model not yet finished, just a placerholder for debugging')  # todo
-    return m
 
 
 def import_gns_model(model_id, name, dir_path, safe_mode=True, mt3d_link=False, exe_path=None):
@@ -385,27 +354,22 @@ def change_stress_period_settings(m, spv):
 
 
 if __name__ == '__main__':
-    from users.MH.Waimak_modeling.models.extended_boundry.m_packages.drn_packages import _get_drn_spd
-    from users.MH.Waimak_modeling.models.extended_boundry.m_packages.wel_packages import _get_wel_spd_v1
-    drn_data = _get_drn_spd(wel_version=1, reach_v=1,n_car_dns=True)
-    drn_data.loc[:,'cond'] = 5
-    drn_data = drn_data.loc[:,['k', 'i', 'j', 'elev', 'cond']].to_records(False)
-    drn_data = drn_data.astype(flopy.modflow.ModflowDrn.get_default_dtype())
+    temp_id = 'test'
+    wells = get_base_well(temp_id)
+    wells = smt.convert_well_data_to_stresspd(wells)
 
-    wells = _get_wel_spd_v1()
-    wells = wells.loc[wells.type=='race']
-
+    rch = get_base_rch(temp_id)
     spv = {'nper': 7,
            'perlen': 1,
            'nstp': 1,
            'steady': [False, False, False, False, False, False, False],
            'tsmult': 1.1}
 
-    m = mod_gns_model('a', 'test', r"C:\Users\MattH\Desktop\test", safe_mode=False,
-                      stress_period_vals=spv,
-                      well=None,
+    m = mod_gns_model(temp_id, 'a', r"C:\Users\MattH\Desktop\test", safe_mode=False,
+                      stress_period_vals=None,
+                      well={0:wells},
                       drain=None,
-                      recharge=None,
+                      recharge={0:rch},
                       stream=None, # not fully implemented, so have not checked
                       mt3d_link=True,
                       start_heads=None)

@@ -14,30 +14,30 @@ import os
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 from users.MH.Waimak_modeling.supporting_data_path import sdp
 from core.ecan_io import rd_sql, sql_db
-
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_setup.realisation_id import get_base_well, temp_pickle_dir
 
 # for stream depletion things
-def get_race_data():
+def get_race_data(model_id):
     """
     all influx wells in the well data (e.g. streams, races, boundary fluxes)
     :return:
     """
-    outdata = _get_wel_spd_v1()
+    outdata = get_base_well(model_id)
     outdata = outdata.loc[outdata.loc[:, 'type'] != 'well']
     return outdata
 
 
-def get_full_consent(recalc=False):
+def get_full_consent(model_id, recalc=False):
     """
     EAV/consented annual volume I need to think about this one
     :return: # the full dataframe with just the flux converted
     """
-    pickle_path = "{}/model_well_full_abstraction.p".format(smt.pickle_dir)
+    pickle_path = "{}/model_{}_well_full_abstraction.p".format(temp_pickle_dir, model_id)
     if (os.path.exists(pickle_path)) and (not recalc):
         outdata = pickle.load(open(pickle_path))
         return outdata
 
-    outdata = _get_wel_spd_v1()
+    outdata = get_base_well(model_id)
     allo = pd.read_csv("{}/inputs/wells/allo_gis.csv".format(sdp))
     allo = allo.dropna(subset=['status_details'])
     allo = allo.loc[np.in1d(allo.status_details, ['Issued - Active', 'Issued - s124 Continuance']) & (
@@ -71,18 +71,18 @@ def get_full_consent(recalc=False):
     return outdata
 
 
-def get_max_rate(recalc=False):
+def get_max_rate(model_id, recalc=False):
     """
     replaces the flux value with the full consented volumes for the wells north of the waimakariri
     :param recalc: if true recalc the pickle
     :return:
     """
-    pickle_path = "{}/model_well_max_rate.p".format(smt.pickle_dir)
+    pickle_path = "{}/model_{}_well_max_rate.p".format(temp_pickle_dir, model_id)
     if (os.path.exists(pickle_path)) and (not recalc):
         outdata = pickle.load(open(pickle_path))
         return outdata
 
-    outdata = _get_wel_spd_v1()
+    outdata = get_base_well(model_id)
     allo = pd.read_csv("{}/inputs/wells/allo_gis.csv".format(sdp))
     allo = allo.dropna(subset=['status_details'])
     allo = allo.loc[np.in1d(allo.status_details, ['Issued - Active', 'Issued - s124 Continuance']) & (
@@ -108,9 +108,10 @@ def get_max_rate(recalc=False):
     return outdata
 
 
-def get_forward_wells(full_abstraction=False, cc_inputs=None, naturalised=False, full_allo=False):
+def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturalised=False, full_allo=False):
     """
     gets the pumping data for the forward runs
+    :param model_id: which NSMC realisation to use
     :param full_abstraction: boolean use the CAV (think about what happens with irrigation abstraction)
     :param cc_inputs: use these to apply scaling factors for the pumping (think about how to work with these spatially)
     :param naturalised: boolean, if True use only the fixed inputs (e.g. rivers, boundary fluxes.  No races)
@@ -124,9 +125,9 @@ def get_forward_wells(full_abstraction=False, cc_inputs=None, naturalised=False,
         raise ValueError('cannot both be fully allocated and naturalised')
 
     if full_abstraction:
-        outdata = get_full_consent()
+        outdata = get_full_consent(model_id)
     else:
-        outdata = _get_wel_spd_v1()
+        outdata = get_base_well(model_id)
 
     if full_allo:
         allo_mult = get_full_allo_multipler()
@@ -137,22 +138,27 @@ def get_forward_wells(full_abstraction=False, cc_inputs=None, naturalised=False,
         outdata = outdata.loc[
             np.in1d(outdata.loc[:,'type'], ['boundry_flux', 'llr_boundry_flux', 'river', 'ulr_boundry_flux'])]
 
-    if cc_inputs is not None and any(pd.notnull(cc_inputs)):
-        cc_mult = get_cc_pumping_muliplier(cc_inputs)
-        outdata.loc[outdata.loc[:, 'use_type'] == 'irrigation-sw', 'flux'] *= cc_mult
+    if cc_inputs is not None:
+        if all(pd.isnull(cc_inputs.values())):
+            pass
+        elif any(pd.isnull(cc_inputs.values())):
+            raise ValueError ('null and non-null values returned for cc_inputs')
+        else:
+            cc_mult = get_cc_pumping_muliplier(cc_inputs)
+            outdata.loc[outdata.loc[:, 'use_type'] == 'irrigation-sw', 'flux'] *= cc_mult
 
-        # pumping is truncated at full allocation and abstraction value
-        # we assume that any additional irrigation demand would be met with surface water schemes from the alpine rivers
+            # pumping is truncated at full allocation and abstraction value
+            # we assume that any additional irrigation demand would be met with surface water schemes from the alpine rivers
 
-        max_pumping = get_full_consent()
-        allo_mult = get_full_allo_multipler()
-        idx = allo_mult.index
-        max_pumping.loc[idx, 'flux'] *= allo_mult.loc[idx]
+            max_pumping = get_full_consent(model_id)
+            allo_mult = get_full_allo_multipler()
+            idx = allo_mult.index
+            max_pumping.loc[idx, 'flux'] *= allo_mult.loc[idx]
 
-        idx = outdata.index
-        outdata.loc[outdata.loc[idx, 'flux'] > max_pumping.loc[idx, 'flux'], 'flux'] = max_pumping.loc[idx, 'flux']
+            idx = outdata.index
+            outdata.loc[outdata.loc[idx, 'flux'] > max_pumping.loc[idx, 'flux'], 'flux'] = max_pumping.loc[idx, 'flux']
 
-        # todo check CC thourally when I have inputs
+            # todo check CC thourally when I have inputs
     return outdata
 
 
@@ -200,5 +206,10 @@ def get_full_allo_multipler(recalc=False):
     return outdata
 
 if __name__ == '__main__':
-    test = get_forward_wells(naturalised=True)
+    race = get_race_data('test2')
+
+    test = get_forward_wells('test2',
+                             naturalised=True,)
+    full_abs = get_full_consent('test2')
+    max_rate = get_max_rate('test2')
     print test

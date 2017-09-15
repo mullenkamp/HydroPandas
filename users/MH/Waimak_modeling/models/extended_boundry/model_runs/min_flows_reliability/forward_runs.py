@@ -14,6 +14,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_too
 import time
 from copy import deepcopy
 import itertools
+from future.builtins import input
 
 
 def run_cc_senarios(base_kwargs):
@@ -33,6 +34,21 @@ def run_cc_senarios(base_kwargs):
 
 def setup_run_args(model_id, forward_run_dir):
     runs = []
+    # base model run
+    current = {
+        'model_id': model_id,
+        'name': 'current',
+        'base_dir': None,
+        'cc_inputs': None,
+        'pc5': False,
+        'wil_eff': 1,
+        'naturalised': False,
+        'full_abs': False,
+        'pumping_well_scale': 1
+    }
+    runs.append(current)
+
+
     # naturalised
     nat = {
         'model_id': model_id,
@@ -46,9 +62,6 @@ def setup_run_args(model_id, forward_run_dir):
         'pumping_well_scale': 1
     }
     runs.append(nat)
-
-    # nat + cc
-    runs.extend(run_cc_senarios(nat))
 
     # full abstration
     full_abs = {
@@ -79,25 +92,37 @@ def setup_run_args(model_id, forward_run_dir):
     }
     runs.append(full_abs_allo)
 
-    # base model run
-    current = {
+
+    # pc5
+    pc5_80 = {
         'model_id': model_id,
-        'name': 'current',
+        'name': 'pc5_80',
         'base_dir': None,
         'cc_inputs': None,
-        'pc5': False,
+        'pc5': True,
         'wil_eff': 1,
         'naturalised': False,
         'full_abs': False,
-        'pumping_well_scale': 1
+        'pumping_well_scale': 1,
+        'org_efficency': 80
     }
-    runs.append(current)
+    runs.append(pc5_80)
 
-    # climate change
-    runs.extend(run_cc_senarios(current))
+    pc5_65 = {
+        'model_id': model_id,
+        'name': 'pc5_65',
+        'base_dir': None,
+        'cc_inputs': None,
+        'pc5': True,
+        'wil_eff': 1,
+        'naturalised': False,
+        'full_abs': False,
+        'pumping_well_scale': 1,
+        'org_efficency': 65
+    }
+    runs.append(pc5_65)
 
-    # pc5
-    pc5 = {
+    pc5_50 = {
         'model_id': model_id,
         'name': 'pc5',
         'base_dir': None,
@@ -106,9 +131,10 @@ def setup_run_args(model_id, forward_run_dir):
         'wil_eff': 1,
         'naturalised': False,
         'full_abs': False,
-        'pumping_well_scale': 1
+        'pumping_well_scale': 1,
+        'org_efficency': 50
     }
-    runs.append(pc5)
+    runs.append(pc5_50)
 
     # WIL efficiency
     will_eff = {
@@ -125,25 +151,63 @@ def setup_run_args(model_id, forward_run_dir):
     runs.append(will_eff)
 
     # pc5 + will efficency
-    pc5_will_eff = {
+    pc5_80_will_eff = {
         'model_id': model_id,
-        'name': 'pc5_wil_eff',
+        'name': 'pc5_80_wil_eff',
         'base_dir': None,
         'cc_inputs': None,
         'pc5': True,
         'wil_eff': 0,
         'naturalised': False,
         'full_abs': False,
-        'pumping_well_scale': 1
+        'pumping_well_scale': 1,
+        'org_efficency': 80
     }
-    runs.append(pc5_will_eff)
+    runs.append(pc5_80_will_eff)
+
+    pc5_65_will_eff = {
+        'model_id': model_id,
+        'name': 'pc5_65_wil_eff',
+        'base_dir': None,
+        'cc_inputs': None,
+        'pc5': True,
+        'wil_eff': 0,
+        'naturalised': False,
+        'full_abs': False,
+        'pumping_well_scale': 1,
+        'org_efficency': 65
+    }
+    runs.append(pc5_65_will_eff)
+
+    pc5_50_will_eff = {
+        'model_id': model_id,
+        'name': 'pc5_50_wil_eff',
+        'base_dir': None,
+        'cc_inputs': None,
+        'pc5': True,
+        'wil_eff': 0,
+        'naturalised': False,
+        'full_abs': False,
+        'pumping_well_scale': 1,
+        'org_efficency': 50
+    }
+    runs.append(pc5_50_will_eff)
+
+    # climate change senarios (lots of runs)
+    # nat + cc
+    runs.extend(run_cc_senarios(nat))
+
+    # climate change
+    runs.extend(run_cc_senarios(current))
 
     # climate change + pc5 + will efficieny
-    runs.extend(run_cc_senarios(pc5_will_eff))
+    runs.extend(run_cc_senarios(pc5_80_will_eff))
+
+    if not os.path.exists(forward_run_dir):
+        os.makedirs(forward_run_dir)
 
     for i in runs:
         i['base_dir'] = '{}/{}'.format(forward_run_dir, i['name'])
-    # todo check everything carefully
     return runs
 
 
@@ -151,10 +215,9 @@ def start_process():
     print('Starting', multiprocessing.current_process().name)
 
 
-def run_forward_runs():
+def run_forward_runs(runs):
     t = time.time()
     multiprocessing.log_to_stderr(logging.DEBUG)
-    runs = setup_run_args()
     pool_size = multiprocessing.cpu_count()
     pool = multiprocessing.Pool(processes=pool_size,
                                 initializer=start_process,
@@ -168,9 +231,21 @@ def run_forward_runs():
     print('{} runs completed in {} minutes'.format(len(runs), ((time.time() - t) / 60)))
 
 
-    # todo debug
+    # todo work through with zeb to confirm the runs we want
 
 if __name__ == '__main__':
-    runs = setup_run_args('test','test')
-    print(len(runs))
+    safemode = False #todo change when I actually run the thing
+    dir_path = r"C:\Users\MattH\Desktop\forward_run_test"
+    if safemode:
+        if os.path.exists(dir_path):
+            cont = input(
+                'run all forward runs, this could overwrite item in :\n {} \n continue y/n\n'.format(dir_path)).lower()
+            if cont != 'y':
+                raise ValueError('script aborted so as not to potentially overwrite {}'.format(dir_path))
+
+    # todo test this with a couple of runs
+    runs = setup_run_args('test',dir_path)
+
+    runs = runs[0:2]
+    run_forward_runs(runs)
     print('done')
