@@ -11,7 +11,8 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 
 def setup_run_forward_run_mp (kwargs):
-    setup_run_forward_run(**kwargs)
+    name, success = setup_run_forward_run(**kwargs)
+    return name, success
 
 def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, wil_eff=1, naturalised=False,
                           full_abs=False, pumping_well_scale=1, full_allo=False, org_efficency=None):
@@ -63,8 +64,9 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
                       safe_mode=False)
     m.write_name_file()
     m.write_input()
-    m.run_model()
+    success, buff = m.run_model()
     #todo compress files after the fact? how hard is this
     #todo check
     #todo I may want to check for a flag that forces NWT to report even if it doesn't converge
+    return name,success
 

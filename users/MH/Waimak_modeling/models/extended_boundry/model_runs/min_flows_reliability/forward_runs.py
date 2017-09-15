@@ -15,6 +15,7 @@ import time
 from copy import deepcopy
 import itertools
 from future.builtins import input
+import datetime
 
 
 def run_cc_senarios(base_kwargs):
@@ -225,13 +226,13 @@ def run_forward_runs(runs):
     pool_outputs = pool.map(setup_run_forward_run_mp, runs)
     pool.close()  # no more tasks
     pool.join()
-    with open("{}/forward_run_log/forward_run_status.txt".format(smt.sdp), 'w') as f:
+    now = datetime.datetime.now
+    with open("{}/forward_run_log/forward_run_status_{}_{}_{}_{}_{}.txt".format(smt.sdp,now.year,now.month,now.day,now.hour,now.minute), 'w') as f:
         wr = ['{}: {}\n'.format(e[0], e[1]) for e in pool_outputs]
         f.writelines(wr)
     print('{} runs completed in {} minutes'.format(len(runs), ((time.time() - t) / 60)))
 
 
-    # todo work through with zeb to confirm the runs we want
 
 if __name__ == '__main__':
     safemode = False #todo change when I actually run the thing

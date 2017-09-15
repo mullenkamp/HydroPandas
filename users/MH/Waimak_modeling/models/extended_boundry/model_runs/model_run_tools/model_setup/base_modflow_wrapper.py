@@ -198,7 +198,7 @@ def mod_gns_model(model_id, name, dir_path, safe_mode=True, stress_period_vals=N
         warnings.warn('changing sfr package not fully implemented or checked, be cautious')
         if (not isinstance(stream, tuple) and not isinstance(stream, list)) and len(stream) != 2:
             raise ValueError('incorrect input type for stream')
-        segment_data = stream[0] #todo this can be a straight dictionary and we're sorted for stress periods
+        segment_data = stream[0] #note this can be a straight dictionary and we're sorted for stress periods
         reach_data = stream[1]
         if isinstance(segment_data, dict) or isinstance(reach_data, dict):
             raise NotImplementedError('varying SFR stress period data not yet implemented')
@@ -226,7 +226,7 @@ def mod_gns_model(model_id, name, dir_path, safe_mode=True, stress_period_vals=N
                                         segment_data=segment_data,
                                         channel_geometry_data=None,  # using rectangular profile so not used
                                         channel_flow_data=None,  # icalc = 1 or 2 so not using
-                                        dataset_5={0: [len(segment_data), 0, 0]}, #todo fix this e.g. check it and propogate it if negative does not read new segment data
+                                        dataset_5={0: [len(segment_data), 0, 0]}, #note fix this e.g. check it and propogate it if negative does not read new segment data
                                         reachinput=True,  # using for reach input
                                         transroute=False,  # no transient sf routing
                                         tabfiles=False,  # not using
