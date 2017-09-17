@@ -11,6 +11,8 @@ import numpy as np
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 from users.MH.Waimak_modeling.model_tools import get_base_rch, no_flow as old_no_flow
 from copy import deepcopy
+import pickle
+import os
 
 
 def create_rch_package(m):
@@ -23,7 +25,12 @@ def create_rch_package(m):
 
 
 
-def _get_rch():
+def _get_rch(recalc=False):
+    pickle_path = '{}/org_rch.p'.format(smt.pickle_dir)
+    if os.path.exists(pickle_path) and not recalc:
+        rch = pickle.load(open(pickle_path))
+        return rch
+
     new_no_flow = smt.get_no_flow()
     zones = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/cwms_zones.shp".format(smt.sdp),'ZONE_CODE')
     zones[~new_no_flow[0].astype(bool)] = 0
@@ -61,7 +68,7 @@ def _get_rch():
     idx = np.where(np.isfinite(scaled_old_rch))
     rch[idx]= scaled_old_rch[idx]
     # get new rch values for nwai
-
+    pickle.dump(rch, open(pickle_path, 'w'))
     return rch
 if __name__ == '__main__':
     rch=_get_rch()

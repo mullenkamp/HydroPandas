@@ -65,11 +65,11 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
     rch = {}
     stream = {}
 
-    base_well = get_race_data()
+    base_well = get_race_data(model_id)
     if sd_7_150 == 'sd150':
-        full_consent = get_full_consent()
+        full_consent = get_full_consent(model_id)
     elif sd_7_150 == 'sd7':
-        sd7_flux = get_max_rate()
+        sd7_flux = get_max_rate(model_id)
     for sp in range(nper):
         # set up recharge
         rch[sp] = 0

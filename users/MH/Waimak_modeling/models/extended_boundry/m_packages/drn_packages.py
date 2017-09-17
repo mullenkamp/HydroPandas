@@ -368,6 +368,6 @@ if __name__ == '__main__':
         'up_selwyn',
     ]
     test = _get_drn_spd(1, 1,False,n_car_dns=True)
-    test = test.loc[~np.in1d(test.group,carpet_names)]
+    test = test.loc[np.in1d(test.group,carpet_names)]
     test = smt.add_mxmy_to_df(test)
-    test.to_csv(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\m_ex_bd_inputs\raw_sw_samp_points\drn\non_carpet.csv")
+    test.to_csv(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\m_ex_bd_inputs\raw_sw_samp_points\drn\carpet.csv")

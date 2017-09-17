@@ -86,7 +86,7 @@ def calc_stream_dep(model_path, mode='sd150', add_h20_cust=False):
 
 def calc_str_dep_all_wells(base_path, mode='sd150', add_h20_cust=False):
     all_paths = glob.glob('{}/*/*.nam'.format(base_path))
-    all_paths = [e.strip('.nam') for e in all_paths]
+    all_paths = [e.replace('.nam','') for e in all_paths]
     wells = ['{}/{}'.format(e.split('_')[-2], e.split('_')[-1]) for e in all_paths]
     outdata = {}
     for well, path in zip(wells, all_paths):
