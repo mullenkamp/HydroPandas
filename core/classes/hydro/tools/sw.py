@@ -155,6 +155,7 @@ def flow_reg(self, y, x=None, y_mtype='flow_m', x_mtype='flow', buffer_dis=None,
             reg = concat([reg, reg1])
             new_ts = concat([new_ts, y_new1], axis=1)
         except:
+            print('Site ' + str(j) + ' did not work with the regression.')
             pass
     new1 = self.add_data(new_ts, mtypes='flow', dformat='wide', add=False)
     return(new1, reg)

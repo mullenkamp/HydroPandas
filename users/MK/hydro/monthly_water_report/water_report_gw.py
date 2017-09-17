@@ -5,26 +5,20 @@ Created on Mon Jul 17 16:27:09 2017
 @author: MichaelEK
 """
 
-from geopandas import read_file, overlay, sjoin, GeoDataFrame
-from core.classes.hydro import hydro, all_mtypes
-from core.ecan_io import rd_hydrotel
-from datetime import datetime
-from pandas import DateOffset, to_datetime, date_range, read_csv, concat, merge, cut, DataFrame, MultiIndex, Series
+from geopandas import read_file, sjoin
+from pandas import DateOffset, to_datetime, concat, merge, cut, DataFrame, MultiIndex, Series
 from os.path import join
-from core.spatial.vector import spatial_overlays, multipoly_to_poly
-from core.ts import grp_ts_agg, w_resample
+from core.spatial.vector import multipoly_to_poly
+from core.ts import grp_ts_agg
 from datetime import date
 from scipy.stats import percentileofscore
-from numpy import in1d, round, nan
-from bokeh.plotting import figure, save, show, output_file
-from bokeh.models import ColumnDataSource, HoverTool, LogColorMapper, Legend, CategoricalColorMapper, CustomJS, renderers, annotations
-from bokeh.palettes import RdYlBu11 as palette
+from numpy import nan
+
+from bokeh.plotting import figure, show, output_file
+from bokeh.models import ColumnDataSource, HoverTool, CategoricalColorMapper, CustomJS, renderers, annotations
 from bokeh.palettes import brewer
-from bokeh.models.widgets import Panel, Tabs, Slider, Select
-from bokeh.models.tools import WheelZoomTool
-from collections import OrderedDict
-from bokeh.layouts import widgetbox, column
-from core.ts.met import precip_stats
+from bokeh.models.widgets import Select
+from bokeh.layouts import column
 
 
 ###################################################

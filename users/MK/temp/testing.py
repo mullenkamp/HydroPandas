@@ -3201,20 +3201,50 @@ gw1 = hydro().get_data('gwl_m', sites=wap)
 
 
 ##########################################
+### New Hilltop connection tests
+
+import Hilltop
+from pandas import DataFrame, concat, to_datetime
+from core.ecan_io.hilltop import ht_sites, ht_get_data
+
+hts1 = r'H:\Data\Archive\Boraman2016-17.hts'
+hts2 = r'H:\Data\Telemetry\Boraman.hts'
+hts = r'H:\Data\Squalarc.hts'
+
+csv1 = r'E:\ecan\local\Projects\requests\squalarc\squalarc_site_info.csv'
+
+sites = ['M35/0132', 'SQ32943']
+
+dfile1 = Hilltop.Connect(hts1)
+sites = Hilltop.SiteList(dfile1)
+
+site_info = DataFrame()
+
+for i in sites:
+    try:
+        info1 = Hilltop.MeasurementList(dfile1, i)
+    except SystemError:
+        print('Site ' + str(i) + " didn't work")
+    info1.loc[:, 'site'] = i
+    site_info = concat([site_info, info1])
+site_info.reset_index(drop=True, inplace=True)
+
+site_info.loc[:, 'Start Time'] = to_datetime(site_info.loc[:, 'Start Time'], format='%d-%b-%Y %H:%M:%S')
+site_info.loc[:, 'End Time'] = to_datetime(site_info.loc[:, 'End Time'], format='%d-%b-%Y %H:%M:%S')
+
+index1 = 1
+
+d1 = Hilltop.GetData(dfile1, site_info.loc[index1, 'site'], site_info.loc[index1, 'Measurement'], '', '', method='Average', interval='1 day', alignment = '00:00')
+
+d1 = Hilltop.GetData(dfile1, site_info.loc[index1, 'site'], site_info.loc[index1, 'Measurement'], '', '')
 
 
+s1 = ht_sites(hts)
+s1.to_csv(csv1, index=False, header=True)
 
+s2 = ht_sites(hts2)
 
-
-
-
-
-
-
-
-
-
-
+data, miss1 = ht_get_data(hts, agg_method='', interval='', alignment='', output_missing_sites=True)
 
 
 
