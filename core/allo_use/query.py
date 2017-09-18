@@ -4,7 +4,7 @@ Functions to query the allocation and usage data.
 """
 
 
-def allo_query(shp=None, grp_by=['date', 'take_type', 'use_type'], allo_col=['allo'], use_col=['usage'], agg_yr=True, crc='all', crc_rem='none', wap_rem='none', wap='all', take_type='all', use_type='all', catch_num='all', gw_zone='all', swaz='all', cwms_zone='all', swaz_grp='all', years='all', gr_than='all', sd_only=False, allo_use_file='S:/Surface Water/shared/base_data/usage/allo_est_use_mon.h5', allo_gis_file=r'S:\Surface Water\shared\GIS_base\vector\allocations\allo_gis.shp', allo_restr_file='S:/Surface Water/shared/base_data/usage/allo_use_ros_mon.csv', export=True, export_path='summary1.csv', debug=False):
+def allo_query(shp=None, grp_by=['date', 'take_type', 'use_type'], allo_col=['allo'], use_col=['usage'], agg_yr=True, crc='all', crc_rem='none', wap_rem='none', wap='all', take_type='all', use_type='all', catch_num='all', gw_zone='all', swaz='all', cwms_zone='all', swaz_grp='all', years='all', gr_than='all', gwaz='all', from_date=None, to_date=None, sd_only=False, allo_use_file='S:/Surface Water/shared/base_data/usage/allo_est_use_mon.h5', allo_gis_file=r'S:\Surface Water\shared\GIS_base\vector\allocations\allo_gis.shp', allo_restr_file='S:/Surface Water/shared/base_data/usage/allo_use_ros_mon.csv', export=True, export_path='summary1.csv', debug=False):
     """
     Function to query the water use and allocation results data. Allows for the selection/filtering and aggregation of many imbedded fields. Create a list only when you want to filter the data. Otherwise, leave the srguments default.
     """
@@ -52,11 +52,11 @@ def allo_query(shp=None, grp_by=['date', 'take_type', 'use_type'], allo_col=['al
     elif type(catch_num) == list:
         df = df[df.catch_grp.isin(catch_num)]
 
-#    if type(gw_zone) == list:
-#        df = df[df.gw_zone.isin(gw_zone)]
-
     if type(swaz) == list:
         df = df[df.swaz.isin(swaz)]
+
+    if type(gwaz) == list:
+        df = df[df.gwaz.isin(gwaz)]
 
     if type(swaz_grp) == list:
         df = df[df.swaz_grp.isin(swaz_grp)]
@@ -70,6 +70,12 @@ def allo_query(shp=None, grp_by=['date', 'take_type', 'use_type'], allo_col=['al
     if type(years) == list:
         yrs_index = df.date.astype('str').str[0:4].astype('int')
         df = df[yrs_index.isin(years)]
+
+    if isinstance(from_date, str):
+        df = df[df.date >= from_date]
+
+    if isinstance(to_date, str):
+        df = df[df.date <= to_date]
 
     if sd_only:
         df = df[((df.sd1_150 > 0) & (df.take_type == 'Take Groundwater')) | (df.take_type == 'Take Surface Water')]
@@ -99,7 +105,7 @@ def allo_query(shp=None, grp_by=['date', 'take_type', 'use_type'], allo_col=['al
 
     if debug:
         if export:
-            df.to_csv(export_path)
+            df.to_csv(export_path, index=False)
         return(df)
     else:
         if export:

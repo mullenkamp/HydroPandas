@@ -14,6 +14,7 @@ from datetime import date
 from scipy.stats import percentileofscore
 from numpy import nan
 from core.classes.hydro import hydro
+from core.ts import tsreg
 
 from bokeh.plotting import figure, show, output_file
 from bokeh.models import ColumnDataSource, HoverTool, CategoricalColorMapper, CustomJS, renderers, annotations
@@ -29,13 +30,15 @@ base_dir = r'\\gisdata\projects\SCI\Surface Water Quantity\Projects\Freshwater R
 gw_poly_shp = 'cwms_zones_simple.shp'
 gw_sites_shp = 'gw_sites.shp'
 
-month_names = ['Jan', 'Feb', 'March', 'April', 'May', 'June', 'July', 'August', 'Sept', 'Oct', 'Nov', 'Dec']
+#month_names = ['Jan', 'Feb', 'March', 'April', 'May', 'June', 'July', 'August', 'Sept', 'Oct', 'Nov', 'Dec']
+
+n_previous_months = 6
 
 ### Output
 gw_sites_ts_shp = 'gw_sites_perc.shp'
 
 ## plots
-test2_html = r'E:\ecan\git\ecan_python_courses\docs\test_gw1.html'
+test2_html = 'test_gw2.html'
 
 ##################################################
 #### Read in data
@@ -65,7 +68,14 @@ gw2 = gw1.sel_ts(mtypes='gwl_m')
 gw2.index = gw2.index.droplevel('mtype')
 gw3 = gw2.reset_index()
 
-mon_gw1 = grp_ts_agg(gw3, 'site', 'time', 'M').mean().reset_index()
+## Estimate monthly means
+day1 = grp_ts_agg(gw3, 'site', 'time', 'D').mean().unstack('site')
+day2 = tsreg(day1, 'D', False)
+day3 = day2.interpolate(method='time', limit=40, limit_direction='both')
+
+## Resample to month
+mon_gw1 = day3.resample('M').median().stack().reset_index()
+#mon_gw1 = grp_ts_agg(gw3, 'site', 'time', 'M').mean().reset_index()
 mon_gw1['mon'] = mon_gw1.time.dt.month
 mon_gw1['mtype'] = 'gw'
 
@@ -73,7 +83,7 @@ mon_gw1['mtype'] = 'gw'
 #### Pull out recent monthly data
 
 now1 = to_datetime(date.today())
-start_date = now1 - DateOffset(months=7) - DateOffset(days=now1.day - 1)
+start_date = now1 - DateOffset(months=n_previous_months) - DateOffset(days=now1.day - 1)
 end_date = now1 - DateOffset(days=now1.day - 1)
 
 ### GW
@@ -118,8 +128,6 @@ cat3 = cat2.sort_values('perc', ascending=False).category
 
 ts_out1 = hy_gw.loc[:, ['site', 'time', 'perc']].copy()
 ts_out2 = ts_out1.pivot_table('perc', 'site', 'time').round(2)
-#ts_out2.loc[:, 'min'] = ts_out2.min(axis=1)
-#ts_out2.loc[:, 'max'] = ts_out2.max(axis=1)
 ts_out3 = ts_out2.reset_index()
 
 gw_sites_ts = gw_site_zone0.merge(ts_out3, on='site')
@@ -176,36 +184,10 @@ dummy_source = ColumnDataSource(dummy_b)
 
 TOOLS = "pan,wheel_zoom,reset,hover,save"
 
-### Plot
-#output_file(test1_html)
-#
-#p1 = figure(title='Precipitation Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom')
-#p1.patches('x', 'y', source=precip_source, fill_color={'field': 'precip_cat', 'transform': color_map}, line_color="black", line_width=1, legend='precip_cat')
-#p1.legend.location = 'top_left'
-##p1.toolbar.active_scroll = WheelZoomTool()
-#hover1 = p1.select_one(HoverTool)
-#hover1.point_policy = "follow_mouse"
-#hover1.tooltips = [("Category", "@precip_cat"), ("Percentile", "@mon_precip{1.1}" + "%")]
-#tab1 = Panel(child=p1, title='Precip')
-#
-#p2 = figure(title='Flow Index', tools=TOOLS, logo=None, active_scroll='wheel_zoom')
-#p2.patches('x', 'y', source=flow_source, fill_color={'field': 'flow_categ', 'transform': color_map}, line_color="black", line_width=1, legend='flow_categ')
-#p2.legend.location = 'top_left'
-##p2.toolbar.active_scroll = WheelZoomTool()
-#hover2 = p2.select_one(HoverTool)
-#hover2.point_policy = "follow_mouse"
-#hover2.tooltips = [("Category", "@flow_categ"), ("Percentile", "@mon_flow_p{1.1}" + "%")]
-#tab2 = Panel(child=p2, title='Flow')
-#
-#tabs = Tabs(tabs=[tab1, tab2])
-#
-#show(tabs)
-
 w = 700
 h = w
 
-
-output_file(test2_html)
+output_file(join(base_dir, test2_html))
 
 ## dummy figure - for legend consistency
 p0 = figure(title='dummy Index', tools=[], logo=None, height=h, width=w)

@@ -3246,7 +3246,7 @@ s2 = ht_sites(hts2)
 
 data, miss1 = ht_get_data(hts, agg_method='', interval='', alignment='', output_missing_sites=True)
 
-
+Hilltop.Disconnect(dfile1)
 
 
 
