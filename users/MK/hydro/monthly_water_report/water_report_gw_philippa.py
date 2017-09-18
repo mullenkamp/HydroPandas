@@ -4,6 +4,8 @@ Created on Mon Jul 17 16:27:09 2017
 
 @author: MichaelEK
 """
+import sys
+sys.path.append(r'C:\git\Ecan.Science.Python.Base')
 
 from geopandas import read_file, sjoin
 from pandas import DateOffset, to_datetime, concat, merge, cut, DataFrame, MultiIndex, Series
