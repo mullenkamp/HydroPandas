@@ -32,7 +32,7 @@ base_dir = r'\\gisdata\projects\SCI\Surface Water Quantity\Projects\Freshwater R
 gw_poly_shp = 'cwms_zones_simple.shp'
 gw_sites_shp = 'gw_sites.shp'
 
-#month_names = ['Jan', 'Feb', 'March', 'April', 'May', 'June', 'July', 'August', 'Sept', 'Oct', 'Nov', 'Dec']
+interp = True
 
 n_previous_months = 6
 
@@ -74,14 +74,16 @@ gw2 = gw1.sel_ts(mtypes='gwl_m')
 gw2.index = gw2.index.droplevel('mtype')
 gw3 = gw2.reset_index()
 
-## Estimate monthly means
-day1 = grp_ts_agg(gw3, 'site', 'time', 'D').mean().unstack('site')
-day2 = tsreg(day1, 'D', False)
-day3 = day2.interpolate(method='time', limit=40, limit_direction='both')
+if interp:
+    ## Estimate monthly means through interpolation
+    day1 = grp_ts_agg(gw3, 'site', 'time', 'D').mean().unstack('site')
+    day2 = tsreg(day1, 'D', False)
+    day3 = day2.interpolate(method='time', limit=40, limit_direction='both')
+    mon_gw1 = day3.resample('M').median().stack().reset_index()
+else:
+    mon_gw1 = grp_ts_agg(gw3, 'site', 'time', 'M').mean().reset_index()
 
 ## Resample to month
-mon_gw1 = day3.resample('M').median().stack().reset_index()
-#mon_gw1 = grp_ts_agg(gw3, 'site', 'time', 'M').mean().reset_index()
 mon_gw1['mon'] = mon_gw1.time.dt.month
 mon_gw1['mtype'] = 'gw'
 
@@ -93,7 +95,7 @@ start_date = now1 - DateOffset(months=n_previous_months) - DateOffset(days=now1.
 end_date = now1 - DateOffset(days=now1.day - 1)
 
 ### GW
-hy_gw = mon_gw1[(mon_gw1.time >= start_date) & (mon_gw1.time < end_date)]
+hy_gw0 = mon_gw1[(mon_gw1.time >= start_date) & (mon_gw1.time < end_date)]
 
 
 ##############################################
@@ -107,6 +109,7 @@ def row_perc(x, mon_summ):
     perc1 = percentileofscore(mon_val, x.data)
     return(perc1)
 
+hy_gw = hy_gw0.copy()
 hy_gw['perc'] = hy_gw.apply(row_perc, mon_summ=mon_gw1, axis=1)
 hy_gw.loc[:, 'time'] = hy_gw.loc[:, 'time'].dt.strftime('%Y-%m')
 
@@ -141,8 +144,6 @@ ts_out3 = ts_out2.reset_index()
 
 gw_sites_ts = gw_site_zone0.merge(ts_out3, on='site')
 gw_sites_ts.to_file(join(base_dir, gw_sites_ts_shp))
-
-print('Results were saved here: ' + join(base_dir, gw_sites_ts_shp))
 
 #################################################
 #### Plotting
@@ -230,6 +231,11 @@ select3.js_on_change('value', CustomJS.from_py_func(callback1))
 layout3 = column(p3, select3)
 
 show(layout3)
+
+#############################################
+#### Print where results are saved
+
+print('Results were saved here: ' + join(base_dir, gw_sites_ts_shp))
 
 print('The plot was saved here: ' + join(base_dir, test2_html))
 
