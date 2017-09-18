@@ -45,6 +45,8 @@ test2_html = 'test_gw2.html'
 ##################################################
 #### Read in data
 
+print('Reading in the data')
+
 ### gw
 gw_sites = read_file(join(base_dir, gw_sites_shp))
 gw_zones = read_file(join(base_dir, gw_poly_shp))[['ZONE_NAME', 'geometry']]
@@ -140,6 +142,8 @@ ts_out3 = ts_out2.reset_index()
 gw_sites_ts = gw_site_zone0.merge(ts_out3, on='site')
 gw_sites_ts.to_file(join(base_dir, gw_sites_ts_shp))
 
+print('Results were saved here: ' + join(base_dir, gw_sites_ts_shp))
+
 #################################################
 #### Plotting
 
@@ -227,4 +231,5 @@ layout3 = column(p3, select3)
 
 show(layout3)
 
+print('The plot was saved here: ' + join(base_dir, test2_html))
 
