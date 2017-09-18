@@ -65,6 +65,8 @@ gw1 = hydro().get_data(mtypes='gwl_m', sites=gw_sites.site.unique())
 #################################################
 #### Run monthly summary stats
 
+print('Processing past data')
+
 ### gw
 gw2 = gw1.sel_ts(mtypes='gwl_m')
 gw2.index = gw2.index.droplevel('mtype')
@@ -95,6 +97,7 @@ hy_gw = mon_gw1[(mon_gw1.time >= start_date) & (mon_gw1.time < end_date)]
 ##############################################
 #### Run the monthly stats comparisons
 
+print('Calculating the percentiles')
 
 def row_perc(x, mon_summ):
     mon1 = x.time.month
@@ -128,6 +131,8 @@ cat3 = cat2.sort_values('perc', ascending=False).category
 ################################################
 #### Output stats
 
+print('Exporting results to csv')
+
 ts_out1 = hy_gw.loc[:, ['site', 'time', 'perc']].copy()
 ts_out2 = ts_out1.pivot_table('perc', 'site', 'time').round(2)
 ts_out3 = ts_out2.reset_index()
@@ -137,6 +142,8 @@ gw_sites_ts.to_file(join(base_dir, gw_sites_ts_shp))
 
 #################################################
 #### Plotting
+
+print('Creating the plot')
 
 ### Extract x and y data for plotting
 
