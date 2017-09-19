@@ -11,7 +11,7 @@ from core.misc import rd_dir, unarchive_dir
 from geopandas import read_file
 from core.ecan_io.met import nc_add_gis
 from pandas import to_datetime
-from core.ts.met.topnet import proc_topnet_nc
+from core.ts.met import proc_topnet_nc
 
 ###########################################
 #### Parameters
