@@ -22,6 +22,10 @@ def ht_sites(hts, sites=None):
     dfile1 = Hilltop.Connect(hts)
     site_lst = Hilltop.SiteList(dfile1)
 
+    if not site_lst:
+        print('No sites in ' + hts)
+        return(DataFrame())
+
     if sites is not None:
         sites1 = select_sites(sites)
         site_lst = [i for i in site_lst if i in sites1]
@@ -116,7 +120,7 @@ def parse_dsn(dsn_path):
     """
     Function to parse a dsn file and all sub-dsn files into paths to hts files. Returns a list of hts paths.
     """
-    from ConfigParser import ConfigParser
+    from configparser import ConfigParser
     from os import path
 
     base_path = path.dirname(dsn_path)
@@ -166,25 +170,28 @@ def rd_hilltop_sites(hts):
         name1 = cat.SiteName
         cat.GetNextDataSource
         mtype1 = cat.DataSource
-        cat.GetNextMeasurement
-        unit1 = cat.Units
+        while mtype1:
+            cat.GetNextMeasurement
+            unit1 = cat.Units
+            try:
+                start1 = to_datetime(cat.DataStartTime.Format('%Y-%m-%d %H:%M'))
+                end1 = to_datetime(cat.DataEndTime.Format('%Y-%m-%d %H:%M'))
+            except ValueError:
+                bool_site = dfile.FromSite(name1, mtype1, 1)
+                if bool_site:
+                    start1 = to_datetime(dfile.DataStartTime.Format('%Y-%m-%d %H:%M'))
+                    end1 = to_datetime(dfile.DataEndTime.Format('%Y-%m-%d %H:%M'))
+                else:
+                    print('No site data for ' + name1 + '...for some reason...')
 
-        try:
-            start1 = to_datetime(cat.DataStartTime.Format('%Y-%m-%d %H:%M'))
-            end1 = to_datetime(cat.DataEndTime.Format('%Y-%m-%d %H:%M'))
-        except ValueError:
-            bool_site = dfile.FromSite(name1, mtype1, 1)
-            if bool_site:
-                start1 = to_datetime(dfile.DataStartTime.Format('%Y-%m-%d %H:%M'))
-                end1 = to_datetime(dfile.DataEndTime.Format('%Y-%m-%d %H:%M'))
-            else:
-                print('No site data for ' + name1 + '...for some reason...')
+            if unit1 == '%':
+                print('Site ' + name1 + ' has no units')
+                unit1 = ''
+            sites.append([name1, mtype1, unit1, start1.strftime('%Y-%m-%d %H:%M'), end1.strftime('%Y-%m-%d %H:%M')])
+            cat.GetNextDataSource
+            mtype1 = cat.DataSource
 
-        if unit1 == '%':
-            print('Site ' + name1 + ' has no units')
-            unit1 = ''
         iter2 = cat.GetNextSite
-        sites.append([name1, mtype1, unit1, start1.strftime('%Y-%m-%d %H:%M'), end1.strftime('%Y-%m-%d %H:%M')])
 
     sites_df = DataFrame(sites, columns=['site', 'mtype', 'unit', 'start_date', 'end_date'])
     dfile.Close()

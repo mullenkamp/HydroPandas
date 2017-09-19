@@ -11,14 +11,16 @@ from core.misc import rd_dir, unarchive_dir
 from geopandas import read_file
 from core.ecan_io.met import nc_add_gis
 from pandas import to_datetime
-from core.ts.met import proc_topnet_nc
+from core.ts.met import proc_waimak_nc
 
 ###########################################
 #### Parameters
 
 base_path = r'I:\niwa_data\topnet\waimak2'
 out_path = r'E:\ecan\shared\base_data\niwa\climate_projections\topnet\waimak2'
-start_str = 'waimak_topnet'
+
+base_path = r'I:\niwa_data\topnet\canterbury'
+out_path = r'N:\niwa_netcdf\topnet\canterbury'
 
 
 ##########################################
@@ -26,7 +28,7 @@ start_str = 'waimak_topnet'
 
 #unarchive_dir(out_path, 'gz', True)
 
-proc_topnet_nc(base_path, out_path, start_str)
+proc_waimak_nc(base_path, out_path)
 
 
 
@@ -80,6 +82,9 @@ nc9 = r'E:\ecan\shared\base_data\niwa\climate_projections\topnet\waimak\RCP6.0\w
 
 rec_shp = r'E:\ecan\shared\GIS_base\vector\streams\rec_mfe_cant_no_1st_2nd.shp'
 export_shp1 = r'E:\ecan\shared\projects\climate_change\GIS\vector\waimak_rec2.shp'
+
+nc10 = r'I:\niwa_data\topnet\waimak2\RCP2.6\BCC-CSM1.1\streamq_daily_average_2006010200_2010123100_utc_topnet_13070003_strahler3-Q1.nc'
+
 
 ##############################################
 #### Read data
@@ -162,7 +167,17 @@ time2 = to_datetime(ds9.time.data)
 time2[~time2.isin(time1)]
 
 
+ds10 = open_dataset(nc10)
+ds10['nrch'] = ds10['rchid']
+ds10.rename({'river_flow_rate_mod': 'flow_rate'}, inplace=True)
+ds10a = ds10[['flow_rate', 'drainge', 'ovstn_q', 'soilevp', 'soilh2o', 'aprecip', 'avgtemp', 'zbarh2o', 'canevap', 'potevap']]
+tds2a = ds10a.drop(['basin_lat', 'basin_lon', 'end_lat', 'end_lon'])
+tds3 = tds2a.squeeze('nens')
+time1 = to_datetime(to_datetime(tds3['time'].data).date)
+tds3['time'] = time1
 
+
+ds9.close()
 
 
 

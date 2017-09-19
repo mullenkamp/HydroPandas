@@ -9,7 +9,7 @@ from core.ecan_io.hilltop import rd_hilltop_data, rd_hilltop_sites, proc_ht_use_
 from core.ecan_io import write_sql
 from os.path import split
 from pandas import concat, Series, read_csv, read_hdf, DataFrame, merge, Grouper, to_datetime, to_numeric
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
 from os import path, getcwd
 
 #######################################################
@@ -41,6 +41,8 @@ for j in hts_files:
     print(j)
     ## Sites
     sdata = rd_hilltop_sites(j)
+    if sdata.empty:
+        continue
     base_path, filename = split(j)
     sdata['hts_file'] = filename
     sdata['folder'] = base_path
@@ -55,7 +57,6 @@ ht_sites.loc[:, 'end_date'] = to_datetime(ht_sites.loc[:, 'end_date'])
 ht_sites.loc[:, 'folder'] = ht_sites.loc[:, 'folder'].str.replace('\\', '-').str.replace('--', '')
 
 write_sql(server, database, sites_table, ht_sites, sites_dtype, drop_table=True)
-
 
 
 
