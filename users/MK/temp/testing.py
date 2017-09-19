@@ -3248,6 +3248,43 @@ data, miss1 = ht_get_data(hts, agg_method='', interval='', alignment='', output_
 
 Hilltop.Disconnect(dfile1)
 
+###############################################
+#### Lake levels
+
+from core.ecan_io import rd_hydrotel
+from core.classes.hydro import hydro
+from core.ecan_io import rd_hydstra_db
+
+site = [71178]
+
+#l1 = rd_hydrotel(site, mtype='swl_tel')
+
+
+hy1 = hydro()._rd_hydstra(site, datasource='COMBINED', varfrom=140)
+
+hy2 = rd_hydstra_db(sites=site, datasource='FLOW', varfrom=140)
+hy2 = rd_hydstra_db(sites=[70105], datasource='A')
+
+with hyd as h:
+    var1 = h.get_variable_list(site, 'COMBINED')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

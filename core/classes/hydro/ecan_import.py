@@ -190,8 +190,8 @@ def _rd_hydstra(self, sites, start_time=0, end_time=0, datasource='A', data_type
 
     ### Pull data from hydstra and format
     df1 = rd_hydstra_db(sites, start_time, end_time, datasource, data_type, varfrom, varto, interval, multiplier, min_qual)
-    df2 = df1.stack().reset_index()
-    df2.columns = ['time', 'site', 'data']
+    df2 = df1.reset_index()
+#    df2.columns = ['site', 'time', 'data']
     df2['mtype'] = mtype
 
     ### Create new hydro class

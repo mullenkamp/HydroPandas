@@ -9,7 +9,7 @@ from core.ts.plot import hydrograph_plot, reg_plot
 #### Flow related
 
 
-def plot_hydrograph(self, flow_sites=None, precip_sites=None, x_period='day', x_n_periods=1, time_format='%d-%m %H', x_rot=45, alpha=0.6, x_grid=False, start=None, end=None, export=False, export_path='hydrograph.png'):
+def plot_hydrograph(self, flow_sites=None, precip_sites=None, x_period='day', x_n_periods=1, time_format='%d-%m %H', x_rot=45, alpha=0.6, x_grid=False, start=None, end=None, export_path=None):
 
     if flow_sites is None:
         flow = self.sel_ts(mtypes='flow', pivot=True, start=start, end=end)
@@ -23,7 +23,7 @@ def plot_hydrograph(self, flow_sites=None, precip_sites=None, x_period='day', x_
     elif isinstance(precip_sites, (int, str, list)):
         precip = self.sel_ts(mtypes='precip', sites=precip_sites, pivot=True, start=start, end=end)
 
-    plt1 = hydrograph_plot(flow=flow, precip=precip, x_period=x_period, x_n_periods=x_n_periods, time_format=time_format, x_rot=x_rot, alpha=alpha, x_grid=x_grid, export=export, export_path=export_path)
+    plt1 = hydrograph_plot(flow=flow, precip=precip, x_period=x_period, x_n_periods=x_n_periods, time_format=time_format, x_rot=x_rot, alpha=alpha, x_grid=x_grid, export_path=export_path)
 
     return(plt1)
 
