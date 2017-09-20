@@ -3270,6 +3270,54 @@ with hyd as h:
 
 
 
+############################################
+#### 7-day Volume estimate
+
+from core.classes.hydro import hydro
+from pandas import concat, TimeGrouper
+
+
+site = [70105]
+mtype = 'flow'
+
+h1 = hydro().get_data(mtype, site)
+h2 = h1.sel_ts('flow', pivot=True)
+
+h3 = h2.rolling(7).sum()
+h4 = h3.rolling(7, min_periods=1).max()
+
+h3.columns = ['sum']
+h4.columns = ['max']
+
+h5 = concat([h2, h3, h4], axis=1)
+h5['limit'] = 100
+
+h5['diff'] = (h5['sum'] - h5['limit'])
+h5.loc[h5['diff'] < 0, 'diff'] = 0
+
+mon_grp = h5['diff'].rolling(14)
+
+
+def take_max(arr):
+    max1 = arr.max()
+    end_val = arr[-1]
+    if end_val == max1:
+        val = max1
+    else:
+        val = 0
+    return(val)
+
+
+mon_grp.apply(take_max)
+
+
+
+
+
+
+
+
+
 
 
 
