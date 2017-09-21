@@ -56,9 +56,9 @@ ht_sites.loc[:, 'start_date'] = to_datetime(ht_sites.loc[:, 'start_date'])
 ht_sites.loc[:, 'end_date'] = to_datetime(ht_sites.loc[:, 'end_date'])
 ht_sites.loc[:, 'folder'] = ht_sites.loc[:, 'folder'].str.replace('\\', '-').str.replace('--', '')
 
-#write_sql(server, database, sites_table, ht_sites, sites_dtype, drop_table=True)
+write_sql(server, database, sites_table, ht_sites, sites_dtype, drop_table=True)
 
-ht_sites.to_csv(r'E:\ecan\local\Projects\requests\Ilja\2017-09-20\ht_sites_2017-09-20.csv', index=True, header=True)
+#ht_sites.to_csv(r'E:\ecan\local\Projects\requests\Ilja\2017-09-20\ht_sites_2017-09-20.csv', index=False, header=True)
 
 
 
