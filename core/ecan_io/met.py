@@ -294,3 +294,143 @@ def rd_niwa_vcsn(mtypes, sites, nc_path=r'\\fileservices02\ManagedShares\Data\Vi
     return(df4)
 
 
+def rd_niwa_climate_proj(mtypes, bound_shp, nc_dir=r'D:\niwa_data\climate_projections\RCP2.6\BCC-CSM1.1', vcsn_sites_csv=r'\\fileservices02\ManagedShares\Data\VirtualClimate\GIS\niwa_vcsn_wgs84.csv', id_col='Network', x_col='deg_x', y_col='deg_y', buffer_dis=0, from_date=None, to_date=None, out_crs=None, netcdf_out=None):
+    """
+    Function to read in the NIWA vcsn netcdf file and output the data as a dataframe.
+
+    mtypes -- A string or list of the measurement types (either 'precip', or 'PET').\n
+    sites -- Either a list of vcsn site names or a polygon of the area of interest.\n
+    nc_path -- The path to the vcsn nc file.\n
+    vcsn_sites_csv -- The csv file that relates the site name to coordinates.\n
+    id_col -- The site name column in vcsn_sites_csv.\n
+    x_col - The x column name in vcsn_sites_csv.\n
+    y_col -- The y column name in vcsn_sites_csv.\n
+    include_sites -- Should the site names be added to the output?\n
+    out_crs -- The crs epsg number for the output coordinates if different than the default WGS85 (e.g. 2193 for NZTM).
+    """
+    from pandas import read_csv, Series, merge, to_datetime
+    from core.spatial import xy_to_gpd, sel_sites_poly, convert_crs
+    from geopandas import read_file
+    from numpy import ndarray, in1d
+    from xarray import open_dataset, concat
+    from core.misc import rd_dir
+    from os.path import join
+
+    file_name = {'precip': 'TotalPrecipCorr', 'PET': 'PE'}
+    mtype_name = {'precip': 'rain', 'PET': 'pe'}
+
+    ### Import and reorganize data
+    vcsn_sites = read_csv(vcsn_sites_csv)[[id_col, x_col, y_col]]
+
+    if isinstance(bound_shp, str):
+        if bound_shp.endswith('.shp'):
+            sites_gpd = xy_to_gpd(id_col, x_col, y_col, vcsn_sites, 4326)
+            poly1 = read_file(bound_shp)
+
+            sites_gpd2 = sites_gpd.to_crs(poly1.crs)
+
+            ### Select sites
+            sites2 = sel_sites_poly(sites_gpd2, poly1, buffer_dis)[id_col]
+
+    ### Select locations
+    site_loc1 = vcsn_sites[vcsn_sites[id_col].isin(sites2)]
+    site_loc1.columns = ['id', 'x', 'y']
+
+    ### Select mtypes
+    if isinstance(mtypes, str):
+        mtypes1 = [mtypes]
+    else:
+        mtypes1 = mtypes
+    niwa_mtypes = [mtype_name[i] for i in mtypes1]
+
+    ### Read and extract data from netcdf files
+    files1 = rd_dir(nc_dir, 'nc')
+    for mt in mtypes1:
+        niwa_mtype = mtype_name[mt]
+        niwa_file_name = file_name[mt]
+        file1 = [i for i in files1 if niwa_file_name in i][0]
+        ds1 = open_dataset(join(nc_dir, file1))
+        time1 = to_datetime(ds1.time.values)
+        if isinstance(from_date, str):
+            time1 = time1[time1 >= from_date]
+        if isinstance(to_date, str):
+            time1 = time1[time1 <= to_date]
+        lat1 = ds1.latitude.values
+        lon1 = ds1.longitude.values
+        lat2 = lat1[in1d(lat1, site_loc1.y.unique())]
+        lon2 = lon1[in1d(lon1, site_loc1.x.unique())]
+        ds2 = ds1.sel(longitude=lon2, latitude=lat2, time=time1.values)
+        ds3 = ds2[[niwa_mtype]]
+        if 'ds4' in locals():
+            ds4 = ds4.merge(ds3)
+        else:
+            ds4 = ds3
+
+    ### Convert to DataFrame
+    df1 = ds4.to_dataframe().reset_index()
+    df1.rename(columns={'latitude': 'y', 'longitude': 'x'}, inplace=True)
+    df1 = df1.dropna()
+    df1.set_index('time', inplace=True)
+    df1_grp = df1.groupby(['x', 'y'])
+    df1a = df1_grp.resample('D')[niwa_mtypes].first().interpolate().round(1).reset_index()
+
+    ### Convert to different crs if needed
+    if out_crs is not None:
+        crs1 = convert_crs(out_crs)
+        new_gpd1 = xy_to_gpd('id', 'x', 'y', site_loc1, 4326)
+        new_gpd2 = new_gpd1.to_crs(crs1)
+        site_loc2 = site_loc1.copy()
+        site_loc2['x_new'] = new_gpd2.geometry.apply(lambda j: j.x)
+        site_loc2['y_new'] = new_gpd2.geometry.apply(lambda j: j.y)
+
+        df2 = merge(df1a, site_loc2[['x', 'y', 'x_new', 'y_new']], on=['x', 'y'])
+        df3 = df2.drop(['x', 'y'], axis=1).rename(columns={'x_new': 'x', 'y_new': 'y'})
+        col_order = ['y', 'x', 'time']
+        col_order.extend(mtypes1)
+        df4 = df3[col_order]
+    else:
+        df4 = df1a
+
+    ds1.close()
+    ds4.close()
+
+    ### Return
+    if isinstance(netcdf_out, str):
+        ds4.to_netcdf(netcdf_out)
+    return(df4)
+
+
+def rd_niwa_data_lsrm(bound_shp, nc_dir, vcsn_sites_csv=r'\\fileservices02\ManagedShares\Data\VirtualClimate\GIS\niwa_vcsn_wgs84.csv', id_col='Network', x_col='deg_x', y_col='deg_y', buffer_dis=0, from_date=None, to_date=None, out_crs=None, netcdf_out=None):
+    """
+    Convienence function to read in either the past VCSN data or the projections.
+    """
+    from core.ecan_io.met import rd_niwa_climate_proj, rd_niwa_vcsn
+    from os import path
+
+    ### Determine whether the input is past data or projections
+    past_vcsn = 'vcsn_precip_et_2016-06-06.nc'
+    name_split = path.split(nc_dir)[1]
+
+    ### Run function to get data
+    if name_split == past_vcsn:
+        ds5 = rd_niwa_vcsn(['precip', 'PET'], bound_shp, buffer_dis=buffer_dis, from_date=from_date, to_date=to_date, out_crs=out_crs, netcdf_out=netcdf_out)
+    else:
+        ds5 = rd_niwa_climate_proj(['precip', 'PET'], bound_shp, nc_dir=nc_dir, buffer_dis=buffer_dis, from_date=from_date, to_date=to_date, out_crs=out_crs, netcdf_out=netcdf_out)
+    return(ds5)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

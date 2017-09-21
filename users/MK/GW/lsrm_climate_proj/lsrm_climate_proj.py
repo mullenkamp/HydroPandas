@@ -36,7 +36,7 @@ time_agg = 'W' # Use 'D' for day, 'W' for week, or 'M' for month
 agg_ts_fun = 'sum'
 grid_res = 1000
 crs = 4326
-interp_fun = 'cubic'
+interp_fun = 'linear'
 precip_correction = 1.1
 min_irr_area_ratio = 0.01
 
