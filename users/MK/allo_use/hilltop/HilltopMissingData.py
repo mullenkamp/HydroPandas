@@ -56,7 +56,7 @@ ht_sites.loc[:, 'start_date'] = to_datetime(ht_sites.loc[:, 'start_date'])
 ht_sites.loc[:, 'end_date'] = to_datetime(ht_sites.loc[:, 'end_date'])
 ht_sites.loc[:, 'folder'] = ht_sites.loc[:, 'folder'].str.replace('\\', '-').str.replace('--', '')
 
-#write_sql(server, database, sites_table, ht_sites, sites_dtype, drop_table=True)
+write_sql(server, database, sites_table, ht_sites, sites_dtype, drop_table=True)
 
 
 
