@@ -202,7 +202,7 @@ def input_processing(precip_et, crs, irr1, paw1, bound_shp, rain_name, pet_name,
     return(input1, sites_poly2)
 
 
-def lsrm(model_var, A):
+def lsrm(model_var, A, include_irr=True):
     """
     The lsrm.
     """
@@ -253,33 +253,34 @@ def lsrm(model_var, A):
     ## Run the model
     for i in time_index:
 
-        ### Irrigation bucket
-        i_irr_paw = irr_paw_val[i]
+        if include_irr:
+            ### Irrigation bucket
+            i_irr_paw = irr_paw_val[i]
 
-        ## Calc AET and perform the initial water balance
-        irr_aet_val = AET(irr_pet_val[i], A, w_irr, i_irr_paw)
-        out_irr_aet[i] = irr_aet_val.copy()
-        w_irr = w_irr + irr_rain_val[i] - irr_aet_val
+            ## Calc AET and perform the initial water balance
+            irr_aet_val = AET(irr_pet_val[i], A, w_irr, i_irr_paw)
+            out_irr_aet[i] = irr_aet_val.copy()
+            w_irr = w_irr + irr_rain_val[i] - irr_aet_val
 
-        ## Check and calc the GW drainage from excessive precip
-        irr_drainge_bool = w_irr > i_irr_paw
-        if any(irr_drainge_bool):
-            temp_irr_draiange = w_irr[irr_drainge_bool] - i_irr_paw[irr_drainge_bool]
-            out_irr_drainage[i[irr_drainge_bool]] = temp_irr_draiange
-            w_irr[irr_drainge_bool] = i_irr_paw[irr_drainge_bool]
-        out_w_irr[i] = w_irr.copy()
+            ## Check and calc the GW drainage from excessive precip
+            irr_drainge_bool = w_irr > i_irr_paw
+            if any(irr_drainge_bool):
+                temp_irr_draiange = w_irr[irr_drainge_bool] - i_irr_paw[irr_drainge_bool]
+                out_irr_drainage[i[irr_drainge_bool]] = temp_irr_draiange
+                w_irr[irr_drainge_bool] = i_irr_paw[irr_drainge_bool]
+            out_w_irr[i] = w_irr.copy()
 
-        ## Check and calc drainage from irrigation if w is below trigger
-        irr_paw_ratio = w_irr/i_irr_paw
-        irr_trig_bool = irr_paw_ratio <= irr_trig_val[i]
-        if any(irr_trig_bool):
-            diff_paw = i_irr_paw[irr_trig_bool] - w_irr[irr_trig_bool]
-            out_irr_demand[i[irr_trig_bool]] = diff_paw.copy()
-            irr_drainage = diff_paw/irr_eff_val[i][irr_trig_bool] - diff_paw
-            out_irr_drainage[i[irr_trig_bool]] = irr_drainage.copy()
-            w_irr[irr_trig_bool] = i_irr_paw[irr_trig_bool].copy()
+            ## Check and calc drainage from irrigation if w is below trigger
+            irr_paw_ratio = w_irr/i_irr_paw
+            irr_trig_bool = irr_paw_ratio <= irr_trig_val[i]
+            if any(irr_trig_bool):
+                diff_paw = i_irr_paw[irr_trig_bool] - w_irr[irr_trig_bool]
+                out_irr_demand[i[irr_trig_bool]] = diff_paw.copy()
+                irr_drainage = diff_paw/irr_eff_val[i][irr_trig_bool] - diff_paw
+                out_irr_drainage[i[irr_trig_bool]] = irr_drainage.copy()
+                w_irr[irr_trig_bool] = i_irr_paw[irr_trig_bool].copy()
 
-        out_w_irr[i] = w_irr.copy()
+            out_w_irr[i] = w_irr.copy()
 
         ### Non-irrigation bucket
         i_non_irr_paw = non_irr_paw_val[i]
@@ -301,12 +302,15 @@ def lsrm(model_var, A):
     ### Put results into dataframe
 
     output1 = model_var.copy()
-    output1.loc[:, 'irr_aet'] = out_irr_aet.round()
     output1.loc[:, 'non_irr_aet'] = out_non_irr_aet.round()
-    output1.loc[:, 'irr_paw'] = irr_paw_val.round()
-    output1.loc[:, 'w_irr'] = out_w_irr.round()
-    output1.loc[:, 'irr_drainage'] = out_irr_drainage.round()
-    output1.loc[:, 'irr_demand'] = out_irr_demand.round()
+    if include_irr:
+        output1.loc[:, 'irr_aet'] = out_irr_aet.round()
+        output1.loc[:, 'irr_paw'] = irr_paw_val.round()
+        output1.loc[:, 'w_irr'] = out_w_irr.round()
+        output1.loc[:, 'irr_drainage'] = out_irr_drainage.round()
+        output1.loc[:, 'irr_demand'] = out_irr_demand.round()
+    else:
+        output1.drop(['irr_eff', 'irr_trig', 'irr_area_ratio'], axis=1, inplace=True)
     output1.loc[:, 'non_irr_paw'] = non_irr_paw_val.round()
     output1.loc[:, 'w_non_irr'] = out_w_non_irr.round()
     output1.loc[:, 'non_irr_drainage'] = out_non_irr_drainage.round()

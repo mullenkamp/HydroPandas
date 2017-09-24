@@ -134,11 +134,13 @@ def xy_to_gpd(id_col, x_col, y_col, df=None, crs=2193):
         geometry = [Point(xy) for xy in zip(x1, y1)]
     if isinstance(id_col, str) & (df is not None):
         id_data = df[id_col]
-    elif isinstance(id_col, (list, ndarray, Series, Index)):
+    elif isinstance(id_col, list):
         if df is not None:
             id_data = df[id_col]
         else:
             id_data = id_col
+    elif isinstance(id_col, (ndarray, Series, Index)):
+        id_data = id_col
     else:
         raise ValueError('id_data could not be determined')
     if isinstance(crs, int):

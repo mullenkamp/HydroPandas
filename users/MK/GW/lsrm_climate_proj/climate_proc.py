@@ -70,7 +70,7 @@ nc2 = r'D:\niwa_data\climate_projections\RCP2.6\BCC-CSM1.1\PE_VCSN_BCC-CSM1.1_RC
 ds1 = open_dataset(nc1, drop_variables=['elevation', 'time_bounds', 'time_bnds'])
 ds2 = open_dataset(nc2, drop_variables=['elevation', 'time_bounds', 'time_bnds'])
 
-
+nc_dir = r'D:\niwa_data\climate_projections\RCP2.6\BCC-CSM1.1'
 
 
 
