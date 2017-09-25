@@ -43,7 +43,7 @@ def gen_all_wy_averages(base_dir):
     paths = glob('{}/vcsn*.h5'.format(base_dir)) #todo update to all .h5
     for path in paths:
         outdata = gen_water_year_average_lsr_irr(path)
-        outdata.to_hdf(os.path.join(out_dir,'wym_{}'.format(os.path.basename(path))))
+        outdata.to_hdf(os.path.join(out_dir,'wym_{}'.format(os.path.basename(path))),'wym',mode='w')
 
 
 
