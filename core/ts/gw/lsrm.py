@@ -124,7 +124,7 @@ def input_processing(precip_et, crs, irr1, paw1, bound_shp, rain_name, pet_name,
     # Aggregate by site weighted by area to estimate a volume
     paw_area1 = paw6[['paw', 'site', 'area']].copy()
     paw_area1.loc[:, 'paw_vol'] = paw_area1['paw'] * paw_area1['area']
-    paw7 = ((paw_area1.groupby('site')['paw_vol'].sum() / paw_area1.groupby('site')['area'].sum()) * sites_poly_area).round()
+    paw7 = ((paw_area1.groupby('site')['paw_vol'].sum() / paw_area1.groupby('site')['area'].sum()) * sites_poly_area * 0.001).round(2)
 
     site_irr_area = irr5.groupby('site')['area'].sum()
     irr_eff1 = irr5.replace({'irr_type': irr_eff_dict})
@@ -147,7 +147,7 @@ def input_processing(precip_et, crs, irr1, paw1, bound_shp, rain_name, pet_name,
     input1 = merge(new_rain_et1.reset_index(), poly_data1.reset_index(), on='site', how='left')
 
     ## Convert precip and et to volumes
-    input1.loc[:, ['precip', 'pet']] = input1.loc[:, ['precip', 'pet']].mul(input1.loc[:, 'site_area'], axis=0).round()
+    input1.loc[:, ['precip', 'pet']] = (input1.loc[:, ['precip', 'pet']].mul(input1.loc[:, 'site_area'], axis=0) * 0.001).round(2)
 
     ## Remove irrigation parameters during non-irrigation times
     input1.loc[~input1.time.dt.month.isin(irr_mons), ['irr_eff', 'irr_trig']] = nan

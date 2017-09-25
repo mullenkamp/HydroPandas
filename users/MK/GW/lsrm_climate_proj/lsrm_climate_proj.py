@@ -60,7 +60,7 @@ A = 6
 
 ### Output parameters
 #output_results = r'D:\lsrm_results\test\output_test2.h5'
-#output_shp = r'D:\lsrm_results\test\output_test2.shp'
+output_shp = r'D:\lsrm_results\test\output_test2.shp'
 output_dir = r'D:\lsrm_results'
 
 ### Iteration parameters
@@ -140,7 +140,7 @@ for it in param_dict:
     print('Saving data')
 
     save_df(output1, output_results, index=False)
-    #sites_poly.reset_index().to_file(output_shp)
+#    sites_poly.reset_index().to_file(output_shp)
 
     del(precip_et, model_var, sites_poly, output1)
 

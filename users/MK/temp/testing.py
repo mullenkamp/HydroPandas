@@ -3311,11 +3311,11 @@ def take_max(arr):
 mon_grp.apply(take_max)
 
 
+xy1 = precip_et[precip_et.time == precip_et.time[0]]
 
-
-
-
-
+xy2 = xy_to_gpd(xy1.index, 'x', 'y', xy1, 4326)
+xy2.columns = ['site', 'geometry']
+xy2.to_file(r'D:\lsrm_results\test\test5.shp')
 
 
 
