@@ -16,6 +16,13 @@ test_path = r"K:\niwa_netcdf\lsrm\lsrm_results\vcsn_65perc.h5"
 
 def gen_water_year_average_lsr_irr(path):
     org_data = pd.read_hdf(path)
+    if 'irr_drainage' not in org_data.keys():
+        org_data.loc[:,'irr_drainage'] = 0
+    if 'irr_demand' not in org_data.keys():
+        org_data.loc[:,'irr_demand'] = 0
+    if 'irr_area_ratio' not in org_data.keys():
+        org_data.loc[:,'irr_area_ratio'] = 0
+
     g = org_data.groupby([pd.Grouper('site'), pd.Grouper(key='time', freq='A-JUN')])
     org_data.loc[:, 'total_drainage'] = org_data.loc[:, 'irr_drainage'] + org_data.loc[:, 'non_irr_drainage']
     org_data.loc[org_data.total_drainage.isnull(), 'total_drainage'] = org_data.loc[

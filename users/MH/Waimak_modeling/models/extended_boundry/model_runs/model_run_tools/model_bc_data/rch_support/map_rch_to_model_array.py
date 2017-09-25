@@ -113,7 +113,7 @@ if __name__ == '__main__':
     map_shp = r"K:\niwa_netcdf\lsrm\lsrm_results\test\output_test1.shp"
     methods = ['mean', 'period_mean', '3_lowest_con_mean', 'lowest_year']
     test = map_rch_to_array(hdf=hdf_path,
-                            method=methods[3],
+                            method=methods[0],
                             period_center=2012,
                             mapping_shp=map_shp,
                             period_length=10,
