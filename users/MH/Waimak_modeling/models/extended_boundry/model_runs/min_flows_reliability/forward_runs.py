@@ -93,6 +93,21 @@ def setup_run_args(model_id, forward_run_dir):
     }
     runs.append(full_abs_allo)
 
+    # full allocation current usage
+    full_allo = {
+        'model_id': model_id,
+        'name': 'full_allo_cur_use',
+        'base_dir': None,
+        'cc_inputs': None,
+        'pc5': False,
+        'wil_eff': 1,
+        'naturalised': False,
+        'full_abs': False,
+        'pumping_well_scale': 1,
+        'full_allo': True
+    }
+    runs.append(full_allo)
+
 
     # pc5
     pc5_80 = {

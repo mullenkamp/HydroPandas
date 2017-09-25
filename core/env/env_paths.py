@@ -18,3 +18,6 @@ def transfers(path):
 def temp(path):
     return transfers('Temp/{}'.format(path))
 
+def gw_met_data(path):
+    return '//fs02/GroundWaterMetData$/{}'.format(path)
+
