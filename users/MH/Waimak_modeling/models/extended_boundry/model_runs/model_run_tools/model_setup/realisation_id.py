@@ -78,6 +78,9 @@ def get_base_rch(model_id, recalc=False):
     pickle.dump(rch, open(pickle_path, 'w'))
     return rch
 
+def get_rch_multipler(model_id): #todo create get rch multiplier
+    raise NotImplementedError
+
 def get_model_name_path(model_id):
     # model id needs to be non-numeric (start with a letter)
     model_dict = {

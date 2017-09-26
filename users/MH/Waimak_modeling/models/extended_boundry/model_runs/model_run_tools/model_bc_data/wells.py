@@ -108,7 +108,7 @@ def get_max_rate(model_id, recalc=False):
     return outdata
 
 
-def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturalised=False, full_allo=False):
+def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturalised=False, full_allo=False, pc5=False):
     """
     gets the pumping data for the forward runs
     :param model_id: which NSMC realisation to use
@@ -128,6 +128,13 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
         outdata = get_full_consent(model_id)
     else:
         outdata = get_base_well(model_id)
+        if pc5:
+            outdata.loc[(outdata.loc[:, 'use_type'] == 'irrigation-sw')&(outdata.cwms=='waimak'),'flux'] *=3/4
+            # an inital 1/4 reduction for pc5 to
+            # account for the decreased irrgation demand for with more efficent irrigation this number comes from
+            # prorataing the difference between 80% and 100% irrigation LSRM outputs to the percentage of irrigation
+            # from sw and gw in the waimakariri zone other zones were not considered because it was unlikly to affect
+            # the results (e.g. we don't care about selwyn).
 
     if full_allo:
         allo_mult = get_full_allo_multipler()
@@ -146,7 +153,6 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
         else:
             cc_mult = get_cc_pumping_muliplier(cc_inputs)
             outdata.loc[outdata.loc[:, 'use_type'] == 'irrigation-sw', 'flux'] *= cc_mult
-
             # pumping is truncated at full allocation and abstraction value
             # we assume that any additional irrigation demand would be met with surface water schemes from the alpine rivers
 

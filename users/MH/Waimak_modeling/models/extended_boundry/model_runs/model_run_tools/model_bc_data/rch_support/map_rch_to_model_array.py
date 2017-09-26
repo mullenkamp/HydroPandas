@@ -108,14 +108,43 @@ def vec_translate(a, d):
 
 
 if __name__ == '__main__':
+    from glob import glob
+    import matplotlib.pyplot as plt
     test_path = r"K:\niwa_netcdf\lsrm\lsrm_results\vcsn_65perc.h5"
-    hdf_path = r"K:\niwa_netcdf\lsrm\lsrm_results\water_year_means\wym_vcsn_50perc.h5"
-    map_shp = r"K:\niwa_netcdf\lsrm\lsrm_results\test\output_test1.shp"
+    hdf_paths = glob(r"K:\niwa_netcdf\lsrm\lsrm_results\water_year_means\wym_vcsn_*perc.h5")
+    map_shp = r"K:\niwa_netcdf\lsrm\lsrm_results\test\output_test2.shp"
     methods = ['mean', 'period_mean', '3_lowest_con_mean', 'lowest_year']
-    test = map_rch_to_array(hdf=hdf_path,
-                            method=methods[0],
-                            period_center=2012,
-                            mapping_shp=map_shp,
-                            period_length=10,
-                            return_irr_demand=False)
+
+    rch_arrays = {}
+    ird_demand = {}
+    for hdf_path in hdf_paths:
+        print hdf_path
+        per = int(hdf_path.split('_')[-1].split('.')[0].strip('perc'))
+        rch_arrays[per], ird_demand[per]= map_rch_to_array(hdf=hdf_path,
+                                method=methods[0],
+                                period_center=2012,
+                                mapping_shp=map_shp,
+                                period_length=10,
+                                return_irr_demand=True)
+    new_no_flow = smt.get_no_flow()
+    zones = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/cwms_zones.shp".format(smt.sdp),'ZONE_CODE')
+    zones[~new_no_flow[0].astype(bool)] = np.nan
+    # waimak = 4, chch_wm = 7, selwyn=8 , chch_wm chch_formation = 9
+    w_idx = np.isclose(zones,4)
+
+    print 'lsr dif 50 - 100 waimak'
+    print np.nansum((rch_arrays[50] - rch_arrays[100])[w_idx] * 200 * 200) / 86400
+    print 'lsr dif 50 - 100 all'
+    print np.nansum((rch_arrays[50] - rch_arrays[100]) * 200 * 200) / 86400
+    print 'lsr dif 65 - 100 waimak'
+    print np.nansum((rch_arrays[65] - rch_arrays[100])[w_idx] * 200 * 200) / 86400
+    print 'lsr dif 65 - 100 all'
+    print np.nansum((rch_arrays[65] - rch_arrays[100]) * 200 * 200) / 86400
+    print 'lsr dif 80 - 100 waimak'
+    print np.nansum((rch_arrays[80] - rch_arrays[100])[w_idx] * 200 * 200) / 86400
+    print 'lsr dif 80 - 100 all'
+    print np.nansum((rch_arrays[80] - rch_arrays[100]) * 200 * 200) / 86400
+    smt.plt_matrix(rch_arrays[50] / rch_arrays[100], title='50/100')
+    smt.plt_matrix(rch_arrays[65] / rch_arrays[100], title='65/100')
+    smt.plt_matrix(rch_arrays[80] / rch_arrays[100], title='80/100')
     print 'done'

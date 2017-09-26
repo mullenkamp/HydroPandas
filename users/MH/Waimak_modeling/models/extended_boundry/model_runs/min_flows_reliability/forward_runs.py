@@ -23,7 +23,7 @@ def run_cc_senarios(base_kwargs):
     base_kwargs = deepcopy(base_kwargs)
     periods = range(2010, 2100, 10)
     rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
-    rcps = ['past', 'RCP4.5', 'RCP8.5'] #todo RCP past should not be handled with periods!
+    rcps = ['RCPpast', 'RCP4.5', 'RCP8.5'] #todo RCP past should not be handled with periods!
     amalg_types = ['tym', 'min', 'low_3_m']
     for per, rcm, rcp, at in itertools.product(periods, rcms, rcps, amalg_types):
         temp = deepcopy(base_kwargs)
@@ -124,34 +124,6 @@ def setup_run_args(model_id, forward_run_dir):
     }
     runs.append(pc5_80)
 
-    pc5_65 = {
-        'model_id': model_id,
-        'name': 'pc5_65',
-        'base_dir': None,
-        'cc_inputs': None,
-        'pc5': True,
-        'wil_eff': 1,
-        'naturalised': False,
-        'full_abs': False,
-        'pumping_well_scale': 1,
-        'org_efficency': 65
-    }
-    runs.append(pc5_65)
-
-    pc5_50 = {
-        'model_id': model_id,
-        'name': 'pc5',
-        'base_dir': None,
-        'cc_inputs': None,
-        'pc5': True,
-        'wil_eff': 1,
-        'naturalised': False,
-        'full_abs': False,
-        'pumping_well_scale': 1,
-        'org_efficency': 50
-    }
-    runs.append(pc5_50)
-
     # WIL efficiency
     will_eff = {
         'model_id': model_id,
@@ -180,34 +152,6 @@ def setup_run_args(model_id, forward_run_dir):
         'org_efficency': 80
     }
     runs.append(pc5_80_will_eff)
-
-    pc5_65_will_eff = {
-        'model_id': model_id,
-        'name': 'pc5_65_wil_eff',
-        'base_dir': None,
-        'cc_inputs': None,
-        'pc5': True,
-        'wil_eff': 0,
-        'naturalised': False,
-        'full_abs': False,
-        'pumping_well_scale': 1,
-        'org_efficency': 65
-    }
-    runs.append(pc5_65_will_eff)
-
-    pc5_50_will_eff = {
-        'model_id': model_id,
-        'name': 'pc5_50_wil_eff',
-        'base_dir': None,
-        'cc_inputs': None,
-        'pc5': True,
-        'wil_eff': 0,
-        'naturalised': False,
-        'full_abs': False,
-        'pumping_well_scale': 1,
-        'org_efficency': 50
-    }
-    runs.append(pc5_50_will_eff)
 
     # climate change senarios (lots of runs)
     # nat + cc

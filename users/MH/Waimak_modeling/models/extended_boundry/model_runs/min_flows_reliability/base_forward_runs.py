@@ -37,8 +37,7 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
                                change senarios (this is handled when getting the well data)
                                this factor applies to all wells
     :param full_allo: boolean if true use the full allocation of pumping
-    :param org_efficency: the original percent efficiency to use when calculating the reduction of pc5, 80,65,50 are
-                          implemented for current states, but only 80% is implemented for climate change senarios
+    :param org_efficency: not used, held to prevent cleaning up!
     :return:
     """
     # cc inputs are a dict
@@ -48,12 +47,12 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
         raise ValueError('incorrect type for cc_inputs {} expected dict or None'.format(type(cc_inputs)))
 
     well_data = get_forward_wells(model_id=model_id,full_abstraction=full_abs,
-                                  cc_inputs=cc_inputs, naturalised=naturalised, full_allo=full_allo)
+                                  cc_inputs=cc_inputs, naturalised=naturalised, full_allo=full_allo, pc5=pc5)
     well_data.loc[well_data.type=='well','flux'] *= pumping_well_scale
     well_data.loc[(well_data.type=='race') & (well_data.zone == 'n_wai'),'flux'] *= wil_eff
     well_data = smt.convert_well_data_to_stresspd(well_data)
 
-    rch = get_forward_rch(model_id, naturalised, pc5, org_efficency, **cc_inputs)
+    rch = get_forward_rch(model_id, naturalised, pc5, **cc_inputs)
 
     # I'm assuming that the stream package will not change
     m = mod_gns_model(model_id,
