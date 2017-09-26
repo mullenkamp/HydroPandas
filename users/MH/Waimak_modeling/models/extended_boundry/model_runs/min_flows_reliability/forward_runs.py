@@ -16,7 +16,7 @@ from copy import deepcopy
 import itertools
 from future.builtins import input
 import datetime
-
+import psutil
 
 def run_cc_senarios(base_kwargs):
     runs = []
@@ -180,6 +180,9 @@ def setup_run_args(model_id, forward_run_dir):
 
 def start_process():
     print('Starting', multiprocessing.current_process().name)
+    p = psutil.Process(os.getpid())
+    # set to lowest priority, this is windows only, on Unix use ps.nice(19)
+    p.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
 
 
 def run_forward_runs(runs):
