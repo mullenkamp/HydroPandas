@@ -114,39 +114,40 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
 
     # below included for easy manipulation
     flopy.modflow.mfnwt.ModflowNwt(m,
-                                   headtol=0.01,
+                                   headtol=1e-5,
                                    fluxtol=500,
                                    maxiterout=100,
                                    thickfact=1e-05,
                                    linmeth=1,
-                                   iprnwt=0,
+                                   iprnwt=1, #changed from GNS
                                    ibotav=0,
                                    options='COMPLEX',
-                                   Continue=False,
-                                   dbdtheta=0.4,
-                                   dbdkappa=1e-05,
-                                   dbdgamma=0.0,
-                                   momfact=0.1,
-                                   backflag=1,
-                                   maxbackiter=50,
-                                   backtol=1.1,
-                                   backreduce=0.7,
-                                   maxitinner=50,
-                                   ilumethod=2,
-                                   levfill=5,
-                                   stoptol=1e-10,
-                                   msdr=15,
-                                   iacl=2,
-                                   norder=1,
-                                   level=5,
-                                   north=7,
-                                   iredsys=0,
-                                   rrctols=0.0,
-                                   idroptol=1,
-                                   epsrn=0.0001,
-                                   hclosexmd=0.0001,
-                                   mxiterxmd=50,
+                                   Continue=True, #changed from GNS
+                                   dbdtheta=0.4,  # only when options is specified
+                                   dbdkappa=1e-05,  # only when options is specified
+                                   dbdgamma=0.0,  # only when options is specified
+                                   momfact=0.1,  # only when options is specified
+                                   backflag=1,  # only when options is specified
+                                   maxbackiter=50,  # only when options is specified
+                                   backtol=1.1,   # only when options is specified
+                                   backreduce=0.7,   # only when options is specified
+                                   maxitinner=50,   # only when options is specified
+                                   ilumethod=2,   # only when options is specified
+                                   levfill=5,   # only when options is specified
+                                   stoptol=1e-10,   # only when options is specified
+                                   msdr=15,   # only when options is specified
+                                   iacl=2,   # only when options is specified
+                                   norder=1,  # only when options is specified
+                                   level=5,  # only when options is specified
+                                   north=7,  # only when options is specified
+                                   iredsys=0,  # only when options is specified
+                                   rrctols=0.0,  # only when options is specified
+                                   idroptol=1,  # only when options is specified
+                                   epsrn=0.0001,  # only when options is specified
+                                   hclosexmd=0.0001,  # only when options is specified
+                                   mxiterxmd=50,  # only when options is specified
                                    unitnumber=714)
+
     # write inputs and run the model and write output to a log
     m.write_input()
     m.write_name_file()

@@ -12,8 +12,8 @@ from rch_support.map_rch_to_model_array import map_rch_to_array
 import os
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 
-lsrm_rch_base_dir = None  # todo define here
-rch_idx_shp_path = None  # todo define here
+lsrm_rch_base_dir = env.gw_met_data('niwa_netcdf/lsrm/lsrm_results/water_year_means')
+rch_idx_shp_path = env.gw_met_data("niwa_netcdf/lsrm/lsrm_results/test/output_test2.shp")
 
 def get_forward_rch(model_id, naturalised, pc5=False, rcm=None, rcp=None, period=None, amag_type=None):
     """

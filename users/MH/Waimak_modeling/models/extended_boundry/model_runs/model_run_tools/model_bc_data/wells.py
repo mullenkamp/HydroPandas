@@ -174,7 +174,7 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
     return outdata
 
 
-def get_cc_pumping_muliplier(cc_inputs):  # todo check and see how bad it get
+def get_cc_pumping_muliplier(cc_inputs):  # todo check and see how bad it get write a new textfile for this in the model folder
     # return a single value for now which is senario/RCPpast
     rcp_past = _get_rcp_past_irrd(cc_inputs['rcm'])
     rch_path = _get_rch_hdf_path(lsrm_rch_base_dir, False, False, cc_inputs['rcm'], cc_inputs['rcp'])

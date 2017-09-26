@@ -354,7 +354,7 @@ def change_stress_period_settings(m, spv):
 
 
 if __name__ == '__main__':
-    temp_id = 'test'
+    temp_id = 'opt'
     wells = get_base_well(temp_id)
     wells = smt.convert_well_data_to_stresspd(wells)
 

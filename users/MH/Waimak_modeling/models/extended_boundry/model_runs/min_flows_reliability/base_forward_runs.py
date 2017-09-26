@@ -9,6 +9,7 @@ from core import env
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools import mod_gns_model
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools import get_forward_wells, get_forward_rch
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
+import flopy
 
 def setup_run_forward_run_mp (kwargs):
     name, success = setup_run_forward_run(**kwargs)
@@ -61,6 +62,43 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
                       well={0:well_data},
                       recharge={0:rch},
                       safe_mode=False)
+
+    # below included for easy manipulation
+    flopy.modflow.mfnwt.ModflowNwt(m,
+                                   headtol=1e-5,
+                                   fluxtol=500,
+                                   maxiterout=100,
+                                   thickfact=1e-05,
+                                   linmeth=1,
+                                   iprnwt=1, #changed from GNS
+                                   ibotav=0,
+                                   options='COMPLEX',
+                                   Continue=True, #changed from GNS
+                                   dbdtheta=0.4,  # only when options is specified
+                                   dbdkappa=1e-05,  # only when options is specified
+                                   dbdgamma=0.0,  # only when options is specified
+                                   momfact=0.1,  # only when options is specified
+                                   backflag=1,  # only when options is specified
+                                   maxbackiter=50,  # only when options is specified
+                                   backtol=1.1,   # only when options is specified
+                                   backreduce=0.7,   # only when options is specified
+                                   maxitinner=50,   # only when options is specified
+                                   ilumethod=2,   # only when options is specified
+                                   levfill=5,   # only when options is specified
+                                   stoptol=1e-10,   # only when options is specified
+                                   msdr=15,   # only when options is specified
+                                   iacl=2,   # only when options is specified
+                                   norder=1,  # only when options is specified
+                                   level=5,  # only when options is specified
+                                   north=7,  # only when options is specified
+                                   iredsys=0,  # only when options is specified
+                                   rrctols=0.0,  # only when options is specified
+                                   idroptol=1,  # only when options is specified
+                                   epsrn=0.0001,  # only when options is specified
+                                   hclosexmd=0.0001,  # only when options is specified
+                                   mxiterxmd=50,  # only when options is specified
+                                   unitnumber=714)
+
     m.write_name_file()
     m.write_input()
     success, buff = m.run_model()

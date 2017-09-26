@@ -212,7 +212,7 @@ if __name__ == '__main__':
 
     # todo test this with a couple of runs
     #todo check how long the set up takes...?
-    runs = setup_run_args('test',dir_path)
+    runs = setup_run_args('opt',dir_path)
 
     runs = runs[0:2]
     run_forward_runs(runs)
