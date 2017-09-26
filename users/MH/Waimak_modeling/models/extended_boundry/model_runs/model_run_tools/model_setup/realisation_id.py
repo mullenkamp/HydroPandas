@@ -79,12 +79,14 @@ def get_base_rch(model_id, recalc=False):
     return rch
 
 def get_rch_multipler(model_id): #todo create get rch multiplier
+    # in a pinch I could probably divide this against the original rch used., but I would prefer to get the array from the files if possible
     raise NotImplementedError
 
 def get_model_name_path(model_id):
     # model id needs to be non-numeric (start with a letter)
     model_dict = {
-        'test': r"C:\Users\MattH\Desktop\Waimak_modeling\ex_bd_tester\test_import_gns_mod\mf_aw_ex.nam"
+        'test': r"C:\Users\MattH\Desktop\Waimak_modeling\ex_bd_tester\test_import_gns_mod\mf_aw_ex.nam", # a place holder to test the scripts
+        'opt': "{}/from_gns/mf_aw_ex/mf_aw_ex.nam".format(smt.sdp) # the optimized model as of 26/09/2017
     }
     if model_id not in model_dict.keys():
         raise NotImplementedError('model {} has not yet been defined'.format(model_id))
@@ -122,6 +124,6 @@ def get_model(model_id):
     return m
 
 if __name__ == '__main__':
-    m = get_model('test')
+    m = get_model('opt')
     well = get_base_well('test')
     print m

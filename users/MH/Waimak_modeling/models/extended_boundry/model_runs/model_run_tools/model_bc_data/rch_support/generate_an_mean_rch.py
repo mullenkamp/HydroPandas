@@ -17,44 +17,44 @@ test_path = r"K:\niwa_netcdf\lsrm\lsrm_results\vcsn_65perc.h5"
 def gen_water_year_average_lsr_irr(path):
     org_data = pd.read_hdf(path)
     if 'irr_drainage' not in org_data.keys():
-        org_data.loc[:,'irr_drainage'] = 0
+        org_data.loc[:, 'irr_drainage'] = 0
     if 'irr_demand' not in org_data.keys():
-        org_data.loc[:,'irr_demand'] = 0
+        org_data.loc[:, 'irr_demand'] = 0
     if 'irr_area_ratio' not in org_data.keys():
-        org_data.loc[:,'irr_area_ratio'] = 0
+        org_data.loc[:, 'irr_area_ratio'] = 0
 
-    org_data.loc[org_data.irr_drainage.isnull(),'irr_drainage'] = 0
-    org_data.loc[org_data.non_irr_drainage.isnull(),'non_irr_drainage'] = 0
+    org_data.loc[org_data.irr_drainage.isnull(), 'irr_drainage'] = 0
+    org_data.loc[org_data.non_irr_drainage.isnull(), 'non_irr_drainage'] = 0
     org_data.loc[:, 'total_drainage'] = org_data.loc[:, 'irr_drainage'] + org_data.loc[:, 'non_irr_drainage']
-    print np.nansum(org_data.irr_demand) #todo DADB
     g = org_data.groupby([pd.Grouper('site'), pd.Grouper(key='time', freq='A-JUN')])
     temp = org_data.drop_duplicates('site').set_index('site')
     temp.loc[temp.irr_area_ratio.isnull(), 'irr_area_ratio'] = 0
-    outdata = g.aggregate({'precip': np.nansum, 'pet': np.nansum, 'paw': np.nansum, 'irr_drainage': np.nansum, 'irr_demand': np.nansum,
-                           'non_irr_drainage': np.nansum, 'total_drainage': np.nansum}).reset_index()
-    #print outdata.groupby('site').sum().sum() #todo DADB
-    outdata.loc[:,'site_area'] = outdata.loc[:,'site']
-    outdata.loc[:,'irr_area_ratio'] = outdata.loc[:,'site']
+    outdata = g.aggregate(
+        {'precip': np.nansum, 'pet': np.nansum, 'paw': np.nansum, 'irr_drainage': np.nansum, 'irr_demand': np.nansum,
+         'non_irr_drainage': np.nansum, 'total_drainage': np.nansum}).reset_index()
+    outdata.loc[:, 'site_area'] = outdata.loc[:, 'site']
+    outdata.loc[:, 'irr_area_ratio'] = outdata.loc[:, 'site']
     outdata = outdata.replace({'site_area': temp.site_area.to_dict()})
     outdata = outdata.replace({'irr_area_ratio': temp.irr_area_ratio.to_dict()})
-    for key in ['precip', 'pet', 'paw', 'total_drainage']: # raising memory error so trying to do it one at a time
+    for key in ['precip', 'pet', 'paw', 'total_drainage']:  # raising memory error so trying to do it one at a time
         outdata[key] *= (1 / (365 * outdata.site_area))
     outdata['irr_drainage'] = (1 / (365 * outdata.site_area * outdata.irr_area_ratio))  # per area of irrigation
-    outdata['irr_demand'] = (1 / (365)) # m3/day
-    outdata['non_irr_drainage'] = (1 / (365 * outdata.site_area * (1 - outdata.irr_area_ratio))) # per area of non-irrigation
+    outdata['irr_demand'] = (1 / (365))  # m3/day
+    outdata['non_irr_drainage'] = (
+    1 / (365 * outdata.site_area * (1 - outdata.irr_area_ratio)))  # per area of non-irrigation
     return outdata
+
 
 def gen_all_wy_averages(base_dir):
     out_dir = '{}/water_year_means'.format(base_dir)
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    paths = glob('{}/vcsn*.h5'.format(base_dir)) #todo update to all .h5
+    paths = glob('{}/*.h5'.format(base_dir))
     for path in paths:
-        print path
+        print (path)
         outdata = gen_water_year_average_lsr_irr(path)
-        outdata.to_hdf(os.path.join(out_dir,'wym_{}'.format(os.path.basename(path))),'wym',mode='w')
-
+        outdata.to_hdf(os.path.join(out_dir, 'wym_{}'.format(os.path.basename(path))), 'wym', mode='w')
 
 
 if __name__ == '__main__':

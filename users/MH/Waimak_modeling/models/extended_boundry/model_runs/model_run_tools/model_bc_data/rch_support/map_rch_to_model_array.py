@@ -31,7 +31,7 @@ def map_rch_to_array(hdf, method, period_center, mapping_shp, period_length=10, 
     :return: array of the shape of (smt.rows, smt.cols) if return irr_demand then (rch, irr_demand)
     """
     # quick check of inputs
-    if method not in ['mean','period_mean', '3_lowest_con_mean', 'lowest_year']:
+    if method not in ['mean', 'period_mean', '3_lowest_con_mean', 'lowest_year']:
         raise ValueError('unsuported method')
 
     if not isinstance(period_center, int) and period_center is not None:
@@ -40,7 +40,7 @@ def map_rch_to_array(hdf, method, period_center, mapping_shp, period_length=10, 
     if not isinstance(period_length, int) and period_length is not None:
         raise TypeError('period_length must be int or None')
 
-    if isinstance(period_length,int):
+    if isinstance(period_length, int):
         if period_length % 2 != 0:
             raise ValueError('period length must be even')
 
@@ -52,13 +52,15 @@ def map_rch_to_array(hdf, method, period_center, mapping_shp, period_length=10, 
         if return_irr_demand:
             ird = data.groupby('year').aggregate({'irr_demand': np.sum})['irr_demand'].mean()
     else:
-        data = data.loc[(data.year >= period_center - period_length / 2) & (data.year <= period_center + period_length / 2)]
+        data = data.loc[
+            (data.year >= period_center - period_length / 2) & (data.year <= period_center + period_length / 2)]
 
         year_data = data.groupby('year').aggregate({rch_quanity: np.sum, 'irr_demand': np.sum})
 
-        expected_years = range(int(period_center-period_length/2), int(period_center+period_length/2+1))
-        if not all(np.in1d(expected_years,year_data.index)):
-            warn('not all period years present taking mean of full dataset, years missing: {}'.format(set(expected_years) - set(year_data.index)))
+        expected_years = range(int(period_center - period_length / 2), int(period_center + period_length / 2 + 1))
+        if not all(np.in1d(expected_years, year_data.index)):
+            warn('not all period years present taking mean of full dataset, years missing: {}'.format(
+                set(expected_years) - set(year_data.index)))
 
         if method == 'period_mean':
             map_data = data.groupby('site').aggregate({rch_quanity: np.mean})
@@ -70,7 +72,7 @@ def map_rch_to_array(hdf, method, period_center, mapping_shp, period_length=10, 
             if return_irr_demand:
                 ird = year_data.loc[low_year, 'irr_demand']
         elif method == '3_lowest_con_mean':
-            if len(year_data) <3:
+            if len(year_data) < 3:
                 raise ValueError('3 year consectuative mean cannot be calculated on data with less than 3 years')
             elif len(year_data) == 3:
                 warn('only 3 years of data, same as period mean')
@@ -84,17 +86,7 @@ def map_rch_to_array(hdf, method, period_center, mapping_shp, period_length=10, 
     outdata[np.isnan(outdata)] = -999
     temp_dict = map_data[rch_quanity].to_dict()
     temp_dict[-999] = np.nan
-    #todo below is temporary to avoid missing keys
-    print ('missing keys:')
-    print (len(set(outdata.flatten()) - set(temp_dict.keys())))
-    print (set(outdata.flatten()) - set(temp_dict.keys()))
-    for i in range(outdata.shape[0]):
-        for j in range(outdata.shape[1]):
-            try:
-                outdata[i,j] = temp_dict[outdata[i,j]]
-            except KeyError:
-                outdata[i,j] = np.nan
-    #outdata = vec_translate(outdata, temp_dict) #todo reinstate later, simply working with a differnt method that is more robust
+    outdata = vec_translate(outdata, temp_dict)
 
     if return_irr_demand:
         return outdata, ird
@@ -110,6 +102,7 @@ def vec_translate(a, d):
 if __name__ == '__main__':
     from glob import glob
     import matplotlib.pyplot as plt
+
     test_path = r"K:\niwa_netcdf\lsrm\lsrm_results\vcsn_65perc.h5"
     hdf_paths = glob(r"K:\niwa_netcdf\lsrm\lsrm_results\water_year_means\wym_vcsn_*perc.h5")
     map_shp = r"K:\niwa_netcdf\lsrm\lsrm_results\test\output_test2.shp"
@@ -117,34 +110,39 @@ if __name__ == '__main__':
 
     rch_arrays = {}
     ird_demand = {}
+    import time
+    t = time.time()
     for hdf_path in hdf_paths:
-        print hdf_path
+        print (hdf_path)
         per = int(hdf_path.split('_')[-1].split('.')[0].strip('perc'))
-        rch_arrays[per], ird_demand[per]= map_rch_to_array(hdf=hdf_path,
-                                method=methods[0],
-                                period_center=2012,
-                                mapping_shp=map_shp,
-                                period_length=10,
-                                return_irr_demand=True)
+        rch_arrays[per], ird_demand[per] = map_rch_to_array(hdf=hdf_path,
+                                                            method=methods[0],
+                                                            period_center=2012,
+                                                            mapping_shp=map_shp,
+                                                            period_length=10,
+                                                            return_irr_demand=True)
+    print(time.time() - t)
     new_no_flow = smt.get_no_flow()
-    zones = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/cwms_zones.shp".format(smt.sdp),'ZONE_CODE')
+    zones = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/cwms_zones.shp".format(smt.sdp), 'ZONE_CODE')
     zones[~new_no_flow[0].astype(bool)] = np.nan
     # waimak = 4, chch_wm = 7, selwyn=8 , chch_wm chch_formation = 9
-    w_idx = np.isclose(zones,4)
+    w_idx = np.isclose(zones, 4)
 
-    print 'lsr dif 50 - 100 waimak'
-    print np.nansum((rch_arrays[50] - rch_arrays[100])[w_idx] * 200 * 200) / 86400
-    print 'lsr dif 50 - 100 all'
-    print np.nansum((rch_arrays[50] - rch_arrays[100]) * 200 * 200) / 86400
-    print 'lsr dif 65 - 100 waimak'
-    print np.nansum((rch_arrays[65] - rch_arrays[100])[w_idx] * 200 * 200) / 86400
-    print 'lsr dif 65 - 100 all'
-    print np.nansum((rch_arrays[65] - rch_arrays[100]) * 200 * 200) / 86400
-    print 'lsr dif 80 - 100 waimak'
-    print np.nansum((rch_arrays[80] - rch_arrays[100])[w_idx] * 200 * 200) / 86400
-    print 'lsr dif 80 - 100 all'
-    print np.nansum((rch_arrays[80] - rch_arrays[100]) * 200 * 200) / 86400
+    print('lsr dif 50 - 100 waimak')
+    print (np.nansum((rch_arrays[50] - rch_arrays[100])[w_idx] * 200 * 200) / 86400)
+    print ('lsr dif 50 - 100 all')
+    print (np.nansum((rch_arrays[50] - rch_arrays[100]) * 200 * 200) / 86400)
+    print ('lsr dif 65 - 100 waimak')
+    print (np.nansum((rch_arrays[65] - rch_arrays[100])[w_idx] * 200 * 200) / 86400)
+    print ('lsr dif 65 - 100 all')
+    print (np.nansum((rch_arrays[65] - rch_arrays[100]) * 200 * 200) / 86400)
+    print ('lsr dif 80 - 100 waimak')
+    print (np.nansum((rch_arrays[80] - rch_arrays[100])[w_idx] * 200 * 200) / 86400)
+    print ('lsr dif 80 - 100 all')
+    print (np.nansum((rch_arrays[80] - rch_arrays[100]) * 200 * 200) / 86400)
     smt.plt_matrix(rch_arrays[50] / rch_arrays[100], title='50/100')
     smt.plt_matrix(rch_arrays[65] / rch_arrays[100], title='65/100')
     smt.plt_matrix(rch_arrays[80] / rch_arrays[100], title='80/100')
-    print 'done'
+    smt.plt_matrix(rch_arrays[80], title='80')
+
+    plt.show()
