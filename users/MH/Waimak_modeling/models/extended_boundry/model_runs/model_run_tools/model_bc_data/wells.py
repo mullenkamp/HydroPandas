@@ -14,7 +14,13 @@ import os
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 from users.MH.Waimak_modeling.supporting_data_path import sdp
 from core.ecan_io import rd_sql, sql_db
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_setup.realisation_id import get_base_well, temp_pickle_dir
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_setup.realisation_id import \
+    get_base_well, temp_pickle_dir
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.rch_support.map_rch_to_model_array import \
+    map_rch_to_array
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.LSR_arrays import \
+    _get_rch_hdf_path, lsrm_rch_base_dir, rch_idx_shp_path
+
 
 # for stream depletion things
 def get_race_data(model_id):
@@ -108,7 +114,7 @@ def get_max_rate(model_id, recalc=False):
     return outdata
 
 
-def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturalised=False, full_allo=False):
+def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturalised=False, full_allo=False, pc5=False):
     """
     gets the pumping data for the forward runs
     :param model_id: which NSMC realisation to use
@@ -128,6 +134,13 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
         outdata = get_full_consent(model_id)
     else:
         outdata = get_base_well(model_id)
+        if pc5:
+            outdata.loc[(outdata.loc[:, 'use_type'] == 'irrigation-sw') & (outdata.cwms == 'waimak'), 'flux'] *= 3 / 4
+            # an inital 1/4 reduction for pc5 to
+            # account for the decreased irrgation demand for with more efficent irrigation this number comes from
+            # prorataing the difference between 80% and 100% irrigation LSRM outputs to the percentage of irrigation
+            # from sw and gw in the waimakariri zone other zones were not considered because it was unlikly to affect
+            # the results (e.g. we don't care about selwyn).
 
     if full_allo:
         allo_mult = get_full_allo_multipler()
@@ -136,17 +149,16 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
 
     if naturalised:
         outdata = outdata.loc[
-            np.in1d(outdata.loc[:,'type'], ['boundry_flux', 'llr_boundry_flux', 'river', 'ulr_boundry_flux'])]
+            np.in1d(outdata.loc[:, 'type'], ['boundry_flux', 'llr_boundry_flux', 'river', 'ulr_boundry_flux'])]
 
     if cc_inputs is not None:
         if all(pd.isnull(cc_inputs.values())):
             pass
         elif any(pd.isnull(cc_inputs.values())):
-            raise ValueError ('null and non-null values returned for cc_inputs')
+            raise ValueError('null and non-null values returned for cc_inputs')
         else:
             cc_mult = get_cc_pumping_muliplier(cc_inputs)
             outdata.loc[outdata.loc[:, 'use_type'] == 'irrigation-sw', 'flux'] *= cc_mult
-
             # pumping is truncated at full allocation and abstraction value
             # we assume that any additional irrigation demand would be met with surface water schemes from the alpine rivers
 
@@ -162,11 +174,25 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
     return outdata
 
 
-def get_cc_pumping_muliplier(cc_inputs):  # todo waiting on mike
-    # return a single value for now
-    from warnings import warn
-    warn('cc_pumping_multiplier not completed, returning 1 for debugging purposes')
-    return 1
+def get_cc_pumping_muliplier(cc_inputs):  # todo check and see how bad it get write a new textfile for this in the model folder
+    # return a single value for now which is senario/RCPpast
+    rcp_past = _get_rcp_past_irrd(cc_inputs['rcm'])
+    rch_path = _get_rch_hdf_path(lsrm_rch_base_dir, False, False, cc_inputs['rcm'], cc_inputs['rcp'])
+    rch, current = map_rch_to_array(rch_path, cc_inputs['amag_type'], cc_inputs['period'], rch_idx_shp_path, 10, True)
+
+    return current/rcp_past
+
+
+def _get_rcp_past_irrd(rcm, recalc=False):
+    pickle_path = os.path.join(temp_pickle_dir, 'irr_d_RCPpast_{}.p'.format(rcm))
+    if (os.path.exists(pickle_path)) and (not recalc):
+        outdata = pickle.load(open(pickle_path))
+        return outdata
+
+    rch_path = _get_rch_hdf_path(lsrm_rch_base_dir, False, False, rcm, 'RCPpast')
+    rch, outdata = map_rch_to_array(rch_path, None, None, rch_idx_shp_path, None, True)
+    pickle.dump(outdata, open(pickle_path, 'w'))
+    return outdata
 
 
 def get_full_allo_multipler(recalc=False):
@@ -205,11 +231,12 @@ def get_full_allo_multipler(recalc=False):
     pickle.dump(outdata, open(pickle_path, 'w'))
     return outdata
 
+
 if __name__ == '__main__':
     race = get_race_data('test2')
 
     test = get_forward_wells('test2',
-                             naturalised=True,)
+                             naturalised=True, )
     full_abs = get_full_consent('test2')
     max_rate = get_max_rate('test2')
     print test

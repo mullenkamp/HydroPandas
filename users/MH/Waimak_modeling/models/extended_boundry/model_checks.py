@@ -361,7 +361,7 @@ def check_elevations_spatially(base_dir,dpi):
     return paths
 
 if __name__ == '__main__':
-    #check_no_overlapping_features() #passed #todo this has failed for now we are just ignoring it due to cost benifit
+    #check_no_overlapping_features() #passed # this has failed for now we are just ignoring it due to cost benifit
     check_layer_overlap() #passed
     check_elv_db() #passed
     check_noflow_overlap() #passed

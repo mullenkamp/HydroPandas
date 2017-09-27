@@ -316,7 +316,7 @@ def get_seg_param_dict():
         24: 30,
         28: 32,
 
-        #todo I don't think these got implmented
+        # I don't think these got implmented
         # link up small bits of the cust
         19: 21,
         37: 27,

@@ -13,6 +13,7 @@ from copy import deepcopy
 import time
 from starting_hds_ss_sy import get_ss_sy, get_starting_heads_sd30
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
+import psutil
 
 
 def setup_runs_sd30(model_id, well_list, base_path, ss, sy, start_heads):
@@ -65,6 +66,9 @@ def setup_runs_sd30(model_id, well_list, base_path, ss, sy, start_heads):
 
 def start_process():
     print('Starting', multiprocessing.current_process().name)
+    p = psutil.Process(os.getpid())
+    # set to lowest priority, this is windows only, on Unix use ps.nice(19)
+    p.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
 
 
 def well_by_well_depletion_sd30(model_id, well_list, base_path):
