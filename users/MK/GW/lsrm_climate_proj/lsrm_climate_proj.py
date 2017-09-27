@@ -77,7 +77,7 @@ all_dir.extend(rcp4_dir)
 all_dir.extend(rcp8_dir)
 all_dir.extend(rcppast_dir)
 
-base_param_dict = {'no_irr': {'irr_eff': 1, 'include_irr': False}, '65perc': {'irr_eff': 0.65, 'include_irr': True}, '100perc': {'irr_eff': 1, 'include_irr': True}}
+base_param_dict = {'no_irr': {'irr_eff': 1, 'include_irr': False}, '80perc': {'irr_eff': 0.8, 'include_irr': True}, '100perc': {'irr_eff': 1, 'include_irr': True}}
 vcsn_param_dict = {'50perc': {'irr_eff': 0.5, 'include_irr': True}, '65perc': {'irr_eff': 0.65, 'include_irr': True}, '80perc': {'irr_eff': 0.8, 'include_irr': True}, '100perc': {'irr_eff': 1, 'include_irr': True}, 'no_irr': {'irr_eff': 1, 'include_irr': False}}
 
 param_dict = OrderedDict()

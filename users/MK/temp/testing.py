@@ -3317,10 +3317,10 @@ xy2 = xy_to_gpd(xy1.index, 'x', 'y', xy1, 4326)
 xy2.columns = ['site', 'geometry']
 xy2.to_file(r'D:\lsrm_results\test\test5.shp')
 
+from pandas import read_hdf
 
-
-
-
+t1 = r'D:\lsrm_results\RCP4.5_BCC-CSM1.1_80perc.h5'
+t2 = read_hdf(t1)
 
 
 
