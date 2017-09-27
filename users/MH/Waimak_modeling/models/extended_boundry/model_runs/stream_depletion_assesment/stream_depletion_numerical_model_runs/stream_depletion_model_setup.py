@@ -10,7 +10,8 @@ import flopy
 import os
 import sys
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools import mod_gns_model,get_max_rate, get_full_consent, get_race_data
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools import mod_gns_model, get_max_rate, \
+    get_full_consent, get_race_data, zip_non_essential_files
 
 
 def setup_and_run_stream_dep_multip(kwargs):
@@ -24,10 +25,11 @@ def setup_and_run_stream_dep_multip(kwargs):
         print(name, success)
         return name, success
     except Exception as val:
-        with open('{}/error_log.txt'.format(kwargs['base_dir']),mode='a') as f:
-            f.write('{}: {}\n'.format(kwargs['name'],val))
+        with open('{}/error_log.txt'.format(kwargs['base_dir']), mode='a') as f:
+            f.write('{}: {}\n'.format(kwargs['name'], val))
         print(val)
         sys.stdout.flush()
+
 
 def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_turn_on, ss, sy,
                              silent=True, start_heads=None, sd_7_150='sd150'):
@@ -89,64 +91,64 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
         wells[sp] = smt.convert_well_data_to_stresspd(input_wells)
 
     m = mod_gns_model(model_id, name, '{}/{}'.format(base_dir, name),
-                                     safe_mode=False,
-                                     stress_period_vals=stress_vals,
-                                     well=wells,
-                                     drain=None,  # not modifying these stress period data
-                                     recharge=rch,
-                                     stream=None,
-                                     mt3d_link=False,
-                                     start_heads=start_heads)
+                      safe_mode=False,
+                      stress_period_vals=stress_vals,
+                      well=wells,
+                      drain=None,  # not modifying these stress period data
+                      recharge=rch,
+                      stream=None,
+                      mt3d_link=False,
+                      start_heads=start_heads)
 
     # set specific storage and specific yield
     ss = np.atleast_1d(ss)
     sy = np.atleast_1d(sy)
 
-
     if len(ss) == 1:
-        ss = np.ones((smt.layers,smt.rows,smt.cols)) * ss[0]
+        ss = np.ones((smt.layers, smt.rows, smt.cols)) * ss[0]
 
     if len(sy) == 1:
-        sy = np.ones((smt.layers,smt.rows,smt.cols)) * sy[0]
+        sy = np.ones((smt.layers, smt.rows, smt.cols)) * sy[0]
 
     m.upw.ss = flopy.utils.Util3d(m, m.lpf.ss.shape, m.lpf.ss.dtype, ss, m.lpf.ss.name)
     m.upw.sy = flopy.utils.Util3d(m, m.lpf.sy.shape, m.lpf.sy.dtype, sy, m.lpf.sy.name)
 
     # below included for easy manipulation
     flopy.modflow.mfnwt.ModflowNwt(m,
-                                   headtol=0.01,
+                                   headtol=1e-5,
                                    fluxtol=500,
                                    maxiterout=100,
                                    thickfact=1e-05,
                                    linmeth=1,
-                                   iprnwt=0,
+                                   iprnwt=1,  # changed from GNS
                                    ibotav=0,
                                    options='COMPLEX',
-                                   Continue=False,
-                                   dbdtheta=0.4,
-                                   dbdkappa=1e-05,
-                                   dbdgamma=0.0,
-                                   momfact=0.1,
-                                   backflag=1,
-                                   maxbackiter=50,
-                                   backtol=1.1,
-                                   backreduce=0.7,
-                                   maxitinner=50,
-                                   ilumethod=2,
-                                   levfill=5,
-                                   stoptol=1e-10,
-                                   msdr=15,
-                                   iacl=2,
-                                   norder=1,
-                                   level=5,
-                                   north=7,
-                                   iredsys=0,
-                                   rrctols=0.0,
-                                   idroptol=1,
-                                   epsrn=0.0001,
-                                   hclosexmd=0.0001,
-                                   mxiterxmd=50,
+                                   Continue=True,  # changed from GNS
+                                   dbdtheta=0.4,  # only when options is specified
+                                   dbdkappa=1e-05,  # only when options is specified
+                                   dbdgamma=0.0,  # only when options is specified
+                                   momfact=0.1,  # only when options is specified
+                                   backflag=1,  # only when options is specified
+                                   maxbackiter=50,  # only when options is specified
+                                   backtol=1.1,  # only when options is specified
+                                   backreduce=0.7,  # only when options is specified
+                                   maxitinner=50,  # only when options is specified
+                                   ilumethod=2,  # only when options is specified
+                                   levfill=5,  # only when options is specified
+                                   stoptol=1e-10,  # only when options is specified
+                                   msdr=15,  # only when options is specified
+                                   iacl=2,  # only when options is specified
+                                   norder=1,  # only when options is specified
+                                   level=5,  # only when options is specified
+                                   north=7,  # only when options is specified
+                                   iredsys=0,  # only when options is specified
+                                   rrctols=0.0,  # only when options is specified
+                                   idroptol=1,  # only when options is specified
+                                   epsrn=0.0001,  # only when options is specified
+                                   hclosexmd=0.0001,  # only when options is specified
+                                   mxiterxmd=50,  # only when options is specified
                                    unitnumber=714)
+
     # write inputs and run the model and write output to a log
     m.write_input()
     m.write_name_file()
@@ -154,12 +156,14 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
         print('starting to run model {}'.format(name))
         sys.stdout.flush()
     success, buff = m.run_model(silent=silent, report=True)
+    if success:
+        zip_non_essential_files(m.model_ws) #todo include list? see what I need to grab
     log_dir = '{}/logging'.format(base_dir)
-    if not os.path.exists (log_dir):
+    if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     log = '{}/{}_log.txt'.format(log_dir, name)
     buff = [e + '\n' for e in buff]
     with open(log, 'w') as f:
         f.writelines(buff)
     return name, success
-#todo this needs debugging
+    # todo this needs debugging

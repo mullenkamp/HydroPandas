@@ -302,18 +302,18 @@ def lsrm(model_var, A, include_irr=True):
     ### Put results into dataframe
 
     output1 = model_var.copy()
-    output1.loc[:, 'non_irr_aet'] = out_non_irr_aet.round()
+    output1.loc[:, 'non_irr_aet'] = out_non_irr_aet.round(2)
     if include_irr:
-        output1.loc[:, 'irr_aet'] = out_irr_aet.round()
-        output1.loc[:, 'irr_paw'] = irr_paw_val.round()
-        output1.loc[:, 'w_irr'] = out_w_irr.round()
-        output1.loc[:, 'irr_drainage'] = out_irr_drainage.round()
-        output1.loc[:, 'irr_demand'] = out_irr_demand.round()
+        output1.loc[:, 'irr_aet'] = out_irr_aet.round(2)
+        output1.loc[:, 'irr_paw'] = irr_paw_val.round(2)
+        output1.loc[:, 'w_irr'] = out_w_irr.round(2)
+        output1.loc[:, 'irr_drainage'] = out_irr_drainage.round(2)
+        output1.loc[:, 'irr_demand'] = out_irr_demand.round(2)
     else:
         output1.drop(['irr_eff', 'irr_trig', 'irr_area_ratio'], axis=1, inplace=True)
-    output1.loc[:, 'non_irr_paw'] = non_irr_paw_val.round()
-    output1.loc[:, 'w_non_irr'] = out_w_non_irr.round()
-    output1.loc[:, 'non_irr_drainage'] = out_non_irr_drainage.round()
+    output1.loc[:, 'non_irr_paw'] = non_irr_paw_val.round(2)
+    output1.loc[:, 'w_non_irr'] = out_w_non_irr.round(2)
+    output1.loc[:, 'non_irr_drainage'] = out_non_irr_drainage.round(2)
 
     ### Return output dataframe
     return(output1)

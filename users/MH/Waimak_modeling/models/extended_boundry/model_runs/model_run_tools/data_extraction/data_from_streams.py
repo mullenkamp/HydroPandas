@@ -157,7 +157,7 @@ def get_flow_at_points(sites,base_path, kstpkpers=None, rel_kstpkpers=None):
         raise ValueError('negative values returned for flow')
     return outdata
 
-def get_con_at_points():
+def get_con_at_points(): #todo
     raise NotImplementedError
 
 
@@ -170,8 +170,22 @@ def _get_flux_flow_arrays(site, sw_samp_pts_dict, sw_samp_pts_df):
     if site not in sw_samp_pts_df.index:
         raise NotImplementedError('{} not implemented'.format(site))
 
-    if sw_samp_pts_df.loc[site, 'm_type'] == 'comp':
-        raise NotImplementedError #todo need to implment for ashley swaz make possible to include as many together as wanted
+    if sw_samp_pts_df.loc[site, 'bc_type'] == 'comb':
+        drn_array, sfr_array = np.zeros((smt.rows,smt.cols)), np.zeros((smt.rows,smt.cols))
+        sites = sw_samp_pts_df.loc[site,'comps']
+        for s in sites:
+            if sw_samp_pts_df.loc[s, 'bc_type'] == 'drn':
+                drn_array += sw_samp_pts_dict[s]
+            if sw_samp_pts_df.loc[s, 'bc_type'] == 'sfr':
+                sfr_array += sw_samp_pts_dict[s]
+        drn_array = drn_array.astype(bool)
+        if not drn_array.any():
+            drn_array = None
+
+        sfr_array = sfr_array.astype(bool)
+        if not sfr_array.any():
+            sfr_array = None
+
     else:
         if sw_samp_pts_df.loc[site, 'bc_type'] == 'drn':
             drn_array = sw_samp_pts_dict[site]
@@ -189,7 +203,7 @@ def _get_flux_flow_arrays(site, sw_samp_pts_dict, sw_samp_pts_df):
 def get_samp_points_df(recalc=False):
     """
     generate a dataframe with useful info about sampling points
-    bc_type: drn or sfr
+    bc_type: drn or sfr, comb
     m_type: min_flow, swaz, comp (component), other
     n: number of points
     comps: if None not a combination if valuse the group of other combination of multiple to use for the flux arrays
@@ -229,6 +243,14 @@ def get_samp_points_df(recalc=False):
                      'bc_type': 'drn',
                      'm_type': 'other',
                      'comps': None},
+        'drn_comps':{'path': "{}/m_ex_bd_inputs/raw_sw_samp_points/drn/components/*.shp".format(smt.sdp),
+                     'bc_type': 'drn',
+                     'm_type': 'comp',
+                     'comps': None},
+        'sfr_comps':{'path': "{}/m_ex_bd_inputs/raw_sw_samp_points/sfr/components/*.shp".format(smt.sdp),
+                     'bc_type': 'sfr',
+                     'm_type': 'comp',
+                     'comps': None},
     }
 
 
@@ -239,10 +261,12 @@ def get_samp_points_df(recalc=False):
             for name in names:
                 outdata.loc[name, itm] = vals[itm]
 
-    # todo add combined
+    outdata.loc['ashley_swaz'] = ['comb','swaz',-1,('drn_ashley_swaz','sfr_ashley_swaz')]
 
     samp_dict = _get_sw_samp_pts_dict(recalc)
     for itm in outdata.index:
+        if outdata.loc[itm,'bc_type'] == 'comb':
+            continue
         outdata.loc[itm, 'n'] = samp_dict[itm].sum()
 
     pickle.dump(outdata, open(pickle_path, mode='w'))
@@ -295,7 +319,9 @@ def _make_swaz_drn_points():
 
 if __name__ == '__main__':
     test = get_samp_points_df(True)
-    path = r"C:\Users\MattH\Desktop\forward_run_test\test_current\test_current.nam"
+    test2 = _get_sw_samp_pts_dict()
+    drn, sfr = _get_flux_flow_arrays('ashley_swaz',test2,test)
+    path = r"C:\Users\MattH\Desktop\mf_aw_ex\mf_aw_ex.nam"
 
-    test2 = get_flux_at_points(test.index,path,rel_kstpkpers='all')
-    print test2/86400
+    test3 = get_flux_at_points(test.index,path,rel_kstpkpers='all')
+    print(test3/86400)

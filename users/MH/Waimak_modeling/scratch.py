@@ -13,5 +13,5 @@ from pykrige.ok import OrdinaryKriging as okrig
 import geopandas as gpd
 from core.classes.hydro import hydro
 
-print('try options')
-m = flopy.modflow.Modflow.load(r"C:\Users\MattH\Desktop\to_test_load\m_ex_bd_va-with_n_carpet_try_options\m_ex_bd_va-to_test_load.nam")
+path=(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\from_gns\gen_rch\recharge_mul.ref")
+flopy.utils.Util2d.load_txt((364,365),path,float,'(FREE)')

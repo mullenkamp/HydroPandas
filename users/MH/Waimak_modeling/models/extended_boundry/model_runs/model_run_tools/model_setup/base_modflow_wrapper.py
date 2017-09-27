@@ -12,10 +12,12 @@ import flopy
 import os
 import shutil
 import warnings
+import pandas as pd
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 from copy import deepcopy
 from users.MH.Waimak_modeling.supporting_data_path import sdp
 from realisation_id import get_base_rch, get_base_well, get_model_name_path, get_model
+import zipfile
 
 org_data_dir = "{}/from_GNS".format(sdp)
 
@@ -128,7 +130,7 @@ def mod_gns_model(model_id, name, dir_path, safe_mode=True, stress_period_vals=N
     possible_pack = ['well', 'drain', 'recharge']
     for pac in possible_pack:
         if eval(pac) is not None:
-            if not isinstance(eval(pac),dict):
+            if not isinstance(eval(pac), dict):
                 raise ValueError('incorrect input type for {} expected dict'.format(pac))
 
     # check stress period data and raise warnings if it is not the same length as the number of periods
@@ -198,7 +200,7 @@ def mod_gns_model(model_id, name, dir_path, safe_mode=True, stress_period_vals=N
         warnings.warn('changing sfr package not fully implemented or checked, be cautious')
         if (not isinstance(stream, tuple) and not isinstance(stream, list)) and len(stream) != 2:
             raise ValueError('incorrect input type for stream')
-        segment_data = stream[0] #note this can be a straight dictionary and we're sorted for stress periods
+        segment_data = stream[0]  # note this can be a straight dictionary and we're sorted for stress periods
         reach_data = stream[1]
         if isinstance(segment_data, dict) or isinstance(reach_data, dict):
             raise NotImplementedError('varying SFR stress period data not yet implemented')
@@ -226,7 +228,8 @@ def mod_gns_model(model_id, name, dir_path, safe_mode=True, stress_period_vals=N
                                         segment_data=segment_data,
                                         channel_geometry_data=None,  # using rectangular profile so not used
                                         channel_flow_data=None,  # icalc = 1 or 2 so not using
-                                        dataset_5={0: [len(segment_data), 0, 0]}, #note fix this e.g. check it and propogate it if negative does not read new segment data
+                                        dataset_5={0: [len(segment_data), 0, 0]},
+                                        # note fix this e.g. check it and propogate it if negative does not read new segment data
                                         reachinput=True,  # using for reach input
                                         transroute=False,  # no transient sf routing
                                         tabfiles=False,  # not using
@@ -241,11 +244,11 @@ def mod_gns_model(model_id, name, dir_path, safe_mode=True, stress_period_vals=N
         m.get_package('BAS6').strt = flopy.utils.Util3d(m, temp.shape, temp.dtype, start_heads, temp.name)
 
     # hackish fix to flopy's SFR's poor support for changing to longer stress period simulation
-    if m.nper >1:
+    if m.nper > 1:
         m.get_package('SFR').nper = m.nper
         data_set5_vals = deepcopy(m.get_package('SFR').dataset_5[0])
         data_set5_vals[0] *= -1
-        data_set_5 ={0: m.get_package('SFR').dataset_5[0]}
+        data_set_5 = {0: m.get_package('SFR').dataset_5[0]}
         for per in range(m.nper):
             if per == 0:
                 continue
@@ -353,27 +356,73 @@ def change_stress_period_settings(m, spv):
         m.oc.stress_period_data = oc_stress_per_data
 
 
+def zip_non_essential_files(model_dir,include_list=False):
+    """
+    zips up the files with extensions matching the list in zip ext
+    :param model_dir: the model_ws e.g. working directory
+    :param include_list: Boolean if True also compress the list file
+    :return:
+    """
+    paths = os.listdir(model_dir)
+    zip_ext = ['.bas',
+               '.dis',
+               '.drn',
+               '.nwt',
+               '.oc',
+               '.rch',
+               '.sfr',
+               '.upw',
+               '.wel'
+               ]
+    if include_list:
+        zip_ext.append('.list')
+    zip_paths = []
+    zip_names = []
+    for path in paths:
+        if '.' + path.split('.')[-1] in zip_ext:
+            zip_paths.append(os.path.join(model_dir,path))
+            zip_names.append(path)
+    ZipFile = zipfile.ZipFile(os.path.join(model_dir, "non_essential_components.zip"), "w")
+
+    for path,name in zip(zip_paths,zip_names):
+        ZipFile.write(path, arcname=name, compress_type=zipfile.ZIP_DEFLATED)
+        os.remove(path)
+
+
 if __name__ == '__main__':
-    temp_id = 'test'
-    wells = get_base_well(temp_id)
-    wells = smt.convert_well_data_to_stresspd(wells)
+    testtype = 3
 
-    rch = get_base_rch(temp_id)
-    spv = {'nper': 7,
-           'perlen': 1,
-           'nstp': 1,
-           'steady': [False, False, False, False, False, False, False],
-           'tsmult': 1.1}
+    if testtype == 3:
+        m = import_gns_model('opt', 'test', r"C:\Users\MattH\Desktop\test_zipping")
+        m.write_input()
+        m.write_name_file()
+        m.run_model()
+    if testtype==2:
+        zip_non_essential_files(r"C:\Users\MattH\Desktop\opt_test_zipping - Copy")
+    if testtype == 1:
+        temp_id = 'opt'
+        m = import_gns_model(temp_id, 'test', r"C:\Users\MattH\Desktop\test_zipping")
+        m.write_input()
+        m.write_name_file()
+        wells = get_base_well(temp_id)
+        wells = smt.convert_well_data_to_stresspd(wells)
 
-    m = mod_gns_model(temp_id, 'a', r"C:\Users\MattH\Desktop\test", safe_mode=False,
-                      stress_period_vals=None,
-                      well={0:wells},
-                      drain=None,
-                      recharge={0:rch},
-                      stream=None, # not fully implemented, so have not checked
-                      mt3d_link=True,
-                      start_heads=None)
-    m.write_name_file()
-    m.write_input()
-    m.run_model()
-    print('done')
+        rch = get_base_rch(temp_id)
+        spv = {'nper': 7,
+               'perlen': 1,
+               'nstp': 1,
+               'steady': [False, False, False, False, False, False, False],
+               'tsmult': 1.1}
+
+        m = mod_gns_model(temp_id, 'a', r"C:\Users\MattH\Desktop\test", safe_mode=False,
+                          stress_period_vals=None,
+                          well={0: wells},
+                          drain=None,
+                          recharge={0: rch},
+                          stream=None,  # not fully implemented, so have not checked
+                          mt3d_link=True,
+                          start_heads=None)
+        m.write_name_file()
+        m.write_input()
+        m.run_model()
+        print('done')
