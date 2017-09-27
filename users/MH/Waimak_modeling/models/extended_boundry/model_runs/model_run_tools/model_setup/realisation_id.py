@@ -83,23 +83,14 @@ def get_base_rch(model_id, recalc=False):
 
 
 def get_rch_multipler(model_id):
-    model_ws = os.path.dirname(get_model_name_path(model_id))
-    exe_path = "{}/models_exes/pest_utilities/fac2real.exe".format(os.path.dirname(smt.sdp))
+    model_ws = os.path.dirname(get_model_name_path(model_id))  # for now assuming that SCI is mapped to P drive could fix in future
+    model_ws = os.path.splitunc(model_ws)[1].replace('/SCI','P:/')
+    exe_path = r"P:/Groundwater/Matt_Hanson/model_exes/fac2real.exe"
     rch_mult_path = os.path.join(model_ws, 'recharge_mul.ref')
     if not os.path.exists(rch_mult_path):
-        #todo unsuprisingly this is not working at the moment something about passing input
-        args = [exe_path,
-                'recharge.fac',
-                'f',
-                'rch_ppts.txt',
-                's',
-                '-20',
-                's',
-                '20',
-                'recharge_mul.ref',
-                '999']
-        fac2real = subprocess.Popen(args,stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=model_ws) #todo have not tried this
-        print(fac2real.communicate())
+        test = subprocess.call(exe_path + ' < fac2real_rech.in',cwd=model_ws,shell=True)
+        print(test)
+
 
     # to read in the possibly wrapped array use:
     outdata = flopy.utils.Util2d.load_txt((smt.rows, smt.cols), rch_mult_path, float, '(FREE)')

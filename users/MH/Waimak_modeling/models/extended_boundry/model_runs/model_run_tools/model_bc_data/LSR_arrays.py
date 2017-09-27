@@ -125,7 +125,7 @@ def _create_all_lsrm_arrays():
                                 period_length=10,
                                 return_irr_demand=True)
         outpath = os.path.join(lsrm_rch_base_dir,
-                               'arrays_for_modflow/{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
+                               'arrays_for_modflow/rch_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
         outpath_ird = os.path.join(lsrm_rch_base_dir,
                                'arrays_for_modflow/ird_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
         np.savetxt(outpath, temp)
@@ -145,7 +145,7 @@ def _create_all_lsrm_arrays():
         else:
             raise ValueError('shouldnt get here')
         at = 'mean'
-        per = 'full'
+        per = None
         rcp = 'RCPpast'
         print ((per, rcp, rcm, at, sen))
         hdf_path = _get_rch_hdf_path(base_dir=lsrm_rch_base_dir, naturalised=naturalised, pc5=pc5, rcm=rcm, rcp=rcp)
@@ -156,7 +156,7 @@ def _create_all_lsrm_arrays():
                                 period_length=10,
                                 return_irr_demand=True)
         outpath = os.path.join(lsrm_rch_base_dir,
-                               'arrays_for_modflow/{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
+                               'arrays_for_modflow/rch_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
         outpath_ird = os.path.join(lsrm_rch_base_dir,
                                    'arrays_for_modflow/ird_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
         np.savetxt(outpath, temp)
@@ -175,7 +175,7 @@ def _create_all_lsrm_arrays():
         else:
             raise ValueError('shouldnt get here')
         at = 'mean'
-        per = 'full'
+        per = None
         rcp = None
         rcm = None
         print ((per, rcp, rcm, at, sen))
