@@ -6,7 +6,7 @@ Date Created: 8/09/2017 8:39 AM
 
 from __future__ import division
 from core import env
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools import mod_gns_model
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools import mod_gns_model, zip_non_essential_files
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools import get_forward_wells, get_forward_rch
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import flopy
@@ -59,9 +59,11 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
     m = mod_gns_model(model_id,
                       name,
                       base_dir,
-                      well={0:well_data},
-                      recharge={0:rch},
-                      safe_mode=False)
+                      well={0: well_data},
+                      recharge={0: rch},
+                      safe_mode=False,
+                      mt3d_link=False
+                      )
 
     # below included for easy manipulation
     flopy.modflow.mfnwt.ModflowNwt(m,
@@ -102,8 +104,8 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
     m.write_name_file()
     m.write_input()
     success, buff = m.run_model()
-    #todo compress files after the fact? how hard is this
+    if success:
+        zip_non_essential_files(m.model_ws, include_list=True)
     #todo check
-    #todo I may want to check for a flag that forces NWT to report even if it doesn't converge
-    return name,success
+    return name, success
 

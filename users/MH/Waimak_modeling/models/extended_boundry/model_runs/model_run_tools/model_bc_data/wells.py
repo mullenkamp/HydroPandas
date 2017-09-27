@@ -190,7 +190,7 @@ def _get_rcp_past_irrd(rcm, recalc=False):
         return outdata
 
     rch_path = _get_rch_hdf_path(lsrm_rch_base_dir, False, False, rcm, 'RCPpast')
-    rch, outdata = map_rch_to_array(rch_path, None, None, rch_idx_shp_path, None, True)
+    rch, outdata = map_rch_to_array(rch_path, None, None, rch_idx_shp_path, None, True) #todo upload irrigation demand instead
     pickle.dump(outdata, open(pickle_path, 'w'))
     return outdata
 

@@ -11,9 +11,12 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
 from rch_support.map_rch_to_model_array import map_rch_to_array
 import os
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
+import itertools
+import numpy as np
 
 lsrm_rch_base_dir = env.gw_met_data('niwa_netcdf/lsrm/lsrm_results/water_year_means')
 rch_idx_shp_path = env.gw_met_data("niwa_netcdf/lsrm/lsrm_results/test/output_test2.shp")
+
 
 def get_forward_rch(model_id, naturalised, pc5=False, rcm=None, rcp=None, period=None, amag_type=None):
     """
@@ -36,16 +39,18 @@ def get_forward_rch(model_id, naturalised, pc5=False, rcm=None, rcp=None, period
 
     hdf_path = _get_rch_hdf_path(lsrm_rch_base_dir, naturalised, pc5, rcm, rcp)
     # get rch array from LSRM
+
     amalg_dict = {None: 'mean', 'mean': 'mean', 'tym': 'period_mean', 'low_3_m': '3_lowest_con_mean',
                   'min': 'lowest_year'}
 
     method = amalg_dict[amag_type]
-    rch_array = map_rch_to_array(hdf=hdf_path,
-                                 method=method,
-                                 period_center=period,
-                                 mapping_shp=rch_idx_shp_path,
-                                 period_length=10,
-                                 return_irr_demand=False)
+    sen = 'current'
+    if naturalised:
+        sen = 'nat'
+    if pc5:
+        sen = 'pc5'
+
+    rch_array = get_lsrm_base_array(sen, rcp, rcm, period, method)
 
     # apply multiplier array from pest parameraterisation
     rch_array *= get_rch_multipler(model_id)
@@ -54,7 +59,7 @@ def get_forward_rch(model_id, naturalised, pc5=False, rcm=None, rcp=None, period
     no_flow = smt.get_no_flow(0)
     no_flow[no_flow < 0] = 0
     rch_array[~no_flow.astype(bool)] = 0
-    return rch_array #todo check
+    return rch_array  # todo check
 
 
 def _get_rch_hdf_path(base_dir, naturalised, pc5, rcm, rcp):  # todo check
@@ -73,17 +78,136 @@ def _get_rch_hdf_path(base_dir, naturalised, pc5, rcm, rcp):  # todo check
         raise ValueError('rcm and rcp must either both be none or be defined')
     elif rcp is None and rcp is None:
         if naturalised:
-            outpath = os.path.join(base_dir, 'vcsn_no_irr.h5')
+            outpath = os.path.join(base_dir, 'wym_vcsn_no_irr.h5')
         elif pc5:
-            outpath = os.path.join(base_dir, 'vcsn_100perc.h5')
+            outpath = os.path.join(base_dir, 'wym_vcsn_100perc.h5')
         else:
-            outpath = os.path.join(base_dir, 'vcsn_80perc.h5')
+            outpath = os.path.join(base_dir, 'wym_vcsn_80perc.h5')
     else:
         if naturalised:
-            outpath = os.path.join(base_dir, "{}_{}_no_irr.h5".format(rcp, rcm))
+            outpath = os.path.join(base_dir, "wym_{}_{}_no_irr.h5".format(rcp, rcm))
         elif pc5:
-            outpath = os.path.join(base_dir, "{}_{}_100perc.h5".format(rcp, rcm))
+            outpath = os.path.join(base_dir, "wym_{}_{}_100perc.h5".format(rcp, rcm))
         else:
-            outpath = os.path.join(base_dir, "{}_{}_80perc.h5".format(rcp, rcm))
+            outpath = os.path.join(base_dir, "wym_{}_{}_80perc.h5".format(rcp, rcm))
 
     return outpath
+
+
+def _create_all_lsrm_arrays():
+    if not os.path.exists(os.path.join(lsrm_rch_base_dir, 'arrays_for_modflow')):
+        os.makedirs(os.path.join(lsrm_rch_base_dir, 'arrays_for_modflow'))
+
+    periods = range(2010, 2100, 10)
+    rcps = ['RCP4.5', 'RCP8.5']
+    rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
+    amalg_types = ['period_mean', '3_lowest_con_mean', 'lowest_year']
+    senarios = ['pc5', 'nat', 'current']
+    # cc stuff
+    for per, rcp, rcm, at, sen in itertools.product(periods, rcps, rcms, amalg_types, senarios):
+        print ((per, rcp, rcm, at, sen))
+        naturalised = False
+        pc5 = False
+        if sen == 'nat':
+            naturalised = True
+        elif sen == 'pc5':
+            pc5 = True
+        elif sen == 'current':
+            pass
+        else:
+            raise ValueError('shouldnt get here')
+
+        hdf_path = _get_rch_hdf_path(base_dir=lsrm_rch_base_dir, naturalised=naturalised, pc5=pc5, rcm=rcm, rcp=rcp)
+        temp,ird = map_rch_to_array(hdf=hdf_path,
+                                method=at,
+                                period_center=per,
+                                mapping_shp=rch_idx_shp_path,
+                                period_length=10,
+                                return_irr_demand=True)
+        outpath = os.path.join(lsrm_rch_base_dir,
+                               'arrays_for_modflow/{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
+        outpath_ird = os.path.join(lsrm_rch_base_dir,
+                               'arrays_for_modflow/ird_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
+        np.savetxt(outpath, temp)
+        np.savetxt(outpath_ird,[ird])
+
+
+    # RCP past
+    for rcm, sen in itertools.product(rcms, senarios):
+        naturalised = False
+        pc5 = False
+        if sen == 'nat':
+            naturalised = True
+        elif sen == 'pc5':
+            pc5 = True
+        elif sen == 'current':
+            pass
+        else:
+            raise ValueError('shouldnt get here')
+        at = 'mean'
+        per = 'full'
+        rcp = 'RCPpast'
+        print ((per, rcp, rcm, at, sen))
+        hdf_path = _get_rch_hdf_path(base_dir=lsrm_rch_base_dir, naturalised=naturalised, pc5=pc5, rcm=rcm, rcp=rcp)
+        temp, ird = map_rch_to_array(hdf=hdf_path,
+                                method=at,
+                                period_center=per,
+                                mapping_shp=rch_idx_shp_path,
+                                period_length=10,
+                                return_irr_demand=True)
+        outpath = os.path.join(lsrm_rch_base_dir,
+                               'arrays_for_modflow/{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
+        outpath_ird = os.path.join(lsrm_rch_base_dir,
+                                   'arrays_for_modflow/ird_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
+        np.savetxt(outpath, temp)
+        np.savetxt(outpath_ird, [ird])
+
+    # VCSN
+    for sen in senarios:
+        naturalised = False
+        pc5 = False
+        if sen == 'nat':
+            naturalised = True
+        elif sen == 'pc5':
+            pc5 = True
+        elif sen == 'current':
+            pass
+        else:
+            raise ValueError('shouldnt get here')
+        at = 'mean'
+        per = 'full'
+        rcp = None
+        rcm = None
+        print ((per, rcp, rcm, at, sen))
+        hdf_path = _get_rch_hdf_path(base_dir=lsrm_rch_base_dir, naturalised=naturalised, pc5=pc5, rcm=rcm, rcp=rcp)
+        temp, ird = map_rch_to_array(hdf=hdf_path, #handle IRD as text files for now
+                                method=at,
+                                period_center=per,
+                                mapping_shp=rch_idx_shp_path,
+                                period_length=10,
+                                     return_irr_demand=True)
+        outpath = os.path.join(lsrm_rch_base_dir,
+                               'arrays_for_modflow/rch_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
+        outpath_ird = os.path.join(lsrm_rch_base_dir,
+                               'arrays_for_modflow/ird_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
+        np.savetxt(outpath, temp)
+        np.savetxt(outpath_ird, [ird])
+
+
+def get_lsrm_base_array(sen, rcp, rcm, per, at):
+    path = os.path.join(lsrm_rch_base_dir, 'arrays_for_modflow/rch_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
+    if not os.path.exists(path):
+        raise ValueError('array not implemented, why are you using {}'.format((sen, rcp, rcm, per, at)))
+
+    return np.loadtxt(path)
+
+def get_ird_base_array(sen, rcp, rcm, per, at): #todo propogate through and check IRD values
+    path = os.path.join(lsrm_rch_base_dir, 'arrays_for_modflow/ird_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
+    if not os.path.exists(path):
+        raise ValueError('array not implemented, why are you using {}'.format((sen, rcp, rcm, per, at)))
+
+    return np.loadtxt(path)[0]
+
+
+if __name__ == '__main__':
+    _create_all_lsrm_arrays()
