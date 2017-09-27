@@ -74,9 +74,12 @@ def pts_sql_join(pts, sql_codes):
     """
     from core.ecan_io import rd_sql
     from geopandas.tools import sjoin
+    from core.ecan_io.SQL_databases import sql_arg
+
+    sql1 = sql_arg()
 
     for i in sql_codes:
-        poly = rd_sql(code=i)
+        poly = rd_sql(**sql1.get_dict(i))
         pts = sjoin(pts, poly, how='left', op='within').drop('index_right', axis=1)
 
     return(pts)

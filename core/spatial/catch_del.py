@@ -98,10 +98,17 @@ def rec_catch_del(sites_shp, sites_col='site', catch_output=None):
     catch_table = 'MFE_NZTM_RECWATERSHEDCANTERBURY'
     catch_cols = ['NZREACH']
 
+    ### Modifications {NZREACH: {NZTNODE/NZFNODE: node # to change}}
+    mods = {13053151: {'NZTNODE': 13055874}, 13048353: {'NZTNODE': 13048851}, 13048498: {'NZTNODE': 13048851}}
+
     ### Load data
     rec_streams = rd_sql(server, db, streams_table, streams_cols, geo_col=True)
     rec_catch = rd_sql(server, db, catch_table, catch_cols, geo_col=True)
     pts = select_sites(sites_shp)
+
+    ### make mods
+    for i in mods:
+        rec_streams.loc[rec_streams['NZREACH'] == i, mods[i].keys()] = mods[i].values()
 
     ### Find closest REC segment to points
     pts_seg = closest_line_to_pts(pts, rec_streams, line_site_col='NZREACH', dis=400)

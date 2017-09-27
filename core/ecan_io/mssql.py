@@ -4,7 +4,7 @@ Functions for importing mssql data.
 """
 
 
-def rd_sql(server=None, database=None, table=None, col_names=None, where_col=None, where_val=None, where_op='AND', code=None, geo_col=False, epsg=2193, from_date=None, to_date=None, date_col=None, rename_cols=None, stmt=None, export=False, path='save.csv'):
+def rd_sql(server=None, database=None, table=None, col_names=None, where_col=None, where_val=None, where_op='AND', geo_col=False, epsg=2193, from_date=None, to_date=None, date_col=None, rename_cols=None, stmt=None, export=False, path='save.csv'):
     """
     Function to import data from a MSSQL database. Specific columns can be selected and specific queries within columns can be selected. Requires the pymssql package, which must be separately installed.
 
