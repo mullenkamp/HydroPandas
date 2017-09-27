@@ -25,7 +25,7 @@ swaz = 'all'
 allo_col = ['allo']
 crc2 = 'all'
 take_type = 'all'
-use_type = 'all'
+use_type = ['irrigation']
 #gwaz = ['Valetta', 'Mayfield-Hinds']
 #shp = r'C:\ecan\local\Projects\requests\hinds_MAR\2017-03-08\poly1.shp'
 
@@ -34,7 +34,7 @@ use_type = 'all'
 #take_type = ['Take Surface Water']
 years = 'all'
 
-debug = False
+debug = True
 sd_only = False
 agg_yr = True
 
@@ -88,6 +88,8 @@ allo_plt(lw, start='2000', export_path=export_fig_path, export_name=use_name, en
 allo_plt(lw, start='1970', cat=['tot_allo'], export_path=export_fig_path, export_name=allo_name)
 
 lw2 = lw.loc(axis=0)[:, 'Take Groundwater']
+lw2 = lw.loc(axis=0)[:, 'Take Surface Water']
+
 allo_plt(lw2, start='2000', export_path=export_fig_path, export_name=use_name, end='2017')
 allo_plt(lw2, start='1970', cat=['tot_allo'], export_path=export_fig_path, export_name=allo_name, end='2017')
 
@@ -102,13 +104,21 @@ allo_plt(lw2, start='1970', cat=['tot_allo'], export_path=export_fig_path, expor
 #otop11 = otop2[otop2.usage_m3.notnull()]
 #
 
+lw2 = lw[lw.take_type == 'Take Groundwater']
+lw2 = lw[lw.take_type == 'Take Surface Water']
+
+lw2.sort_values('allo').iloc[-20:]
+lw2[lw2.date.isin(['2017-06-30', '2016-06-30'])].sort_values('allo').iloc[-10:]
 
 
+a1 = allo[allo.crc == 'CRC160803']
+a1.iloc[0]
 
+a1 = allo[allo.crc == 'CRC167218']
+a1.iloc[0]
 
-
-
-
+a1 = allo[allo.crc == 'CRC990675.1']
+a1.iloc[0]
 
 
 
