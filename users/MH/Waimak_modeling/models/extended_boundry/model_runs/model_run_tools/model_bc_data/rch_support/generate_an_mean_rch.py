@@ -15,7 +15,7 @@ test_path = r"K:\niwa_netcdf\lsrm\lsrm_results\vcsn_65perc.h5"
 
 
 def gen_water_year_average_lsr_irr(path):
-    org_data = pd.read_hdf(path).drop(['x', 'y','irr_eff', 'irr_trig','non_irr_aet', 'irr_aet','irr_paw', 'w_irr'], axis=1)
+    org_data = pd.read_hdf(path).drop(['x', 'y','irr_eff', 'irr_trig','non_irr_aet', 'irr_aet','irr_paw', 'w_irr'], axis=1, errors='ignore')
     if 'irr_drainage' not in org_data.keys():
         org_data.loc[:, 'irr_drainage'] = 0
     if 'irr_demand' not in org_data.keys():
