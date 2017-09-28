@@ -263,7 +263,18 @@ def allo_proc(in_allo=True, corr_csv='S:/Surface Water/shared/base_data/database
     init_cols = ['crc', 'take_type', 'allo_block', 'wap', 'use_type', 'max_rate', 'daily_vol', 'cav', 'max_vol', 'return_period', 'from_date', 'to_date', 'status_details']
     t1 = [cols.remove(i) for i in init_cols]
     cols[0:0] = init_cols
-    allo3 = allo2[cols]
+    allo3 = allo2[cols].copy()
+
+    #### Calc irr area where not populated
+    irr_crc1 = allo3[allo3.use_type == 'irrigation'].copy()
+    irr_crc2 = irr_crc1.groupby(['crc'])[['irr_area', 'daily_vol']].sum()
+    irr_crc3 = irr_crc2[irr_crc2.irr_area > 0].copy()
+    irr_crc3.loc[:, 'irr_day_ratio'] = irr_crc3['daily_vol']/(irr_crc3.irr_area * 10)
+    irr_crc4 = irr_crc3[(irr_crc3['irr_day_ratio'] >= 2) & (irr_crc3['irr_day_ratio'] <= 6)]
+    mm_hect = irr_crc4['irr_day_ratio'].mean()
+
+    allo3.loc[:, 'irr_area_est'] = allo3['irr_area']
+    allo3.loc[~allo3.crc.isin(irr_crc4.index), 'irr_area_est'] = (allo3.loc[~allo3.crc.isin(irr_crc4.index), 'daily_vol'] / mm_hect / 10).round(1)
 
     #### Make corrections
     allo3.loc[(allo3['take_type'] == 'Take Groundwater') & (allo3['in_sw_allo'] == 'YES'), 'in_gw_allo'] = 'YES'
