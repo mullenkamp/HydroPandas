@@ -12,9 +12,19 @@ from core.ecan_io import rd_sql, sql_db
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import geopandas as gpd
 import rasterio
+import os
+from future.builtins import input
 
 
-def create_all_well_row_col():
+def get_all_well_row_col(recalc=False):
+    if os.path.exists('{}/all_wells_row_col_layer.csv'.format(smt.sdp)) and not recalc:
+        out_data = pd.read_csv('{}/all_wells_row_col_layer.csv'.format(smt.sdp),index_col=0)
+        return out_data
+
+    cont = input('are you sure you want to calculate all wells layer, row, col this takes several hours:\n {} \n continue y/n\n').lower()
+    if cont != 'y':
+        raise ValueError('script aborted')
+
     elv_sheet = pd.read_excel(env.sci('Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/xyz.xlsx'),
                                                                                                                              index_Col=0)
     elv_sheet = elv_sheet.set_index('well')
@@ -130,7 +140,8 @@ def create_all_well_row_col():
         out_data.loc[i, 'mz'] = mz
 
     out_data.to_csv('{}/all_wells_row_col_layer.csv'.format(smt.sdp))
+    return out_data
 
 if __name__ == '__main__':
     # note this takes some time to run
-    create_all_well_row_col()
+    get_all_well_row_col()

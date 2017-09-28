@@ -74,9 +74,12 @@ def pts_sql_join(pts, sql_codes):
     """
     from core.ecan_io import rd_sql
     from geopandas.tools import sjoin
+    from core.ecan_io.SQL_databases import sql_arg
+
+    sql1 = sql_arg()
 
     for i in sql_codes:
-        poly = rd_sql(code=i)
+        poly = rd_sql(**sql1.get_dict(i))
         pts = sjoin(pts, poly, how='left', op='within').drop('index_right', axis=1)
 
     return(pts)
@@ -134,7 +137,12 @@ def xy_to_gpd(id_col, x_col, y_col, df=None, crs=2193):
         geometry = [Point(xy) for xy in zip(x1, y1)]
     if isinstance(id_col, str) & (df is not None):
         id_data = df[id_col]
-    elif isinstance(id_col, (list, ndarray, Series, Index)):
+    elif isinstance(id_col, list):
+        if df is not None:
+            id_data = df[id_col]
+        else:
+            id_data = id_col
+    elif isinstance(id_col, (ndarray, Series, Index)):
         id_data = id_col
     else:
         raise ValueError('id_data could not be determined')
@@ -339,11 +347,20 @@ def closest_line_to_pts(pts, lines, line_site_col, dis=None):
             lines1 = lines[lines.intersects(bound)]
         else:
             lines1 = lines.copy()
+        if lines1.empty:
+            continue
         near1 = lines1.distance(pts.geometry[i]).idxmin()
         line_seg1 = lines1.loc[near1, line_site_col]
         pts_seg[line_site_col] = line_seg1
         pts_line_seg = concat([pts_line_seg, pts_seg])
 #        print(i)
+
+    ### Determine points that did not find a line
+    mis_pts = pts.loc[~pts.index.isin(pts_line_seg.index)]
+    if not mis_pts.empty:
+        print(mis_pts)
+        print('Did not find a line segment for these sites')
+
     return(pts_line_seg)
 
 

@@ -4,7 +4,7 @@ Functions for importing mssql data.
 """
 
 
-def rd_sql(server=None, database=None, table=None, col_names=None, where_col=None, where_val=None, where_op='AND', code=None, geo_col=False, epsg=2193, from_date=None, to_date=None, date_col=None, data_source_csv='ecan_mssql_data_sources.csv', stmt=None, export=False, path='save.csv'):
+def rd_sql(server=None, database=None, table=None, col_names=None, where_col=None, where_val=None, where_op='AND', geo_col=False, epsg=2193, from_date=None, to_date=None, date_col=None, rename_cols=None, stmt=None, export=False, path='save.csv'):
     """
     Function to import data from a MSSQL database. Specific columns can be selected and specific queries within columns can be selected. Requires the pymssql package, which must be separately installed.
 
@@ -27,30 +27,12 @@ def rd_sql(server=None, database=None, table=None, col_names=None, where_col=Non
     path -- The path and csv name for the export if 'export' is True (str).
     """
     from pymssql import connect
-    from pandas import read_sql, read_csv, to_datetime, Timestamp
-    from os.path import join, dirname, realpath
-    from core.ecan_io import mssql
-    from numpy import ceil
-
-    script_dir = dirname(mssql.__file__)
+    from pandas import read_sql, to_datetime, Timestamp
 
     if stmt is None:
 
-        if code is not None:
-            dbs = read_csv(join(script_dir, data_source_csv))
-            dbs_code = dbs[dbs.Code == code]
-            server = dbs_code.Server.values[0]
-            database = dbs_code.Database.values[0]
-            table = dbs_code.Table.values[0]
-            col_names = dbs_code.db_fields.values[0].split(', ')
-            rename_cols = dbs_code.rename_fields.values[0].split(', ')
-            geo_col = dbs_code.geo_col.values[0]
-            if dbs_code.where_col.values[0] != 'None':
-                where_col = dbs_code.where_col.values[0]
-                where_val = dbs_code.where_val.values[0].split(', ')
-        else:
-            if (server is None) or (database is None) or (table is None):
-                raise ValueError('Must provide input for server, database, and table.')
+        if (server is None) or (database is None) or (table is None):
+            raise ValueError('Must provide input for server, database, and table.')
 
         if col_names is not None:
             if isinstance(col_names, (str, int)):
@@ -115,7 +97,7 @@ def rd_sql(server=None, database=None, table=None, col_names=None, where_col=Non
 
     conn = connect(server, database=database)
     df = read_sql(stmt1, conn)
-    if code is not None:
+    if rename_cols is not None:
         df.columns = rename_cols
 
     ## Read in geometry if required
@@ -142,19 +124,40 @@ def rd_sql(server=None, database=None, table=None, col_names=None, where_col=Non
     return(df)
 
 
-def rd_site_geo():
-    """
-    Convenience function to read in all flow sites shapefile and reformat.
-    """
-    from core.ecan_io import rd_sql
-    site_geo = rd_sql('SQL2012PROD05', 'GIS', 'vGAUGING_NZTM', col_names=['SiteNumber', 'RIVER', 'SITENAME'], geo_col=True)
-    site_geo.columns = ['site', 'river', 'site_name', 'geometry']
-    site_geo['river'] = site_geo.river.apply(lambda x: x.title())
-    site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.title())
-    site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.replace(' (Recorder)', ''))
-    site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.replace('Sh', 'SH'))
-    site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.replace('Ecs', 'ECS'))
-    return(site_geo)
+#def rd_site_geo():
+#    """
+#    Convenience function to read in all flow sites shapefile and reformat.
+#    """
+#    from core.ecan_io import rd_sql
+#    site_geo = rd_sql('SQL2012PROD05', 'GIS', 'vGAUGING_NZTM', col_names=['SiteNumber', 'RIVER', 'SITENAME'], geo_col=True)
+#    site_geo.columns = ['site', 'river', 'site_name', 'geometry']
+#    site_geo['river'] = site_geo.river.apply(lambda x: x.title())
+#    site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.title())
+#    site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.replace(' (Recorder)', ''))
+#    site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.replace('Sh', 'SH'))
+#    site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.replace('Ecs', 'ECS'))
+#    return(site_geo)
+
+
+def rd_sw_rain_geo(sites=None):
+    from core.spatial import xy_to_gpd
+    from pandas import to_numeric
+
+    if sites is not None:
+        site_geo = rd_sql('SQL2012PROD05', 'Bgauging', 'RSITES', col_names=['SiteNumber', 'River', 'SiteName', 'NZTMX', 'NZTMY'], where_col='SiteNumber', where_val=sites)
+
+    site_geo.columns = ['site', 'river', 'name', 'NZTMX', 'NZTMY']
+    site_geo.loc[:, 'site'] = to_numeric(site_geo.loc[:, 'site'], errors='ignore')
+
+    site_geo2 = xy_to_gpd(df=site_geo, id_col=['site', 'river', 'name'], x_col='NZTMX', y_col='NZTMY')
+    site_geo3 = site_geo2.loc[site_geo2.site > 0, :]
+    site_geo3.loc[:, 'site'] = site_geo3.loc[:, 'site'].astype('int32')
+    site_geo3['river'] = site_geo3.river.apply(lambda x: x.title())
+    site_geo3['name'] = site_geo3.name.apply(lambda x: x.title())
+    site_geo3['name'] = site_geo3.name.apply(lambda x: x.replace(' (Recorder)', ''))
+    site_geo3['name'] = site_geo3.name.apply(lambda x: x.replace('Sh', 'SH'))
+    site_geo3['name'] = site_geo3.name.apply(lambda x: x.replace('Ecs', 'ECS'))
+    return(site_geo3.set_index('site'))
 
 
 def rd_squalarc(sites, mtypes=None, from_date=None, to_date=None, convert_dtl=False, dtl_method=None, export_path=None):

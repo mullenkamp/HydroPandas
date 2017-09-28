@@ -69,7 +69,7 @@ def flow_stats(x, below_median=False, export_path=None):
     return(df2)
 
 
-def malf7d(x, w_month='JUN', max_missing=90, malf_min=0.9, intervals=[10, 20, 30, 40], return_alfs=False, num_years=False, export=False, export_path='', export_name_malf='malf.csv', export_name_alf='alf.csv', export_name_mis='alf_missing_data.csv'):
+def malf7d(x, w_month='JUN', max_missing=90, malf_min=0.9, intervals=[10, 20, 30, 40], return_alfs=False, num_years=False, export_path=None, export_name_malf='malf.csv', export_name_alf='alf.csv', export_name_mis='alf_missing_data.csv'):
     """
     Function to create a 7 day mean annual low flow estimate from flow time
     series. When return_alfs is False, then the output is only a dataframe of the MALFs by intervals. When return_alfs is True, then the output will include the MALFs, the annual ALFs, the number of missing days per year, the number of days (out of 20) that have data surrounding the minimum flow value for that year, and the dates of the minimum flow per year.
@@ -184,14 +184,14 @@ def malf7d(x, w_month='JUN', max_missing=90, malf_min=0.9, intervals=[10, 20, 30
 
     ## Export data and return dataframes
     if return_alfs:
-        if export:
+        if isinstance(export_path, str):
             malf.to_csv(path.join(export_path, export_name_malf))
             df4.round(3).to_csv(path.join(export_path, export_name_alf))
             df_missing.to_csv(path.join(export_path, export_name_mis))
 
         return([malf, df4.round(3), df_missing, n_days_min, min_date])
     else:
-        if export:
+        if isinstance(export_path, str):
             malf.to_csv(path.join(export_path, export_name_malf))
 
         return(malf)
@@ -429,7 +429,7 @@ def flow_reg(x, y, min_obs=10, p_val=0.05, logs=False, make_ts=False, cut_y=Fals
             y_new.loc[xy[reg1['Y_loc']].index] = y[i]
 
             ## Put into list container
-            y_new.name = int(reg1['Y_loc'])
+            y_new.name = reg1['Y_loc']
             y_new1.append(y_new.round(3))
 
         ## Make into dataframe

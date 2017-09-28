@@ -126,7 +126,7 @@ def rd_hydstra_db(sites, start_time=0, end_time=0, datasource='A', data_type='me
         end_time = Timestamp(end_time).strftime('%Y%m%d%H%M%S')
 
     ### Run instance of hydllp
-    data = DataFrame()
+    data = []
     for i in sites2:
         if print_sites:
             print(i)
@@ -134,12 +134,13 @@ def rd_hydstra_db(sites, start_time=0, end_time=0, datasource='A', data_type='me
         hyd = openHyDb()
         with hyd as h:
             df = h.get_ts_traces(i, start_time=start_time, end_time=end_time, datasource=datasource, data_type=data_type, varfrom=varfrom, varto=varto, interval=interval, multiplier=multiplier, min_qual=min_qual, return_qual=return_qual)
-        data = concat([data, df])
+        data.append(df)
+    data2 = concat(data)
 
     if export:
-        data.to_csv(export_path)
+        data2.to_csv(export_path)
 
-    return(data)
+    return(data2)
 
 #Define a context manager generator
 #that creates and releases the connection to the hydstra server

@@ -9,29 +9,10 @@ from geopandas import read_file
 from core.ts.sw import stream_nat
 from core.classes.hydro import hydro
 from os.path import join
-from core.ecan_io import rd_sql
+from core.ecan_io import rd_sql, rd_sw_rain_geo
 
 from core.spatial.network import find_upstream_rec, extract_rec_catch, agg_rec_catch
 from core.spatial.vector import closest_line_to_pts
-
-###################################
-#### Functions
-
-
-def rd_sw_rain_geo(sites=None):
-    from core.spatial import xy_to_gpd
-    from pandas import to_numeric
-    if sites is not None:
-        site_geo = rd_sql('SQL2012PROD05', 'Bgauging', 'RSITES', col_names=['SiteNumber', 'River', 'SiteName', 'NZTMX', 'NZTMY'], where_col='SiteNumber', where_val=sites)
-
-    site_geo.columns = ['site', 'river', 'name', 'NZTMX', 'NZTMY']
-    site_geo.loc[:, 'site'] = to_numeric(site_geo.loc[:, 'site'], errors='ignore')
-
-    site_geo2 = xy_to_gpd(df=site_geo, id_col=['site', 'river', 'name'], x_col='NZTMX', y_col='NZTMY')
-    site_geo3 = site_geo2.loc[site_geo2.site > 0, :]
-    site_geo3.loc[:, 'site'] = site_geo3.loc[:, 'site'].astype('int32')
-    return(site_geo3.set_index('site'))
-
 
 ###################################
 #### Parameters

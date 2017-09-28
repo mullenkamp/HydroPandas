@@ -14,6 +14,7 @@ def ros_proc(allo_use, date_col='date', allo_col='allo', min_days=150, export_us
     from pandas import merge, to_datetime
     from core.ecan_io import rd_sql
     from core.misc import save_df
+    from core.ecan_io.SQL_databases import sql_arg
 
     def resample2(df, min_days=20):
         from numpy import nan
@@ -47,11 +48,11 @@ def ros_proc(allo_use, date_col='date', allo_col='allo', min_days=150, export_us
 
     #########################################
     ### Read in data
+    sql1 = sql_arg()
 
-    restr = rd_sql(code='lowflow_restr_day')
-    crc = rd_sql(code='lowflow_band_crc').drop('active', axis=1)
-    sites = rd_sql(code='lowflow_gauge').drop(['active', 'DB'], axis=1)
-
+    restr = rd_sql(**sql1.get_dict('lowflow_restr_day'))
+    crc = rd_sql(**sql1.get_dict('lowflow_band_crc')).drop('active', axis=1)
+    sites = rd_sql(**sql1.get_dict('lowflow_gauge')).drop(['active', 'DB'], axis=1)
 
     ## Rename columns
 

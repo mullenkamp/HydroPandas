@@ -260,7 +260,7 @@ def rd_niwa_vcsn(mtypes, sites, nc_path=r'\\fileservices02\ManagedShares\Data\Vi
     lon1 = ds1.longitude.values
     lat2 = lat1[in1d(lat1, site_loc1.y.unique())]
     lon2 = lon1[in1d(lon1, site_loc1.x.unique())]
-    ds2 = ds1.sel(longitude=lon2, latitude=lat2, time=time1.values)
+    ds2 = ds1.loc[{'longitude': lon2, 'time': time1.values, 'latitude': lat2}]
     ds3 = ds2[mtypes1]
 
     ### Convert to DataFrame
@@ -292,5 +292,154 @@ def rd_niwa_vcsn(mtypes, sites, nc_path=r'\\fileservices02\ManagedShares\Data\Vi
     if isinstance(netcdf_out, str):
         ds3.to_netcdf(netcdf_out)
     return(df4)
+
+
+def rd_niwa_climate_proj(mtypes, bound_shp, nc_dir, buffer_dis=0, from_date=None, to_date=None, out_crs=None, netcdf_out=None):
+    """
+    Function to read in the NIWA vcsn netcdf file and output the data as a dataframe.
+
+    mtypes -- A string or list of the measurement types (either 'precip', or 'PET').\n
+    sites -- Either a list of vcsn site names or a polygon of the area of interest.\n
+    nc_path -- The path to the vcsn nc file.\n
+    vcsn_sites_csv -- The csv file that relates the site name to coordinates.\n
+    id_col -- The site name column in vcsn_sites_csv.\n
+    x_col - The x column name in vcsn_sites_csv.\n
+    y_col -- The y column name in vcsn_sites_csv.\n
+    include_sites -- Should the site names be added to the output?\n
+    out_crs -- The crs epsg number for the output coordinates if different than the default WGS85 (e.g. 2193 for NZTM).
+    """
+    from core.misc import rd_dir
+    from os.path import join
+    from core.ecan_io.met import sel_xy_nc
+
+    file_name = {'precip': 'TotalPrecipCorr', 'PET': 'PE'}
+    mtype_name = {'precip': 'rain', 'PET': 'pe'}
+
+    ### Select mtypes
+    if isinstance(mtypes, str):
+        mtypes1 = [mtypes]
+    else:
+        mtypes1 = mtypes
+    niwa_mtypes = [mtype_name[i] for i in mtypes1]
+
+    ### Read and extract data from netcdf files
+    files1 = rd_dir(nc_dir, 'nc')
+    for mt in mtypes1:
+        niwa_mtype = mtype_name[mt]
+        niwa_file_name = file_name[mt]
+        file1 = [i for i in files1 if niwa_file_name in i][0]
+
+        ds3 = sel_xy_nc(bound_shp, join(nc_dir, file1), nc_vars=[niwa_mtype], buffer_dis=buffer_dis, from_date=from_date, to_date=to_date, out_type='xarray')
+
+        if 'ds4' in locals():
+            ds4 = ds4.merge(ds3)
+        else:
+            ds4 = ds3
+
+    ### Convert to DataFrame
+    df1 = ds4.to_dataframe().reset_index()
+    df1.rename(columns={'latitude': 'y', 'longitude': 'x'}, inplace=True)
+    df1 = df1.dropna()
+    df1.set_index('time', inplace=True)
+    df1_grp = df1.groupby(['x', 'y'])
+    df2 = df1_grp.resample('D')[niwa_mtypes].first().interpolate().round(1).reset_index()
+
+    ### Return
+    if isinstance(netcdf_out, str):
+        ds4.to_netcdf(netcdf_out)
+    ds4.close()
+    return(df2)
+
+
+def rd_niwa_data_lsrm(bound_shp, nc_dir, vcsn_sites_csv=r'\\fileservices02\ManagedShares\Data\VirtualClimate\GIS\niwa_vcsn_wgs84.csv', id_col='Network', x_col='deg_x', y_col='deg_y', buffer_dis=0, from_date=None, to_date=None, out_crs=None, netcdf_out=None):
+    """
+    Convienence function to read in either the past VCSN data or the projections.
+    """
+    from core.ecan_io.met import rd_niwa_climate_proj, rd_niwa_vcsn
+    from os import path
+
+    ### Determine whether the input is past data or projections
+    past_vcsn = 'vcsn_precip_et_2016-06-06.nc'
+    name_split = path.split(nc_dir)[1]
+
+    ### Run function to get data
+    if name_split == past_vcsn:
+        ds5 = rd_niwa_vcsn(['precip', 'PET'], bound_shp, buffer_dis=buffer_dis, from_date=from_date, to_date=to_date, out_crs=out_crs, netcdf_out=netcdf_out)
+    else:
+        ds5 = rd_niwa_climate_proj(['precip', 'PET'], bound_shp, nc_dir=nc_dir, buffer_dis=buffer_dis, from_date=from_date, to_date=to_date, out_crs=out_crs, netcdf_out=netcdf_out)
+    return(ds5)
+
+
+def sel_xy_nc(bound_shp, nc_path, x_col='longitude', y_col='latitude', time_col='time', nc_vars=None, buffer_dis=0, from_date=None, to_date=None, nc_crs=4326, out_crs=None, out_type='pandas'):
+    """
+    Function to select space and time data from a netcdf file using a polygon shapefile.
+    """
+    from pandas import Series, merge, to_datetime
+    from core.spatial import xy_to_gpd, convert_crs
+    from geopandas import read_file
+    from numpy import ndarray
+    from xarray import open_dataset
+
+    ### Process the boundary layer
+    bound = read_file(bound_shp).buffer(buffer_dis).to_crs(convert_crs(nc_crs))
+    x_min, y_min, x_max, y_max = bound.unary_union.bounds
+
+    ### Read and extract data from netcdf files
+    ds1 = open_dataset(nc_path)
+    time1 = to_datetime(ds1[time_col].values)
+    if isinstance(from_date, str):
+        time1 = time1[time1 >= from_date]
+    if isinstance(to_date, str):
+        time1 = time1[time1 <= to_date]
+    lat1 = ds1[y_col].values
+    lon1 = ds1[x_col].values
+    lat2 = lat1[(lat1 >= y_min) & (lat1 <= y_max)]
+    lon2 = lon1[(lon1 >= x_min) & (lon1 <= x_max)]
+    ds2 = ds1.loc[{x_col: lon2, time_col: time1.values, y_col: lat2}]
+
+#    coords1 = ds2.coords.keys()
+#    dims1 = ds2.dims.keys()
+
+    ## Select mtypes
+    if isinstance(nc_vars, str):
+        ds3 = ds2[[nc_vars]]
+    elif isinstance(nc_vars, (list, ndarray, Series)):
+        ds3 = ds2[nc_vars]
+    elif nc_vars is None:
+        ds3 = ds2
+
+    ### Convert to different crs if needed
+    if out_crs is not None:
+        df1 = ds3.to_dataframe().reset_index()
+        xy1 = ds3[[x_col, y_col]].copy()
+        xy2 = xy1.to_dataframe().reset_index()
+        crs1 = convert_crs(out_crs)
+        new_gpd1 = xy_to_gpd(xy2.index, x_col, y_col, xy2, nc_crs)
+        new_gpd2 = new_gpd1.to_crs(crs1)
+        site_loc2 = xy2.copy()
+        site_loc2['x_new'] = new_gpd2.geometry.apply(lambda j: j.x)
+        site_loc2['y_new'] = new_gpd2.geometry.apply(lambda j: j.y)
+
+        df2 = merge(df1, site_loc2[[x_col, y_col, 'x_new', 'y_new']], on=[x_col, y_col], how='left')
+        df3 = df2.drop([x_col, y_col], axis=1).rename(columns={'x_new': x_col, 'y_new': y_col})
+        ds1.close()
+        return(df3)
+    elif out_type == 'pandas':
+        df1 = ds3.to_dataframe().reset_index()
+        ds1.close()
+        return(df1)
+    elif out_type == 'xarray':
+        return(ds3)
+
+
+
+
+
+
+
+
+
+
+
 
 

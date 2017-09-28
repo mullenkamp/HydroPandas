@@ -346,8 +346,8 @@ def reg_plot(x, y, freq='day', n_periods=1, fun='mean', min_ratio=0.75, digits=3
         ax.set_ylim(0, y_max)
 #    else:
 #        ax.set_ylim(0, y_lim[1])
-    plt.xlabel(col_names[0] + ' recorder $(m^{3}/s)$')
-    plt.ylabel(col_names[1] + ' recorder $(m^{3}/s)$')
+    plt.xlabel(col_names[0] + ' $(m^{3}/s)$')
+    plt.ylabel(col_names[1] + ' $(m^{3}/s)$')
 
     plot2 = ax.get_figure()
     if export:

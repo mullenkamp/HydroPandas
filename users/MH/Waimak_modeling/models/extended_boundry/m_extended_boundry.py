@@ -117,11 +117,12 @@ def create_m_extended_boundry(name, dir_path, safe_mode=True, mt3d_link=False, v
 
     return m
 if __name__ == '__main__':
-    outdir = r"C:\Users\MattH\Desktop\data_to_brioch_14-08-2017"
+    outdir = r"C:\Users\MattH\Desktop\to_test_write"
     if not os.path.exists(outdir):
         os.makedirs(outdir)
-    m = create_m_extended_boundry('with_ncarpet_14-08-2017',r"{}\with_n_carpet".format(outdir),safe_mode=False,
+    m = create_m_extended_boundry('to_test_load',r"{}\with_n_carpet".format(outdir),safe_mode=False,
                                   mt3d_link=True, n_car_dns=True)
     m.write_name_file()
     m.write_input()
     m.check()
+    print('done')
