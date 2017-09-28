@@ -28,7 +28,7 @@ def plot_hydrograph(self, flow_sites=None, precip_sites=None, x_period='day', x_
     return(plt1)
 
 
-def plot_reg(self, x_mtype, x_site, y_mtype, y_site, freq='day', n_periods=1, fun='mean', min_ratio=0.75, digits=3, x_max=None, y_max=None, logs=False, export=False, export_path='flow_reg.png'):
+def plot_reg(self, x_mtype, x_site, y_mtype, y_site, freq='day', n_periods=1, fun='mean', min_ratio=0.75, digits=3, x_max=None, y_max=None, logs=False, export=False, export_path='reg.png'):
     from numpy import log
 
     x = self.sel_ts(mtypes=x_mtype, sites=x_site, pivot=True)
