@@ -21,7 +21,7 @@ import psutil
 def run_cc_senarios(base_kwargs):
     runs = []
     base_kwargs = deepcopy(base_kwargs)
-    periods = range(2010, 2100, 10)
+    periods = range(2010, 2100, 20)
     rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
     rcps = ['RCP4.5', 'RCP8.5']
     amalg_types = ['tym', 'min', 'low_3_m']
@@ -31,7 +31,7 @@ def run_cc_senarios(base_kwargs):
         temp['name'] = '{}_{}_{}_{}_{}'.format(temp['name'], rcm, rcp, per, at)
         runs.append(temp)
     for rcm, at in itertools.product(rcms, amalg_types):
-        per=None
+        per = 1980
         rcp = 'RCPpast'
         temp = deepcopy(base_kwargs)
         temp['cc_inputs'] = {'rmc': rcm, 'rcp': rcp, 'period': per, 'amag_type': at}
@@ -41,8 +41,14 @@ def run_cc_senarios(base_kwargs):
 
 
 def setup_run_args(model_id, forward_run_dir):
+    """
+    set up the forward runs
+    :param model_id: which MC realisation to use
+    :param forward_run_dir: the dir that all of teh model directories will be placed
+    :return:
+    """
     runs = []
-    # base model run
+    # base model run #todo need 2015 current pumping
     current = {
         'model_id': model_id,
         'name': 'current',
@@ -71,7 +77,7 @@ def setup_run_args(model_id, forward_run_dir):
     }
     runs.append(nat)
 
-    # full abstration
+    # full abstration #todo need 2015 current pumping
     full_abs = {
         'model_id': model_id,
         'name': 'full_abs',
@@ -85,7 +91,7 @@ def setup_run_args(model_id, forward_run_dir):
     }
     runs.append(full_abs)
 
-    # full allocation (full abstraction)
+    # full allocation (full abstraction) #todo need 2015 current pumping
     full_abs_allo = {
         'model_id': model_id,
         'name': 'full_abs_allo',
@@ -100,7 +106,7 @@ def setup_run_args(model_id, forward_run_dir):
     }
     runs.append(full_abs_allo)
 
-    # full allocation current usage
+    # full allocation current usage # todo this could be tricky... needs to be based on current use not model period #todo need 2015 current pumping
     full_allo = {
         'model_id': model_id,
         'name': 'full_allo_cur_use',
@@ -116,7 +122,7 @@ def setup_run_args(model_id, forward_run_dir):
     runs.append(full_allo)
 
 
-    # pc5
+    # pc5 #todo need 2015 current pumping
     pc5_80 = {
         'model_id': model_id,
         'name': 'pc5_80',
@@ -131,7 +137,7 @@ def setup_run_args(model_id, forward_run_dir):
     }
     runs.append(pc5_80)
 
-    # WIL efficiency
+    # WIL efficiency #todo need 2015 current pumping
     will_eff = {
         'model_id': model_id,
         'name': 'wil_eff',
@@ -145,7 +151,7 @@ def setup_run_args(model_id, forward_run_dir):
     }
     runs.append(will_eff)
 
-    # pc5 + will efficency
+    # pc5 + will efficency #todo need 2015 current pumping
     pc5_80_will_eff = {
         'model_id': model_id,
         'name': 'pc5_80_wil_eff',
@@ -160,14 +166,14 @@ def setup_run_args(model_id, forward_run_dir):
     }
     runs.append(pc5_80_will_eff)
 
-    # climate change senarios (lots of runs)
+    # climate change senarios (lots of runs) #todo need 2015 current pumping
     # nat + cc
     runs.extend(run_cc_senarios(nat))
 
-    # climate change
+    # climate change #todo need 2015 current pumping
     runs.extend(run_cc_senarios(current))
 
-    # climate change + pc5 + will efficieny
+    # climate change + pc5 + will efficieny #todo need 2015 current pumping
     runs.extend(run_cc_senarios(pc5_80_will_eff))
 
     if not os.path.exists(forward_run_dir):
@@ -214,7 +220,6 @@ if __name__ == '__main__':
                 raise ValueError('script aborted so as not to potentially overwrite {}'.format(dir_path))
 
     # todo test this with a couple of runs
-    #todo check how long the set up takes...?
     runs = setup_run_args('opt',dir_path)
 
     runs = runs[0:2]

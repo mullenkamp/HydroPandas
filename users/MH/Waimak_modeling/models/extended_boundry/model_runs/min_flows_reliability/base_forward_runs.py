@@ -10,8 +10,9 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools import get_forward_wells, get_forward_rch
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import flopy
+import os
 
-def setup_run_forward_run_mp (kwargs):
+def setup_run_forward_run_mp (kwargs): #todo add a try/except loop here!
     name, success = setup_run_forward_run(**kwargs)
     return name, success
 
@@ -47,7 +48,7 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
     if not isinstance(cc_inputs,dict):
         raise ValueError('incorrect type for cc_inputs {} expected dict or None'.format(type(cc_inputs)))
 
-    well_data = get_forward_wells(model_id=model_id,full_abstraction=full_abs,
+    well_data, cc_mult = get_forward_wells(model_id=model_id,full_abstraction=full_abs,
                                   cc_inputs=cc_inputs, naturalised=naturalised, full_allo=full_allo, pc5=pc5)
     well_data.loc[well_data.type=='well','flux'] *= pumping_well_scale
     well_data.loc[(well_data.type=='race') & (well_data.zone == 'n_wai'),'flux'] *= wil_eff
@@ -101,11 +102,12 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
                                    mxiterxmd=50,  # only when options is specified
                                    unitnumber=714)
 
+    with open(os.path.join(base_dir,'cc_mult.txt')) as f:
+        f.write(cc_mult)
     m.write_name_file()
     m.write_input()
     success, buff = m.run_model()
     if success:
         zip_non_essential_files(m.model_ws, include_list=True)
-    #todo check
     return name, success
 

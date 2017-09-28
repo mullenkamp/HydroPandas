@@ -11,7 +11,6 @@ import pickle
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import os
 from warnings import warn
-import numpy as np
 from users.MH.Waimak_modeling.models.extended_boundry.m_packages.wel_packages import _get_wel_spd_v1
 import pandas as pd
 import numpy as np

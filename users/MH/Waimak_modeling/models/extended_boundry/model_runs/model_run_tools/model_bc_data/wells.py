@@ -19,7 +19,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.rch_support.map_rch_to_model_array import \
     map_rch_to_array
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.LSR_arrays import \
-    _get_rch_hdf_path, lsrm_rch_base_dir, rch_idx_shp_path
+    _get_rch_hdf_path, lsrm_rch_base_dir, rch_idx_shp_path,get_ird_base_array
 
 
 # for stream depletion things
@@ -130,10 +130,11 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
     if full_allo and naturalised:
         raise ValueError('cannot both be fully allocated and naturalised')
 
+    outdata = get_base_well(model_id)
     if full_abstraction:
-        outdata = get_full_consent(model_id)
+        idx = outdata.loc[(outdata.type == 'well') & (outdata.cwms == 'waimak')].index
+        outdata.loc[idx, 'flux'] = get_full_consent(model_id).loc[idx, 'flux']
     else:
-        outdata = get_base_well(model_id)
         if pc5:
             outdata.loc[(outdata.loc[:, 'use_type'] == 'irrigation-sw') & (outdata.cwms == 'waimak'), 'flux'] *= 3 / 4
             # an inital 1/4 reduction for pc5 to
@@ -150,7 +151,7 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
     if naturalised:
         outdata = outdata.loc[
             np.in1d(outdata.loc[:, 'type'], ['boundry_flux', 'llr_boundry_flux', 'river', 'ulr_boundry_flux'])]
-
+    cc_mult = 1
     if cc_inputs is not None:
         if all(pd.isnull(cc_inputs.values())):
             pass
@@ -158,11 +159,12 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
             raise ValueError('null and non-null values returned for cc_inputs')
         else:
             cc_mult = get_cc_pumping_muliplier(cc_inputs)
+            cc_mult= 50 #todo DADB
             outdata.loc[outdata.loc[:, 'use_type'] == 'irrigation-sw', 'flux'] *= cc_mult
             # pumping is truncated at full allocation and abstraction value
             # we assume that any additional irrigation demand would be met with surface water schemes from the alpine rivers
 
-            max_pumping = get_full_consent(model_id)
+            max_pumping = get_full_consent(model_id) # todo this does not fix the non waimakariri wells
             allo_mult = get_full_allo_multipler()
             idx = allo_mult.index
             max_pumping.loc[idx, 'flux'] *= allo_mult.loc[idx]
@@ -171,28 +173,24 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
             outdata.loc[outdata.loc[idx, 'flux'] > max_pumping.loc[idx, 'flux'], 'flux'] = max_pumping.loc[idx, 'flux']
 
             # todo check CC thourally when I have inputs
-    return outdata
+    return outdata, cc_mult
 
 
-def get_cc_pumping_muliplier(cc_inputs):  # todo check and see how bad it get write a new textfile for this in the model folder
-    # return a single value for now which is senario/RCPpast
-    rcp_past = _get_rcp_past_irrd(cc_inputs['rcm'])
-    rch_path = _get_rch_hdf_path(lsrm_rch_base_dir, False, False, cc_inputs['rcm'], cc_inputs['rcp'])
-    rch, current = map_rch_to_array(rch_path, cc_inputs['amag_type'], cc_inputs['period'], rch_idx_shp_path, 10, True)
+def get_cc_pumping_muliplier(cc_inputs):
+    # return a single value for now which is senario/current model period (2008-2015)
+    ird_current_period = get_ird_base_array('current', None, None, None, 'mean')
 
-    return current/rcp_past
+    amalg_dict = {None: 'mean', 'mean': 'mean', 'tym': 'period_mean', 'low_3_m': '3_lowest_con_mean',
+                  'min': 'lowest_year'}
 
+    sen='current' # irrigation demand does not change with irrigation efficiency
+    rcp= cc_inputs['rcp']
+    rcm= cc_inputs['rcm']
+    per= cc_inputs['period']
+    at= amalg_dict[cc_inputs['amag_type']]
+    ird_modeled_period = get_ird_base_array(sen, rcp, rcm, per, at)
 
-def _get_rcp_past_irrd(rcm, recalc=False):
-    pickle_path = os.path.join(temp_pickle_dir, 'irr_d_RCPpast_{}.p'.format(rcm))
-    if (os.path.exists(pickle_path)) and (not recalc):
-        outdata = pickle.load(open(pickle_path))
-        return outdata
-
-    rch_path = _get_rch_hdf_path(lsrm_rch_base_dir, False, False, rcm, 'RCPpast')
-    rch, outdata = map_rch_to_array(rch_path, None, None, rch_idx_shp_path, None, True) #todo upload irrigation demand instead
-    pickle.dump(outdata, open(pickle_path, 'w'))
-    return outdata
+    return ird_modeled_period/ird_current_period
 
 
 def get_full_allo_multipler(recalc=False):
@@ -233,10 +231,18 @@ def get_full_allo_multipler(recalc=False):
 
 
 if __name__ == '__main__':
+    cc_inputs = {'rcm': 'BCC-CSM1.1',
+                 'rcp': 'RCPpast',
+                 'period': 1980,
+                 'amag_type': 'tym'}
+    test,ccmult = get_forward_wells('opt',
+                                    full_abstraction=False,
+                                    cc_inputs=cc_inputs,
+                                    naturalised=False,
+                                    full_allo=False,
+                                    pc5=False)
     race = get_race_data('test2')
 
-    test = get_forward_wells('test2',
-                             naturalised=True, )
-    full_abs = get_full_consent('test2')
+    full_abs = get_full_consent('opt')
     max_rate = get_max_rate('test2')
     print test
