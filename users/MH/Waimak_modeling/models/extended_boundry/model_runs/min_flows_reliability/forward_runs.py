@@ -62,7 +62,7 @@ def setup_run_args(model_id, forward_run_dir):
         'org_pumping_wells': True
     }
     runs.append(mod_per)
-    # base model run with 2015-2016 pumping #todo need 2015 current pumping for only the waimakariri
+    # base model run with 2015-2016 pumping
     current = {
         'model_id': model_id,
         'name': 'current',
@@ -91,7 +91,7 @@ def setup_run_args(model_id, forward_run_dir):
     }
     runs.append(nat)
 
-    # full abstration #todo need 2015 current pumping
+    # full abstration
     full_abs = {
         'model_id': model_id,
         'name': 'full_abs',
@@ -105,7 +105,7 @@ def setup_run_args(model_id, forward_run_dir):
     }
     runs.append(full_abs)
 
-    # full allocation (full abstraction) #todo need 2015 current pumping
+    # full allocation (full abstraction)
     full_abs_allo = {
         'model_id': model_id,
         'name': 'full_abs_allo',
@@ -120,7 +120,7 @@ def setup_run_args(model_id, forward_run_dir):
     }
     runs.append(full_abs_allo)
 
-    # full allocation current usage # todo this could be tricky... needs to be based on current use not model period #todo need 2015 current pumping
+    # full allocation current usage
     full_allo = {
         'model_id': model_id,
         'name': 'full_allo_cur_use',
@@ -136,7 +136,7 @@ def setup_run_args(model_id, forward_run_dir):
     runs.append(full_allo)
 
 
-    # pc5 #todo need 2015 current pumping
+    # pc5
     pc5_80 = {
         'model_id': model_id,
         'name': 'pc5_80',
@@ -151,7 +151,7 @@ def setup_run_args(model_id, forward_run_dir):
     }
     runs.append(pc5_80)
 
-    # WIL efficiency #todo need 2015 current pumping
+    # WIL efficiency
     will_eff = {
         'model_id': model_id,
         'name': 'wil_eff',
@@ -165,7 +165,7 @@ def setup_run_args(model_id, forward_run_dir):
     }
     runs.append(will_eff)
 
-    # pc5 + will efficency #todo need 2015 current pumping
+    # pc5 + will efficency
     pc5_80_will_eff = {
         'model_id': model_id,
         'name': 'pc5_80_wil_eff',
@@ -180,14 +180,14 @@ def setup_run_args(model_id, forward_run_dir):
     }
     runs.append(pc5_80_will_eff)
 
-    # climate change senarios (lots of runs) #todo need 2015 current pumping
+    # climate change senarios (lots of runs)
     # nat + cc
     runs.extend(run_cc_senarios(nat))
 
-    # climate change #todo need 2015 current pumping
+    # climate change
     runs.extend(run_cc_senarios(current))
 
-    # climate change + pc5 + will efficieny #todo need 2015 current pumping
+    # climate change + pc5 + will efficieny
     runs.extend(run_cc_senarios(pc5_80_will_eff))
 
     if not os.path.exists(forward_run_dir):

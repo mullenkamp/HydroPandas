@@ -44,7 +44,7 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
                                this factor applies to all wells
     :param full_allo: boolean if true use the full allocation of pumping
     :param org_efficency: not used, held to prevent cleaning up!
-    :param org_pumping_wells: if True use the model peiod wells if false use the 2014-2015(???) usage
+    :param org_pumping_wells: if True use the model peiod wells if false use the 2014-2015 usage for the waimak wells
     :return:
     """
     # cc inputs are a dict

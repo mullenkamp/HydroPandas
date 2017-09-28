@@ -122,7 +122,7 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
     :param cc_inputs: use these to apply scaling factors for the pumping (think about how to work with these spatially)
     :param naturalised: boolean, if True use only the fixed inputs (e.g. rivers, boundary fluxes.  No races)
     :param full_allo: boolean, if True scale the wells by the amount allocated in each zone (could be a dictionary of boolean for each subzone)
-    :param org_pumping_wells: if True use the model peiod wells if false use the 2014-2015(???) usage
+    :param org_pumping_wells: if True use the model peiod wells if false use the 2014-2015 usage
     :return:
     """
     # check input make sense
@@ -130,11 +130,9 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
         raise ValueError('cannot both fully abstracted and naturalised')
     if full_allo and naturalised:
         raise ValueError('cannot both be fully allocated and naturalised')
-    if org_pumping_wells:
-        outdata = get_base_well(model_id)
-    else:
-        outdata = None#todo this needs to be the useage for the 2014-15 period but only for the waimakariri zone
-        raise NotImplementedError
+
+    outdata = get_base_well(model_id,org_pumping_wells)
+
     if full_abstraction:
         idx = outdata.loc[(outdata.type == 'well') & (outdata.cwms == 'waimak')].index
         outdata.loc[idx, 'flux'] = get_full_consent(model_id).loc[idx, 'flux']
