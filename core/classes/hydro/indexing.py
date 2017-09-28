@@ -119,9 +119,9 @@ def sel_ts(self, mtypes=None, sites=None, require=None, pivot=False, resample=Tr
         sel_out1 = sel_out.loc(axis=0)[:, :, start:end]
     if pivot:
         levels1 = sel_out1.index.get_level_values(0).unique()
-        if len(levels1) == 1:
-            sel_out1 = sel_out1.loc[levels1[0]]
         sel_out1 = _pivot(sel_out1, resample, levels1[0])
+        if len(levels1) == 1:
+            sel_out1 = sel_out1.loc[:, levels1[0]]
     return(sel_out1)
 
 

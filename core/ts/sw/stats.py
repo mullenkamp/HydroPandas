@@ -429,7 +429,7 @@ def flow_reg(x, y, min_obs=10, p_val=0.05, logs=False, make_ts=False, cut_y=Fals
             y_new.loc[xy[reg1['Y_loc']].index] = y[i]
 
             ## Put into list container
-            y_new.name = int(reg1['Y_loc'])
+            y_new.name = reg1['Y_loc']
             y_new1.append(y_new.round(3))
 
         ## Make into dataframe
