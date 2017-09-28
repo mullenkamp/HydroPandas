@@ -26,7 +26,7 @@ def get_forward_rch(model_id, naturalised, pc5=False, rcm=None, rcp=None, period
     :param rcm: regional Climate model identifier
     :param rcp: representetive carbon pathway identifier
     :param period: e.g. 2010, 2020, ect
-    :param amag_type: the amalgamation type one of: 'tym': ten year mean,
+    :param amag_type: the amalgamation type one of: 'tym': twenty year mean, was 10 but changed on 20/09/2017
                                                     'min': minimum annual average,
                                                     'low_3_m': average of the 3 lowest consecutive years
                                                     'mean': full data mean
@@ -43,7 +43,7 @@ def get_forward_rch(model_id, naturalised, pc5=False, rcm=None, rcp=None, period
     amalg_dict = {None: 'mean', 'mean': 'mean', 'tym': 'period_mean', 'low_3_m': '3_lowest_con_mean',
                   'min': 'lowest_year'}
 
-    method = amalg_dict[amag_type]
+    method = amalg_dict[amag_type]  # some of these naming conventions will not owrk now. see _create_all_lsrm_arrays
     sen = 'current'
     if naturalised:
         sen = 'nat'
@@ -59,10 +59,10 @@ def get_forward_rch(model_id, naturalised, pc5=False, rcm=None, rcp=None, period
     no_flow = smt.get_no_flow(0)
     no_flow[no_flow < 0] = 0
     rch_array[~no_flow.astype(bool)] = 0
-    return rch_array  # todo check
+    return rch_array
 
 
-def _get_rch_hdf_path(base_dir, naturalised, pc5, rcm, rcp):  # todo check
+def _get_rch_hdf_path(base_dir, naturalised, pc5, rcm, rcp):
     """
     get the path for the rch
     :param base_dir: the directory containing all forward runs
@@ -98,7 +98,7 @@ def _create_all_lsrm_arrays():
     if not os.path.exists(os.path.join(lsrm_rch_base_dir, 'arrays_for_modflow')):
         os.makedirs(os.path.join(lsrm_rch_base_dir, 'arrays_for_modflow'))
 
-    periods = range(2010, 2100, 10)
+    periods = range(2010, 2100, 20)
     rcps = ['RCP4.5', 'RCP8.5']
     rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
     amalg_types = ['period_mean', '3_lowest_con_mean', 'lowest_year']
@@ -122,7 +122,7 @@ def _create_all_lsrm_arrays():
                                 method=at,
                                 period_center=per,
                                 mapping_shp=rch_idx_shp_path,
-                                period_length=10,
+                                period_length=20,
                                 return_irr_demand=True)
         outpath = os.path.join(lsrm_rch_base_dir,
                                'arrays_for_modflow/rch_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
@@ -133,7 +133,8 @@ def _create_all_lsrm_arrays():
 
 
     # RCP past
-    for rcm, sen in itertools.product(rcms, senarios):
+    amalg_types = ['period_mean', '3_lowest_con_mean', 'lowest_year']
+    for rcm, sen, at in itertools.product(rcms, senarios, amalg_types):
         naturalised = False
         pc5 = False
         if sen == 'nat':
@@ -144,8 +145,7 @@ def _create_all_lsrm_arrays():
             pass
         else:
             raise ValueError('shouldnt get here')
-        at = 'mean'
-        per = None
+        per = 1980
         rcp = 'RCPpast'
         print ((per, rcp, rcm, at, sen))
         hdf_path = _get_rch_hdf_path(base_dir=lsrm_rch_base_dir, naturalised=naturalised, pc5=pc5, rcm=rcm, rcp=rcp)
@@ -153,7 +153,7 @@ def _create_all_lsrm_arrays():
                                 method=at,
                                 period_center=per,
                                 mapping_shp=rch_idx_shp_path,
-                                period_length=10,
+                                period_length=50,
                                 return_irr_demand=True)
         outpath = os.path.join(lsrm_rch_base_dir,
                                'arrays_for_modflow/rch_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
@@ -184,7 +184,7 @@ def _create_all_lsrm_arrays():
                                 method=at,
                                 period_center=per,
                                 mapping_shp=rch_idx_shp_path,
-                                period_length=10,
+                                period_length=20,
                                      return_irr_demand=True)
         outpath = os.path.join(lsrm_rch_base_dir,
                                'arrays_for_modflow/rch_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
@@ -201,13 +201,68 @@ def get_lsrm_base_array(sen, rcp, rcm, per, at):
 
     return np.loadtxt(path)
 
-def get_ird_base_array(sen, rcp, rcm, per, at): #todo propogate through and check IRD values
+def get_ird_base_array(sen, rcp, rcm, per, at):
     path = os.path.join(lsrm_rch_base_dir, 'arrays_for_modflow/ird_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
     if not os.path.exists(path):
         raise ValueError('array not implemented, why are you using {}'.format((sen, rcp, rcm, per, at)))
 
-    return np.loadtxt(path)[0]
+    return np.atleast_1d(np.loadtxt(path))[0]
 
 
 if __name__ == '__main__':
-    _create_all_lsrm_arrays()
+    {None: 'mean', 'mean': 'mean', 'tym': 'period_mean', 'low_3_m': '3_lowest_con_mean',
+     'min': 'lowest_year'}
+    periods = range(2010, 2100, 20)
+    rcps = ['RCP4.5', 'RCP8.5']
+    rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
+    amalg_types = ['tym', 'low_3_m', 'min']
+    senarios = ['pc5', 'nat', 'current']
+    # cc stuff
+    for per, rcp, rcm, at, sen in itertools.product(periods, rcps, rcms, amalg_types, senarios):
+        continue
+        naturalised = False
+        pc5 = False
+        if sen == 'nat':
+            naturalised = True
+        elif sen == 'pc5':
+            pc5 = True
+        elif sen == 'current':
+            pass
+
+        test = get_forward_rch('opt',naturalised=naturalised,pc5=pc5,rcm=rcm,rcp=rcp,period=per,amag_type=at)
+
+    amalg_types = ['tym', 'low_3_m', 'min']
+    for rcm, sen, at in itertools.product(rcms, senarios, amalg_types):
+        naturalised = False
+        pc5 = False
+        if sen == 'nat':
+            naturalised = True
+        elif sen == 'pc5':
+            pc5 = True
+        elif sen == 'current':
+            pass
+        else:
+            raise ValueError('shouldnt get here')
+        per = 1980
+        rcp = 'RCPpast'
+        get_forward_rch('opt',naturalised=naturalised,pc5=pc5,rcm=rcm,rcp=rcp,period=per,amag_type=at)
+
+    for sen in senarios:
+        naturalised = False
+        pc5 = False
+        if sen == 'nat':
+            naturalised = True
+        elif sen == 'pc5':
+            pc5 = True
+        elif sen == 'current':
+            pass
+        else:
+            raise ValueError('shouldnt get here')
+        at = 'mean'
+        per = None
+        rcp = None
+        rcm = None
+        get_forward_rch('opt',naturalised=naturalised,pc5=pc5,rcm=rcm,rcp=rcp,period=per,amag_type=at)
+
+
+

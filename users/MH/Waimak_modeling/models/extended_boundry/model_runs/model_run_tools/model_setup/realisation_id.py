@@ -11,8 +11,7 @@ import pickle
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import os
 from warnings import warn
-import numpy as np
-from users.MH.Waimak_modeling.models.extended_boundry.m_packages.wel_packages import _get_wel_spd_v1
+from users.MH.Waimak_modeling.models.extended_boundry.m_packages.wel_packages import _get_wel_spd_v1,_get_wel_spd_v2
 import pandas as pd
 import numpy as np
 import subprocess
@@ -22,13 +21,30 @@ if not os.path.exists(temp_pickle_dir):
     os.makedirs(temp_pickle_dir)
 
 
-def get_base_well(model_id, recalc=False):
-    pickle_path = "{}/model_{}_base_wells".format(temp_pickle_dir, model_id)
+def get_base_well(model_id, org_pumping_wells, recalc=False): #todo add 2015 usage here
+    """
+
+    :param model_id:
+    :param org_pumping_wells: if True use the model peiod wells if false use the 2014-2015 usage
+    :param recalc:
+    :return:
+    """
+    if org_pumping_wells:
+        org = 'model_period_pumping'
+    else:
+        org = '14-15_pumping_waimak'
+    pickle_path = "{}/model_{}_base_wells_{}.p".format(temp_pickle_dir, model_id,org)
     if (os.path.exists(pickle_path)) and (not recalc):
         outdata = pickle.load(open(pickle_path))
         return outdata
 
-    all_wells = _get_wel_spd_v1()
+    if org_pumping_wells:
+        all_wells = _get_wel_spd_v1()
+    else:
+        all_wells = _get_wel_spd_v2()  # usage for 2014/2015 period in waimak zone
+        raise NotImplementedError
+
+
     all_wells.loc[:, 'nsmc_type'] = ''
 
     # pumping wells

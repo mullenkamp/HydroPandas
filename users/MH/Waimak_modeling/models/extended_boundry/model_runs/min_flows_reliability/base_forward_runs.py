@@ -10,13 +10,18 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools import get_forward_wells, get_forward_rch
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import flopy
+import os
 
 def setup_run_forward_run_mp (kwargs):
-    name, success = setup_run_forward_run(**kwargs)
+    try:
+        name, success = setup_run_forward_run(**kwargs)
+    except Exception as val:
+        name = kwargs['name']
+        success = '{}: {}'.format(type(val),val.args)
     return name, success
 
 def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, wil_eff=1, naturalised=False,
-                          full_abs=False, pumping_well_scale=1, full_allo=False, org_efficency=None):
+                          full_abs=False, pumping_well_scale=1, full_allo=False, org_efficency=None, org_pumping_wells=False):
     """
     sets up and runs a forward run with a number of options
     :param model_id: which NSMC version to user (see mod_gns_model)
@@ -39,6 +44,7 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
                                this factor applies to all wells
     :param full_allo: boolean if true use the full allocation of pumping
     :param org_efficency: not used, held to prevent cleaning up!
+    :param org_pumping_wells: if True use the model peiod wells if false use the 2014-2015 usage for the waimak wells
     :return:
     """
     # cc inputs are a dict
@@ -47,8 +53,8 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
     if not isinstance(cc_inputs,dict):
         raise ValueError('incorrect type for cc_inputs {} expected dict or None'.format(type(cc_inputs)))
 
-    well_data = get_forward_wells(model_id=model_id,full_abstraction=full_abs,
-                                  cc_inputs=cc_inputs, naturalised=naturalised, full_allo=full_allo, pc5=pc5)
+    well_data, cc_mult = get_forward_wells(model_id=model_id,full_abstraction=full_abs,
+                                  cc_inputs=cc_inputs, naturalised=naturalised, full_allo=full_allo, pc5=pc5,org_pumping_wells=org_pumping_wells)
     well_data.loc[well_data.type=='well','flux'] *= pumping_well_scale
     well_data.loc[(well_data.type=='race') & (well_data.zone == 'n_wai'),'flux'] *= wil_eff
     well_data = smt.convert_well_data_to_stresspd(well_data)
@@ -72,10 +78,10 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
                                    maxiterout=100,
                                    thickfact=1e-05,
                                    linmeth=1,
-                                   iprnwt=1, #changed from GNS
+                                   iprnwt=0, #could change
                                    ibotav=0,
                                    options='COMPLEX',
-                                   Continue=True, #changed from GNS
+                                   Continue=False, #could change
                                    dbdtheta=0.4,  # only when options is specified
                                    dbdkappa=1e-05,  # only when options is specified
                                    dbdgamma=0.0,  # only when options is specified
@@ -101,11 +107,12 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
                                    mxiterxmd=50,  # only when options is specified
                                    unitnumber=714)
 
+    with open(os.path.join(m.model_ws,'cc_mult.txt'),'w') as f:
+        f.write(str(cc_mult))
     m.write_name_file()
     m.write_input()
     success, buff = m.run_model()
     if success:
         zip_non_essential_files(m.model_ws, include_list=True)
-    #todo check
     return name, success
 

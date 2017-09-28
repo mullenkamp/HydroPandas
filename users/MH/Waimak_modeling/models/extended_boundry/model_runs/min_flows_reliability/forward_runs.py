@@ -21,28 +21,48 @@ import psutil
 def run_cc_senarios(base_kwargs):
     runs = []
     base_kwargs = deepcopy(base_kwargs)
-    periods = range(2010, 2100, 10)
+    periods = range(2010, 2100, 20)
     rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
     rcps = ['RCP4.5', 'RCP8.5']
     amalg_types = ['tym', 'min', 'low_3_m']
     for per, rcm, rcp, at in itertools.product(periods, rcms, rcps, amalg_types):
         temp = deepcopy(base_kwargs)
-        temp['cc_inputs'] = {'rmc': rcm, 'rcp': rcp, 'period': per, 'amag_type': at}
+        temp['cc_inputs'] = {'rcm': rcm, 'rcp': rcp, 'period': per, 'amag_type': at}
         temp['name'] = '{}_{}_{}_{}_{}'.format(temp['name'], rcm, rcp, per, at)
         runs.append(temp)
     for rcm, at in itertools.product(rcms, amalg_types):
-        per=None
+        per = 1980
         rcp = 'RCPpast'
         temp = deepcopy(base_kwargs)
-        temp['cc_inputs'] = {'rmc': rcm, 'rcp': rcp, 'period': per, 'amag_type': at}
+        temp['cc_inputs'] = {'rcm': rcm, 'rcp': rcp, 'period': per, 'amag_type': at}
         temp['name'] = '{}_{}_{}_{}_{}'.format(temp['name'], rcm, rcp, per, at)
         runs.append(temp)
     return runs
 
 
 def setup_run_args(model_id, forward_run_dir):
+    """
+    set up the forward runs
+    :param model_id: which MC realisation to use
+    :param forward_run_dir: the dir that all of teh model directories will be placed
+    :return:
+    """
     runs = []
     # base model run
+    mod_per = {
+        'model_id': model_id,
+        'name': 'mod_period',
+        'base_dir': None,
+        'cc_inputs': None,
+        'pc5': False,
+        'wil_eff': 1,
+        'naturalised': False,
+        'full_abs': False,
+        'pumping_well_scale': 1,
+        'org_pumping_wells': True
+    }
+    runs.append(mod_per)
+    # base model run with 2015-2016 pumping
     current = {
         'model_id': model_id,
         'name': 'current',
@@ -195,8 +215,8 @@ def run_forward_runs(runs):
     pool_outputs = pool.map(setup_run_forward_run_mp, runs)
     pool.close()  # no more tasks
     pool.join()
-    now = datetime.datetime.now
-    with open("{}/forward_run_log/forward_run_status_{}_{}_{}_{}_{}.txt".format(smt.sdp,now.year,now.month,now.day,now.hour,now.minute), 'w') as f:
+    now = datetime.datetime.now()
+    with open("{}/forward_run_log/forward_run_status_{}_{:02d}_{:02d}_{:02d}_{:02d}.txt".format(smt.sdp,now.year,now.month,now.day,now.hour,now.minute), 'w') as f:
         wr = ['{}: {}\n'.format(e[0], e[1]) for e in pool_outputs]
         f.writelines(wr)
     print('{} runs completed in {} minutes'.format(len(runs), ((time.time() - t) / 60)))
@@ -212,11 +232,15 @@ if __name__ == '__main__':
                 'run all forward runs, this could overwrite item in :\n {} \n continue y/n\n'.format(dir_path)).lower()
             if cont != 'y':
                 raise ValueError('script aborted so as not to potentially overwrite {}'.format(dir_path))
-
-    # todo test this with a couple of runs
-    #todo check how long the set up takes...?
+    # todo test this with a couple of runs on the server
     runs = setup_run_args('opt',dir_path)
-
-    runs = runs[0:2]
-    run_forward_runs(runs)
+    #setup_run_forward_run_mp(runs[-1])
+    #setup_run_forward_run_mp(runs[100])
+    #setup_run_forward_run_mp(runs[0])
+    import time
+    t = time.time()
+    test = [runs[0],runs[-1],runs[100]]
+    run_forward_runs(test)
+    print('3 runs in __ min ')
+    print (time.time() - t)/60
     print('done')

@@ -318,9 +318,9 @@ def _make_swaz_drn_points():
 
 
 if __name__ == '__main__':
-    test = get_samp_points_df(True)
-    test2 = _get_sw_samp_pts_dict()
-    drn, sfr = _get_flux_flow_arrays('ashley_swaz',test2,test)
+    test = get_samp_points_df()
+    #test2 = _get_sw_samp_pts_dict()
+    #drn, sfr = _get_flux_flow_arrays('ashley_swaz',test2,test)
     path = r"C:\Users\MattH\Desktop\mf_aw_ex\mf_aw_ex.nam"
 
     test3 = get_flux_at_points(test.index,path,rel_kstpkpers='all')
