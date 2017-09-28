@@ -43,7 +43,7 @@ def get_forward_rch(model_id, naturalised, pc5=False, rcm=None, rcp=None, period
     amalg_dict = {None: 'mean', 'mean': 'mean', 'tym': 'period_mean', 'low_3_m': '3_lowest_con_mean',
                   'min': 'lowest_year'}
 
-    method = amalg_dict[amag_type] #todo some of these naming conventions will not owrk now.
+    method = amalg_dict[amag_type]  # some of these naming conventions will not owrk now. see _create_all_lsrm_arrays
     sen = 'current'
     if naturalised:
         sen = 'nat'

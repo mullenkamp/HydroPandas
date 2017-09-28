@@ -114,7 +114,7 @@ def get_max_rate(model_id, recalc=False):
     return outdata
 
 
-def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturalised=False, full_allo=False, pc5=False):
+def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturalised=False, full_allo=False, pc5=False,org_pumping_wells=False):
     """
     gets the pumping data for the forward runs
     :param model_id: which NSMC realisation to use
@@ -122,6 +122,7 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
     :param cc_inputs: use these to apply scaling factors for the pumping (think about how to work with these spatially)
     :param naturalised: boolean, if True use only the fixed inputs (e.g. rivers, boundary fluxes.  No races)
     :param full_allo: boolean, if True scale the wells by the amount allocated in each zone (could be a dictionary of boolean for each subzone)
+    :param org_pumping_wells: if True use the model peiod wells if false use the 2014-2015(???) usage
     :return:
     """
     # check input make sense
@@ -129,8 +130,11 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
         raise ValueError('cannot both fully abstracted and naturalised')
     if full_allo and naturalised:
         raise ValueError('cannot both be fully allocated and naturalised')
-
-    outdata = get_base_well(model_id)
+    if org_pumping_wells:
+        outdata = get_base_well(model_id)
+    else:
+        outdata = None#todo this needs to be the useage for the 2014-15 period but only for the waimakariri zone
+        raise NotImplementedError
     if full_abstraction:
         idx = outdata.loc[(outdata.type == 'well') & (outdata.cwms == 'waimak')].index
         outdata.loc[idx, 'flux'] = get_full_consent(model_id).loc[idx, 'flux']
@@ -158,19 +162,18 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
         elif any(pd.isnull(cc_inputs.values())):
             raise ValueError('null and non-null values returned for cc_inputs')
         else:
-            cc_mult = get_cc_pumping_muliplier(cc_inputs)
-            cc_mult= 50 #todo DADB
-            outdata.loc[outdata.loc[:, 'use_type'] == 'irrigation-sw', 'flux'] *= cc_mult
-            # pumping is truncated at full allocation and abstraction value
+            cc_mult = get_cc_pumping_muliplier(cc_inputs) #only apply cc multiplier to the waimakariri zone
+            outdata.loc[(outdata.loc[:, 'use_type'] == 'irrigation-sw') & (outdata.cwms == 'waimak'), 'flux'] *= cc_mult
+            # pumping is truncated at full allocation and abstraction value but only for the waimakariri zone, selwyn/chch noth changed
             # we assume that any additional irrigation demand would be met with surface water schemes from the alpine rivers
 
-            max_pumping = get_full_consent(model_id) # todo this does not fix the non waimakariri wells
+            max_pumping = get_full_consent(model_id)
             allo_mult = get_full_allo_multipler()
             idx = allo_mult.index
             max_pumping.loc[idx, 'flux'] *= allo_mult.loc[idx]
 
             idx = outdata.index
-            outdata.loc[outdata.loc[idx, 'flux'] > max_pumping.loc[idx, 'flux'], 'flux'] = max_pumping.loc[idx, 'flux']
+            outdata.loc[(outdata.loc[idx, 'flux'] > max_pumping.loc[idx, 'flux']) & (outdata.cwms =='waimak'), 'flux'] = max_pumping.loc[idx, 'flux']
 
             # todo check CC thourally when I have inputs
     return outdata, cc_mult
