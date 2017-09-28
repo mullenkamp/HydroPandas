@@ -34,7 +34,7 @@ use_type = ['irrigation']
 #take_type = ['Take Surface Water']
 years = 'all'
 
-debug = True
+debug = False
 sd_only = False
 agg_yr = True
 

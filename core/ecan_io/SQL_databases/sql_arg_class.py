@@ -54,6 +54,8 @@ class GIS(object):
     catch_grp_gis = {'server': 'SQL2012PROD05', 'database': 'GISPUBLIC', 'table': 'SWATER_NZTM_CATCHMENT_GROUPS', 'col_names': ['CatchmentGroup', 'CatchmentGroupName'], 'rename_cols': ['catch_grp', 'catch_grp_name'], 'geo_col': True}
     cwms_gis = {'server': 'SQL2012PROD05', 'database': 'GIS', 'table': 'CWMS_NZTM_ZONES', 'col_names': ['ZONE_NAME'], 'rename_cols': ['cwms'], 'geo_col': True}
     crc_gis = {'server': 'SQL2012PROD05', 'database': 'GIS_Accela', 'table': 'vCOCOA_NZTM_ResourceConsents', 'col_names': ['ConsentNo', 'ConsentType', 'NZTMX', 'NZTMY'], 'rename_cols': ['crc', 'crc_type', 'NZTMX', 'NZTMY'], 'geo_col': True}
+    rec_gis = {'server': 'SQL2012PROD05', 'database': 'GIS', 'table': 'MFE_NZTM_REC', 'col_names': ['NZREACH', 'NZFNODE', 'NZTNODE', 'ORDER_'], 'rename_cols': ['NZREACH', 'NZFNODE', 'NZTNODE', 'order'], 'geo_col': True}
+    rec_catch_gis = {'server': 'SQL2012PROD05', 'database': 'GIS', 'table': 'MFE_NZTM_RECWATERSHEDCANTERBURY', 'col_names': ['NZREACH'], 'geo_col': True}
 
 
 class lowflows(object):
