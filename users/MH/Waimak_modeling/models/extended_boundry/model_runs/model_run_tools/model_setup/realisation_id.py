@@ -21,7 +21,7 @@ if not os.path.exists(temp_pickle_dir):
     os.makedirs(temp_pickle_dir)
 
 
-def get_base_well(model_id, org_pumping_wells, recalc=False): #todo add 2015 usage here
+def get_base_well(model_id, org_pumping_wells, recalc=False):
     """
 
     :param model_id:
@@ -39,10 +39,9 @@ def get_base_well(model_id, org_pumping_wells, recalc=False): #todo add 2015 usa
         return outdata
 
     if org_pumping_wells:
-        all_wells = _get_wel_spd_v1()
+        all_wells = _get_wel_spd_v1() # usage for the model period as passed to the optimisation
     else:
         all_wells = _get_wel_spd_v2()  # usage for 2014/2015 period in waimak zone
-        raise NotImplementedError
 
 
     all_wells.loc[:, 'nsmc_type'] = ''

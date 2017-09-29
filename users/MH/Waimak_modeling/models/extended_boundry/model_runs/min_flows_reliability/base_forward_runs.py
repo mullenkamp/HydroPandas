@@ -53,7 +53,7 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
     if not isinstance(cc_inputs,dict):
         raise ValueError('incorrect type for cc_inputs {} expected dict or None'.format(type(cc_inputs)))
 
-    well_data, cc_mult = get_forward_wells(model_id=model_id,full_abstraction=full_abs,
+    well_data, cc_mult, new_water = get_forward_wells(model_id=model_id,full_abstraction=full_abs,
                                   cc_inputs=cc_inputs, naturalised=naturalised, full_allo=full_allo, pc5=pc5,org_pumping_wells=org_pumping_wells)
     well_data.loc[well_data.type=='well','flux'] *= pumping_well_scale
     well_data.loc[(well_data.type=='race') & (well_data.zone == 'n_wai'),'flux'] *= wil_eff
@@ -107,8 +107,10 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
                                    mxiterxmd=50,  # only when options is specified
                                    unitnumber=714)
 
-    with open(os.path.join(m.model_ws,'cc_mult.txt'),'w') as f:
-        f.write(str(cc_mult))
+    with open(os.path.join(m.model_ws,'cc_mult_info.txt'),'w') as f:
+        f.write('cc_mult (unitless): ' + str(cc_mult) + '\n')
+        f.write('missing_water (m3/day): ' + str(new_water) + '\n')
+
     m.write_name_file()
     m.write_input()
     success, buff = m.run_model()

@@ -196,7 +196,7 @@ def _get_2014_2015_waimak_usage():
     out_data['zone'] = 'n_wai'
     out_data.index.names = ['well']
 
-    return out_data #todo check thouroughly
+    return out_data
 
 def _get_wel_spd_v2(recalc=False,sub_version=1):
     """
@@ -219,7 +219,7 @@ def _get_wel_spd_v2(recalc=False,sub_version=1):
     races['zone'] = 'n_wai'
     races = races.set_index('well')
 
-    n_wai_wells = _get_2014_2015_waimak_usage() #todo this needs changing
+    n_wai_wells = _get_2014_2015_waimak_usage()
 
     s_wai_wells = _get_s_wai_wells(sub_version) # there are some s_wai wells which do not have data in wells, but do in consents file fix if bored
     ns_wells = pd.concat((n_wai_wells,s_wai_wells))
@@ -559,8 +559,11 @@ def add_use_type(data):
 
 
 if __name__ == '__main__':
+    new = _get_wel_spd_v2()
+    old = _get_wel_spd_v1()
     nwai = get_nwai_wells()
     s_wells = _get_s_wai_wells()
+    new_nwai = _get_2014_2015_waimak_usage()
 
     test = get_s_wai_races()
     old = _get_wel_spd_v1(recalc=False)
