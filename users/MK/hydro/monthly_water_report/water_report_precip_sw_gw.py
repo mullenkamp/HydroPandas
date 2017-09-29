@@ -5,41 +5,45 @@ Created on Mon Jul 17 16:27:09 2017
 @author: MichaelEK
 """
 
-from geopandas import read_file, overlay, sjoin, GeoDataFrame
-from core.classes.hydro import hydro, all_mtypes
-from core.ecan_io import rd_hydrotel
-from datetime import datetime
-from pandas import DateOffset, to_datetime, date_range, read_csv, concat, merge, cut, DataFrame, MultiIndex, Series
-from os.path import join
-from core.spatial.vector import spatial_overlays, multipoly_to_poly
-from core.ts import grp_ts_agg, w_resample
+import sys
+sys.path.append(r'C:\git\Ecan.Science.Python.Base')
+
+from geopandas import read_file, sjoin
+from pandas import DateOffset, to_datetime, concat, merge, cut, DataFrame, MultiIndex, Series, read_csv
+from core.spatial.vector import multipoly_to_poly, spatial_overlays
+from core.ts import grp_ts_agg
 from datetime import date
 from scipy.stats import percentileofscore
-from numpy import in1d, round, nan
-from bokeh.plotting import figure, save, show, output_file
-from bokeh.models import ColumnDataSource, HoverTool, LogColorMapper, Legend, CategoricalColorMapper, CustomJS, renderers, annotations
-from bokeh.palettes import RdYlBu11 as palette
-from bokeh.palettes import brewer
-from bokeh.models.widgets import Panel, Tabs, Slider, Select
-from bokeh.models.tools import WheelZoomTool
-from collections import OrderedDict
-from bokeh.layouts import widgetbox, column
-from core.ts.met import precip_stats
+from numpy import nan
+from core.classes.hydro import hydro
+from core.ts import tsreg
+from core.ecan_io import rd_hydrotel
+from configparser import ConfigParser
+from os import path, getcwd
 
+from bokeh.plotting import figure, show, output_file
+from bokeh.models import ColumnDataSource, HoverTool, CategoricalColorMapper, CustomJS, renderers, annotations, Panel, Tabs
+from bokeh.palettes import brewer
+from bokeh.models.widgets import Select
+from bokeh.layouts import column
+
+from datetime import datetime
+
+date1 = datetime.now().strftime('%Y-%m-%d')
 
 ###################################################
 #### Parameters
 
-base_dir = r'P:\Surface Water Quantity\Projects\Freshwater Report'
+base_dir = r'P:\Surface Water Quantity\Projects\Freshwater Report\sw_precip'
+
 sw_poly_shp = 'sw_boundary_v01.shp'
 precip_poly_shp = 'precip_boundary_v01.shp'
 gw_poly_shp = 'precip_boundary_v01.shp'
-rec_catch_shp = r'E:\ecan\shared\GIS_base\vector\catchments\catch_delin_recorders.shp'
-streams_shp = r'E:\ecan\shared\GIS_base\vector\streams\river-environment-classification-canterbury-2010.shp'
-rec_sites_shp = r'E:\ecan\shared\GIS_base\vector\catchments\recorder_sites_REC.shp'
-rec_sites_details_shp = r'E:\ecan\shared\GIS_base\vector\catchments\recorder_sites_REC_details.shp'
-gw_sites_shp = r'P:\Surface Water Quantity\Projects\Freshwater Report\gw_sites1.shp'
-veiw_bound_shp = r'P:\Surface Water Quantity\Projects\Freshwater Report\boundary_v02.shp'
+rec_catch_shp = 'catch_delin_recorders.shp'
+gw_sites_shp = 'gw_sites1.shp'
+veiw_bound_shp = 'boundary_v02.shp'
+precip_site_shp = 'precip_sites.shp'
+pot_sw_site_list_csv = 'potential_sw_site_list.csv'
 
 qual_codes = [10, 18, 20, 30, 50, 11, 21, 40]
 
@@ -47,35 +51,30 @@ month_names = ['Jan', 'Feb', 'March', 'April', 'May', 'June', 'July', 'August', 
 
 lon_zone_names = {'L': 'Lowlands', 'F': 'Foothills', 'M': 'Mountains', 'BP': 'Banks Peninsula'}
 
-pot_sw_site_list_csv = 'potential_sw_site_list.csv'
-
 ### Output
-catch_shp = 'recorder_catch.shp'
-pot_sites_shp = 'sw_sites.shp'
-pot_catch_sites_shp = 'potential_catch_sites.shp'
-sw_zone_stats_shp = 'sw_zone_stats.shp'
-precip_site_shp = 'precip_sites.shp'
-precip_zone_stats_shp = 'precip_zone_stats.shp'
+#sw_zone_stats_shp = 'sw_zone_stats_' + date1 + '.shp'
+#precip_zone_stats_shp = 'precip_zone_stats_' + date1 + '.shp'
+ts_out_csv = 'ts_out_perc_' + date1 + '.csv'
 
 ## plots
-precip_sw_gw1_html = r'E:\ecan\git\ecan_python_courses\docs\precip_sw_gw1.html'
-precip_sw1_html = r'E:\ecan\git\ecan_python_courses\docs\precip_sw1.html'
+#precip_sw_gw1_html = r'E:\ecan\git\ecan_python_courses\docs\precip_sw_gw1.html'
+#precip_sw1_html = r'E:\ecan\git\ecan_python_courses\docs\precip_sw1.html'
+precip_sw_gw1_html = 'precip_sw_gw_' + date1 + '.html'
+precip_sw1_html = 'precip_sw_' + date1 + '.html'
 
 ##################################################
 #### Read in data
 
 ### Overall veiw
-veiw_zones = read_file(veiw_bound_shp)
+veiw_zones = read_file(path.join(base_dir, veiw_bound_shp))
 veiw_zones = veiw_zones.replace({'lon_zone': lon_zone_names})
 veiw_zones['zone'] = veiw_zones['lat_zone'] + ' - ' + veiw_zones['lon_zone']
 veiw_zones = veiw_zones.drop(['lon_zone', 'lat_zone'], axis=1)
 
 ### SW
-sw_poly = read_file(join(base_dir, sw_poly_shp))[['lat_zone', 'lon_zone', 'geometry']]
-rec_catch = read_file(rec_catch_shp)
-streams = read_file(streams_shp)
-rec_sites = read_file(rec_sites_shp)
-site_list = read_csv(join(base_dir, pot_sw_site_list_csv))
+sw_poly = read_file(path.join(base_dir, sw_poly_shp))[['lat_zone', 'lon_zone', 'geometry']]
+rec_catch = read_file(path.join(base_dir, rec_catch_shp))
+site_list = read_csv(path.join(base_dir, pot_sw_site_list_csv))
 
 sw_list = site_list.replace({'lon_zone': lon_zone_names})
 sw_list['zone'] = sw_list['lat_zone'] + ' - ' + sw_list['lon_zone']
@@ -87,8 +86,8 @@ sw_zones = sw_zones.drop(['lon_zone', 'lat_zone'], axis=1)
 sw_zones['mtype'] = 'flow'
 
 ### precip
-precip_sites = read_file(join(base_dir, precip_site_shp))
-precip_zones = read_file(join(base_dir, precip_poly_shp))
+precip_sites = read_file(path.join(base_dir, precip_site_shp))
+precip_zones = read_file(path.join(base_dir, precip_poly_shp))
 
 precip_zones = precip_zones.replace({'lon_zone': lon_zone_names})
 precip_zones['zone'] = precip_zones['lat_zone'] + ' - ' + precip_zones['lon_zone']
@@ -96,8 +95,8 @@ precip_zones = precip_zones.drop(['lon_zone', 'lat_zone'], axis=1)
 precip_zones['mtype'] = 'precip'
 
 ### gw
-gw_sites = read_file(join(base_dir, gw_sites_shp))
-gw_zones = read_file(join(base_dir, gw_poly_shp))
+gw_sites = read_file(path.join(base_dir, gw_sites_shp))
+gw_zones = read_file(path.join(base_dir, gw_poly_shp))
 
 gw_zones = gw_zones.replace({'lon_zone': lon_zone_names})
 gw_zones['zone'] = gw_zones['lat_zone'] + ' - ' + gw_zones['lon_zone']
@@ -322,6 +321,19 @@ cat1.name = 'category'
 cat2 = concat([zone_stats2, cat1], axis=1)
 cat3 = cat2.sort_values('perc', ascending=False).category
 
+################################################
+#### Output stats
+
+print('Exporting results to csv')
+
+ts_out1 = hy_summ2.copy()
+ts_out2 = ts_out1.pivot_table('perc', ['mtype', 'site'], 'time').round(2)
+ts_out3 = ts_out2.reset_index()
+ts_out3.to_csv(path.join(base_dir, ts_out_csv), index=False)
+
+#gw_sites_ts = gw_site_zone0.merge(ts_out3, on='site')
+#gw_sites_ts.to_file(path.join(base_dir, gw_sites_ts_shp))
+
 #################################################
 #### Plotting
 
@@ -382,7 +394,7 @@ h = w
 
 ### All three parameters
 
-output_file(precip_sw_gw1_html)
+output_file(path.join(base_dir, precip_sw_gw1_html))
 
 ## dummy figure - for legend consistency
 p0 = figure(title='dummy Index', tools=[], logo=None, height=h, width=w)
@@ -474,7 +486,7 @@ show(tabs)
 
 ### Only precip and SW
 
-output_file(precip_sw1_html)
+output_file(path.join(base_dir, precip_sw1_html))
 
 tabs_alt = Tabs(tabs=[tab1, tab2])
 
