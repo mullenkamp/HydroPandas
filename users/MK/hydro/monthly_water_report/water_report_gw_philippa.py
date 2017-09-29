@@ -4,6 +4,7 @@ Created on Mon Jul 17 16:27:09 2017
 
 @author: MichaelEK
 """
+
 import sys
 sys.path.append(r'C:\git\Ecan.Science.Python.Base')
 
@@ -17,6 +18,7 @@ from scipy.stats import percentileofscore
 from numpy import nan
 from core.classes.hydro import hydro
 from core.ts import tsreg
+from warnings import filterwarnings
 
 from bokeh.plotting import figure, show, output_file
 from bokeh.models import ColumnDataSource, HoverTool, CategoricalColorMapper, CustomJS, renderers, annotations
@@ -24,6 +26,13 @@ from bokeh.palettes import brewer
 from bokeh.models.widgets import Select
 from bokeh.layouts import column
 
+from Tkinter import Tk
+from tkFileDialog import askdirectory
+
+date1 = date.today()
+date_str = str(date1)
+filterwarnings('ignore')
+Tk().withdraw()
 
 ###################################################
 #### Parameters
@@ -37,10 +46,12 @@ interp = True
 n_previous_months = 6
 
 ### Output
-gw_sites_ts_shp = 'gw_sites_perc.shp'
+
+output_dir = askdirectory(initialdir=base_dir, title='Select the output directory', mustexist=True)
+gw_sites_ts_shp = 'gw_sites_perc_' + date_str + '.shp'
 
 ## plots
-test2_html = 'test_gw2.html'
+test2_html = 'fresh_gw_map_' + date_str + '.html'
 
 ##################################################
 #### Read in data
@@ -90,7 +101,7 @@ mon_gw1['mtype'] = 'gw'
 ###############################################
 #### Pull out recent monthly data
 
-now1 = to_datetime(date.today())
+now1 = to_datetime(date1)
 start_date = now1 - DateOffset(months=n_previous_months) - DateOffset(days=now1.day - 1)
 end_date = now1 - DateOffset(days=now1.day - 1)
 
@@ -143,7 +154,7 @@ ts_out2 = ts_out1.pivot_table('perc', 'site', 'time').round(2)
 ts_out3 = ts_out2.reset_index()
 
 gw_sites_ts = gw_site_zone0.merge(ts_out3, on='site')
-gw_sites_ts.to_file(join(base_dir, gw_sites_ts_shp))
+gw_sites_ts.to_file(join(output_dir, gw_sites_ts_shp))
 
 #################################################
 #### Plotting
@@ -201,7 +212,7 @@ TOOLS = "pan,wheel_zoom,reset,hover,save"
 w = 700
 h = w
 
-output_file(join(base_dir, test2_html))
+output_file(join(output_dir, test2_html))
 
 ## dummy figure - for legend consistency
 p0 = figure(title='dummy Index', tools=[], logo=None, height=h, width=w)
@@ -235,7 +246,8 @@ show(layout3)
 #############################################
 #### Print where results are saved
 
-print('Results were saved here: ' + join(base_dir, gw_sites_ts_shp))
+print('########################')
 
-print('The plot was saved here: ' + join(base_dir, test2_html))
+print('Results were saved here: ' + join(output_dir, gw_sites_ts_shp))
+print('The plot was saved here: ' + join(output_dir, test2_html))
 

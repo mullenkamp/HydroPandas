@@ -20,6 +20,7 @@ from core.ts import tsreg
 from core.ecan_io import rd_hydrotel
 from configparser import ConfigParser
 from os import path, getcwd
+from warnings import filterwarnings
 
 from bokeh.plotting import figure, show, output_file
 from bokeh.models import ColumnDataSource, HoverTool, CategoricalColorMapper, CustomJS, renderers, annotations, Panel, Tabs
@@ -27,9 +28,13 @@ from bokeh.palettes import brewer
 from bokeh.models.widgets import Select
 from bokeh.layouts import column
 
-from datetime import datetime
+from Tkinter import Tk
+from tkFileDialog import askdirectory
 
-date1 = datetime.now().strftime('%Y-%m-%d')
+date1 = date.today()
+date_str = str(date1)
+filterwarnings('ignore')
+Tk().withdraw()
 
 ###################################################
 #### Parameters
@@ -47,20 +52,23 @@ pot_sw_site_list_csv = 'potential_sw_site_list.csv'
 
 qual_codes = [10, 18, 20, 30, 50, 11, 21, 40]
 
+n_previous_months = 6
+
 month_names = ['Jan', 'Feb', 'March', 'April', 'May', 'June', 'July', 'August', 'Sept', 'Oct', 'Nov', 'Dec']
 
 lon_zone_names = {'L': 'Lowlands', 'F': 'Foothills', 'M': 'Mountains', 'BP': 'Banks Peninsula'}
 
 ### Output
+output_dir = askdirectory(initialdir=base_dir, title='Select the output directory', mustexist=True)
 #sw_zone_stats_shp = 'sw_zone_stats_' + date1 + '.shp'
 #precip_zone_stats_shp = 'precip_zone_stats_' + date1 + '.shp'
-ts_out_csv = 'ts_out_perc_' + date1 + '.csv'
+ts_out_csv = 'ts_out_perc_' + date_str + '.csv'
 
 ## plots
 #precip_sw_gw1_html = r'E:\ecan\git\ecan_python_courses\docs\precip_sw_gw1.html'
 #precip_sw1_html = r'E:\ecan\git\ecan_python_courses\docs\precip_sw1.html'
-precip_sw_gw1_html = 'precip_sw_gw_' + date1 + '.html'
-precip_sw1_html = 'precip_sw_' + date1 + '.html'
+precip_sw_gw1_html = 'precip_sw_gw_' + date_str + '.html'
+precip_sw1_html = 'precip_sw_' + date_str + '.html'
 
 ##################################################
 #### Read in data
@@ -169,8 +177,8 @@ mon_summ = concat([mon_flow1, mon_precip1, mon_gw1]).reset_index(drop=True)
 ###############################################
 #### Pull out recent monthly data from hydrotel
 
-now1 = to_datetime(date.today())
-start_date = now1 - DateOffset(months=7) - DateOffset(days=now1.day - 1)
+now1 = to_datetime(date1)
+start_date = now1 - DateOffset(months=n_previous_months) - DateOffset(days=now1.day - 1)
 end_date = now1 - DateOffset(days=now1.day - 1)
 
 ### SW
@@ -400,7 +408,7 @@ h = w
 
 ### All three parameters
 
-output_file(path.join(base_dir, precip_sw_gw1_html))
+output_file(path.join(output_dir, precip_sw_gw1_html))
 
 ## dummy figure - for legend consistency
 p0 = figure(title='dummy Index', tools=[], logo=None, height=h, width=w)
@@ -492,7 +500,7 @@ show(tabs)
 
 ### Only precip and SW
 
-output_file(path.join(base_dir, precip_sw1_html))
+output_file(path.join(output_dir, precip_sw1_html))
 
 tabs_alt = Tabs(tabs=[tab1, tab2])
 
@@ -501,8 +509,9 @@ show(tabs_alt)
 #############################################
 #### Print where results are saved
 
-print('Results were saved here: ' + path.join(base_dir, ts_out_csv))
-
+print('########################')
+print('Results were saved here: ' + path.join(output_dir, ts_out_csv))
+print('The plot was saved here: ' + path.join(output_dir, precip_sw1_html))
 
 
 
