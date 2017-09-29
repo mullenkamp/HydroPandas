@@ -53,12 +53,12 @@ def allo_plt(df, yaxis_mag=1000000, yaxis_lab='Million', start='2006', end='2015
     ### Reorganize data
     allo1 = df.sum(axis=0, level=0)
     allo1.index = to_datetime(allo1.index)
-    allo1.index.name = 'dates'
+    allo1.index.name = 'date'
     allo2 = allo1[start:end] * 1 / yaxis_mag
-    dict1 = {'tot_allo': 'tot_ann_allo_m3', 'meter_allo': 'ann_allo_m3', 'meter_usage': 'usage_m3'}
-    dict2 = {'tot_allo': 'tot_ann_up_allo_m3', 'meter_allo': 'ann_up_allo_m3', 'meter_usage': 'usage_m3'}
+    dict1 = {'tot_allo': 'tot_allo', 'meter_allo': 'allo', 'meter_usage': 'usage'}
+#    dict2 = {'tot_allo': 'tot_ann_up_allo_m3', 'meter_allo': 'ann_up_allo_m3', 'meter_usage': 'usage_m3'}
     lst1 = [dict1[d] for d in cat]
-    lst2 = [dict2[d] for d in cat]
+#    lst2 = [dict2[d] for d in cat]
 
     if allo2.size > 1:
 #        index1 = allo2.index.astype('str').str[0:4].astype('int')
@@ -66,14 +66,14 @@ def allo_plt(df, yaxis_mag=1000000, yaxis_lab='Million', start='2006', end='2015
 
         pw = len(str(yaxis_mag)) - 1
 
-        allo_all = melt(allo2.reset_index(), id_vars='dates', value_vars=['tot_ann_allo_m3', 'ann_allo_m3', 'usage_m3'], var_name='tot_allo')
-        allo_up_all = melt(allo2.reset_index(), id_vars='dates', value_vars=['tot_ann_up_allo_m3', 'ann_up_allo_m3', 'usage_m3'], var_name='up_allo')
-        allo_up_all.loc[allo_up_all.up_allo == 'usage_m3', 'value'] = 0
+        allo_all = melt(allo2.reset_index(), id_vars='date', value_vars=['tot_allo', 'allo', 'usage'], var_name='tot_allo')
+#        allo_up_all = melt(allo2.reset_index(), id_vars='dates', value_vars=['tot_ann_up_allo_m3', 'ann_up_allo_m3', 'usage_m3'], var_name='up_allo')
+#        allo_up_all.loc[allo_up_all.up_allo == 'usage_m3', 'value'] = 0
 
         allo_all = allo_all[in1d(allo_all.tot_allo, lst1)]
-        allo_up_all = allo_up_all[in1d(allo_up_all.up_allo, lst2)]
+#        allo_up_all = allo_up_all[in1d(allo_up_all.up_allo, lst2)]
 
-        index1 = allo_all.dates.astype('str').str[0:4].astype('int')
+        index1 = allo_all.date.astype('str').str[0:4].astype('int')
         index2 = [Period(d) for d in index1.tolist()]
 
         ### Total Allo and restricted allo and usage
@@ -84,7 +84,7 @@ def allo_plt(df, yaxis_mag=1000000, yaxis_lab='Million', start='2006', end='2015
         ## Plot total allo
         fig, ax = plt.subplots(figsize=(15, 10))
         sns.barplot(x=index2, y='value', hue='tot_allo', data=allo_all, palette=col_pal, edgecolor='0')
-        sns.barplot(x=index2, y='value', hue='up_allo', data=allo_up_all, palette=col_pal, edgecolor='0', hatch='/')
+#        sns.barplot(x=index2, y='value', hue='up_allo', data=allo_up_all, palette=col_pal, edgecolor='0', hatch='/')
 #        plt.ylabel('Water Volume $(10^{' + str(pw) + '} m^{3}/year$)')
         plt.ylabel('Water Volume $(' + yaxis_lab + '\; m^{3}/year$)')
         plt.xlabel('Year')

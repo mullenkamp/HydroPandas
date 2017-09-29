@@ -13,6 +13,8 @@ from scipy.stats import skewnorm, norm
 
 
 def individual_pdf(path, distribution):
+    print('')
+    print(path)
     data = pd.read_excel(path, index_col=0)
 
     for person in data.index:
@@ -34,12 +36,13 @@ def individual_pdf(path, distribution):
         x = np.linspace(_min, _max, 100)
         ax.plot(x, distribution.pdf(x, *params), label=person)
         #plt.show()
+        plt.close(fig)
 
 
 if __name__ == '__main__':
-    paths = [r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\elicitation_23-08-2017_zeb_etheridge_ChchSFS.xlsx",
-             r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\elicitation_23-08-2017_zeb_etheridge_AshleyRiverlosses.xlsx",
-             r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\elicitation_22-08-2017_zeb_etheridge_racelosses.xlsx",
-             r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\elicitation_22-08-2017_zeb_etheridge_northernboundary.xlsx"] #todo
+    paths = [r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\Expert judgement elicitation\elicitation_23-08-2017_zeb_etheridge_ChchSFS.xlsx",
+             r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\Expert judgement elicitation\elicitation_23-08-2017_zeb_etheridge_AshleyRiverlosses.xlsx",
+             r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\Expert judgement elicitation\elicitation_22-08-2017_zeb_etheridge_racelosses.xlsx",
+             r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\Expert judgement elicitation\elicitation_22-08-2017_zeb_etheridge_northernboundary.xlsx"]
     for path in paths:
         individual_pdf(path, norm)

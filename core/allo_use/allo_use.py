@@ -24,27 +24,29 @@ def allo_proc(in_allo=True, corr_csv='S:/Surface Water/shared/base_data/database
     export_path -- The path and csv file name that should be exported.
     """
 
-    from numpy import in1d, nan, inf, ceil
+    from numpy import in1d, nan, ceil
     from pandas import merge, to_datetime, read_csv, to_numeric, concat
 #    from core.allo_use import wqn10
     from core.ecan_io import rd_sql
     from core.misc import save_df
+    from core.ecan_io.SQL_databases import sql_arg
 
     #### Parameters
     take_types = ['Take Groundwater', 'Take Surface Water']
+    sql1 = sql_arg()
 
     #### Load RAW data
 #    takes = rd_sql(code='crc_acc')
-    crc_wap = rd_sql(code='crc_wap_act_acc', where_col='Activity', where_val=take_types)
-    crc_cav = rd_sql(code='crc_gen_acc', where_col='Activity', where_val=take_types)
-    crc_use_type = rd_sql(code='crc_use_type_acc', where_col='Activity', where_val=take_types)
-    sd = rd_sql(code='sd')
+    crc_wap = rd_sql(where_col='Activity', where_val=take_types, **sql1.get_dict('crc_wap_allo'))
+    crc_cav = rd_sql(where_col='Activity', where_val=take_types, **sql1.get_dict('crc_cav'))
+    crc_use_type = rd_sql(where_col='Activity', where_val=take_types, **sql1.get_dict('crc_use_type'))
+    sd = rd_sql(**sql1.get_dict('sd'))
 
-    dates = rd_sql(code='crc_details_acc')[['crc', 'from_date', 'to_date', 'status_details']]
+    dates = rd_sql(**sql1.get_dict('crc_dates'))[['crc', 'from_date', 'to_date', 'status_details']]
 
 #    irr_dem = rd_sql(code='irr_dem_par')
 
-    crc_rel = rd_sql(code='crc_relation')
+    crc_rel = rd_sql(**sql1.get_dict('crc_relation'))
 
     use_type_code = read_csv(use_type_csv)
     val3 = [use_type_code.loc[i, ['values']].values[0].split(', ') for i in use_type_code.index]
@@ -261,7 +263,21 @@ def allo_proc(in_allo=True, corr_csv='S:/Surface Water/shared/base_data/database
     init_cols = ['crc', 'take_type', 'allo_block', 'wap', 'use_type', 'max_rate', 'daily_vol', 'cav', 'max_vol', 'return_period', 'from_date', 'to_date', 'status_details']
     t1 = [cols.remove(i) for i in init_cols]
     cols[0:0] = init_cols
-    allo3 = allo2[cols]
+    allo3 = allo2[cols].copy()
+
+    #### Calc irr area where not populated
+    irr_crc1 = allo3[allo3.use_type == 'irrigation'].copy()
+    irr_crc2 = irr_crc1.groupby(['crc'])[['irr_area', 'daily_vol']].sum()
+    irr_crc3 = irr_crc2[irr_crc2.irr_area > 0].copy()
+    irr_crc3.loc[:, 'irr_day_ratio'] = irr_crc3['daily_vol']/(irr_crc3.irr_area * 10)
+    irr_crc4 = irr_crc3[(irr_crc3['irr_day_ratio'] >= 2) & (irr_crc3['irr_day_ratio'] <= 6)]
+    mm_hect = irr_crc4['irr_day_ratio'].mean()
+
+    allo3.loc[:, 'irr_area_est'] = allo3['irr_area']
+    allo3.loc[~allo3.crc.isin(irr_crc4.index), 'irr_area_est'] = (allo3.loc[~allo3.crc.isin(irr_crc4.index), 'daily_vol'] / mm_hect / 10).round(1)
+
+    #### Make corrections
+    allo3.loc[(allo3['take_type'] == 'Take Groundwater') & (allo3['in_sw_allo'] == 'YES'), 'in_gw_allo'] = 'YES'
 
     #### Save data and return object
     if isinstance(export_path, str):
@@ -279,17 +295,19 @@ def allo_gis_proc(allo, export=True, export_shp='allo_gis.shp', export_csv='allo
     from numpy import in1d, arange
     from geopandas.tools import sjoin
     from pandas import merge, concat
+    from core.ecan_io.SQL_databases import sql_arg
 
     #### Read data
-    swaz = rd_sql(code='swaz_gis')
-    gwaz = rd_sql(code='gwaz_gis')
-    catch = rd_sql(code='catch_gis')
-    cwms = rd_sql(code='cwms_gis')
+    sql1 = sql_arg()
+    swaz = rd_sql(**sql1.get_dict('swaz_gis'))
+    gwaz = rd_sql(**sql1.get_dict('gwaz_gis'))
+    catch = rd_sql(**sql1.get_dict('catch_gis'))
+    cwms = rd_sql(**sql1.get_dict('cwms_gis'))
     poly_dict = {'swaz': swaz, 'gwaz': gwaz, 'catch': catch, 'cwms': cwms}
 
-    wap_loc1 = rd_sql(code='waps_details')[['wap', 'NZTMX', 'NZTMY']]
+    wap_loc1 = rd_sql(**sql1.get_dict('well_details'))[['wap', 'NZTMX', 'NZTMY']]
     wap_loc = xy_to_gpd('wap', 'NZTMX', 'NZTMY', wap_loc1)
-    crc_loc = rd_sql(code='crc_details_acc_gis')[['crc', 'geometry']]
+    crc_loc = rd_sql(**sql1.get_dict('crc_gis'))[['crc', 'geometry']]
 
     #### Prepare allo data
 #    allo1 = allo[in1d(allo.status_details, status_codes)]
@@ -441,7 +459,7 @@ def allo_ts_apply(wap, start_date='2014-07-01', end_date='2016-06-30', from_col=
         return(s1)
 
 
-def allo_filter(allo, start='1900', end='2100', from_col='from_date', to_col='to_date', in_allo=True):
+def allo_filter(allo, start='1900-07-01', end='2020-06-30', from_col='from_date', to_col='to_date', in_allo=True):
     """
     Function to take an allo DataFrame and filter out the consents that cannot be converted to a time series due to missing data.
     """
@@ -484,7 +502,7 @@ def allo_filter(allo, start='1900', end='2100', from_col='from_date', to_col='to
     return(allo7)
 
 
-def allo_ts_proc(allo, start='1900-01-01', end='2100-01-01', in_allo=True, from_col='from_date', to_col='to_date', freq='M', mon_col='from_month', daily_vol_col='daily_vol', cav_col='cav', export_path=None):
+def allo_ts_proc(allo, start='1900-07-01', end='2020-06-30', in_allo=True, from_col='from_date', to_col='to_date', freq='M', mon_col='from_month', daily_vol_col='daily_vol', cav_col='cav', export_path=None):
     """
     Combo function to completely create a time series from the allocation DataFrame.
     """
@@ -537,7 +555,7 @@ def allo_use_proc(allo_ts_mon, usage, export_path=None):
     from core.misc import save_df
 
     #### Process the usage data
-    use1 = grp_ts_agg(usage, 'wap', 'date', 'M', 'sum')
+    use1 = grp_ts_agg(usage, 'wap', 'date', 'M').sum().reset_index()
 #    crc_use1 = use1[use1.wap.str.contains('CRC')]
     use1.loc[:, 'usage'] = use1.loc[:, 'usage'].round(2)
 #    use1.loc[:, 'date'] = use1.loc[:, 'date'].astype(str)
@@ -585,8 +603,9 @@ def est_use(allo_use, allo_use_ros, allo_gis, date_col='date', usage_col='mon_us
     allo_use.rename(columns={'allo': 'mon_allo_m3', 'usage': 'mon_usage_m3'}, inplace=True)
 
     ## Resample data
-    ann_allo = grp_ts_agg(allo_use, ['crc', 'take_type', 'allo_block', 'wap'], date_col, 'A-JUN', 'sum', True)
-    ann_allo.rename(columns={'mon_allo_m3': 'ann_allo_m3', 'mon_usage_m3': 'ann_usage_m3'}, inplace=True)
+    ann_allo1 = grp_ts_agg(allo_use, ['crc', 'take_type', 'allo_block', 'wap'], date_col, 'A-JUN').transform('sum')
+    ann_allo1.rename(columns={'mon_allo_m3': 'ann_allo_m3', 'mon_usage_m3': 'ann_usage_m3'}, inplace=True)
+    ann_allo = concat([allo_use[['crc', 'take_type', 'allo_block', 'wap', 'date']], ann_allo1.reset_index(drop=True)], axis=1)
 
     ## Merge usage and allo
     join_grp = ['crc', date_col, 'take_type', 'allo_block', 'wap']
@@ -749,7 +768,7 @@ def hist_sd_use(usage, allo_gis, vcn_grid2, et_col='pe', date_col='date', export
 
 
     ### Resample the ET series to monthly sums
-    et_mon = grp_ts_agg(vcn_data2, 'catch_grp', 'time', 'M', 'mean')
+    et_mon = grp_ts_agg(vcn_data2, 'catch_grp', 'time', 'M').mean().reset_index()
     et_mon.loc[:, 'catch_grp'] = to_numeric(et_mon.loc[:, 'catch_grp'], errors='coerce')
 
     ### Filter only the GW sites with SD and surface water sites
@@ -919,9 +938,11 @@ def w_use_proc(ht_use_hdf=r'S:\Surface Water\shared\base_data\usage\ht_usage_dai
     """
     from core.ecan_io import rd_sql
     from pandas import to_datetime, read_hdf
+    from core.ecan_io.SQL_databases import sql_arg
 
     #### Import data
-    wus = rd_sql(code='wus_day')
+    sql1 = sql_arg()
+    wus = rd_sql(**sql1.get_dict('wus_day'))
     wus.loc[:, 'usage'] = wus.loc[:, 'usage'].round(2)
     wus.loc[:, 'wap'] = wus.loc[:, 'wap'].str.upper().str.replace(',', '')
     wus.loc[:, 'date'] = to_datetime(wus.loc[:, 'date'])
@@ -943,50 +964,6 @@ def w_use_proc(ht_use_hdf=r'S:\Surface Water\shared\base_data\usage\ht_usage_dai
     if export:
         use_daily2.to_hdf(export_path, key='daily_usage', mode='w')
     return(use_daily2)
-
-
-def w_use_proc_old(export=False, export_path='usage_daily.h5'):
-    """
-    Function to process the water use data.
-    """
-    from core.ecan_io import rd_sql
-    from pandas import merge, concat, to_datetime
-
-    #### Import data
-    wus = rd_sql(code='wus_day')
-    wus.loc[:, 'usage'] = wus.loc[:, 'usage'].round(2)
-    wus.loc[:, 'date'] = to_datetime(wus.loc[:, 'date'])
-
-    ht_use = rd_sql('SQL2012TEST01', 'WaterTake', 'UsageReading', ['UsageWap', 'Date', 'Value'])
-    ht_use.columns = ['wap_id', 'date', 'usage']
-    ht_use_id = rd_sql('SQL2012TEST01', 'WaterTake', 'UsageWap', ['Id', 'Name'])
-    ht_use_id.columns = ['wap_id', 'wap']
-
-    #### Process WAP/CRC IDs
-    ht_use_id.loc[:, 'wap'] = ht_use_id.wap.str.replace('[:\.]', '/')
-#    ht_use_id.loc[ht_use_id.Name == 'L35183/580-M1', 'Name'] = 'L35/183/580-M1' What to do with this one?
-    ht_use_id.loc[ht_use_id.wap == 'L370557-M1', 'wap'] = 'L37/0557-M1'
-    ht_use_id.loc[ht_use_id.wap == 'L370557-M72', 'wap'] = 'L37/0557-M72'
-    ht_use_id = ht_use_id[~ht_use_id.wap.str.contains(' ')]
-    ht_use_id.loc[:, 'wap'] = ht_use_id.wap.str.split('-', expand=True)[0]
-    ht_use_id = ht_use_id[ht_use_id.wap.str.contains('\d\d\d')]
-    ht_use_id.loc[:, 'wap'] = ht_use_id.loc[:, 'wap'].str.upper()
-    wus.loc[:, 'wap'] = wus.loc[:, 'wap'].str.upper()
-
-    #### Merge ht use with IDs
-    ht_use2 = merge(ht_use, ht_use_id, on='wap_id').drop('wap_id', axis=1)
-
-    #### Merge WUS with new data
-    use_daily = concat([wus, ht_use2])
-
-    #### Aggregate waps together
-    use_daily2 = use_daily.groupby(['wap', 'date']).sum().reset_index()
-
-    #### Export data
-    if export:
-        use_daily2.to_hdf(export_path, key='daily_usage', mode='w')
-    return(use_daily2)
-
 
 ### Errors
 
@@ -1461,7 +1438,47 @@ def hist_sd_use2(usage_est, allo_gis, vcn_grid2, vcn_data_path, date_col='date',
     return([sd_et_est1, nat_mon, reg_df])
 
 
+def w_use_proc_old(export=False, export_path='usage_daily.h5'):
+    """
+    Function to process the water use data.
+    """
+    from core.ecan_io import rd_sql
+    from pandas import merge, concat, to_datetime
 
+    #### Import data
+    wus = rd_sql(code='wus_day')
+    wus.loc[:, 'usage'] = wus.loc[:, 'usage'].round(2)
+    wus.loc[:, 'date'] = to_datetime(wus.loc[:, 'date'])
+
+    ht_use = rd_sql('SQL2012TEST01', 'WaterTake', 'UsageReading', ['UsageWap', 'Date', 'Value'])
+    ht_use.columns = ['wap_id', 'date', 'usage']
+    ht_use_id = rd_sql('SQL2012TEST01', 'WaterTake', 'UsageWap', ['Id', 'Name'])
+    ht_use_id.columns = ['wap_id', 'wap']
+
+    #### Process WAP/CRC IDs
+    ht_use_id.loc[:, 'wap'] = ht_use_id.wap.str.replace('[:\.]', '/')
+#    ht_use_id.loc[ht_use_id.Name == 'L35183/580-M1', 'Name'] = 'L35/183/580-M1' What to do with this one?
+    ht_use_id.loc[ht_use_id.wap == 'L370557-M1', 'wap'] = 'L37/0557-M1'
+    ht_use_id.loc[ht_use_id.wap == 'L370557-M72', 'wap'] = 'L37/0557-M72'
+    ht_use_id = ht_use_id[~ht_use_id.wap.str.contains(' ')]
+    ht_use_id.loc[:, 'wap'] = ht_use_id.wap.str.split('-', expand=True)[0]
+    ht_use_id = ht_use_id[ht_use_id.wap.str.contains('\d\d\d')]
+    ht_use_id.loc[:, 'wap'] = ht_use_id.loc[:, 'wap'].str.upper()
+    wus.loc[:, 'wap'] = wus.loc[:, 'wap'].str.upper()
+
+    #### Merge ht use with IDs
+    ht_use2 = merge(ht_use, ht_use_id, on='wap_id').drop('wap_id', axis=1)
+
+    #### Merge WUS with new data
+    use_daily = concat([wus, ht_use2])
+
+    #### Aggregate waps together
+    use_daily2 = use_daily.groupby(['wap', 'date']).sum().reset_index()
+
+    #### Export data
+    if export:
+        use_daily2.to_hdf(export_path, key='daily_usage', mode='w')
+    return(use_daily2)
 
 
 

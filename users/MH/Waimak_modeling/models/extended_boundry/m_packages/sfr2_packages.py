@@ -331,20 +331,25 @@ def _define_reach_length(reach_data, mode='cornering'):
     return wrd
 
 if __name__ == '__main__':
-    seg = pd.DataFrame(_seg_data_v1(True))
+    save = True
+    seg = pd.DataFrame(_seg_data_v1(False))
     reach = pd.DataFrame(_reach_data_v1(False))
-    elv = smt.calc_elv_db()
-    g=reach.groupby(['iseg'])
-    bot = g.aggregate({'strtop':np.min})
-    top = g.aggregate({'strtop':np.max})
-    problems = []
-    for i in seg.index:
-        segment, outseg = seg.loc[i,['nseg','outseg']]
-        if outseg ==0:
-            continue
-        ttop = top.loc[outseg, 'strtop']
-        tbot = bot.loc[segment, 'strtop']
-        if ttop>tbot:
-            problems.append((segment,outseg))
+    if save:
+        reach = smt.add_mxmy_to_df(reach)
+        reach.to_csv(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\m_ex_bd_inputs\raw_sw_samp_points\sfr\all_sfr.csv")
+    else:
+        elv = smt.calc_elv_db()
+        g=reach.groupby(['iseg'])
+        bot = g.aggregate({'strtop':np.min})
+        top = g.aggregate({'strtop':np.max})
+        problems = []
+        for i in seg.index:
+            segment, outseg = seg.loc[i,['nseg','outseg']]
+            if outseg ==0:
+                continue
+            ttop = top.loc[outseg, 'strtop']
+            tbot = bot.loc[segment, 'strtop']
+            if ttop>tbot:
+                problems.append((segment,outseg))
 
-    print(problems)
+        print(problems)

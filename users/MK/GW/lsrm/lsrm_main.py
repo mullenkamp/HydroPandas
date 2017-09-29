@@ -7,7 +7,7 @@ Created on Fri Jun 30 10:42:42 2017
 Example script for running the LSRM.
 """
 
-from core.ecan_io import rd_niwa_vcsn
+from core.ecan_io import rd_niwa_data_lsrm
 from time import time
 from core.ts.gw.lsrm import poly_import, input_processing, lsrm
 from core.misc import save_df
@@ -20,6 +20,8 @@ irr_type_dict = {'server': 'SQL2012PROD05', 'database': 'GIS', 'table': 'AQUALIN
 paw_dict = {'server': 'SQL2012PROD05', 'database': 'GIS', 'table': 'LAND_NZTM_NEWZEALANDFUNDAMENTALSOILS', 'column': 'PAW_MID'}
 
 bound_shp = r'\\fileservices02\ManagedShares\Data\VirtualClimate\examples\waipara.shp'
+
+nc_dir = r'\\fileservices02\ManagedShares\Data\VirtualClimate\vcsn_precip_et_2016-06-06.nc'
 
 buffer_dis = 10000
 from_date = '1999-01-01'
@@ -57,7 +59,7 @@ print('Read in the input data')
 
 irr1, paw1 = poly_import(irr_type_dict, paw_dict, paw_ratio)
 
-precip_et = rd_niwa_vcsn(mtypes=['precip', 'PET'], sites=bound_shp, buffer_dis=buffer_dis, from_date=from_date, to_date=to_date)
+precip_et = rd_niwa_data_lsrm(bound_shp, nc_dir, buffer_dis=buffer_dis, from_date=from_date, to_date=to_date)
 
 ##########################################
 ### Process data

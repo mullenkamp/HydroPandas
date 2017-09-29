@@ -48,6 +48,7 @@ class ModelTools(object):
             os.makedirs(self.pickle_dir)
         self.base_mod_path = base_mod_path
         self._elv_calculator = elv_calculator
+        self.model_array_shape = (self.layers, self.rows, self.cols)
 
 
 
@@ -291,7 +292,7 @@ class ModelTools(object):
 
     def plt_matrix(self, array, vmin=None, vmax=None, title=None, no_flow_layer=0, ax=None, color_bar=True, **kwargs):
         import matplotlib.pyplot as plt
-        array = deepcopy(array)
+        array = deepcopy(array.astype(float))
         if vmax is None:
             vmax = np.nanmax(array)
         if vmin is None:

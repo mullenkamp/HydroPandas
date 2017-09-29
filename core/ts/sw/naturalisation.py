@@ -13,7 +13,7 @@ def stream_nat(sites, catch_shp=r'P:\cant_catch_delin\recorders\catch_del.shp', 
     include_gw -- Should stream depleting GW takes be included?\n
     max_date -- The last date to be naturalised. In the form of '2015-06-30'.\n
     sd_hdf -- The hdf file of all the crc/waps with estimated usage and allocation.\n
-    flow_csv -- If None, then use the hydro class to import the data. Otherwise, flow data can be imported as a csv file with the first column as dattime and each other column as a recorder site in m3/s.\n
+    flow_csv -- If None, then use the hydro class to import the data. Otherwise, flow data can be imported as a csv file with the first column as datetime and each other column as a recorder site in m3/s. It can also be a dataframe.\n
     crc_shp -- A shapefile of all of th locations of the crc/waps.\n
     pivot -- Should the output be pivotted?\n
     return_data -- Should the allocation/usage time series be returned?
@@ -23,10 +23,10 @@ def stream_nat(sites, catch_shp=r'P:\cant_catch_delin\recorders\catch_del.shp', 
     from geopandas import read_file
     from core.spatial import pts_poly_join
     from core.misc import select_sites
-    from core.classes.hydro import hydro
+    from core.classes.hydro.base import hydro
     from core.misc import save_df
 
-    qual_codes = [10, 18, 20, 30, 50]
+    qual_codes = [10, 18, 20, 50]
 
     ### Read in data
     ## Site numbers
@@ -43,9 +43,21 @@ def stream_nat(sites, catch_shp=r'P:\cant_catch_delin\recorders\catch_del.shp', 
     if type(flow_csv) is str:
         flow = rd_ts(flow_csv)
         flow.columns = flow.columns.astype(int)
-    elif type(flow_csv) is DataFrame:
-        flow = flow_csv
+        flow.index.name = 'time'
+        flow.columns.name = 'site'
+        flow = flow.stack()
+        flow.name = 'flow'
+        flow.index = flow.index.reorder_levels(['site', 'time'])
+        flow = flow.sort_index()
+    elif isinstance(flow_csv, DataFrame):
+        flow = flow_csv.copy()
         flow.columns = flow.columns.astype(int)
+        flow.index.name = 'time'
+        flow.columns.name = 'site'
+        flow = flow.stack()
+        flow.name = 'flow'
+        flow.index = flow.index.reorder_levels(['site', 'time'])
+        flow = flow.sort_index()
     elif flow_csv is None:
         flow = hydro().get_data(mtypes='flow', sites=sites1, qual_codes=qual_codes)
         sites1 = flow.sites
