@@ -239,7 +239,7 @@ if __name__ == '__main__':
     #setup_run_forward_run_mp(runs[0])
     import time
     t = time.time()
-    test = [runs[0],runs[-1],runs[100]]
+    test = [runs[0],runs[1],runs[-1],runs[100]]
     run_forward_runs(test)
     print('3 runs in __ min ')
     print (time.time() - t)/60
