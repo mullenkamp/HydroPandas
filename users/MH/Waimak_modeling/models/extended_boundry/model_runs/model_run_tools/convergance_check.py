@@ -1,18 +1,13 @@
+# -*- coding: utf-8 -*-
+"""
+Author: matth
+Date Created: 29/09/2017 3:44 PM
+"""
+
 from __future__ import division
-import numpy as np
-import pandas as pd
-import geopandas as gpd
-from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
-import matplotlib.pyplot as plt
-from copy import deepcopy
-from glob import glob
-from core.classes.hydro import hydro, all_mtypes
-from matplotlib.colors import from_levels_and_colors
-import statsmodels.formula.api as sm
-from scipy.stats import skewnorm
-
-
+from core import env
 import os
+
 
 def reverse_readline(filename, buf_size=8192):
     """a generator that returns the lines of a file in reverse order"""
@@ -46,6 +41,7 @@ def reverse_readline(filename, buf_size=8192):
         if segment is not None:
             yield segment
 
+
 def converged(list_path):
     """
 
@@ -55,7 +51,7 @@ def converged(list_path):
     converg = None
     end_positive = 'SOLVING FOR HEAD'.lower()
     end_neg = 'FAILED TO MEET SOLVER'.lower()
-    temp = reverse_readline(list_path,100)
+    temp = reverse_readline(list_path, 100)
     for i in temp:
         if end_positive in i.lower():
             break
@@ -63,10 +59,3 @@ def converged(list_path):
             converg = False
             break
     return converg
-
-path = r"C:\Users\MattH\Downloads\test_list.list"
-print converged(path)
-print'done'
-
-
-

@@ -158,12 +158,12 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
     success, buff = m.run_model(silent=silent, report=True)
     if success:
         zip_non_essential_files(m.model_ws) #todo include list? see what I need to grab
-    log_dir = '{}/logging'.format(base_dir)
+    log_dir = '{}/logging'.format(base_dir) # todo clean up the logging
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     log = '{}/{}_log.txt'.format(log_dir, name)
     buff = [e + '\n' for e in buff]
     with open(log, 'w') as f:
         f.writelines(buff)
-    return name, success
+    return name, success #todo add the convergence check
     # todo this needs debugging

@@ -24,7 +24,7 @@ def run_cc_senarios(base_kwargs):
     periods = range(2010, 2100, 20)
     rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
     rcps = ['RCP4.5', 'RCP8.5']
-    amalg_types = ['tym', 'min', 'low_3_m']
+    amalg_types = ['tym', 'low_3_m'] # removed min as most low_3_yr were not converging
     for per, rcm, rcp, at in itertools.product(periods, rcms, rcps, amalg_types):
         temp = deepcopy(base_kwargs)
         temp['cc_inputs'] = {'rcm': rcm, 'rcp': rcp, 'period': per, 'amag_type': at}
@@ -235,7 +235,7 @@ if __name__ == '__main__':
     # todo test this with a couple of runs on the server
     runs = setup_run_args('opt',dir_path)
     #setup_run_forward_run_mp(runs[-1])
-    #setup_run_forward_run_mp(runs[100])
+    setup_run_forward_run_mp(runs[100])
     #setup_run_forward_run_mp(runs[0])
     import time
     t = time.time()

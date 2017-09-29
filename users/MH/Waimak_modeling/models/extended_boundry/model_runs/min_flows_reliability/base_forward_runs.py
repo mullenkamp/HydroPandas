@@ -11,6 +11,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import flopy
 import os
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import converged
 
 def setup_run_forward_run_mp (kwargs):
     try:
@@ -113,8 +114,16 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
 
     m.write_name_file()
     m.write_input()
-    success, buff = m.run_model()
+    success, buff = m.run_model(report=True)
+    con=False
     if success:
+        con = converged(os.path.join(m.model_ws,m.namefile.replace('.nam', '.list')))
         zip_non_essential_files(m.model_ws, include_list=True)
+    if con is None:
+        success = 'convergence unknown'
+    elif con:
+        success = 'converged'
+    else:
+        success = 'did not converge'
     return name, success
 
