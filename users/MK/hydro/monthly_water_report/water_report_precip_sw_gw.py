@@ -65,6 +65,8 @@ precip_sw1_html = 'precip_sw_' + date1 + '.html'
 ##################################################
 #### Read in data
 
+print('Reading in the data')
+
 ### Overall veiw
 veiw_zones = read_file(path.join(base_dir, veiw_bound_shp))
 veiw_zones = veiw_zones.replace({'lon_zone': lon_zone_names})
@@ -130,6 +132,8 @@ gw1 = hydro().get_data(mtypes='gwl', sites=gw_sites.site, qual_codes=qual_codes)
 
 #################################################
 #### Run monthly summary stats
+
+print('Processing past data')
 
 ### SW
 flow2 = flow1.sel_ts(mtypes='flow')
@@ -283,6 +287,7 @@ site_zones = concat([sw_site_zone, precip_site_zone1, gw_site_zone1])
 ##############################################
 #### Run the monthly stats comparisons
 
+print('Calculating the percentiles')
 
 def row_perc(x, mon_summ):
     mon1 = x.time.month
@@ -339,6 +344,7 @@ ts_out3.to_csv(path.join(base_dir, ts_out_csv), index=False)
 
 ### Extract x and y data for plotting
 
+print('Creating the plot')
 
 def getPolyCoords(row, coord_type, geom='geometry'):
     """Returns the coordinates ('x' or 'y') of edges of a Polygon exterior"""
@@ -492,7 +498,10 @@ tabs_alt = Tabs(tabs=[tab1, tab2])
 
 show(tabs_alt)
 
+#############################################
+#### Print where results are saved
 
+print('Results were saved here: ' + path.join(base_dir, ts_out_csv))
 
 
 
