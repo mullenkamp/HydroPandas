@@ -13,12 +13,14 @@ import os
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import itertools
 import numpy as np
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.cwms_index import get_zone_array_index
+
 
 lsrm_rch_base_dir = env.gw_met_data('niwa_netcdf/lsrm/lsrm_results/water_year_means')
 rch_idx_shp_path = env.gw_met_data("niwa_netcdf/lsrm/lsrm_results/test/output_test2.shp")
 
 
-def get_forward_rch(model_id, naturalised, pc5=False, rcm=None, rcp=None, period=None, amag_type=None):
+def get_forward_rch(model_id, naturalised, pc5=False, rcm=None, rcp=None, period=None, amag_type=None, cc_to_waimak_only=False):
     """
     get the rch for the forward runs
     :param model_id: which NSMC realisation to use
@@ -32,6 +34,7 @@ def get_forward_rch(model_id, naturalised, pc5=False, rcm=None, rcp=None, period
                                                     'mean': full data mean
                                                     None: then use 'mean'
     :param pc5: boolean if true use assumed PC5 efficency (only applied to the WILS and {something} areas)
+    :param cc_to_waimak_only: if true only apply the cc rch to the waimakairi zone (use the vcsn data other wise (keep senario)
     :return: rch array (11,364,365)
     """
     # I think I need to apply everything as a percent change or somehow normalise the rch so that I do not get any big
@@ -53,8 +56,14 @@ def get_forward_rch(model_id, naturalised, pc5=False, rcm=None, rcp=None, period
     rch_array = get_lsrm_base_array(sen, rcp, rcm, period, method)
 
     # apply multiplier array from pest parameraterisation
-    rch_array *= get_rch_multipler(model_id)
+    rch_mult = get_rch_multipler(model_id)
+    rch_array *= rch_mult
 
+    if cc_to_waimak_only:
+        base_rch = get_lsrm_base_array(sen,None,None,None,'mean')
+        base_rch *= rch_mult
+        idx_array = get_zone_array_index(['chch','selwyn'])
+        rch_array[idx_array] = base_rch[idx_array]
     # handle weirdness from the arrays (e.g. ibound ignore the weirdness from chch/te waihora paw)
     no_flow = smt.get_no_flow(0)
     no_flow[no_flow < 0] = 0
@@ -219,7 +228,6 @@ if __name__ == '__main__':
     senarios = ['pc5', 'nat', 'current']
     # cc stuff
     for per, rcp, rcm, at, sen in itertools.product(periods, rcps, rcms, amalg_types, senarios):
-        continue
         naturalised = False
         pc5 = False
         if sen == 'nat':
@@ -229,7 +237,7 @@ if __name__ == '__main__':
         elif sen == 'current':
             pass
 
-        test = get_forward_rch('opt',naturalised=naturalised,pc5=pc5,rcm=rcm,rcp=rcp,period=per,amag_type=at)
+        test = get_forward_rch('opt',naturalised=naturalised,pc5=pc5,rcm=rcm,rcp=rcp,period=per,amag_type=at,cc_to_waimak_only=True)
 
     amalg_types = ['tym', 'low_3_m', 'min']
     for rcm, sen, at in itertools.product(rcms, senarios, amalg_types):

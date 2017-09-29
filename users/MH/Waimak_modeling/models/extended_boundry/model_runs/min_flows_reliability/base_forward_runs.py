@@ -22,7 +22,8 @@ def setup_run_forward_run_mp (kwargs):
     return name, success
 
 def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, wil_eff=1, naturalised=False,
-                          full_abs=False, pumping_well_scale=1, full_allo=False, org_efficency=None, org_pumping_wells=False):
+                          full_abs=False, pumping_well_scale=1, full_allo=False, org_efficency=None,
+                          org_pumping_wells=False):
     """
     sets up and runs a forward run with a number of options
     :param model_id: which NSMC version to user (see mod_gns_model)
@@ -32,9 +33,11 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
                                         rcp: representetive carbon pathway identifier,
                                         period: e.g. 2010, 2020, ect,
                                         amag_type: the amalgamation type one of:
-                                                        tym: ten year mean,
+                                                        tym: twenty year mean,
                                                         min: minimum annual average,
                                                         low_3_m: average of the 3 lowest consecutive years
+                                        cc_to_waimak_only: if True only apply the cc changes to waimak zone
+                                                           (still apply senarios e.g. pc5)
     :param pc5: boolean if true use assumed PC5 efficency
     :param wil_eff: a factor (>0) which will be applied to the WIL scheme losses (e.g. .2 = 20% of optimised model value)
     :param naturalised: boolean if true run with a naturalised system no pumping, irrigation LSR impacts, WIL losses etc.
