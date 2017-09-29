@@ -99,7 +99,7 @@ def select_sites(x):
         x1 = x.values
     elif isinstance(x, DataFrame):
         x1 = x1.iloc[:, 0].values
-    elif type(x) is str:
+    elif isinstance(x, str):
         if x.endswith('.shp'):
             x1 = read_file(x)
         else:
@@ -222,7 +222,15 @@ def save_df(df, path_str, index=True, header=True):
         df.to_csv(path_str, index=index, header=header)
 
 
-
+def get_subdir(a_dir, full_path=False):
+    """
+    Simple function to get all subdirectories from a directory.
+    """
+    from os import path, listdir
+    if full_path:
+        return [path.join(a_dir, name) for name in listdir(a_dir) if path.isdir(path.join(a_dir, name))]
+    else:
+        return [name for name in listdir(a_dir) if path.isdir(path.join(a_dir, name))]
 
 
 

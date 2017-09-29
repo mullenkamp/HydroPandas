@@ -110,7 +110,7 @@ def _get_drn_spd(reach_v, wel_version, recalc=False, n_car_dns=True):
     # add a carpet drain south of the waimakariri to loosely represent the low land streams
     # only add drains where there are not other model conditions
     drain_to_add = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/s_carpet_drns.shp".format(smt.sdp), 'group',
-                                                 alltouched=True)
+                                                 alltouched=True) #todo update with backup when I get it
     index = np.zeros((smt.rows, smt.cols))
 
     # wel
@@ -339,7 +339,7 @@ def _get_drn_spd(reach_v, wel_version, recalc=False, n_car_dns=True):
     p_group_map = {
         'd_salt_s': 'd_salt_fct',
         'd_waikuk_s': 'd_kuku_leg',
-        'd_ash_s': 'd_kuku_leg',
+        #'d_ash_s': 'd_kuku_leg', removed as it seems to cause problems hitting the waikuku
         'd_taran_s': 'd_tar_stok',
         'd_cam_s': 'd_cam_revl',
         'd_kaiapo_s': 'd_sil_ilnd',
@@ -348,6 +348,9 @@ def _get_drn_spd(reach_v, wel_version, recalc=False, n_car_dns=True):
     }
     drn_data.loc[:,'parameter_group'] = drn_data.loc[:,'target_group']
     drn_data = drn_data.replace({'parameter_group':p_group_map})
+    kspit = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/kspit.shp".format(smt.sdp), 'Id', True)
+    for row,col in smt.model_where(np.isfinite(kspit)):
+        drn_data.loc[(drn_data.i == row) & (drn_data.j == col) & (np.in1d(drn_data.target_group,['d_dlin_c','d_dsel_c'])),'target_group'] = 'd_kspit'
     if not n_car_dns:
         drn_data = drn_data.loc[~np.in1d(drn_data.group,['cust_carpet', 'ash_carpet'])]
     pickle.dump(drn_data, open(pickle_path, 'w'))
@@ -355,31 +358,6 @@ def _get_drn_spd(reach_v, wel_version, recalc=False, n_car_dns=True):
 
 
 if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    test = _get_drn_spd(1, 1,False,n_car_dns=True)
-    smt.plt_matrix(smt.df_to_array(test,'k'))
-    plt.show()
-    test2 = _get_drn_spd(1,1,False,n_car_dns=False)
-    smt.plt_matrix(smt.df_to_array(test2,'k'))
-    plt.show()
-    test2 = test.loc[np.in1d(test.group, [
-        'ashley_swaz',
-        'cam_swaz',
-        'courtenay_swaz',
-        'greigs_swaz',
-        'kaiapoi_swaz',
-        'kairaki_swaz',
-        'northbrook_swaz',
-        'ohoka_swaz',
-        'other',
-        'saltwater_swaz',
-        'southbrook_swaz',
-        'taranaki_swaz',
-        'up_waimak',
-        'waikuku_swaz',
-        'waimak_drn'
-    ])]
-
     carpet_names = [
         'ash_carpet',
         'chch_carpet',
@@ -389,11 +367,7 @@ if __name__ == '__main__':
         'up_lincoln',
         'up_selwyn',
     ]
-    for i in test2.index:
-        row, col = test.loc[i, ['i', 'j']].astype(int)
-        x, y = smt.convert_matrix_to_coords(row, col)
-        test2.loc[i, 'nztmx'] = x
-        test2.loc[i, 'nztmy'] = y
-
-    smt.plt_matrix(smt.df_to_array(test2, 'i'))
-    print('done')
+    test = _get_drn_spd(1, 1,False,n_car_dns=True)
+    test = test.loc[np.in1d(test.group,carpet_names)]
+    test = smt.add_mxmy_to_df(test)
+    test.to_csv(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\m_ex_bd_inputs\raw_sw_samp_points\drn\carpet.csv")

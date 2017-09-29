@@ -3190,20 +3190,137 @@ rec_shed1.area.sum()
 
 
 ############################################
-### Read ini files
+### Manual GW readings
 
-if [1]:
-    print('true')
+from core.classes.hydro import hydro
 
+wap = 'BT27/5020'
 
-
-
-
+gw1 = hydro().get_data('gwl_m', sites=wap)
 
 
 
+##########################################
+### New Hilltop connection tests
+
+import Hilltop
+from pandas import DataFrame, concat, to_datetime
+from core.ecan_io.hilltop import ht_sites, ht_get_data
+
+hts1 = r'H:\Data\Archive\Boraman2016-17.hts'
+hts2 = r'H:\Data\Telemetry\Boraman.hts'
+hts = r'H:\Data\Squalarc.hts'
+
+csv1 = r'E:\ecan\local\Projects\requests\squalarc\squalarc_site_info.csv'
+
+sites = ['M35/0132', 'SQ32943']
+
+dfile1 = Hilltop.Connect(hts1)
+sites = Hilltop.SiteList(dfile1)
+
+site_info = DataFrame()
+
+for i in sites:
+    try:
+        info1 = Hilltop.MeasurementList(dfile1, i)
+    except SystemError:
+        print('Site ' + str(i) + " didn't work")
+    info1.loc[:, 'site'] = i
+    site_info = concat([site_info, info1])
+site_info.reset_index(drop=True, inplace=True)
+
+site_info.loc[:, 'Start Time'] = to_datetime(site_info.loc[:, 'Start Time'], format='%d-%b-%Y %H:%M:%S')
+site_info.loc[:, 'End Time'] = to_datetime(site_info.loc[:, 'End Time'], format='%d-%b-%Y %H:%M:%S')
+
+index1 = 1
+
+d1 = Hilltop.GetData(dfile1, site_info.loc[index1, 'site'], site_info.loc[index1, 'Measurement'], '', '', method='Average', interval='1 day', alignment = '00:00')
+
+d1 = Hilltop.GetData(dfile1, site_info.loc[index1, 'site'], site_info.loc[index1, 'Measurement'], '', '')
 
 
+s1 = ht_sites(hts)
+s1.to_csv(csv1, index=False, header=True)
+
+s2 = ht_sites(hts2)
+
+data, miss1 = ht_get_data(hts, agg_method='', interval='', alignment='', output_missing_sites=True)
+
+Hilltop.Disconnect(dfile1)
+
+###############################################
+#### Lake levels
+
+from core.ecan_io import rd_hydrotel
+from core.classes.hydro import hydro
+from core.ecan_io import rd_hydstra_db
+
+site = [71178]
+
+#l1 = rd_hydrotel(site, mtype='swl_tel')
+
+
+hy1 = hydro()._rd_hydstra(site, datasource='COMBINED', varfrom=140)
+
+hy2 = rd_hydstra_db(sites=site, datasource='FLOW', varfrom=140)
+hy2 = rd_hydstra_db(sites=[70105], datasource='A')
+
+with hyd as h:
+    var1 = h.get_variable_list(site, 'COMBINED')
+
+
+
+############################################
+#### 7-day Volume estimate
+
+from core.classes.hydro import hydro
+from pandas import concat, TimeGrouper
+
+
+site = [70105]
+mtype = 'flow'
+
+h1 = hydro().get_data(mtype, site)
+h2 = h1.sel_ts('flow', pivot=True)
+
+h3 = h2.rolling(7).sum()
+h4 = h3.rolling(7, min_periods=1).max()
+
+h3.columns = ['sum']
+h4.columns = ['max']
+
+h5 = concat([h2, h3, h4], axis=1)
+h5['limit'] = 100
+
+h5['diff'] = (h5['sum'] - h5['limit'])
+h5.loc[h5['diff'] < 0, 'diff'] = 0
+
+mon_grp = h5['diff'].rolling(14)
+
+
+def take_max(arr):
+    max1 = arr.max()
+    end_val = arr[-1]
+    if end_val == max1:
+        val = max1
+    else:
+        val = 0
+    return(val)
+
+
+mon_grp.apply(take_max)
+
+
+xy1 = precip_et[precip_et.time == precip_et.time[0]]
+
+xy2 = xy_to_gpd(xy1.index, 'x', 'y', xy1, 4326)
+xy2.columns = ['site', 'geometry']
+xy2.to_file(r'D:\lsrm_results\test\test5.shp')
+
+from pandas import read_hdf
+
+t1 = r'D:\lsrm_results\RCP4.5_BCC-CSM1.1_80perc.h5'
+t2 = read_hdf(t1)
 
 
 

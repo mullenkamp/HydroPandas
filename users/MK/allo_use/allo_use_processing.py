@@ -86,6 +86,8 @@ allo_use_ros, allo_use_ros_ann = ros_proc(allo_use, export_use_ros_path=use_ros_
 usage_est = est_use(allo_use, allo_use_ros, allo_gis, export=True, export_path=usage_mon_est_export_path, date_end=max_date_use_est)
 
 ### Spatial joins of all relevant spatial data to the vcsn shp
+vcn_grid = read_file(vcn_grid_shp)[['Data VCN_s', 'Network', 'geometry']]
+vcn_grid.columns = ['ecan_id', 'niwa_id', 'geometry']
 vcn_grid2 = pts_sql_join(vcn_grid, sql_join_codes).dropna(subset=['cwms'])
 
 ### Estimate Stream depleting usage for earlier years (1972-2012)

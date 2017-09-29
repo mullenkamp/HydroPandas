@@ -13,7 +13,5 @@ from pykrige.ok import OrdinaryKriging as okrig
 import geopandas as gpd
 from core.classes.hydro import hydro
 
-
-h2 = hydro().get_data(['flow_m'],sites=[167]).data['flow_m',167]
-h1 = hydro().get_data(['flow'],sites=[68001]).data['flow',68001]
-print 'done'
+path=(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\from_gns\gen_rch\recharge_mul.ref")
+flopy.utils.Util2d.load_txt((364,365),path,float,'(FREE)')

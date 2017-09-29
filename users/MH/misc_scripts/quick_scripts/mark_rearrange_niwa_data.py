@@ -8,8 +8,8 @@ from __future__ import division
 from core import env
 import pandas as pd
 import numpy as np
-base_path = env.sci("Groundwater/Rakaia_Ashburton/Climate")
-alldata  = pd.read_excel("{}/NIWA stations (1900-present)r.xls".format(base_path),na_values=['-',' -', '- '],sheetname=1)
+base_path = r"T:\Temp\temp_gw_files\for_mark"
+alldata  = pd.read_csv("{}/niwa2revised.csv".format(base_path),na_values=['-',' -', '- '])
 
 for code,parameter in zip([0,19,20,34,35,36],['rainfall','et_sunken_pan','et_raised_pan','et_penman_potential','priestley_potential','penman_open_evap']):
     data = alldata.loc[np.isclose(alldata.Stats_Code,code)]
@@ -20,5 +20,5 @@ for code,parameter in zip([0,19,20,34,35,36],['rainfall','et_sunken_pan','et_rai
     data = data.replace({'month':{'Jan':1,'Feb':2,'Mar':3,'Apr':4,'May':5,'Jun':6,'Jul':7,'Aug':8,'Sep':9,'Oct':10,'Nov':11,'Dec':12}})
 
     data = data.groupby(['Year', 'month','Station']).sum().unstack('Station').reset_index()
-    data.to_csv('{}/niwa_data_pivoted_{}.csv'.format(base_path,parameter))
+    data.to_csv('{}/niwa2_revised_data_pivoted_{}.csv'.format(base_path,parameter))
 

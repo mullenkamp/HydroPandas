@@ -12,12 +12,12 @@ from numpy import in1d
 #######################################
 #### Adapted functions
 
-def malf7d(self, sites=None, w_month='JUN', max_missing=90, malf_min=0.9, intervals=[10, 20, 30, 40], return_alfs=False, num_years=False, export=False, export_path='', export_name_malf='malf.csv', export_name_alf='alf.csv', export_name_mis='alf_missing_data.csv'):
+def malf7d(self, sites=None, w_month='JUN', max_missing=90, malf_min=0.9, intervals=[10, 20, 30, 40], return_alfs=False, num_years=False, export_path=None, export_name_malf='malf.csv', export_name_alf='alf.csv', export_name_mis='alf_missing_data.csv'):
 
     data = self.sel_ts(mtypes='flow', sites=sites, pivot=True)
     if data.index.inferred_freq != 'D':
         data = data.resample('D').mean()
-    malf_set = malf_fun(data, w_month, max_missing, malf_min, intervals, return_alfs, num_years, export, export_path, export_name_malf, export_name_alf, export_name_mis)
+    malf_set = malf_fun(data, w_month, max_missing, malf_min, intervals, return_alfs, num_years, export_path, export_name_malf, export_name_alf, export_name_mis)
     return(malf_set)
 
 
@@ -155,6 +155,7 @@ def flow_reg(self, y, x=None, y_mtype='flow_m', x_mtype='flow', buffer_dis=None,
             reg = concat([reg, reg1])
             new_ts = concat([new_ts, y_new1], axis=1)
         except:
+            print('Site ' + str(j) + ' did not work with the regression.')
             pass
     new1 = self.add_data(new_ts, mtypes='flow', dformat='wide', add=False)
     return(new1, reg)

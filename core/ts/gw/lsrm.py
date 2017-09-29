@@ -124,7 +124,7 @@ def input_processing(precip_et, crs, irr1, paw1, bound_shp, rain_name, pet_name,
     # Aggregate by site weighted by area to estimate a volume
     paw_area1 = paw6[['paw', 'site', 'area']].copy()
     paw_area1.loc[:, 'paw_vol'] = paw_area1['paw'] * paw_area1['area']
-    paw7 = ((paw_area1.groupby('site')['paw_vol'].sum() / paw_area1.groupby('site')['area'].sum()) * sites_poly_area).round()
+    paw7 = ((paw_area1.groupby('site')['paw_vol'].sum() / paw_area1.groupby('site')['area'].sum()) * sites_poly_area * 0.001).round(2)
 
     site_irr_area = irr5.groupby('site')['area'].sum()
     irr_eff1 = irr5.replace({'irr_type': irr_eff_dict})
@@ -147,7 +147,7 @@ def input_processing(precip_et, crs, irr1, paw1, bound_shp, rain_name, pet_name,
     input1 = merge(new_rain_et1.reset_index(), poly_data1.reset_index(), on='site', how='left')
 
     ## Convert precip and et to volumes
-    input1.loc[:, ['precip', 'pet']] = input1.loc[:, ['precip', 'pet']].mul(input1.loc[:, 'site_area'], axis=0).round()
+    input1.loc[:, ['precip', 'pet']] = (input1.loc[:, ['precip', 'pet']].mul(input1.loc[:, 'site_area'], axis=0) * 0.001).round(2)
 
     ## Remove irrigation parameters during non-irrigation times
     input1.loc[~input1.time.dt.month.isin(irr_mons), ['irr_eff', 'irr_trig']] = nan
@@ -202,7 +202,7 @@ def input_processing(precip_et, crs, irr1, paw1, bound_shp, rain_name, pet_name,
     return(input1, sites_poly2)
 
 
-def lsrm(model_var, A):
+def lsrm(model_var, A, include_irr=True):
     """
     The lsrm.
     """
@@ -253,33 +253,34 @@ def lsrm(model_var, A):
     ## Run the model
     for i in time_index:
 
-        ### Irrigation bucket
-        i_irr_paw = irr_paw_val[i]
+        if include_irr:
+            ### Irrigation bucket
+            i_irr_paw = irr_paw_val[i]
 
-        ## Calc AET and perform the initial water balance
-        irr_aet_val = AET(irr_pet_val[i], A, w_irr, i_irr_paw)
-        out_irr_aet[i] = irr_aet_val.copy()
-        w_irr = w_irr + irr_rain_val[i] - irr_aet_val
+            ## Calc AET and perform the initial water balance
+            irr_aet_val = AET(irr_pet_val[i], A, w_irr, i_irr_paw)
+            out_irr_aet[i] = irr_aet_val.copy()
+            w_irr = w_irr + irr_rain_val[i] - irr_aet_val
 
-        ## Check and calc the GW drainage from excessive precip
-        irr_drainge_bool = w_irr > i_irr_paw
-        if any(irr_drainge_bool):
-            temp_irr_draiange = w_irr[irr_drainge_bool] - i_irr_paw[irr_drainge_bool]
-            out_irr_drainage[i[irr_drainge_bool]] = temp_irr_draiange
-            w_irr[irr_drainge_bool] = i_irr_paw[irr_drainge_bool]
-        out_w_irr[i] = w_irr.copy()
+            ## Check and calc the GW drainage from excessive precip
+            irr_drainge_bool = w_irr > i_irr_paw
+            if any(irr_drainge_bool):
+                temp_irr_draiange = w_irr[irr_drainge_bool] - i_irr_paw[irr_drainge_bool]
+                out_irr_drainage[i[irr_drainge_bool]] = temp_irr_draiange
+                w_irr[irr_drainge_bool] = i_irr_paw[irr_drainge_bool]
+            out_w_irr[i] = w_irr.copy()
 
-        ## Check and calc drainage from irrigation if w is below trigger
-        irr_paw_ratio = w_irr/i_irr_paw
-        irr_trig_bool = irr_paw_ratio <= irr_trig_val[i]
-        if any(irr_trig_bool):
-            diff_paw = i_irr_paw[irr_trig_bool] - w_irr[irr_trig_bool]
-            out_irr_demand[i[irr_trig_bool]] = diff_paw.copy()
-            irr_drainage = diff_paw/irr_eff_val[i][irr_trig_bool] - diff_paw
-            out_irr_drainage[i[irr_trig_bool]] = irr_drainage.copy()
-            w_irr[irr_trig_bool] = i_irr_paw[irr_trig_bool].copy()
+            ## Check and calc drainage from irrigation if w is below trigger
+            irr_paw_ratio = w_irr/i_irr_paw
+            irr_trig_bool = irr_paw_ratio <= irr_trig_val[i]
+            if any(irr_trig_bool):
+                diff_paw = i_irr_paw[irr_trig_bool] - w_irr[irr_trig_bool]
+                out_irr_demand[i[irr_trig_bool]] = diff_paw.copy()
+                irr_drainage = diff_paw/irr_eff_val[i][irr_trig_bool] - diff_paw
+                out_irr_drainage[i[irr_trig_bool]] = irr_drainage.copy()
+                w_irr[irr_trig_bool] = i_irr_paw[irr_trig_bool].copy()
 
-        out_w_irr[i] = w_irr.copy()
+            out_w_irr[i] = w_irr.copy()
 
         ### Non-irrigation bucket
         i_non_irr_paw = non_irr_paw_val[i]
@@ -301,15 +302,18 @@ def lsrm(model_var, A):
     ### Put results into dataframe
 
     output1 = model_var.copy()
-    output1.loc[:, 'irr_aet'] = out_irr_aet.round()
-    output1.loc[:, 'non_irr_aet'] = out_non_irr_aet.round()
-    output1.loc[:, 'irr_paw'] = irr_paw_val.round()
-    output1.loc[:, 'w_irr'] = out_w_irr.round()
-    output1.loc[:, 'irr_drainage'] = out_irr_drainage.round()
-    output1.loc[:, 'irr_demand'] = out_irr_demand.round()
-    output1.loc[:, 'non_irr_paw'] = non_irr_paw_val.round()
-    output1.loc[:, 'w_non_irr'] = out_w_non_irr.round()
-    output1.loc[:, 'non_irr_drainage'] = out_non_irr_drainage.round()
+    output1.loc[:, 'non_irr_aet'] = out_non_irr_aet.round(2)
+    if include_irr:
+        output1.loc[:, 'irr_aet'] = out_irr_aet.round(2)
+        output1.loc[:, 'irr_paw'] = irr_paw_val.round(2)
+        output1.loc[:, 'w_irr'] = out_w_irr.round(2)
+        output1.loc[:, 'irr_drainage'] = out_irr_drainage.round(2)
+        output1.loc[:, 'irr_demand'] = out_irr_demand.round(2)
+    else:
+        output1.drop(['irr_eff', 'irr_trig', 'irr_area_ratio'], axis=1, inplace=True)
+    output1.loc[:, 'non_irr_paw'] = non_irr_paw_val.round(2)
+    output1.loc[:, 'w_non_irr'] = out_w_non_irr.round(2)
+    output1.loc[:, 'non_irr_drainage'] = out_non_irr_drainage.round(2)
 
     ### Return output dataframe
     return(output1)

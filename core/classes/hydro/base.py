@@ -35,6 +35,7 @@ class hydro(object):
     from core.classes.hydro.tools.sw import malf7d, flow_reg
     from core.classes.hydro.tools.general import resample, stats
     from core.classes.hydro.tools.plot import plot_hydrograph, plot_reg
+    from core.classes.hydro.tools.gw import gwl_reg
 
 #    @property
 #    def _constructor(self):
