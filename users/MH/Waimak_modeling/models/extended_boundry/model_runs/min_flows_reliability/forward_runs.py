@@ -6,7 +6,7 @@ Date Created: 8/09/2017 11:54 AM
 
 from __future__ import division
 from core import env
-from base_forward_runs import setup_run_forward_run_mp
+from base_forward_runs import setup_run_forward_run_mp, setup_run_forward_run
 import os
 import multiprocessing
 import logging
@@ -233,8 +233,9 @@ if __name__ == '__main__':
     dir_path = r"D:\mh_model_runs\forward_runs_2017_09_30" # path on rdsprod03
     notes = """ 
     LSR senario changes applied to full domain, CC component of LSR changes applied to only waimakariri
-    pumping changes only applied to Waimakariri
-    """
+    pumping changes only applied to Waimakariri,  trying again with some runs that didn't complete [36,56,84]
+    run in {}
+    """.format(dir_path)
     if safemode:
         if os.path.exists(dir_path):
             cont = input(
@@ -244,7 +245,13 @@ if __name__ == '__main__':
     runs = setup_run_args('opt',dir_path,cc_to_waimak_only=True)
     import time
     t = time.time()
-    run_forward_runs(runs,dir_path,notes)
+    missing_runs = [35,36,49, 56,77,78,84,233,240]
+    missing_runs = [36,56]
+    runs = [runs[e] for e in missing_runs]
+    for run in runs:
+        print run
+        setup_run_forward_run(**run)
+    #run_forward_runs(runs,dir_path,notes)
     print('{} runs in __ min'.format(len(runs)))
     print (time.time() - t)/60
     print('done')
