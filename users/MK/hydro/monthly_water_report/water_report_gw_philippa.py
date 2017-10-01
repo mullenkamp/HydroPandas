@@ -151,7 +151,9 @@ print('Exporting results to csv')
 
 ts_out1 = hy_gw.loc[:, ['site', 'time', 'perc']].copy()
 ts_out2 = ts_out1.pivot_table('perc', 'site', 'time').round(2)
-ts_out3 = ts_out2.reset_index()
+
+stats1 = mon_gw1.groupby('site')['data'].describe().round(2)
+ts_out3 = concat([ts_out2, stats1], axis=1, join='inner').reset_index()
 
 gw_sites_ts = gw_site_zone0.merge(ts_out3, on='site')
 gw_sites_ts.to_file(join(output_dir, gw_sites_ts_shp))
