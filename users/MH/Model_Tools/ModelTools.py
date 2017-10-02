@@ -11,6 +11,7 @@ import os
 from warnings import warn
 import pickle
 import flopy
+from matplotlib.colors import from_levels_and_colors
 from copy import deepcopy
 
 #todo set up exceptions is required varibles are needed
@@ -310,6 +311,10 @@ class ModelTools(object):
         if self._no_flow_calc is not None and no_flow_layer is not None:
             no_flow = self.get_no_flow(no_flow_layer).astype(bool)
             ax.contour(model_xs, model_ys, no_flow)
+            temp = np.zeros((self.rows, self.cols))
+            temp[no_flow] = np.nan
+            cmap, norm = from_levels_and_colors([-1, -0.5, 1, 2], ['black', 'black', 'black'])
+            ax.pcolormesh(model_xs, model_ys, np.ma.masked_invalid(temp),cmap=cmap)
             array[~no_flow] = np.nan
         if 'cmap' in kwargs:
            cmap = kwargs['cmap']

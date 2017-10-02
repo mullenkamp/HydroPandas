@@ -34,7 +34,7 @@ def run_cc_senarios(base_kwargs, cc_to_waimak_only=False):
         per = 1980
         rcp = 'RCPpast'
         temp = deepcopy(base_kwargs)
-        temp['cc_inputs'] = {'rcm': rcm, 'rcp': rcp, 'period': per, 'amag_type': at}
+        temp['cc_inputs'] = {'rcm': rcm, 'rcp': rcp, 'period': per, 'amag_type': at, 'cc_to_waimak_only':cc_to_waimak_only} #todo the last iteration of runs 'forward_runs_2017_09_30' did not have waimak only for cc inputs
         temp['name'] = '{}_{}_{}_{}_{}'.format(temp['name'], rcm, rcp, per, at)
         runs.append(temp)
     return runs

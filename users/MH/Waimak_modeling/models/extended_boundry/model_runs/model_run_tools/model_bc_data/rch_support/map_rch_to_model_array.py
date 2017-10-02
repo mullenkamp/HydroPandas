@@ -13,7 +13,7 @@ from warnings import warn
 
 
 def map_rch_to_array(hdf, method, period_center, mapping_shp, period_length=10, return_irr_demand=False,
-                     rch_quanity='total_drainage'):
+                     rch_quanity='total_drainage'): #todo I should make IRD be waimak only
     """
     takes a hdf and maps it into an array for the model, assumes that the hdf file is a water year amalgimation
     :param hdf: the hdf file that contains the water year average of the LSR from the LSRM

@@ -103,7 +103,7 @@ def _get_rch_hdf_path(base_dir, naturalised, pc5, rcm, rcp):
     return outpath
 
 
-def _create_all_lsrm_arrays():
+def _create_all_lsrm_arrays(): #todo I should make this waimakariri IRD only  and re-run
     if not os.path.exists(os.path.join(lsrm_rch_base_dir, 'arrays_for_modflow')):
         os.makedirs(os.path.join(lsrm_rch_base_dir, 'arrays_for_modflow'))
 

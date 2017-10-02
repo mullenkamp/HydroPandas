@@ -154,7 +154,7 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
         idx = outdata.loc[(outdata.type == 'well') & (outdata.cwms == 'waimak')].index
         outdata.loc[idx, 'flux'] = get_full_consent(model_id, org_pumping_wells).loc[idx, 'flux']
     else:
-        if pc5 and not full_abstraction:
+        if pc5 and not full_abstraction: #todo think about applying the reduction to selwyn
             outdata.loc[(outdata.loc[:, 'use_type'] == 'irrigation-sw') & (outdata.cwms == 'waimak'), 'flux'] *= 3 / 4
             # an inital 1/4 reduction for pc5 to
             # account for the decreased irrgation demand for with more efficent irrigation this number comes from
