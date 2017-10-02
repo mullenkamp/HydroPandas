@@ -214,8 +214,10 @@ def get_ird_base_array(sen, rcp, rcm, per, at):
     path = os.path.join(lsrm_rch_base_dir, 'arrays_for_modflow/ird_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
     if not os.path.exists(path):
         raise ValueError('array not implemented, why are you using {}'.format((sen, rcp, rcm, per, at)))
-
-    return np.atleast_1d(np.loadtxt(path))[0]
+    outdata = np.loadtxt(path)
+    if outdata.shape != (smt.rows,smt.cols):
+        raise ValueError('incorrect shape for ird')
+    return outdata
 
 
 if __name__ == '__main__':

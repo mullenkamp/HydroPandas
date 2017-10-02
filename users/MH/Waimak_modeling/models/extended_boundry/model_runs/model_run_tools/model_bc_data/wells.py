@@ -21,7 +21,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.LSR_arrays import \
     _get_rch_hdf_path, lsrm_rch_base_dir, rch_idx_shp_path,get_ird_base_array
 from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.model_budget import get_well_budget
-
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.cwms_index import get_zone_array_index
 
 # for stream depletion things
 def get_race_data(model_id):
@@ -204,6 +204,7 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
 
 def get_cc_pumping_muliplier(cc_inputs):
     # return a single value for now which is senario/current model period (2008-2015)
+    #todo check/debug this
     ird_current_period = get_ird_base_array('current', None, None, None, 'mean')
 
     amalg_dict = {None: 'mean', 'mean': 'mean', 'tym': 'period_mean', 'low_3_m': '3_lowest_con_mean',
@@ -215,8 +216,14 @@ def get_cc_pumping_muliplier(cc_inputs):
     per= cc_inputs['period']
     at= amalg_dict[cc_inputs['amag_type']]
     ird_modeled_period = get_ird_base_array(sen, rcp, rcm, per, at)
-
-    return ird_modeled_period/ird_current_period
+    outdata = ird_modeled_period/ird_current_period
+    if cc_inputs['cc_to_waimak_only']:
+        w_idx = get_zone_array_index('waimak')
+        outdata = outdata[w_idx]
+    else:
+        all_idx = get_zone_array_index(['waimak', 'selwyn', 'chch'])
+        outdata = outdata[all_idx]
+    return outdata.mean()
 
 
 def get_full_allo_multipler(org_pumping_wells, recalc=False):

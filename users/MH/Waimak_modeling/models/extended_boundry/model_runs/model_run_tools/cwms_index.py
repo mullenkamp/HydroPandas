@@ -19,7 +19,6 @@ def get_zone_array_index(zones):
     if any(~np.in1d(zones,zone_dict.keys())):
         raise ValueError('unknown zone')
 
-
     new_no_flow = smt.get_no_flow()
     zones_idx = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/cwms_zones.shp".format(smt.sdp),'ZONE_CODE')
     zones_idx[~new_no_flow[0].astype(bool)] = np.nan
