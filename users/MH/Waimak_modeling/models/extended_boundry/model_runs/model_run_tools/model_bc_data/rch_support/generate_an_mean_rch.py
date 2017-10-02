@@ -50,7 +50,7 @@ def gen_all_wy_averages(base_dir):
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    paths = glob('{}/vcsn*.h5'.format(base_dir))
+    paths = glob('{}/*.h5'.format(base_dir))
     for path in paths:
         print (path)
         outdata = gen_water_year_average_lsr_irr(path)
