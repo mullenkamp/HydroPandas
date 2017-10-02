@@ -220,7 +220,7 @@ sd[sd.wap == 'J38/0342']
 
 
 
-
+allo_ts_rates = allo_ts_proc(allo_gis, start='2000-01-01', end=max_date_allo, freq='sw_rates')
 
 
 

@@ -377,11 +377,12 @@ def allo_ts_apply(wap, start_date='2014-07-01', end_date='2016-06-30', from_col=
     from pandas import DataFrame, DateOffset, date_range, Timestamp, Series
     from numpy import nan, in1d
 
-    from_date = wap[from_col]
-    to_date = wap[to_col]
+    from_date = Timestamp(wap[from_col])
+    to_date = Timestamp(wap[to_col])
     mon = wap[mon_col]
     start = Timestamp(start_date)
     end = Timestamp(end_date)
+    take_type = wap.name[1]
 
     if from_date < start:
         from_date = start
@@ -392,10 +393,21 @@ def allo_ts_apply(wap, start_date='2014-07-01', end_date='2016-06-30', from_col=
         dates1 = date_range(from_date, to_date - DateOffset(2) + DateOffset(months=9), freq='A-APR')
     elif (freq == 'A') & (mon == 'JUL'):
         dates1 = date_range(from_date, to_date - DateOffset(2) + DateOffset(years=1), freq='A-JUN')
+    elif freq == 'sw_rates':
+        dates1 = date_range(from_date, to_date, freq='AS-JAN')
     else:
         dates1 = date_range(from_date, to_date, freq=freq)
 
-    if mon == 'OCT':
+    if freq == 'sw_rates':
+        if len(dates1) > 0:
+            if (take_type == 'Take Surface Water'):
+                s1 = Series(wap['max_rate'], index=dates1)
+                return(s1)
+            elif ((take_type == 'Take Groundwater') & (wap['min_flow'] == 'YES')):
+                s1 = Series(wap['max_rate'] * wap['sd1_150'] * 0.01, index=dates1).round(2)
+                return(s1)
+
+    elif mon == 'OCT':
         dates_index = in1d(dates1.month, [10, 11, 12, 1, 2, 3, 4])
         if len(dates1) > 0:
             if freq == 'D':
