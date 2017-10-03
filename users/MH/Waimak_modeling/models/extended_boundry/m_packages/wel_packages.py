@@ -176,6 +176,12 @@ def _get_wel_spd_v1(recalc=False,sub_version=1):
 
 
 def _get_wel_spd_v3(recalc=False,sub_version=1):
+    """
+    all wells derived from mikes usage estimates I may pull down some of the WDC WS wells.
+    :param recalc:
+    :param sub_version:
+    :return:
+    """
     pickle_path = '{}/well_spd_v3.p'.format(smt.pickle_dir)
     if os.path.exists(pickle_path) and not recalc and sub_version!=0:
         well_data = pickle.load(open(pickle_path))

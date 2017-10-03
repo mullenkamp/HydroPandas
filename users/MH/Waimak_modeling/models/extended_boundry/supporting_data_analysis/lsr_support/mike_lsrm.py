@@ -23,14 +23,17 @@ from itertools import product
 from os import path
 from pandas import read_hdf
 from collections import OrderedDict
-
+import os
+from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 start1 = time()
 
 #############################################
 #### Parameters
 
 ### Reading data
-irr_type_dict = {'server': 'SQL2012PROD05', 'database': 'GIS', 'table': 'AQUALINC_NZTM_IRRIGATED_AREA_20160629', 'column': 'type'}
+#irr_type_dict = {'server': 'SQL2012PROD05', 'database': 'GIS',
+                # 'table': 'AQUALINC_NZTM_IRRIGATED_AREA_20160629', 'column': 'type'} # not useing the 2016 irrigation
+irr_type_dict = {'shp': "{}\m_ex_bd_inputs\shp\wai_irr_area_intersect.shp".format(smt.sdp), 'column': 'type'}  # note I have set all irrigation types to Pivot
 paw_dict = {'server': 'SQL2012PROD05', 'database': 'GIS', 'table': 'LAND_NZTM_NEWZEALANDFUNDAMENTALSOILS', 'column': 'PAW_MID'}
 
 bound_shp = r'P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\m_ex_bd_inputs\shp\model_grid_domain.shp'
@@ -64,8 +67,17 @@ irr_trig_dict = {'Drip/micro': 0.5, 'Unknown': 0.5, 'Gun': 0.5, 'Pivot': 0.5, 'K
 A = 6
 
 ### Output parameters
-output_shp = r'D:\lsrm_results\test\output_test2.shp'
-output_dir = r'D:\lsrm_results'
+output_shp = r'D:\lsrm_results_v2\test\output_test2.shp'
+output_dir = r'D:\lsrm_results_v2'
+
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
+if not os.path.exists(os.path.dirname(output_shp)):
+    os.makedirs(os.path.dirname(output_shp))
+
+with open(os.path.join(output_dir,'READ_ME.txt'),'w') as f:
+    f.write('using irrigation data {}'.format(irr_type_dict))
+
 
 ### Iteration parameters
 rcppast = r'D:\niwa_data\climate_projections\RCPpast'
@@ -82,7 +94,8 @@ all_dir.extend(rcp8_dir)
 all_dir.extend(rcppast_dir)
 
 base_param_dict = {'no_irr': {'irr_eff': 1, 'include_irr': False}, '80perc': {'irr_eff': 0.8, 'include_irr': True}, '100perc': {'irr_eff': 1, 'include_irr': True}}
-vcsn_param_dict = {'50perc': {'irr_eff': 0.5, 'include_irr': True}, '65perc': {'irr_eff': 0.65, 'include_irr': True}, '80perc': {'irr_eff': 0.8, 'include_irr': True}, '100perc': {'irr_eff': 1, 'include_irr': True}, 'no_irr': {'irr_eff': 1, 'include_irr': False}}
+#vcsn_param_dict = {'50perc': {'irr_eff': 0.5, 'include_irr': True}, '65perc': {'irr_eff': 0.65, 'include_irr': True}, '80perc': {'irr_eff': 0.8, 'include_irr': True}, '100perc': {'irr_eff': 1, 'include_irr': True}, 'no_irr': {'irr_eff': 1, 'include_irr': False}}
+vcsn_param_dict = {'80perc': {'irr_eff': 0.8, 'include_irr': True}, '100perc': {'irr_eff': 1, 'include_irr': True}, 'no_irr': {'irr_eff': 1, 'include_irr': False}}
 
 param_dict = OrderedDict()
 #for f in all_dir: #todo this is for projectsion
@@ -101,7 +114,7 @@ for v in vcsn_param_dict: #todo this is for VCSN
     dict1.update({'nc_dir': vcsn, 'from_date': '2008-07-01', 'to_date': '2015-06-30'})
     param_dict.update({name: dict1})
 
-irr1, paw1 = poly_import(irr_type_dict, paw_dict, paw_ratio) #todo look at irr 1 if changing irrigation shape files probably can load with gpd
+irr1, paw1 = poly_import(irr_type_dict, paw_dict, paw_ratio)
 
 ##########################################
 ### Run through many iterations

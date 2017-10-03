@@ -86,6 +86,11 @@ def _get_rch_v1(recalc=False):
     return rch
 
 def _get_rch_v2(recalc=False):
+    """
+    dave scott recharge for all using 2012 irrigation layer (with some simplifications
+    :param recalc:
+    :return:
+    """
     pickle_path = '{}/org_rch_v2.p'.format(smt.pickle_dir)
     if os.path.exists(pickle_path) and not recalc:
         rch = pickle.load(open(pickle_path))
@@ -93,7 +98,6 @@ def _get_rch_v2(recalc=False):
 
     new_no_flow = smt.get_no_flow()
     path = "{}/m_ex_bd_inputs/lsrm_results_v2/vcsn_80perc.h5".format(smt.sdp)
-    path = r"K:\niwa_netcdf\lsrm\lsrm_results\vcsn_80perc.h5"
     outpath = os.path.join(os.path.dirname(path), 'wym_{}'.format(os.path.basename(path)))
     outdata = gen_water_year_average_lsr_irr(path)
     outdata.to_hdf(outpath, 'wym', mode='w')
@@ -107,7 +111,7 @@ def _get_rch_v2(recalc=False):
     #fix tewai and chch weirdeness
     fixer = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/rch_rm_chch_tew.shp".format(smt.sdp),'ID',True)
     #chch
-    rch[fixer==0] = 0 #todo
+    rch[fixer==0] = 0 #todo talk to zeb what should we set for these?
     #te wai and coastal
     rch[fixer==1] = 0 #todo
 
