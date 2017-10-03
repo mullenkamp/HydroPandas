@@ -5,16 +5,19 @@ Date Created: 8/09/2017 8:28 AM
 """
 
 from __future__ import division
+
+import itertools
+import os
+
+import numpy as np
+
 from core import env
+from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.cwms_index import get_zone_array_index
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_setup.realisation_id import \
     get_rch_multipler
-from rch_support.map_rch_to_model_array import map_rch_to_array
-import os
-from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
-import itertools
-import numpy as np
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.cwms_index import get_zone_array_index
-
+from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.lsr_support.map_rch_to_model_array import \
+    map_rch_to_array
 
 lsrm_rch_base_dir = env.gw_met_data('niwa_netcdf/lsrm/lsrm_results/water_year_means')
 rch_idx_shp_path = env.gw_met_data("niwa_netcdf/lsrm/lsrm_results/test/output_test2.shp")

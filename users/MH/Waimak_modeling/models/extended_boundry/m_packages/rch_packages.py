@@ -5,14 +5,19 @@ Date Created: 20/06/2017 11:59 AM
 """
 
 from __future__ import division
-from core import env
+
+import os
+import pickle
+from copy import deepcopy
+
 import flopy
 import numpy as np
-from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
+
 from users.MH.Waimak_modeling.model_tools import get_base_rch, no_flow as old_no_flow
-from copy import deepcopy
-import pickle
-import os
+from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
+from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.lsr_support.map_rch_to_model_array import \
+    map_rch_to_array
+from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.lsr_support.generate_an_mean_rch import gen_water_year_average_lsr_irr
 
 
 def create_rch_package(m):
@@ -25,7 +30,16 @@ def create_rch_package(m):
 
 
 
-def _get_rch(recalc=False):
+def _get_rch(version=1,recalc=False):
+    if version == 1:
+        out_rch = _get_rch_v1(recalc)
+    elif version == 2:
+        out_rch = _get_rch_v2(recalc)
+    else:
+        raise NotImplementedError('version {} not implemented'.format(version))
+    return out_rch
+
+def _get_rch_v1(recalc=False):
     pickle_path = '{}/org_rch.p'.format(smt.pickle_dir)
     if os.path.exists(pickle_path) and not recalc:
         rch = pickle.load(open(pickle_path))
@@ -70,7 +84,40 @@ def _get_rch(recalc=False):
     # get new rch values for nwai
     pickle.dump(rch, open(pickle_path, 'w'))
     return rch
+
+def _get_rch_v2(recalc=False):
+    pickle_path = '{}/org_rch_v2.p'.format(smt.pickle_dir)
+    if os.path.exists(pickle_path) and not recalc:
+        rch = pickle.load(open(pickle_path))
+        return rch
+
+    new_no_flow = smt.get_no_flow()
+    path = "{}/m_ex_bd_inputs/lsrm_results_v2/vcsn_80perc.h5".format(smt.sdp)
+    path = r"K:\niwa_netcdf\lsrm\lsrm_results\vcsn_80perc.h5"
+    outpath = os.path.join(os.path.dirname(path), 'wym_{}'.format(os.path.basename(path)))
+    outdata = gen_water_year_average_lsr_irr(path)
+    outdata.to_hdf(outpath, 'wym', mode='w')
+    rch = map_rch_to_array(hdf=outpath,
+                           method='mean',
+                           period_center=None,
+                           mapping_shp="{}/m_ex_bd_inputs/lsrm_results_v2/test/output_test2.shp".format(smt.sdp),
+                           period_length=None, return_irr_demand=False,
+                     rch_quanity='total_drainage')
+
+    #fix tewai and chch weirdeness
+    fixer = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/rch_rm_chch_tew.shp".format(smt.sdp),'ID',True)
+    #chch
+    rch[fixer==0] = 0 #todo
+    #te wai and coastal
+    rch[fixer==1] = 0 #todo
+
+    #set ibound to 0
+    rch[~new_no_flow[0].astype(bool)] = 0
+    pickle.dump(rch, open(pickle_path, 'w'))
+    return rch
+
+
 if __name__ == '__main__':
-    rch=_get_rch()
+    rch=_get_rch(version=2,recalc=True)
     smt.plt_matrix(rch)
     print('done')
