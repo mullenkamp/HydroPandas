@@ -142,15 +142,23 @@ def parse_dsn(dsn_path):
     return(hts1)
 
 
-def rd_hilltop_sites(hts):
+def rd_hilltop_sites(hts, sites=None, mtypes=None):
     """
     Function to read the site names, measurement types, and units of a Hilltop hts file. Returns a DataFrame.
 
     Arguments:\n
-    hts -- Path to the hts file (str).
+    hts -- Path to the hts file (str).\n
+    sites -- A list of site names within the hts file.\n
+    mtypes -- A list of measurement types that should be returned.
     """
     from win32com.client import Dispatch
     from pandas import DataFrame, to_datetime
+    from core.misc import select_sites
+
+    if sites is not None:
+        sites = select_sites(sites)
+    if mtypes is not None:
+        mtypes = select_sites(mtypes)
 
     cat = Dispatch("Hilltop.Catalogue")
     if not cat.Open(hts):
@@ -162,44 +170,54 @@ def rd_hilltop_sites(hts):
     except ValueError:
         print(dfile.errmsg)
 
-    sites = []
+    sites_lst = []
 
+    ### Iterate through all sites/datasources/mtypes
     cat.StartSiteEnum
-    iter2 = cat.GetNextSite
-    while iter2:
-        name1 = cat.SiteName
-        cat.GetNextDataSource
-        mtype1 = cat.DataSource
-        while mtype1:
-            cat.GetNextMeasurement
-            unit1 = cat.Units
+    while cat.GetNextSite:
+        site_name = cat.SiteName
+        if sites is None:
+            pass
+        elif site_name in sites:
+            pass
+        else:
+            continue
+        while cat.GetNextDataSource:
+            ds_name = cat.DataSource
             try:
                 start1 = to_datetime(cat.DataStartTime.Format('%Y-%m-%d %H:%M'))
                 end1 = to_datetime(cat.DataEndTime.Format('%Y-%m-%d %H:%M'))
             except ValueError:
-                bool_site = dfile.FromSite(name1, mtype1, 1)
+                bool_site = dfile.FromSite(site_name, ds_name, 1)
                 if bool_site:
                     start1 = to_datetime(dfile.DataStartTime.Format('%Y-%m-%d %H:%M'))
                     end1 = to_datetime(dfile.DataEndTime.Format('%Y-%m-%d %H:%M'))
                 else:
-                    print('No site data for ' + name1 + '...for some reason...')
+                    print('No site data for ' + site_name + '...for some reason...')
+            while cat.GetNextMeasurement:
+                mtype1 = cat.Measurement
+                if mtype1 == 'Item2':
+                    continue
+                elif mtypes is None:
+                    pass
+                elif mtype1 in mtypes:
+                    pass
+                else:
+                    continue
+                divisor = cat.Divisor
+                unit1 = cat.Units
+                if unit1 == '%':
+#                    print('Site ' + name1 + ' has no units')
+                    unit1 = ''
+                sites_lst.append([site_name, ds_name, mtype1, unit1, divisor, start1.strftime('%Y-%m-%d %H:%M'), end1.strftime('%Y-%m-%d %H:%M')])
 
-            if unit1 == '%':
-                print('Site ' + name1 + ' has no units')
-                unit1 = ''
-            sites.append([name1, mtype1, unit1, start1.strftime('%Y-%m-%d %H:%M'), end1.strftime('%Y-%m-%d %H:%M')])
-            cat.GetNextDataSource
-            mtype1 = cat.DataSource
-
-        iter2 = cat.GetNextSite
-
-    sites_df = DataFrame(sites, columns=['site', 'mtype', 'unit', 'start_date', 'end_date'])
+    sites_df = DataFrame(sites_lst, columns=['site', 'data_source', 'mtype', 'unit', 'divisor', 'start_date', 'end_date'])
     dfile.Close()
     cat.Close()
     return(sites_df)
 
 
-def rd_hilltop_data(hts, sites=None, mtypes=None, start=None, end=None, agg_period=None, agg_n=1, fun=None):
+def rd_ht_quan_data(hts, sites=None, mtypes=None, start=None, end=None, agg_period=None, agg_n=1, fun=None, output_site_data=False):
     """
     Function to read data from an hts file and optionally select specific sites and aggregate the data.
 
@@ -211,7 +229,8 @@ def rd_hilltop_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
     end -- The end date to retreive from the data in ISO format (e.g. '2011-11-30 00:00').\n
     agg_period -- The resample period (e.g. 'day', 'month').\n
     agg_n -- The number of periods (e.g. 1 for 1 day).\n
-    fun --  The resampling function.
+    fun --  The resampling function.\
+    output_site_data -- Should the sites data be output?
     """
     from core.ecan_io.hilltop import rd_hilltop_sites
     from win32com.client import Dispatch
@@ -223,14 +242,7 @@ def rd_hilltop_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
     unit_convert = {'l/s': 0.001, 'm3/s': 1, 'm3/hour': 1, 'mm': 1, 'm3': 4}
 
     ### First read all of the sites in the hts file and select the ones to be read
-    sites_df = rd_hilltop_sites(hts)
-
-    if sites is not None:
-        sites_df = sites_df[sites_df.site.isin(sites)]
-    if mtypes is not None:
-        sites_df = sites_df[sites_df.mtype.isin(mtypes)]
-
-    sites_df.set_index('site', inplace=True)
+    sites_df = rd_hilltop_sites(hts, sites=sites, mtypes=mtypes)
 
     ### Open the hts file
     dfile = Dispatch("Hilltop.DataRetrieval")
@@ -242,59 +254,204 @@ def rd_hilltop_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
     ### Iterate through he hts file
     df_lst = []
     for i in sites_df.index:
+        site = sites_df.loc[i, 'site']
+#        data_source = sites_df.loc[i, 'data_source']
         mtype = sites_df.loc[i, 'mtype']
         unit = sites_df.loc[i, 'unit']
-        if mtype == 'Flow':
-            mtype = 'Flow [Flow]'
+#        if mtype == 'Flow':
+#            mtype = 'Flow [Flow]'
         if fun is None:
             agg_val = agg_unit_dict[unit]
         else:
             agg_val = agg_name_dict[fun]
-        dfile.FromSite(i, mtype, 1)
+        if dfile.FromSite(site, mtype, 1):
 
-        ## Set up start and end times and aggregation initiation
-        if (start is None):
+            ## Set up start and end times and aggregation initiation
+            if (start is None):
+                if (agg_period is not None):
+                    start1 = to_datetime(dfile.DataStartTime.Format('%Y-%m-%d %H:%M')).ceil(str(agg_n) + time_switch(agg_period))
+                else:
+                    start1 = dfile.DataStartTime
+            else:
+                start1 = start
+            if end is None:
+                end1 = dfile.DataEndTime
+            else:
+                end1 = end
             if (agg_period is not None):
-                start1 = to_datetime(dfile.DataStartTime.Format('%Y-%m-%d %H:%M')).ceil(str(agg_n) + time_switch(agg_period))
+                dfile.FromTimeRange(start1, end1)
+                dfile.SetMode(agg_val, str(agg_n) + ' ' + agg_period)
             else:
-                start1 = dfile.DataStartTime
-        else:
-            start1 = start
-        if end is None:
-            end1 = dfile.DataEndTime
-        else:
-            end1 = end
-        if (agg_period is not None):
-            dfile.FromTimeRange(start1, end1)
-            dfile.SetMode(agg_val, str(agg_n) + ' ' + agg_period)
-        else:
-            dfile.FromTimeRange(start1, end1)
+                dfile.FromTimeRange(start1, end1)
 
-        ## Extract data
-        iter1 = dfile.getsinglevbs
-        data = []
-        time = []
-        while iter1 == 0:
-            data.append(dfile.value)
-            time.append(dfile.time.Format('%Y-%m-%d %H:%M:%S'))
-            iter1 = dfile.getsinglevbs
-        if data:
-            if isinstance(data[0], (str, unicode)):
-                print('site ' + i + ' has nonsense data')
-            else:
-                df_temp = DataFrame({'time': time, 'data': data})
-                df_temp['site'] = i
-                df_temp['mtype'] = sites_df.loc[i, 'mtype']
-                df_lst.append(df_temp)
+            ## Extract data
+            data = []
+            time = []
+            if dfile.getsinglevbs == 0:
+                t1 = dfile.value
+                if isinstance(t1, (str, unicode)):
+                    print('site ' + site + ' has nonsense data')
+                else:
+                    data.append(t1)
+                    time.append(dfile.time.Format('%Y-%m-%d %H:%M:%S'))
+                    while dfile.getsinglevbs == 0:
+                        data.append(dfile.value)
+                        time.append(dfile.time.Format('%Y-%m-%d %H:%M:%S'))
+                    if data:
+                        df_temp = DataFrame({'time': time, 'data': data, 'site': site, 'mtype': mtype})
+                        df_lst.append(df_temp)
 
     dfile.Close()
     if df_lst:
         df1 = concat(df_lst)
         df1.loc[:, 'time'] = to_datetime(df1.loc[:, 'time'])
         df2 = df1.set_index(['mtype', 'site', 'time']).data * unit_convert[unit]
-        return(df2)
+        if output_site_data:
+            return(df2, sites_df)
+        else:
+            return(df2)
+
+
+
+def rd_ht_wq_data(hts=r'\\hilltop01\Hilltop\Data\Squalarc.hts', sites=None, mtypes=None, start=None, end=None, convert_dtl=False, dtl_method=None, output_site_data=False):
+    """
+    Function to read data from an hts file and optionally select specific sites and aggregate the data.
+
+    Arguments:\n
+    hts -- Path to the hts file (str).\n
+    sites -- A list of site names within the hts file.\n
+    mtypes -- A list of measurement types that should be returned.\n
+    start -- The start date to retreive from the data in ISO format (e.g. '2011-11-30 00:00').\n
+    end -- The end date to retreive from the data in ISO format (e.g. '2011-11-30 00:00').\n
+    convert_dtl -- Should values under the detection limit be converted to numeric?\n
+    dtl_method -- The method to use to convert values under a detection limit to numeric. None or 'standard' takes half of the detection limit. 'trend' is meant as an output for trend analysis with includes an additional column dtl_ratio referring to the ratio of values under the detection limit.
+    output_site_data -- Should the site data be output?
+    """
+    from core.ecan_io.hilltop import rd_hilltop_sites
+    from win32com.client import Dispatch
+    from pandas import DataFrame, to_datetime, Series, concat, to_numeric, merge
+    from geopandas import GeoDataFrame
+    from core.ecan_io import rd_sql
+    from core.spatial import xy_to_gpd, sel_sites_poly
+    from core.misc import select_sites
+
+#    agg_unit_dict = {'l/s': 1, 'm3/s': 1, 'm3/hour': 1, 'mm': 1, 'm3': 4}
+#    unit_convert = {'l/s': 0.001, 'm3/s': 1, 'm3/hour': 1, 'mm': 1, 'm3': 4}
+
+    sites1 = select_sites(sites)
+
+    #### Extract by polygon
+    if isinstance(sites1, GeoDataFrame):
+        ## Surface water sites
+        sw_sites_tab = rd_sql('SQL2012PROD05', 'Squalarc', 'SITES', col_names=['SITE_ID', 'NZTMX', 'NZTMY'])
+        sw_sites_tab.columns = ['site', 'NZTMX', 'NZTMY']
+        gdf_sw_sites = xy_to_gpd('site', 'NZTMX', 'NZTMY', sw_sites_tab)
+        sites1a = sites1.to_crs(gdf_sw_sites.crs)
+        sw_sites2 = sel_sites_poly(gdf_sw_sites, sites1a).drop('geometry', axis=1)
+
+        ## Groundwater sites
+        gw_sites_tab = rd_sql('SQL2012PROD05', 'Wells', 'WELL_DETAILS', col_names=['WELL_NO', 'NZTMX', 'NZTMY'])
+        gw_sites_tab.columns = ['site', 'NZTMX', 'NZTMY']
+        gdf_gw_sites = xy_to_gpd('site', 'NZTMX', 'NZTMY', gw_sites_tab)
+        gw_sites2 = sel_sites_poly(gdf_gw_sites, sites1a).drop('geometry', axis=1)
+
+        sites2 = sw_sites2.site.append(gw_sites2.site).astype(str).tolist()
     else:
-        return(DataFrame())
+        sites2 = sites1
+
+    ### First read all of the sites in the hts file and select the ones to be read
+    sites_df = rd_hilltop_sites(hts, sites=sites2, mtypes=mtypes)
+
+    ### Open the hts file
+    wqr = Dispatch("Hilltop.WQRetrieval")
+    dfile = Dispatch("Hilltop.DataFile")
+    try:
+        dfile.Open(hts)
+    except ValueError:
+        print(dfile.errmsg)
+
+    ### Iterate through he hts file
+    df_lst = []
+    for i in sites_df.index:
+        site = sites_df.loc[i, 'site']
+#        data_source = sites_df.loc[i, 'data_source']
+        mtype = sites_df.loc[i, 'mtype']
+#        unit = sites_df.loc[i, 'unit']
+        wqr = dfile.FromWQSite(site, mtype)
+
+        ## Set up start and end times and aggregation initiation
+        if (start is None):
+            start1 = wqr.DataStartTime
+        else:
+            start1 = start
+        if end is None:
+            end1 = wqr.DataEndTime
+        else:
+            end1 = end
+
+        wqr.FromTimeRange(start1, end1)
+
+        ## Extract data
+        data = []
+        time = []
+        while wqr.GetNext:
+            data.append(wqr.value)
+            time.append(wqr.time.Format('%Y-%m-%d %H:%M:%S'))
+        if data:
+            df_temp = DataFrame({'time': time, 'data': data, 'site': site, 'mtype': mtype})
+            df_lst.append(df_temp)
+
+    dfile.Close()
+    wqr.close()
+    if df_lst:
+        data = concat(df_lst)
+        data.loc[:, 'time'] = to_datetime(data.loc[:, 'time'])
+        data1 = to_numeric(data.loc[:, 'data'], errors='coerce')
+        data.loc[data1.notnull(), 'data'] = data1[data1.notnull()]
+#        data.loc[:, 'data'].str.replace('*', '')
+        data = data[['site', 'mtype', 'time', 'data']].reset_index(drop=True)
+
+        #### Convert detection limit values
+        if convert_dtl:
+            less1 = data['data'].str.match('<')
+            if less1.sum() > 0:
+                less1.loc[less1.isnull()] = False
+                data2 = data.copy()
+                data2.loc[less1, 'data'] = to_numeric(data.loc[less1, 'data'].str.replace('<', ''), errors='coerce') * 0.5
+                if dtl_method in (None, 'standard'):
+                    data3 = data2
+                if dtl_method == 'trend':
+                    df1 = data2.loc[less1]
+                    count1 = data.groupby('mtype')['data'].count()
+                    count1.name = 'tot_count'
+                    count_dtl = df1.groupby('mtype')['data'].count()
+                    count_dtl.name = 'dtl_count'
+                    count_dtl_val = df1.groupby('mtype')['data'].nunique()
+                    count_dtl_val.name = 'dtl_val_count'
+                    combo1 = concat([count1, count_dtl, count_dtl_val], axis=1, join='inner')
+                    combo1['dtl_ratio'] = (combo1['dtl_count'] / combo1['tot_count']).round(2)
+
+                    ## conditionals
+        #            param1 = combo1[(combo1['dtl_ratio'] <= 0.4) | (combo1['dtl_ratio'] == 1)]
+        #            under_40 = data['mtype'].isin(param1.index)
+                    param2 = combo1[(combo1['dtl_ratio'] > 0.4) & (combo1['dtl_val_count'] != 1)]
+                    over_40 = data['mtype'].isin(param2.index)
+
+                    ## Calc detection limit values
+                    data3 = merge(data, combo1['dtl_ratio'].reset_index(), on='mtype', how='left')
+                    data3.loc[:, 'data_dtl'] = data2['data']
+
+                    max_dtl_val = data2[over_40 & less1].groupby('mtype')['data'].transform('max')
+                    max_dtl_val.name = 'dtl_data_max'
+                    data3.loc[over_40 & less1, 'data_dtl'] = max_dtl_val
+            else:
+                data3 = data
+        else:
+            data3 = data
+        if output_site_data:
+            return(data3, sites_df)
+        else:
+            return(data3)
 
 
 def rd_ht_xml_sites(xml):

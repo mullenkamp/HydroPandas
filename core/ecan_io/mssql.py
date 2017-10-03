@@ -220,6 +220,7 @@ def rd_squalarc(sites, mtypes=None, from_date=None, to_date=None, convert_dtl=Fa
     num_test = to_numeric(samples_tab2.loc[:, 'time'], 'coerce')
     samples_tab2.loc[num_test.isnull(), 'time'] = '0000'
     samples_tab2.loc[:, 'time'] = samples_tab2.loc[:, 'time'].str.replace('.', '')
+    samples_tab2 = samples_tab2[samples_tab2.date.notnull()]
 #    samples_tab2.loc[:, 'time'] = samples_tab2.loc[:, 'time'].str.replace('9999', '0000')
     time1 = to_datetime(samples_tab2.time, format='%H%M', errors='coerce')
     time1[time1.isnull()] = Timestamp('2000-01-01 00:00:00')
@@ -250,7 +251,7 @@ def rd_squalarc(sites, mtypes=None, from_date=None, to_date=None, convert_dtl=Fa
         if less1.sum() > 0:
             less1.loc[less1.isnull()] = False
             data2 = data.copy()
-            data2.loc[less1, 'val'] = to_numeric(data.loc[less1, 'val'].str.replace('<', '')) * 0.5
+            data2.loc[less1, 'val'] = to_numeric(data.loc[less1, 'val'].str.replace('<', ''), errors='coerce') * 0.5
             if dtl_method in (None, 'standard'):
                 data3 = data2
             if dtl_method == 'trend':

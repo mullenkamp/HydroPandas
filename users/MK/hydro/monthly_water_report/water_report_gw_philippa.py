@@ -9,7 +9,7 @@ import sys
 sys.path.append(r'C:\git\Ecan.Science.Python.Base')
 
 from geopandas import read_file, sjoin
-from pandas import DateOffset, to_datetime, concat, merge, cut, DataFrame, MultiIndex, Series
+from pandas import DateOffset, to_datetime, concat, merge, cut, DataFrame, MultiIndex, Series, read_csv
 from os.path import join
 from core.spatial.vector import multipoly_to_poly
 from core.ts import grp_ts_agg
@@ -40,6 +40,7 @@ Tk().withdraw()
 base_dir = r'\\gisdata\projects\SCI\Surface Water Quantity\Projects\Freshwater Report\GW'
 gw_poly_shp = 'cwms_zones_simple.shp'
 gw_sites_shp = 'gw_sites.shp'
+well_depth_csv = 'well_depths.csv'
 
 interp = True
 
@@ -64,6 +65,8 @@ gw_zones = read_file(join(base_dir, gw_poly_shp))[['ZONE_NAME', 'geometry']]
 
 gw_zones = gw_zones.rename(columns={'ZONE_NAME': 'zone'})
 #gw_zones['mtype'] = 'gw'
+
+well_depths = read_csv(join(base_dir, well_depth_csv)).set_index('site')
 
 ### Combine the sites with the polygons
 gw_site_zone0 = sjoin(gw_sites, gw_zones).drop(['index_right'], axis=1)
@@ -136,7 +139,7 @@ blank1 = Series(nan, index=mindex, name='temp')
 zone_stats2 = concat([perc_zone, blank1], axis=1).perc
 zone_stats2[zone_stats2.isnull()] = -1
 
-cat_val_lst = [-10, -0.5, 10, 40, 60, 90, 100]
+cat_val_lst = [-10, -0.5, 10, 25, 75, 90, 100]
 cat_name_lst = ['No data', 'Very low', 'Below average', 'Average', 'Above average', 'Very high']
 
 cat1 = cut(zone_stats2, cat_val_lst, labels=cat_name_lst).astype('str')
@@ -153,9 +156,12 @@ ts_out1 = hy_gw.loc[:, ['site', 'time', 'perc']].copy()
 ts_out2 = ts_out1.pivot_table('perc', 'site', 'time').round(2)
 
 stats1 = mon_gw1.groupby('site')['data'].describe().round(2)
-ts_out3 = concat([ts_out2, stats1], axis=1, join='inner').reset_index()
+ts_out3 = concat([ts_out2, stats1], axis=1, join='inner')
+well_depths1 = well_depths.loc[ts_out3.index]
+ts_out4 = concat([ts_out3, well_depths1], axis=1).reset_index()
 
-gw_sites_ts = gw_site_zone0.merge(ts_out3, on='site')
+gw_sites_ts = gw_site_zone0.merge(ts_out4, on='site')
+gw_sites_ts.crs = gw_sites.crs
 gw_sites_ts.to_file(join(output_dir, gw_sites_ts_shp))
 
 #################################################

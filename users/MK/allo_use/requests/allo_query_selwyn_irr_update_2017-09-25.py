@@ -22,7 +22,7 @@ from core.misc import printf
 grp_by = ['date', 'take_type']
 cwms_zone = ['Selwyn - Waihora']
 swaz = 'all'
-allo_col = ['allo']
+allo_col = ['irr_area_e']
 crc2 = 'all'
 take_type = 'all'
 use_type = ['irrigation']

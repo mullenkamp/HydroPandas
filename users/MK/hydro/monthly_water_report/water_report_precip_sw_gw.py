@@ -326,7 +326,7 @@ zone_stats1 = hy_summ2.groupby(['zone', 'mtype', 'time'])['perc'].sum().round(1)
 zone_stats2 = concat([zone_stats1, blank1], axis=1).perc
 zone_stats2[zone_stats2.isnull()] = -1
 
-cat_val_lst = [-10, -0.5, 10, 40, 60, 90, 100]
+cat_val_lst = [-10, -0.5, 10, 25, 75, 90, 100]
 cat_name_lst = ['No data', 'Very low', 'Below average', 'Average', 'Above average', 'Very high']
 
 cat1 = cut(zone_stats2, cat_val_lst, labels=cat_name_lst).astype('str')

@@ -3323,11 +3323,17 @@ t1 = r'D:\lsrm_results\RCP4.5_BCC-CSM1.1_80perc.h5'
 t2 = read_hdf(t1)
 
 
+##############################################
+#### Squalarc dup parameters
 
+param1 = rd_sql('SQL2012PROD05', 'Squalarc', '"SQL_SAMPLE_METHODS+"', stmt='select distinct PA_NAME from Squalarc.dbo."SQL_SAMPLE_METHODS+"')
+param1.columns = ['param']
+param2 = param1.param
 
+param2[param2.str.contains('nitrogen', case=False, na=False)].sort_values()
 
-
-
+param2[param2.str.contains('nitrate', case=False, na=False)].sort_values()
+param2[param2.str.contains('nitrite', case=False, na=False)].sort_values()
 
 
 
