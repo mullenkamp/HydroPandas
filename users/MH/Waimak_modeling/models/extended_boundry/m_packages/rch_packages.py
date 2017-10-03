@@ -19,6 +19,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.l
     map_rch_to_array
 from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.lsr_support.generate_an_mean_rch import gen_water_year_average_lsr_irr
 import pandas as pd
+from warnings import warn
 
 def create_rch_package(m):
     rch = flopy.modflow.mfrch.ModflowRch(m,
@@ -40,6 +41,7 @@ def _get_rch(version=1,recalc=False):
     return out_rch
 
 def _get_rch_v1(recalc=False):
+    warn('v1 rch is depreciated in newest version of optimised model')
     pickle_path = '{}/org_rch.p'.format(smt.pickle_dir)
     if os.path.exists(pickle_path) and not recalc:
         rch = pickle.load(open(pickle_path))
@@ -111,9 +113,9 @@ def _get_rch_v2(recalc=False):
     #fix tewai and chch weirdeness
     fixer = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/rch_rm_chch_tew.shp".format(smt.sdp),'ID',True)
     #chch
-    rch[fixer==0] = 0.0002 #todo talk to zeb what should we set for these?
+    rch[fixer==0] = 0.0002
     #te wai and coastal
-    rch[fixer==1] = 0 #todo
+    rch[fixer==1] = 0
 
     #set ibound to 0
     rch[~new_no_flow[0].astype(bool)] = 0
@@ -142,7 +144,7 @@ def _get_rch_comparison():
         #chch
         rch[fixer==0] = 0.0002
         #te wai and coastal
-        rch[fixer==1] = 0 #todo
+        rch[fixer==1] = 0
 
         #set ibound to 0
         rch[~new_no_flow[0].astype(bool)] = 0
@@ -171,4 +173,5 @@ if __name__ == '__main__':
     _get_rch_comparison()
     rch=_get_rch(version=2,recalc=True)
     smt.plt_matrix(rch)
+    np.savetxt(r"C:\Users\MattH\Desktop\to_brioch_2017_10_4\rch.txt",rch)
     print('done')

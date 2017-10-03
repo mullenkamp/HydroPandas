@@ -34,7 +34,6 @@ def get_wel_spd(version,recalc=False):
     elif version == 0:
         outdata = _get_wel_spd_v1(recalc, sub_version=0)
     elif version == 3:
-        warn('using version 3, this has not been confirmed yet!')
         outdata = _get_wel_spd_v3(recalc)
     else:
         raise ValueError('unexpected version: {}'.format(version))
@@ -42,6 +41,7 @@ def get_wel_spd(version,recalc=False):
 
 
 def _get_wel_spd_v1(recalc=False,sub_version=1):
+    warn('v1 wells are depreciated in the newest itteration of the model')
     pickle_path = '{}/well_spd.p'.format(smt.pickle_dir)
     if os.path.exists(pickle_path) and not recalc and sub_version!=0:
         well_data = pickle.load(open(pickle_path))
@@ -350,6 +350,7 @@ def _get_wel_spd_v2(recalc=False,sub_version=1):
     :param sub_version:
     :return:
     """
+    warn('v2 pumping is for 2014 to 2015 period')
     pickle_path = '{}/well_spd_v2.p'.format(smt.pickle_dir)
     if os.path.exists(pickle_path) and not recalc and sub_version!=0:
         well_data = pickle.load(open(pickle_path))
@@ -549,7 +550,7 @@ def _get_all_wai_wells():
     well_details = well_details.set_index('WELL_NO')
     out_data = pd.merge(data, pd.DataFrame(well_details.loc[:, 'WMCRZone']), left_index=True, right_index=True)
     out_data = out_data.loc[np.in1d(out_data.WMCRZone, [4, 7, 8])]
-    out_data.loc[:,'cwms'] = out_data.loc[:,'WMCRZone'].replace({7:'chch', 8:'selwyn', 4:'waimak'}) #todo start here
+    out_data.loc[:,'cwms'] = out_data.loc[:,'WMCRZone'].replace({7:'chch', 8:'selwyn', 4:'waimak'})
     out_data = out_data.drop('WMCRZone', axis=1)
 
 
@@ -558,7 +559,7 @@ def _get_all_wai_wells():
 
     # set WDC (waimak and other usage) wells to 10% of CAV
     idx = (out_data.cwms == 'waimak') & (out_data.use_type == 'other')
-    out_data.loc[idx,'flux'] = out_data.loc[idx, 'cav_flux'] * 0.10 #todo check with zeb on this it feels low, but who knows
+    out_data.loc[idx,'flux'] = out_data.loc[idx, 'cav_flux'] * 0.25 # this comes from average of the WDC CAV vs usage made before my time I also confirmed with colin as WDC that this is about right
 
     out_data.loc[:,'flux'] *= -1
 
@@ -741,11 +742,17 @@ def add_use_type(data):
 if __name__ == '__main__':
     from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.well_budget import get_well_budget
     new = _get_wel_spd_v3(True)
+
     print('NEW')
     print(get_well_budget(new)/86400)
     old = _get_wel_spd_v1()
     print('OLD')
     print(get_well_budget(old)/86400)
+
+    well_data = new
+    well_data = well_data.loc[:, ['layer', 'row', 'col', 'flux', 'type']]
+    well_data.to_csv(r"C:\Users\MattH\Desktop\to_brioch_2017_10_4/well_data.csv")
+
 
     raise
     nwai = get_nwai_wells()

@@ -155,13 +155,12 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
         idx = outdata.loc[(outdata.type == 'well') & (outdata.cwms == 'waimak')].index
         outdata.loc[idx, 'flux'] = get_full_consent(model_id, org_pumping_wells).loc[idx, 'flux']
     else:
-        if pc5 and not full_abstraction: #todo think about applying the reduction to selwyn
-            outdata.loc[(outdata.loc[:, 'use_type'] == 'irrigation-sw') & (outdata.cwms == 'waimak'), 'flux'] *= 3 / 4
+        if pc5 and not full_abstraction:
+            outdata.loc[(outdata.loc[:, 'use_type'] == 'irrigation-sw'), 'flux'] *= 3 / 4
             # an inital 1/4 reduction for pc5 to
             # account for the decreased irrgation demand for with more efficent irrigation this number comes from
             # prorataing the difference between 80% and 100% irrigation LSRM outputs to the percentage of irrigation
-            # from sw and gw in the waimakariri zone other zones were not considered because it was unlikly to affect
-            # the results (e.g. we don't care about selwyn).
+            # from sw and gw in the zones
 
     if full_allo:
         allo_mult = get_full_allo_multipler(org_pumping_wells)
@@ -206,7 +205,7 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
 def get_cc_pumping_muliplier(cc_inputs):
     # return a single value for now which is senario/current model period (2008-2015)
     #todo check/debug this
-    ird_current_period = get_ird_base_array('current', None, None, None, 'mean')
+    ird_current_period = get_ird_base_array('current', None, None, None, 'mean') #todo think about what the base array should be
 
     amalg_dict = {None: 'mean', 'mean': 'mean', 'tym': 'period_mean', 'low_3_m': '3_lowest_con_mean',
                   'min': 'lowest_year'}
@@ -224,7 +223,7 @@ def get_cc_pumping_muliplier(cc_inputs):
     else:
         all_idx = get_zone_array_index(['waimak', 'selwyn', 'chch'])
         outdata = outdata[all_idx]
-    return outdata.mean()
+    return np.nanmean(outdata)
 
 
 def get_full_allo_multipler(org_pumping_wells, recalc=False):
@@ -277,7 +276,9 @@ if __name__ == '__main__':
     cc_inputs = {'rcm': 'BCC-CSM1.1',
                  'rcp': 'RCPpast',
                  'period': 1980,
-                 'amag_type': 'tym'}
+                 'amag_type': 'tym',
+                 'cc_to_waimak_only': False}
+    test = get_cc_pumping_muliplier(cc_inputs)
     test, ccmult, new_water = get_forward_wells('opt',
                                     full_abstraction=False,
                                     cc_inputs=cc_inputs,

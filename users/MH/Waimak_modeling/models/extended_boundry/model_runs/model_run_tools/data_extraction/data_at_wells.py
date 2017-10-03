@@ -197,7 +197,6 @@ def _fill_df_with_bindata(bin_file, kstpkpers, kstpkper_names, df, nodata_value,
 
         return df
 
-#todo with first real use of this spot check spatially, but should be right
 
 if __name__ == '__main__':
     hds = (
