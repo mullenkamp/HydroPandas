@@ -5,22 +5,23 @@ Date Created: 7/09/2017 3:55 PM
 """
 
 from __future__ import division
-from core import env
-from users.MH.Waimak_modeling.models.extended_boundry.m_packages.wel_packages import _get_wel_spd_v1, _get_wel_spd_v2
-import pandas as pd
-import numpy as np
-import pickle
+
 import os
-from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
-from users.MH.Waimak_modeling.supporting_data_path import sdp
+import pickle
+
+import numpy as np
+import pandas as pd
+
 from core.ecan_io import rd_sql, sql_db
+from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
+from users.MH.Waimak_modeling.models.extended_boundry.m_packages.wel_packages import _get_wel_spd_v1, _get_wel_spd_v2
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.cwms_index import get_zone_array_index
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.LSR_arrays import \
+    get_ird_base_array
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_setup.realisation_id import \
     get_base_well, temp_pickle_dir
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.rch_support.map_rch_to_model_array import \
-    map_rch_to_array
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.LSR_arrays import \
-    _get_rch_hdf_path, lsrm_rch_base_dir, rch_idx_shp_path,get_ird_base_array
-from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.model_budget import get_well_budget
+from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.well_budget import get_well_budget
+from users.MH.Waimak_modeling.supporting_data_path import sdp
 
 
 # for stream depletion things
@@ -154,7 +155,7 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
         idx = outdata.loc[(outdata.type == 'well') & (outdata.cwms == 'waimak')].index
         outdata.loc[idx, 'flux'] = get_full_consent(model_id, org_pumping_wells).loc[idx, 'flux']
     else:
-        if pc5 and not full_abstraction:
+        if pc5 and not full_abstraction: #todo think about applying the reduction to selwyn
             outdata.loc[(outdata.loc[:, 'use_type'] == 'irrigation-sw') & (outdata.cwms == 'waimak'), 'flux'] *= 3 / 4
             # an inital 1/4 reduction for pc5 to
             # account for the decreased irrgation demand for with more efficent irrigation this number comes from
@@ -204,6 +205,7 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
 
 def get_cc_pumping_muliplier(cc_inputs):
     # return a single value for now which is senario/current model period (2008-2015)
+    #todo check/debug this
     ird_current_period = get_ird_base_array('current', None, None, None, 'mean')
 
     amalg_dict = {None: 'mean', 'mean': 'mean', 'tym': 'period_mean', 'low_3_m': '3_lowest_con_mean',
@@ -215,8 +217,14 @@ def get_cc_pumping_muliplier(cc_inputs):
     per= cc_inputs['period']
     at= amalg_dict[cc_inputs['amag_type']]
     ird_modeled_period = get_ird_base_array(sen, rcp, rcm, per, at)
-
-    return ird_modeled_period/ird_current_period
+    outdata = ird_modeled_period/ird_current_period
+    if cc_inputs['cc_to_waimak_only']:
+        w_idx = get_zone_array_index('waimak')
+        outdata = outdata[w_idx]
+    else:
+        all_idx = get_zone_array_index(['waimak', 'selwyn', 'chch'])
+        outdata = outdata[all_idx]
+    return outdata.mean()
 
 
 def get_full_allo_multipler(org_pumping_wells, recalc=False):

@@ -16,6 +16,7 @@ import os
 import pickle
 import geopandas as gpd
 from copy import deepcopy
+from warnings import warn
 
 
 def create_wel_package(m, wel_version):
@@ -32,6 +33,9 @@ def get_wel_spd(version,recalc=False):
         outdata = _get_wel_spd_v1(recalc,sub_version=1)
     elif version == 0:
         outdata = _get_wel_spd_v1(recalc, sub_version=0)
+    elif version == 3:
+        warn('using version 3, this has not been confirmed yet!')
+        outdata = _get_wel_spd_v3(recalc)
     else:
         raise ValueError('unexpected version: {}'.format(version))
     return outdata
@@ -131,6 +135,147 @@ def _get_wel_spd_v1(recalc=False,sub_version=1):
         all_wells.loc[well,'layer'] += overlap.loc[well,'add_layer']
         all_wells.loc[well,'row'] += overlap.loc[well,'add_row']
         all_wells.loc[well,'col'] += overlap.loc[well,'add_col']
+
+    # add little rakaia flux which will be parameterized via pest in two groups upper flux is north of SH1, lower is coastal of SH1
+    temp = smt.model_where(np.isfinite(smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/little_rakaia_boundry_wells.shp".format(smt.sdp),
+                                         'Id', True)))
+    all_llrf = pd.DataFrame(columns=all_wells.keys())
+    for i in range(smt.layers):
+        llrf = pd.DataFrame(index=['llrz_flux{:04d}'.format(e) for e in range(i*len(temp),(i+1)*len(temp))],columns=all_wells.keys())
+        llrf.loc[:,'row'] = np.array(temp)[:,0]
+        llrf.loc[:,'col'] = np.array(temp)[:,1]
+        llrf.loc[:,'layer'] = i
+        llrf.loc[:,'flux'] = -9999999  # identifier flux, parameterised in pest
+        llrf.loc[:,'type'] = 'llr_boundry_flux'
+        llrf.loc[:,'zone'] = 's_wai'
+        all_llrf = pd.concat((all_llrf,llrf))
+
+    up_temp = smt.model_where(np.isfinite(smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/upper_lRZF.shp".format(smt.sdp),
+                                         'Id', True)))
+
+    all_ulrf = pd.DataFrame(columns=all_wells.keys())
+    for i in range(smt.layers):
+        ulrf = pd.DataFrame(index=['ulrz_flux{:04d}'.format(e) for e in range(i*len(up_temp),(i+1)*len(up_temp))],columns=all_wells.keys())
+        ulrf.loc[:,'row'] = np.array(up_temp)[:,0]
+        ulrf.loc[:,'col'] = np.array(up_temp)[:,1]
+        ulrf.loc[:,'layer'] = i
+        ulrf.loc[:,'flux'] = -8888888  # identifier flux, parameterised in pest
+        ulrf.loc[:,'type'] = 'ulr_boundry_flux'
+        ulrf.loc[:, 'zone'] = 's_wai'
+        all_ulrf = pd.concat((all_ulrf,ulrf))
+
+    swai_races = get_s_wai_races()
+    all_wells = pd.concat((all_wells,swai_races,all_llrf,all_ulrf))
+
+    all_wells = all_wells.loc[~((all_wells.duplicated(subset=['row','col','layer'],keep=False)) &
+                              (all_wells.type.str.contains('lr_boundry_flux')))]
+    all_wells = add_use_type(all_wells) # any well that has irrigation/stockwater in it's uses is considered irrigation
+    if sub_version != 0:
+        pickle.dump(all_wells, open(pickle_path, 'w'))
+    return all_wells
+
+
+def _get_wel_spd_v3(recalc=False,sub_version=1):
+    """
+    all wells derived from mikes usage estimates I may pull down some of the WDC WS wells
+    :param recalc:
+    :param sub_version:
+    :return:
+    """
+    pickle_path = '{}/well_spd_v3.p'.format(smt.pickle_dir)
+    if os.path.exists(pickle_path) and not recalc and sub_version!=0:
+        well_data = pickle.load(open(pickle_path))
+        return well_data
+
+    races = get_race_data()
+
+    elv_db = smt.calc_elv_db()
+    for site in races.index:
+        races.loc[site, 'row'], races.loc[site, 'col'] = smt.convert_coords_to_matix(races.loc[site, 'x'],
+                                                                                     races.loc[site, 'y'])
+    races['zone'] = 'n_wai'
+    races = races.set_index('well')
+    all_wai_wells = _get_all_wai_wells()
+    temp = smt.get_well_postions(np.array(all_wai_wells.index), one_val_per_well=True, raise_exct=False)
+    all_wai_wells['layer'], all_wai_wells['row'], all_wai_wells['col'] = temp
+    no_flow = smt.get_no_flow()
+    for i in all_wai_wells.index:
+        layer, row, col = all_wai_wells.loc[i, ['layer', 'row', 'col']]
+        if any(pd.isnull([layer, row, col])):
+            continue
+        if no_flow[layer, row, col] == 0:  # get rid of non-active wells
+            all_wai_wells.loc[i, 'layer'] = np.nan
+
+    all_wai_wells = all_wai_wells.dropna(subset=['layer', 'row', 'col'])
+
+    s_wai_rivers = _get_s_wai_rivers().set_index('well')
+
+    all_wells = pd.concat((races, all_wai_wells, s_wai_rivers))
+
+    for i in all_wells.index:
+        row, col = all_wells.loc[i, ['row', 'col']]
+        x, y = smt.convert_matrix_to_coords(row, col)
+        all_wells.loc[i, 'mx'] = x
+        all_wells.loc[i, 'my'] = y
+
+    # check wells in correct aquifer
+    aq_to_layer = {'Avonside Formation': 0,
+                   'Springston Formation': 0,
+                   'Christchurch Formation': 0,
+                   'Riccarton Gravel': 1,
+                   'Bromley Formation': 2,
+                   'Linwood Gravel': 3,
+                   'Heathcote Formation': 4,
+                   'Burwood Gravel': 5,
+                   'Shirley Formation': 6,
+                   'Wainoni Gravel': 7}
+    leapfrog_aq = gpd.read_file("{}/m_ex_bd_inputs/shp/layering/gis_aq_name_clipped.shp".format(smt.sdp))
+    leapfrog_aq = leapfrog_aq.set_index('well')
+    leapfrog_aq.loc[:,'use_aq_name'] = leapfrog_aq.loc[:,'aq_name']
+    leapfrog_aq.loc[leapfrog_aq.use_aq_name.isnull(),'use_aq_name'] = leapfrog_aq.loc[leapfrog_aq.use_aq_name.isnull(),'aq_name_gi']
+
+    for well in all_wells.index:
+        try:
+            all_wells.loc[well,'aquifer_in_confined'] = aq = leapfrog_aq.loc[well,'use_aq_name']
+            all_wells.loc[well, 'layer_by_aq'] = aq_to_layer[aq]
+        except KeyError:
+            pass
+
+    all_wells.loc[:,'layer_by_depth'] = all_wells.loc[:,'layer']
+    all_wells.loc[all_wells.layer_by_aq.notnull(),'layer'] = all_wells.loc[all_wells.layer_by_aq.notnull(),'layer_by_aq']
+
+    # move wells that fall on other boundry conditions north of waimak (or in constant head)
+    overlap = gpd.read_file("{}/m_ex_bd_inputs/shp/overlap_adjustment2.shp".format(smt.sdp))
+    overlap = overlap.set_index('index')
+
+
+
+    for well in all_wells.index:
+        if not well in overlap.index:
+            continue
+        all_wells.loc[well,'layer'] += overlap.loc[well,'add_k']
+        all_wells.loc[well,'row'] += overlap.loc[well,'add_row']
+        all_wells.loc[well,'col'] += overlap.loc[well,'add_col']
+
+    overlap = gpd.read_file("{}/m_ex_bd_inputs/shp/overlap_adjustment2part2.shp".format(smt.sdp))
+    overlap = overlap.set_index('Field1')
+    for well in all_wells.index:
+        if not well in overlap.index:
+            continue
+        all_wells.loc[well,'layer'] += overlap.loc[well,'add_layer']
+        all_wells.loc[well,'row'] += overlap.loc[well,'add_row']
+        all_wells.loc[well,'col'] += overlap.loc[well,'add_col']
+
+    overlap = gpd.read_file("{}/m_ex_bd_inputs/shp/overlap_adjustmentpart3.shp".format(smt.sdp))
+    overlap = overlap.set_index('Field1')
+    for well in all_wells.index:
+        if not well in overlap.index:
+            continue
+        all_wells.loc[well,'layer'] += overlap.loc[well,'add_layer']
+        all_wells.loc[well,'row'] += overlap.loc[well,'add_row']
+        all_wells.loc[well,'col'] += overlap.loc[well,'add_col']
+
+    # note there are some overlaps remaining, but it's probably not a huge problem most are races
 
     # add little rakaia flux which will be parameterized via pest in two groups upper flux is north of SH1, lower is coastal of SH1
     temp = smt.model_where(np.isfinite(smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/little_rakaia_boundry_wells.shp".format(smt.sdp),
@@ -392,6 +537,41 @@ def _get_s_wai_wells(subversion=1):
 
     return out_data
 
+def _get_all_wai_wells():
+    mike = pd.read_hdf("{}/m_ex_bd_inputs/sd_est_all_mon_vol.h5".format(smt.sdp))
+    mike = mike.loc[(mike.time >= pd.datetime(2008, 1, 1)) & (mike.take_type == 'Take Groundwater')]
+    mike.loc[:, 'd_in_m'] = mike.time.dt.daysinmonth
+    data = mike.groupby('wap').aggregate({'usage_est': np.sum, 'crc': ','.join, 'd_in_m': np.sum, 'mon_allo_m3': np.sum})
+    data.loc[:, 'flux'] = data.loc[:, 'usage_est'] / (mike.time.max() - pd.datetime(2007, 12, 31)).days
+    data.loc[:, 'cav_flux'] = data.loc[:, 'mon_allo_m3'] / (mike.time.max() - pd.datetime(2007, 12, 31)).days
+
+    well_details = rd_sql(**sql_db.wells_db.well_details)
+    well_details = well_details.set_index('WELL_NO')
+    out_data = pd.merge(data, pd.DataFrame(well_details.loc[:, 'WMCRZone']), left_index=True, right_index=True)
+    out_data = out_data.loc[np.in1d(out_data.WMCRZone, [4, 7, 8])]
+    out_data.loc[:,'cwms'] = out_data.loc[:,'WMCRZone'].replace({7:'chch', 8:'selwyn', 4:'waimak'}) #todo start here
+    out_data = out_data.drop('WMCRZone', axis=1)
+
+
+    out_data['type'] = 'well'
+    out_data = add_use_type(out_data)
+
+    # set WDC (waimak and other usage) wells to 10% of CAV
+    idx = (out_data.cwms == 'waimak') & (out_data.use_type == 'other')
+    out_data.loc[idx,'flux'] = out_data.loc[idx, 'cav_flux'] * 0.10 #todo check with zeb on this it feels low, but who knows
+
+    out_data.loc[:,'flux'] *= -1
+
+    out_data['consent'] = [tuple(e.split(',')) for e in out_data.loc[:, 'crc']]
+    out_data = out_data.drop('crc', axis=1)
+    out_data = out_data.dropna()
+
+    out_data.loc[out_data.cwms=='waimak','zone'] = 'n_wai'
+    out_data.loc[~(out_data.cwms=='waimak'),'zone'] = 's_wai'
+    out_data.index.names = ['well']
+
+    return out_data
+
 def _check_chch_wells():
     allo = pd.read_csv("{}/inputs/wells/allo_gis.csv".format(sdp), index_col='crc')
 
@@ -559,15 +739,22 @@ def add_use_type(data):
 
 
 if __name__ == '__main__':
-    new = _get_wel_spd_v2()
+    from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.well_budget import get_well_budget
+    new = _get_wel_spd_v3(True)
+    print('NEW')
+    print(get_well_budget(new)/86400)
     old = _get_wel_spd_v1()
+    print('OLD')
+    print(get_well_budget(old)/86400)
+
+    raise
     nwai = get_nwai_wells()
     s_wells = _get_s_wai_wells()
     new_nwai = _get_2014_2015_waimak_usage()
 
     test = get_s_wai_races()
     old = _get_wel_spd_v1(recalc=False)
-    new = _get_wel_spd_v1(recalc=True)
+    new = _get_wel_spd_v3(recalc=True)
 
     n_wells_new = _check_waimak_wells()
     allo = pd.read_csv("{}/inputs/wells/allo_gis.csv".format(sdp), index_col='crc')

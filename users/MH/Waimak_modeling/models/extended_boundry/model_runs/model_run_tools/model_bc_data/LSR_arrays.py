@@ -5,16 +5,19 @@ Date Created: 8/09/2017 8:28 AM
 """
 
 from __future__ import division
+
+import itertools
+import os
+
+import numpy as np
+
 from core import env
+from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.cwms_index import get_zone_array_index
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_setup.realisation_id import \
     get_rch_multipler
-from rch_support.map_rch_to_model_array import map_rch_to_array
-import os
-from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
-import itertools
-import numpy as np
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.cwms_index import get_zone_array_index
-
+from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.lsr_support.map_rch_to_model_array import \
+    map_rch_to_array
 
 lsrm_rch_base_dir = env.gw_met_data('niwa_netcdf/lsrm/lsrm_results/water_year_means')
 rch_idx_shp_path = env.gw_met_data("niwa_netcdf/lsrm/lsrm_results/test/output_test2.shp")
@@ -103,7 +106,7 @@ def _get_rch_hdf_path(base_dir, naturalised, pc5, rcm, rcp):
     return outpath
 
 
-def _create_all_lsrm_arrays():
+def _create_all_lsrm_arrays(): #todo I should make this waimakariri IRD only  and re-run
     if not os.path.exists(os.path.join(lsrm_rch_base_dir, 'arrays_for_modflow')):
         os.makedirs(os.path.join(lsrm_rch_base_dir, 'arrays_for_modflow'))
 
@@ -138,7 +141,7 @@ def _create_all_lsrm_arrays():
         outpath_ird = os.path.join(lsrm_rch_base_dir,
                                'arrays_for_modflow/ird_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
         np.savetxt(outpath, temp)
-        np.savetxt(outpath_ird,[ird])
+        np.savetxt(outpath_ird,ird)
 
 
     # RCP past
@@ -169,7 +172,7 @@ def _create_all_lsrm_arrays():
         outpath_ird = os.path.join(lsrm_rch_base_dir,
                                    'arrays_for_modflow/ird_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
         np.savetxt(outpath, temp)
-        np.savetxt(outpath_ird, [ird])
+        np.savetxt(outpath_ird, ird)
 
     # VCSN
     for sen in senarios:
@@ -200,7 +203,7 @@ def _create_all_lsrm_arrays():
         outpath_ird = os.path.join(lsrm_rch_base_dir,
                                'arrays_for_modflow/ird_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
         np.savetxt(outpath, temp)
-        np.savetxt(outpath_ird, [ird])
+        np.savetxt(outpath_ird, ird)
 
 
 def get_lsrm_base_array(sen, rcp, rcm, per, at):
@@ -214,63 +217,71 @@ def get_ird_base_array(sen, rcp, rcm, per, at):
     path = os.path.join(lsrm_rch_base_dir, 'arrays_for_modflow/ird_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
     if not os.path.exists(path):
         raise ValueError('array not implemented, why are you using {}'.format((sen, rcp, rcm, per, at)))
-
-    return np.atleast_1d(np.loadtxt(path))[0]
+    outdata = np.loadtxt(path)
+    if outdata.shape != (smt.rows,smt.cols):
+        raise ValueError('incorrect shape for ird')
+    return outdata
 
 
 if __name__ == '__main__':
-    {None: 'mean', 'mean': 'mean', 'tym': 'period_mean', 'low_3_m': '3_lowest_con_mean',
-     'min': 'lowest_year'}
-    periods = range(2010, 2100, 20)
-    rcps = ['RCP4.5', 'RCP8.5']
-    rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
-    amalg_types = ['tym', 'low_3_m', 'min']
-    senarios = ['pc5', 'nat', 'current']
-    # cc stuff
-    for per, rcp, rcm, at, sen in itertools.product(periods, rcps, rcms, amalg_types, senarios):
-        naturalised = False
-        pc5 = False
-        if sen == 'nat':
-            naturalised = True
-        elif sen == 'pc5':
-            pc5 = True
-        elif sen == 'current':
-            pass
 
-        test = get_forward_rch('opt',naturalised=naturalised,pc5=pc5,rcm=rcm,rcp=rcp,period=per,amag_type=at,cc_to_waimak_only=True)
+    testtype=1
+    if testtype ==1:
+        _create_all_lsrm_arrays()
 
-    amalg_types = ['tym', 'low_3_m', 'min']
-    for rcm, sen, at in itertools.product(rcms, senarios, amalg_types):
-        naturalised = False
-        pc5 = False
-        if sen == 'nat':
-            naturalised = True
-        elif sen == 'pc5':
-            pc5 = True
-        elif sen == 'current':
-            pass
-        else:
-            raise ValueError('shouldnt get here')
-        per = 1980
-        rcp = 'RCPpast'
-        get_forward_rch('opt',naturalised=naturalised,pc5=pc5,rcm=rcm,rcp=rcp,period=per,amag_type=at)
+    if testtype ==2:
+        {None: 'mean', 'mean': 'mean', 'tym': 'period_mean', 'low_3_m': '3_lowest_con_mean',
+         'min': 'lowest_year'}
+        periods = range(2010, 2100, 20)
+        rcps = ['RCP4.5', 'RCP8.5']
+        rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
+        amalg_types = ['tym', 'low_3_m', 'min']
+        senarios = ['pc5', 'nat', 'current']
+        # cc stuff
+        for per, rcp, rcm, at, sen in itertools.product(periods, rcps, rcms, amalg_types, senarios):
+            naturalised = False
+            pc5 = False
+            if sen == 'nat':
+                naturalised = True
+            elif sen == 'pc5':
+                pc5 = True
+            elif sen == 'current':
+                pass
 
-    for sen in senarios:
-        naturalised = False
-        pc5 = False
-        if sen == 'nat':
-            naturalised = True
-        elif sen == 'pc5':
-            pc5 = True
-        elif sen == 'current':
-            pass
-        else:
-            raise ValueError('shouldnt get here')
-        at = 'mean'
-        per = None
-        rcp = None
-        rcm = None
-        get_forward_rch('opt',naturalised=naturalised,pc5=pc5,rcm=rcm,rcp=rcp,period=per,amag_type=at)
+            test = get_forward_rch('opt',naturalised=naturalised,pc5=pc5,rcm=rcm,rcp=rcp,period=per,amag_type=at,cc_to_waimak_only=True)
+
+        amalg_types = ['tym', 'low_3_m', 'min']
+        for rcm, sen, at in itertools.product(rcms, senarios, amalg_types):
+            naturalised = False
+            pc5 = False
+            if sen == 'nat':
+                naturalised = True
+            elif sen == 'pc5':
+                pc5 = True
+            elif sen == 'current':
+                pass
+            else:
+                raise ValueError('shouldnt get here')
+            per = 1980
+            rcp = 'RCPpast'
+            get_forward_rch('opt',naturalised=naturalised,pc5=pc5,rcm=rcm,rcp=rcp,period=per,amag_type=at)
+
+        for sen in senarios:
+            naturalised = False
+            pc5 = False
+            if sen == 'nat':
+                naturalised = True
+            elif sen == 'pc5':
+                pc5 = True
+            elif sen == 'current':
+                pass
+            else:
+                raise ValueError('shouldnt get here')
+            at = 'mean'
+            per = None
+            rcp = None
+            rcm = None
+            get_forward_rch('opt',naturalised=naturalised,pc5=pc5,rcm=rcm,rcp=rcp,period=per,amag_type=at)
 
 
 

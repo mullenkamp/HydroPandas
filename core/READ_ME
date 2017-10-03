@@ -31,8 +31,11 @@ To install Python:
         pip install future # for code compatability packages such as builtins
 
     Other helpful packages to install:
-        Flopy: Run and interact with modflow models
-            pip install flopy
+        Flopy: Run and interact with modflow models (talk to matth there are some bugs in the SFR2 package)
+            normal:
+                pip install flopy
+            bleeding edge:
+                pip install git+https://github.com/modflowpy/flopy.git
 
      Other packages that we're playing with:
      pykriging n-dimentional kriging for python pip install pykriging

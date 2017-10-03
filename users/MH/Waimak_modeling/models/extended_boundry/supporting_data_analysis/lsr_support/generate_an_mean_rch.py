@@ -39,7 +39,7 @@ def gen_water_year_average_lsr_irr(path):
     for key in ['precip', 'pet', 'paw', 'total_drainage']:  # raising memory error so trying to do it one at a time
         outdata[key] *= (1 / (365 * outdata.site_area))
     outdata['irr_drainage'] *= (1 / (365 * outdata.site_area * outdata.irr_area_ratio))  # per area of irrigation
-    outdata['irr_demand'] *= (1 / (365))  # m3/day #todo if re run divide by site area or irrigated area
+    outdata['irr_demand'] *= (1 / (365 * outdata.site_area * outdata.irr_area_ratio))  # m3/day #todo rerun this
     outdata['non_irr_drainage'] = (
     1 / (365 * outdata.site_area * (1 - outdata.irr_area_ratio)))  # per area of non-irrigation
     return outdata
@@ -50,7 +50,7 @@ def gen_all_wy_averages(base_dir):
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    paths = glob('{}/vcsn*.h5'.format(base_dir))
+    paths = glob('{}/*.h5'.format(base_dir))
     for path in paths:
         print (path)
         outdata = gen_water_year_average_lsr_irr(path)
