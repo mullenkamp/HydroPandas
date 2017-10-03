@@ -92,20 +92,22 @@ def select_sites(x):
     from geopandas import read_file
 
     if isinstance(x, ndarray):
-        x1 = x
+        x1 = x.copy()
     elif isinstance(x, (list, tuple)):
-        x1 = array(x)
+        x1 = array(x).copy()
     elif isinstance(x, (Series, Index)):
-        x1 = x.values
+        x1 = x.values.copy()
     elif isinstance(x, DataFrame):
-        x1 = x1.iloc[:, 0].values
+        x1 = x1.iloc[:, 0].values.copy()
     elif isinstance(x, str):
         if x.endswith('.shp'):
-            x1 = read_file(x)
+            x1 = read_file(x).copy()
         else:
-            x1 = read_csv(x).iloc[:, 0].values
+            x1 = read_csv(x).iloc[:, 0].values.copy()
+    elif x is None:
+        x1 = x
 
-    return(x1.copy())
+    return(x1)
 
 
 def merge_two_dicts(x, y):
