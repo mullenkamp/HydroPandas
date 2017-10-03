@@ -266,7 +266,16 @@ def _get_wel_spd_v3(recalc=False,sub_version=1):
         all_wells.loc[well,'row'] += overlap.loc[well,'add_row']
         all_wells.loc[well,'col'] += overlap.loc[well,'add_col']
 
-    # note there are some overlaps, but it's probably not a huge problem
+    overlap = gpd.read_file("{}/m_ex_bd_inputs/shp/overlap_adjustmentpart3.shp".format(smt.sdp))
+    overlap = overlap.set_index('Field1')
+    for well in all_wells.index:
+        if not well in overlap.index:
+            continue
+        all_wells.loc[well,'layer'] += overlap.loc[well,'add_layer']
+        all_wells.loc[well,'row'] += overlap.loc[well,'add_row']
+        all_wells.loc[well,'col'] += overlap.loc[well,'add_col']
+
+    # note there are some overlaps remaining, but it's probably not a huge problem most are races
 
     # add little rakaia flux which will be parameterized via pest in two groups upper flux is north of SH1, lower is coastal of SH1
     temp = smt.model_where(np.isfinite(smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/little_rakaia_boundry_wells.shp".format(smt.sdp),

@@ -18,7 +18,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_too
 from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.lsr_support.map_rch_to_model_array import \
     map_rch_to_array
 from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.lsr_support.generate_an_mean_rch import gen_water_year_average_lsr_irr
-
+import pandas as pd
 
 def create_rch_package(m):
     rch = flopy.modflow.mfrch.ModflowRch(m,
@@ -111,7 +111,7 @@ def _get_rch_v2(recalc=False):
     #fix tewai and chch weirdeness
     fixer = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/rch_rm_chch_tew.shp".format(smt.sdp),'ID',True)
     #chch
-    rch[fixer==0] = 0 #todo talk to zeb what should we set for these?
+    rch[fixer==0] = 0.0002 #todo talk to zeb what should we set for these?
     #te wai and coastal
     rch[fixer==1] = 0 #todo
 
@@ -120,8 +120,55 @@ def _get_rch_v2(recalc=False):
     pickle.dump(rch, open(pickle_path, 'w'))
     return rch
 
+def _get_rch_comparison():
+    new_no_flow = smt.get_no_flow()
+
+    paths ={'pc5':'vcsn_100perc.h5', 'cur':'vcsn_80perc.h5', 'nat':'vcsn_no_irr.h5'}
+    outdict = {}
+    for key in paths:
+        path = "{}/m_ex_bd_inputs/lsrm_results_v2/{}".format(smt.sdp,paths[key])
+        outpath = os.path.join(os.path.dirname(path), 'wym_{}'.format(os.path.basename(path)))
+        outdata = gen_water_year_average_lsr_irr(path)
+        outdata.to_hdf(outpath, 'wym', mode='w')
+        rch = map_rch_to_array(hdf=outpath,
+                               method='mean',
+                               period_center=None,
+                               mapping_shp="{}/m_ex_bd_inputs/lsrm_results_v2/test/output_test2.shp".format(smt.sdp),
+                               period_length=None, return_irr_demand=False,
+                         rch_quanity='total_drainage')
+
+        #fix tewai and chch weirdeness
+        fixer = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/rch_rm_chch_tew.shp".format(smt.sdp),'ID',True)
+        #chch
+        rch[fixer==0] = 0.0002
+        #te wai and coastal
+        rch[fixer==1] = 0 #todo
+
+        #set ibound to 0
+        rch[~new_no_flow[0].astype(bool)] = 0
+
+        outdict[key] = rch
+
+    new_no_flow = smt.get_no_flow()
+    zones = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/cwms_zones.shp".format(smt.sdp),'ZONE_CODE')
+    zones[~new_no_flow[0].astype(bool)] = np.nan
+    # waimak = 4, chch_wm = 7, selwyn=8 , chch_wm chch_formation = 9
+    w_idx = np.isclose(zones,4)
+    c_idx = np.isclose(zones,7)
+    s_idx = np.isclose(zones,8)
+    all_idx = np.isfinite(zones)
+    outdata = pd.DataFrame(columns=['waimak', 'selwyn', 'chch_wm', 'total'])
+    for key in outdict:
+        dat = outdict[key] *200*200
+        for idx, zone in zip([w_idx,c_idx,s_idx,all_idx],['waimak','chch_wm', 'selwyn', 'total']):
+            outdata.loc[key,zone] = np.nansum(dat[idx])
+    print(outdata/86400)
+    print('done')
+
+
 
 if __name__ == '__main__':
+    _get_rch_comparison()
     rch=_get_rch(version=2,recalc=True)
     smt.plt_matrix(rch)
     print('done')
