@@ -30,7 +30,7 @@ def check_no_overlapping_features():
     sfr_data = pd.DataFrame(_get_reach_data(smt.reach_v))
     sfr_data['bc_type'] = 'sfr'
 
-    well_data = get_wel_spd(smt.wel_version).rename(columns={'row':'i','col':'j', 'layer':'k'})
+    well_data = get_wel_spd(3,True).rename(columns={'row':'i','col':'j', 'layer':'k'})
     well_data['bc_type'] = 'well'
 
     drn_data = _get_drn_spd(smt.reach_v,smt.wel_version)
@@ -361,7 +361,7 @@ def check_elevations_spatially(base_dir,dpi):
     return paths
 
 if __name__ == '__main__':
-    #check_no_overlapping_features() #passed # this has failed for now we are just ignoring it due to cost benifit
+    check_no_overlapping_features() #passed # this has failed for now we are just ignoring it due to cost benifit
     check_layer_overlap() #passed
     check_elv_db() #passed
     check_noflow_overlap() #passed

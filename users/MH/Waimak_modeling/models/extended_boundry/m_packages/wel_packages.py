@@ -177,7 +177,7 @@ def _get_wel_spd_v1(recalc=False,sub_version=1):
 
 def _get_wel_spd_v3(recalc=False,sub_version=1):
     """
-    all wells derived from mikes usage estimates I may pull down some of the WDC WS wells.
+    all wells derived from mikes usage estimates I may pull down some of the WDC WS wells
     :param recalc:
     :param sub_version:
     :return:
@@ -265,6 +265,8 @@ def _get_wel_spd_v3(recalc=False,sub_version=1):
         all_wells.loc[well,'layer'] += overlap.loc[well,'add_layer']
         all_wells.loc[well,'row'] += overlap.loc[well,'add_row']
         all_wells.loc[well,'col'] += overlap.loc[well,'add_col']
+
+    # note there are some overlaps, but it's probably not a huge problem
 
     # add little rakaia flux which will be parameterized via pest in two groups upper flux is north of SH1, lower is coastal of SH1
     temp = smt.model_where(np.isfinite(smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/little_rakaia_boundry_wells.shp".format(smt.sdp),
@@ -530,8 +532,9 @@ def _get_all_wai_wells():
     mike = pd.read_hdf("{}/m_ex_bd_inputs/sd_est_all_mon_vol.h5".format(smt.sdp))
     mike = mike.loc[(mike.time >= pd.datetime(2008, 1, 1)) & (mike.take_type == 'Take Groundwater')]
     mike.loc[:, 'd_in_m'] = mike.time.dt.daysinmonth
-    data = mike.groupby('wap').aggregate({'usage_est': np.sum, 'crc': ','.join, 'd_in_m': np.sum})
+    data = mike.groupby('wap').aggregate({'usage_est': np.sum, 'crc': ','.join, 'd_in_m': np.sum, 'mon_allo_m3': np.sum})
     data.loc[:, 'flux'] = data.loc[:, 'usage_est'] / (mike.time.max() - pd.datetime(2007, 12, 31)).days
+    data.loc[:, 'cav_flux'] = data.loc[:, 'mon_allo_m3'] / (mike.time.max() - pd.datetime(2007, 12, 31)).days
 
     well_details = rd_sql(**sql_db.wells_db.well_details)
     well_details = well_details.set_index('WELL_NO')
@@ -539,13 +542,21 @@ def _get_all_wai_wells():
     out_data = out_data.loc[np.in1d(out_data.WMCRZone, [4, 7, 8])]
     out_data.loc[:,'cwms'] = out_data.loc[:,'WMCRZone'].replace({7:'chch', 8:'selwyn', 4:'waimak'}) #todo start here
     out_data = out_data.drop('WMCRZone', axis=1)
+
+
+    out_data['type'] = 'well'
+    out_data = add_use_type(out_data)
+
+    # set WDC (waimak and other usage) wells to 10% of CAV
+    idx = (out_data.cwms == 'waimak') & (out_data.use_type == 'other')
+    out_data.loc[idx,'flux'] = out_data.loc[idx, 'cav_flux'] * 0.10 #todo check with zeb on this it feels low, but who knows
+
     out_data.loc[:,'flux'] *= -1
 
     out_data['consent'] = [tuple(e.split(',')) for e in out_data.loc[:, 'crc']]
     out_data = out_data.drop('crc', axis=1)
     out_data = out_data.dropna()
 
-    out_data['type'] = 'well'
     out_data.loc[out_data.cwms=='waimak','zone'] = 'n_wai'
     out_data.loc[~(out_data.cwms=='waimak'),'zone'] = 's_wai'
     out_data.index.names = ['well']
@@ -720,7 +731,7 @@ def add_use_type(data):
 
 if __name__ == '__main__':
     from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.well_budget import get_well_budget
-    new = _get_wel_spd_v3()
+    new = _get_wel_spd_v3(True)
     print('NEW')
     print(get_well_budget(new)/86400)
     old = _get_wel_spd_v1()
