@@ -82,7 +82,7 @@ def extract_and_save_all_forward_runs(forward_run_dir, outpath):
 
 
 def make_rel_data(data_path, out_path):
-    org_data = pd.read_csv(data_path, skiprows=1, index_col=0)  # todo check
+    org_data = pd.read_csv(data_path, skiprows=1, index_col=0)
     model_id = os.path.basename(data_path).split('_')[0]
     out_path = os.path.join(os.path.dirname(out_path), '{}_{}'.format(model_id, os.path.basename(out_path)))
     current_key = 'current'
@@ -153,4 +153,4 @@ if __name__ == '__main__':
     gen_all_outdata_forward_runs(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\runs\forward_runs_2017_09_30",
                                  r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\results\cc_only_to_waimak",
                                  True)
-    print 'done'  # todo debug this shit
+    print 'done'
