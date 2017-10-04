@@ -121,14 +121,14 @@ def make_rel_data(data_path, meta_data_path, out_path):
 
     # write data with a header
     with open(out_path, 'w') as f:
-        f.write("""
-            relative flow and flux values from model {mid}. {act} are actual data
-             all other values relative: 
-             any climate change senario is relative to the mean of RCPpast for the senario and rcm
-             all others are relative to current
-             draw down (wells) is senario - baseline
-             for actuals all flow values in m3/day; all hd; z in m; x; y in nztm
-             i;j;k are unit less, made: {dt}\n""".format(mid=model_id, act=actual_keys,
+        f.write(
+            'relative flow and flux values from model {mid}. {act} are actual data'
+             'all other values relative: '
+             'any climate change senario is relative to the mean of RCPpast for the senario and rcm'
+             'all others are relative to current'
+             'draw down (wells) is senario - baseline'
+             'for actuals all flow values in m3/day; all hd; z in m; x; y in nztm'
+             'i;j;k are unit less, made: {dt}\n'.format(mid=model_id, act=actual_keys,
                                                          dt=datetime.datetime.now().isoformat()))
     # write data
     outdata.to_csv(out_path, mode='a')
@@ -136,7 +136,7 @@ def make_rel_data(data_path, meta_data_path, out_path):
 
 def get_baseline_name(meta_data, name, raise_non_converged=True):
     if not meta_data.loc[name, 'is_cc']:
-        outname = 'current'
+        outname = 'mod_period'
 
     else:
         rcp = 'RCPpast'
