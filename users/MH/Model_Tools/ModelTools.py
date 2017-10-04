@@ -15,7 +15,8 @@ from matplotlib.colors import from_levels_and_colors
 from copy import deepcopy
 
 #todo set up exceptions is required varibles are needed
-
+#todo look though new modeling and add any useful tools to this class e.g convergence check or something around bc overlap
+#todo document the shit out of this
 class ModelTools(object):
     ulx = None
     uly = None

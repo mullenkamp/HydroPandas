@@ -48,7 +48,7 @@ def setup_run_args(model_id, forward_run_dir, cc_to_waimak_only=False):
     :return:
     """
     runs = []
-    # base model run
+    # base model run handled separately in base forward runs with identified by the name 'mod_period'
     mod_per = {
         'model_id': model_id,
         'name': 'mod_period',

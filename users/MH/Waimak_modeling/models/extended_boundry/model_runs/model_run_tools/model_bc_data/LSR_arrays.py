@@ -68,6 +68,14 @@ def get_forward_rch(model_id, naturalised, pc5=False, rcm=None, rcp=None, period
         idx_array = get_zone_array_index(['chch','selwyn'])
         rch_array[idx_array] = base_rch[idx_array]
     # handle weirdness from the arrays (e.g. ibound ignore the weirdness from chch/te waihora paw)
+
+    #fix tewai and chch weirdeness
+    fixer = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/rch_rm_chch_tew.shp".format(smt.sdp),'ID',True)
+    #chch
+    rch_array[fixer==0] = 0.0002
+    #te wai and coastal
+    rch_array[fixer==1] = 0
+
     no_flow = smt.get_no_flow(0)
     no_flow[no_flow < 0] = 0
     rch_array[~no_flow.astype(bool)] = 0
@@ -208,6 +216,17 @@ def _create_all_lsrm_arrays():
                                'arrays_for_modflow/ird_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
         np.savetxt(outpath, temp)
         np.savetxt(outpath_ird, ird)
+
+def get_lsr_base_period_inputs(sen, rcp, rcm, per, at):
+    if rcp is None and rcm is None:
+        per = None
+        at = 'mean'
+        sen = 'current'
+    elif rcp is not None and rcm is not None:
+        rcp = 'RCPpast'
+        per = 1980
+        at = 'period_mean' #todo for now setting based on the period mean for RCP past for all
+    return(sen, rcp, rcm, per, at)
 
 
 def get_lsrm_base_array(sen, rcp, rcm, per, at):

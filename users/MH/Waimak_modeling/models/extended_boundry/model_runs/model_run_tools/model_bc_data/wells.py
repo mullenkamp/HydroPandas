@@ -17,7 +17,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_too
 from users.MH.Waimak_modeling.models.extended_boundry.m_packages.wel_packages import _get_wel_spd_v1, _get_wel_spd_v2
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.cwms_index import get_zone_array_index
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.LSR_arrays import \
-    get_ird_base_array
+    get_ird_base_array, get_lsr_base_period_inputs
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_setup.realisation_id import \
     get_base_well, temp_pickle_dir
 from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.well_budget import get_well_budget
@@ -203,10 +203,7 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
 
 
 def get_cc_pumping_muliplier(cc_inputs):
-    # return a single value for now which is senario/current model period (2008-2015)
-    #todo check/debug this
-    ird_current_period = get_ird_base_array('current', None, None, None, 'mean') #todo think about what the base array should be
-
+    # return a single value for now which is senario/baseline for the senario see below
     amalg_dict = {None: 'mean', 'mean': 'mean', 'tym': 'period_mean', 'low_3_m': '3_lowest_con_mean',
                   'min': 'lowest_year'}
 
@@ -215,6 +212,8 @@ def get_cc_pumping_muliplier(cc_inputs):
     rcm= cc_inputs['rcm']
     per= cc_inputs['period']
     at= amalg_dict[cc_inputs['amag_type']]
+    # base period for pumping multiplier is RCPpast period mean for the same senario and rcm
+    ird_current_period = get_ird_base_array(*get_lsr_base_period_inputs(sen, rcp, rcm, per, at))
     ird_modeled_period = get_ird_base_array(sen, rcp, rcm, per, at)
     outdata = ird_modeled_period/ird_current_period
     if cc_inputs['cc_to_waimak_only']:
@@ -273,19 +272,34 @@ def get_full_allo_multipler(org_pumping_wells, recalc=False):
 
 
 if __name__ == '__main__':
-    cc_inputs = {'rcm': 'BCC-CSM1.1',
-                 'rcp': 'RCPpast',
-                 'period': 1980,
-                 'amag_type': 'tym',
-                 'cc_to_waimak_only': False}
-    test = get_cc_pumping_muliplier(cc_inputs)
-    test, ccmult, new_water = get_forward_wells('opt',
-                                    full_abstraction=False,
-                                    cc_inputs=cc_inputs,
-                                    naturalised=False,
-                                    full_allo=False,
-                                    pc5=False,
-                                    org_pumping_wells=False)
-    print(get_well_budget(test)/86400)
-    print('ccmult: ' + str(ccmult))
-    print('new_water: ' + str(new_water))
+    test_type = 1
+    if test_type == 0:
+        cc_inputs = {'rcm': 'BCC-CSM1.1',
+                     'rcp': 'RCP4.5',
+                     'period': 2090,
+                     'amag_type': 'tym',
+                     'cc_to_waimak_only': False}
+        test = get_cc_pumping_muliplier(cc_inputs)
+        test, ccmult, new_water = get_forward_wells('opt',
+                                        full_abstraction=False,
+                                        cc_inputs=cc_inputs,
+                                        naturalised=False,
+                                        full_allo=False,
+                                        pc5=False,
+                                        org_pumping_wells=False)
+        print(get_well_budget(test)/86400)
+        print('ccmult: ' + str(ccmult))
+        print('new_water: ' + str(new_water))
+    elif test_type == 1:
+        import itertools
+        mults = []
+        periods = range(2010, 2100, 20)
+        rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
+        rcps = ['RCP4.5', 'RCP8.5']
+        amalg_types = ['tym', 'low_3_m']  # removed min as most low_3_yr were not converging
+        # cc stuff
+        for per, rcp, rcm, at in itertools.product(periods, rcps, rcms, amalg_types):
+            cc_inputs = {'rcm': rcm, 'rcp': rcp, 'period': per, 'amag_type': at, 'cc_to_waimak_only':True}
+            temp = get_cc_pumping_muliplier(cc_inputs)
+            mults.append(temp)
+        print('done')

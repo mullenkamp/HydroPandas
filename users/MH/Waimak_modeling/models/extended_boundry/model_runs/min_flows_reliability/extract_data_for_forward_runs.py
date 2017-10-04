@@ -55,6 +55,22 @@ def extract_forward_metadata(forward_run_dir, outpath):
     model_names = [os.path.basename(path).replace('.nam', '').replace(model_id + '_', '') for path in paths]
     converged = [zipped_converged(path, return_nans=True) for path in paths]
     outdata = pd.DataFrame(index=model_names, data={'converged': converged, 'path': paths})
+
+    # extract the sen at ect from the path?
+    outdata['is_cc'] = idx = outdata.index.str.contains('RCP')
+    outdata.loc[outdata.index.str.contains('low_3_m'), 'amalg_type'] = 'low_3_m'
+    outdata.loc[outdata.index.str.contains('tym'), 'amalg_type'] = 'tym'
+    outdata.loc[idx, 'rcm'] = [e.replace('_' + outdata.loc[e, 'amalg_type'], '').split('_')[-3] for e in
+                               outdata.index[idx]]
+    outdata.loc[idx, 'rcp'] = [e.replace('_' + outdata.loc[e, 'amalg_type'], '').split('_')[-2] for e in
+                               outdata.index[idx]]
+    outdata.loc[idx, 'period'] = [e.replace('_' + outdata.loc[e, 'amalg_type'], '').split('_')[-1] for e in
+                                  outdata.index[idx]]
+    outdata.loc[idx, 'sen'] = [e.replace(
+        '_{rcm}_{rcp}_{period}_{amalg_type}'.format(**outdata.loc[e, ['rcm', 'rcp', 'period', 'amalg_type']].to_dict()),
+        '') for e in outdata.index[idx]]
+    outdata.loc[~idx, 'sen'] = outdata.loc[~idx].index
+
     outdata.to_csv(outpath)
     return outpath
 
@@ -69,7 +85,7 @@ def extract_and_save_all_forward_runs(forward_run_dir, outpath):
         temp = extract_forward_run(path)
         temp = temp.rename(columns={'kstpkper0': temp_name})
         if i == 0:
-            outdata = temp.loc[:,['depth', 'i', 'j', 'k', 'mid_screen_elv', 'nztmx', 'nztmy',temp_name]]
+            outdata = temp.loc[:, ['depth', 'i', 'j', 'k', 'mid_screen_elv', 'nztmx', 'nztmy', temp_name]]
         else:
             temp = temp.drop(['depth', 'i', 'j', 'k', 'mid_screen_elv', 'nztmx', 'nztmy'], 1)
             outdata = pd.merge(outdata, temp, right_index=True, left_index=True)
@@ -81,39 +97,75 @@ def extract_and_save_all_forward_runs(forward_run_dir, outpath):
     return outpath
 
 
-def make_rel_data(data_path, out_path):
+def make_rel_data(data_path, meta_data_path, out_path):
     org_data = pd.read_csv(data_path, skiprows=1, index_col=0)
+    meta_data = pd.read_csv(meta_data_path, index_col=0)
     model_id = os.path.basename(data_path).split('_')[0]
     out_path = os.path.join(os.path.dirname(out_path), '{}_{}'.format(model_id, os.path.basename(out_path)))
-    current_key = 'current'
-    remove_keys = [current_key, 'depth', 'i', 'j', 'k', 'mid_screen_elv', 'nztmx', 'nztmy']
+    remove_keys = ['depth', 'i', 'j', 'k', 'mid_screen_elv', 'nztmx', 'nztmy']
     divide_keys = list(set(org_data.keys()) - set(remove_keys))
-    # todo how to handle wells for now the same
     outdata = deepcopy(org_data)
+    actual_keys = []
+    idx = outdata.index.str.contains('/')
     for key in divide_keys:
-        outdata.loc[:, key] *= 1 / org_data.loc[:, current_key]
+        reference_key = get_baseline_name(meta_data=meta_data, name=key)
+
+        if reference_key == key:  # do not make reference keys relative
+            actual_keys.append(key)
+            continue
+
+        # relative streams
+        outdata.loc[~idx, key] *= 1 / org_data.loc[~idx, reference_key]
+        # actual drawdown
+        outdata.loc[idx, key] = outdata.loc[idx, key] - org_data.loc[idx, reference_key]
+
+    # write data with a header
     with open(out_path, 'w') as f:
-        f.write(
-            'relative flow and flux values from model {mid}. all values relative to the model_period {cid}'
-            ' for {cid} all flow values in m3/day; all hd; z in m; x; y in nztm'
-            ' i;j;k are unit less, made: {dt}\n'.format(mid=model_id, cid=current_key,
-                                                        dt=datetime.datetime.now().isoformat()))
+        f.write("""
+            relative flow and flux values from model {mid}. {act} are actual data
+             all other values relative: 
+             any climate change senario is relative to the mean of RCPpast for the senario and rcm
+             all others are relative to current
+             draw down (wells) is senario - baseline
+             for actuals all flow values in m3/day; all hd; z in m; x; y in nztm
+             i;j;k are unit less, made: {dt}\n""".format(mid=model_id, act=actual_keys,
+                                                         dt=datetime.datetime.now().isoformat()))
     # write data
     outdata.to_csv(out_path, mode='a')
 
-def get_baseline_path(meta_data, name): #todo compare CC LSR to it's baseline period
-    # keep senario and rcm constant
-    raise NotImplementedError
 
-def plt_drawdown(meta_data_path, outdir):
+def get_baseline_name(meta_data, name, raise_non_converged=True):
+    if not meta_data.loc[name, 'is_cc']:
+        outname = 'current'
+
+    else:
+        rcp = 'RCPpast'
+        sen = meta_data.loc[name, 'sen']
+        amalg_type = 'tym'
+        rcm = meta_data.loc[name, 'rcm']
+        period = 1980
+        outname= '{}_{}_{}_{}_{}'.format(sen, rcm, rcp, period, amalg_type)
+
+    if raise_non_converged:
+        if pd.isnull(meta_data.loc[outname, 'converged']):
+            raise ValueError('null convergence for reference scenario {}'.format(outname))
+        if not meta_data.loc[outname, 'converged']:
+            raise ValueError('reference scenario {} did not converge'.format(outname))
+
+    return outname
+
+
+def plt_drawdown(meta_data_path, outdir,raise_non_converged=True):
     if not os.path.exists(outdir):
         os.makedirs(outdir)
     meta_data = pd.read_csv(meta_data_path, index_col=0)
-    mod_per_hds = flopy.utils.HeadFile(meta_data.loc['current', 'path'].replace('.nam', '.hds')).get_data((0, 0))
     for name in meta_data.index:
         converged = meta_data.loc[name, 'converged']
         if pd.isnull(converged):
             continue
+        ref_name = get_baseline_name(meta_data,name,raise_non_converged)
+        mod_per_hds_path =meta_data.loc[ref_name, 'path'].replace('.nam', '.hds')
+        mod_per_hds = flopy.utils.HeadFile(mod_per_hds_path).get_data((0, 0))
         plt_out_dir = os.path.join(outdir, name)
         if not os.path.exists(plt_out_dir):
             os.makedirs(plt_out_dir)
@@ -143,14 +195,15 @@ def gen_all_outdata_forward_runs(forward_run_dir, outdir, plt_dd=False):
     relative_outpath = 'relative_data.csv'
     absolute_outpath = extract_and_save_all_forward_runs(forward_run_dir, os.path.join(outdir, absolute_outpath))
     meta_data_path = extract_forward_metadata(forward_run_dir, os.path.join(outdir, meta_data_path))
-    make_rel_data(absolute_outpath, os.path.join(outdir, relative_outpath))
+    make_rel_data(absolute_outpath, meta_data_path, os.path.join(outdir, relative_outpath))
 
     if plt_dd:
         plt_drawdown(meta_data_path, os.path.join(outdir, 'plots'))
 
 
 if __name__ == '__main__':
-    gen_all_outdata_forward_runs(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\runs\forward_runs_2017_09_30",
-                                 r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\results\cc_only_to_waimak",
-                                 True)
+    gen_all_outdata_forward_runs(
+        r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\runs\forward_runs_2017_09_30",
+        r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\results\cc_only_to_waimak",
+        False)
     print 'done'
