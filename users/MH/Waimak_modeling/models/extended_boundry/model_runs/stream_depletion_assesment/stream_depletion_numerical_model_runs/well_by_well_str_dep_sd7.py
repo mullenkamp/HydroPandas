@@ -9,7 +9,7 @@ import os
 import multiprocessing
 import logging
 from stream_depletion_model_setup import setup_and_run_stream_dep, setup_and_run_stream_dep_multip
-from copy import deepcopy
+from copy import copy
 import time
 from starting_hds_ss_sy import get_ss_sy, get_starting_heads_sd7, get_sd_well_list
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
@@ -43,10 +43,8 @@ def setup_runs_sd7(model_id, well_list, base_path, ss, sy, start_heads):
 
     base_kwargs = {
         'model_id': model_id,
-        'name': None,
         'base_dir': base_path,
         'stress_vals': spv,
-        'wells_to_turn_on': {0: []},
         'ss': ss,
         'sy': sy,
         'silent': True,
@@ -55,8 +53,8 @@ def setup_runs_sd7(model_id, well_list, base_path, ss, sy, start_heads):
 
     out_runs = []
     for well in well_list:
-        temp_kwargs = deepcopy(base_kwargs)
-        temp_kwargs['wells_to_turn_on'][1] = [well]
+        temp_kwargs = copy(base_kwargs)
+        temp_kwargs['wells_to_turn_on'] = {0:[well]}
         temp_kwargs['name'] = 'turn_on_{}_sd7'.format(well.replace('/', '_'))
         out_runs.append(temp_kwargs)
 

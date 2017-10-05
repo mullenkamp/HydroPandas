@@ -9,7 +9,7 @@ import os
 import multiprocessing
 import logging
 from stream_depletion_model_setup import setup_and_run_stream_dep, setup_and_run_stream_dep_multip
-from copy import deepcopy
+from copy import copy
 import time
 from starting_hds_ss_sy import get_starting_heads_sd150, get_ss_sy, get_sd_well_list
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
@@ -45,10 +45,8 @@ def setup_runs_sd150(model_id, well_list, base_path, ss, sy, start_heads):
 
     base_kwargs = {
         'model_id': model_id,
-        'name': None,
         'base_dir': base_path,
         'stress_vals': spv,
-        'wells_to_turn_on': {0: []},
         'ss': ss,
         'sy': sy,
         'silent': True,
@@ -57,8 +55,8 @@ def setup_runs_sd150(model_id, well_list, base_path, ss, sy, start_heads):
 
     out_runs = []
     for well in well_list:
-        temp_kwargs = deepcopy(base_kwargs)
-        temp_kwargs['wells_to_turn_on'][1] = [well]
+        temp_kwargs = copy(base_kwargs)
+        temp_kwargs['wells_to_turn_on'] = {0:[well]}
         temp_kwargs['name'] = 'turn_on_{}_sd30'.format(well.replace('/', '_'))
         out_runs.append(temp_kwargs)
 
@@ -91,7 +89,7 @@ def well_by_well_depletion_sd150(model_id, well_list, base_path, notes):
 
     t = time.time()
     ss,sy = get_ss_sy()
-    start_heads = get_starting_heads_sd150()
+    start_heads = get_starting_heads_sd150(model_id)
     multiprocessing.log_to_stderr(logging.DEBUG)
     runs = setup_runs_sd150(model_id, well_list, base_path, ss, sy, start_heads)
     pool_size = multiprocessing.cpu_count()
