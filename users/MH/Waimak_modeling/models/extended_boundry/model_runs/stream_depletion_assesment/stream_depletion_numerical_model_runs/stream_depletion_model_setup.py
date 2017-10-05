@@ -68,7 +68,7 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
 
     base_well = get_race_data(model_id)
     if sd_7_150 == 'sd30':
-        raise NotImplementedError #todo figure out
+        sd_7_150 = 'sd7'  # this effectivly uses the max rate of the consent rather than the CAV for 150 day
 
     if sd_7_150 == 'sd150':
         full_consent = get_full_consent(model_id)
@@ -82,7 +82,7 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
         input_wells = deepcopy(base_well)
         for well in wells_to_turn_on[sp]:
             if sd_7_150 == 'sd150':
-                add_well = full_consent.loc[well]
+                add_well = full_consent.loc[well] #todo should this be the full consent over 150 days or over 365 etc.
                 input_wells.loc[well] = add_well
             elif sd_7_150 == 'sd7':
                 add_well = sd7_flux.loc[well]
@@ -170,7 +170,7 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
     con = None
     if success:
         con = converged(os.path.join(m.model_ws,m.namefile.replace('.nam', '.list')))
-        zip_non_essential_files(m.model_ws, include_list=False, other_files=['.ddn', '.hds']) #todo  are there others I can incorporate? .ddn? .hds?
+        zip_non_essential_files(m.model_ws, include_list=False) #todo  are there others I can incorporate? .ddn? .hds?
     if con is None:
         success = 'convergence unknown'
     elif con:

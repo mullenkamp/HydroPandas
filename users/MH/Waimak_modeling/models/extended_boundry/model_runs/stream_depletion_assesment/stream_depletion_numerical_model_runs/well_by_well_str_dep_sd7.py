@@ -103,7 +103,7 @@ if __name__ == '__main__':
     notes = """ """
     model_id = 'opt'
     well_list = get_sd_well_list(model_id)
-    base_path = r"C:\Users\MattH\Desktop\test_sd7"
+    base_path = r"C:\Users\MattH\Desktop\test2_sd7"
     well_by_well_depletion_sd7(model_id,well_list,base_path,notes)
 
 

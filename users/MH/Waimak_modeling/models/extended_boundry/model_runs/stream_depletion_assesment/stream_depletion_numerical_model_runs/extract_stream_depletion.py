@@ -2,206 +2,111 @@
 Author: matth
 Date Created: 1/06/2017 11:58 AM
 """
-#todo this has not been modified I need to change it
 from __future__ import division
 import flopy
 import pandas as pd
-from starting_hds_ss_sy import get_fully_nat_str_dep150_base_path, get_fully_nat_str_dep7_base_path, \
-    get_fully_nat_str_dep30_base_path
-import users.MH.Waimak_modeling.model_tools as mt
-import socket
+from base_sd_runs import get_str_dep_base_path, get_sd_spv
 import glob
-from users.MH.Waimak_modeling.supporting_data_path import base_mod_dir, results_dir, base_mod_dir2
 import itertools
 import numpy as np
-from core.ecan_io import rd_sql, sql_db
-import multiprocessing
-import logging
+import os
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.data_extraction.data_from_streams import \
+    get_samp_points_df, get_flux_at_points
+from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.all_well_layer_col_row import \
+    get_all_well_row_col
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.wells import \
+    get_full_consent, get_max_rate
 
-
-def calc_stream_dep(model_path, mode='sd150', add_h20_cust=False):
-    #todo have not modified
+def calc_stream_dep(model_path, sd_version='sd150'):
     """
     calculate a dataframe for the stream depletion
-    :param model_path:
-    :param mode: either sd150 or sd7,  this defines which base mod path to use.
-    :return:
+    :param model_path: path to the modflow model namefile with or without extension
+    :param sd_version: either sd150 sd30 sd7,  this defines which base mod path to use.
+    :return: series with index of sites defined below
     """
+    model_path = model_path.replace('.nam', '')
+    model_id = os.path.basename(model_path).split('_')[0]
 
-    if mode == 'sd150':
-        baseline_path = get_fully_nat_str_dep150_base_path(add_h20_to_cust=add_h20_cust)
-    elif mode == 'sd7':
-        baseline_path = get_fully_nat_str_dep7_base_path(add_h20_to_cust=add_h20_cust)
-    elif mode == 'sd30':
-        baseline_path = get_fully_nat_str_dep30_base_path(add_h20_to_cust=add_h20_cust)
-    else:
-        raise ValueError('unexpected stream depletion mode {}'.format(mode))
+    if sd_version not in ["sd150", "sd30", "sd7"]:
+        raise ValueError(
+            'unexpected argument for version {} expected one of ["sd150", "sd30", "sd7"]'.format(sd_version))
+    baseline_path = get_str_dep_base_path(model_id, sd_version)
 
-    str_points = mt.get_str_sample_points()
-    idx = ['sd' in e for e in str_points]
-    str_points = list(np.array(str_points)[np.array(idx)])
+    # id the kstpkpers and the integrater value
+    spv = get_sd_spv(sd_version)
+    kstpkpers = list(itertools.product(range(spv['nstp']), range(0, spv['nper'])))
+    integrater = spv['perlen'] / spv['nstp']
 
-    drn_points = mt.get_drn_samp_pts()
-    idx = ['swaz' in e for e in drn_points]
-    drn_points = list(np.array(drn_points)[np.array(idx)])
-    drn_points.remove('ashley_swaz')
-    drn_points.remove('num7drain_swaz')
-    drn_points.remove('str_eyre_swaz')
+    # define sites
+    samp_points_df = get_samp_points_df()
+    sites = list(samp_points_df[samp_points_df.m_type == 'swaz'].index)
 
-    if mode == 'sd150':
-        kstpkpers_base = list(itertools.product(range(2), range(0, 5)))
-        kstpkpers_sd = list(itertools.product(range(2), range(0, 5)))
-        integrater = 15
-    elif mode == 'sd7':
-        kstpkpers_base = list(itertools.product(range(1), range(1, 8)))
-        kstpkpers_sd = list(itertools.product(range(1), range(1, 8)))
-        integrater = 1
-    elif mode == 'sd30':
-        kstpkpers_base = list(itertools.product(range(1), range(1, 11)))
-        kstpkpers_sd = list(itertools.product(range(1), range(1, 11)))
-        integrater = 3
-    else:
-        raise ValueError('unexpected stream depletion mode {}'.format(mode))
+    str_base = get_flux_at_points(sites=sites, base_path=baseline_path, kstpkpers=kstpkpers)
+    str_sd = get_flux_at_points(sites=sites, base_path=model_path, kstpkpers=kstpkpers)
 
-    str_base = mt.streamflow_for_kskps(baseline_path,
-                                       kstpkpers=kstpkpers_base,
-                                       drn_points=drn_points, str_points=str_points)
-    str_sd = mt.streamflow_for_kskps(model_path, kstpkpers=kstpkpers_sd,
-                                     drn_points=drn_points, str_points=str_points)
+    outdata = (str_base.sum(axis=1) - str_sd.sum(axis=1)) * integrater  # todo check sign
 
-    outdata = (str_base.sum() - str_sd.sum()) * integrater
-
-    # cumulative well abstraction budget
+    # cumulative well abstraction budget #todo check but I think this is ok
     budget = flopy.utils.MfListBudget('{}.list'.format(model_path))
     temp = pd.DataFrame(budget.get_cumulative('WELLS_OUT'))
     abs_vol = temp[(temp['stress_period'] == temp['stress_period'].max()) &
                    (temp['time_step'] == temp['time_step'].max())]['WELLS_OUT'].iloc[0]
-    # convert from l3 to m3
 
     if abs_vol == 0:
         outdata *= np.nan
     else:
         outdata *= 1 / abs_vol
-    return outdata
+    return outdata  # todo check/debug
+    # todo add if well has been turned off in extract sd as percent of flow
 
+def calc_str_dep_all_wells(out_path, base_path, sd_version='sd150'):
+    """
 
-def calc_str_dep_all_wells(base_path, mode='sd150', add_h20_cust=False):
-    #todo have not modified
+    :param out_path: the path to save the csv to
+    :param base_path: path to the well by well stream depletion path
+    :param sd_version: either sd150 sd30 sd7,  this defines which base mod path to use.
+    :return: dataframe with index fo wells (defined from file names) and columns of sites defined in calc_stream_dep
+    """
     all_paths = glob.glob('{}/*/*.nam'.format(base_path))
-    all_paths = [e.replace('.nam','') for e in all_paths]
-    wells = ['{}/{}'.format(e.split('_')[-2], e.split('_')[-1]) for e in all_paths]
+    all_paths = [e.replace('.nam', '') for e in all_paths]
+    wells = ['{}/{}'.format(e.split('_')[-2], e.split('_')[-1]) for e in all_paths]  # todo check this is correct name
+    model_id = os.path.basename(all_paths[0]).split('_')[0]  # todo check this returns the right model id
     outdata = {}
+    out_per_abs_vol = {}
     for well, path in zip(wells, all_paths):
-        outdata[well] = calc_stream_dep(path, mode=mode, add_h20_cust=add_h20_cust)
-    outdata = pd.DataFrame(outdata).transpose() #todo add a header before I save
+        sd, per_abs_vol = calc_stream_dep(path, sd_version=sd_version)
+        outdata[well] = sd
+        out_per_abs_vol[well] = per_abs_vol
+    outdata = pd.DataFrame(outdata).transpose()
+    out_per_abs_vol = pd.DataFrame(out_per_abs_vol, index=['percent_vol_abs']).transpose()
 
-    # add additional information? todo?
+    outdata = pd.merge(outdata, out_per_abs_vol)
 
-
-    return outdata
-
-
-def join_sd_results(version='sd150', add_water_to_cust=False):
-    #todo have not modified
-    """
-    a script to join up all the stream depletion results.  it must be first run on the remote machines to get their
-    results to the server and then on my machine to compile the results
-    :param version: either 'sd150', 'sd7', or 'all'
-    :return:
-    """
-    _comp = socket.gethostname()
-
-    if add_water_to_cust:
-        datasd7_path = '{}/stream_depletion/stream_depletion_7/stream_d7_data_1cu_cust_'.format(results_dir)
-        datasd150_path = '{}/stream_depletion/stream_depletion_150/stream_d150_data_1cu_cust_'.format(results_dir)
-        datasd30_path = '{}/stream_depletion/stream_depletion_30/stream_d30_data_1cu_cust_'.format(results_dir)
-        root_path = "{}/well_by_well_str_dep".format(base_mod_dir2)
-        extra_path = '_1cu_added_to_cust'
+    # add additional information
+    # add flux
+    if sd_version == 'sd150':
+        flux = get_full_consent(model_id).loc['flux']  # todo should this be scaled
     else:
-        datasd7_path = '{}/stream_depletion/stream_depletion_7/stream_d7_data_'.format(results_dir)
-        datasd150_path = '{}/stream_depletion/stream_depletion_150/stream_d150_data_'.format(results_dir)
-        datasd30_path = '{}/stream_depletion/stream_depletion_30/stream_d30_data_'.format(results_dir)
-        root_path = '{}/well_by_well_str_dep'.format(base_mod_dir)
-        extra_path = ''
+        flux = get_max_rate(model_id).loc['flux']
+    outdata = pd.merge(outdata, pd.DataFrame(flux), how='left', left_index=True, right_index=True)
 
-    if _comp == 'DHI-Runs02' or _comp == 'GWATER02':
-        if version == 'sd150' or version == 'all':
-            temp_path = '{}_sd150{}'.format(root_path,extra_path)
-            datasd150 = calc_str_dep_all_wells(temp_path, mode='sd150', add_h20_cust=add_water_to_cust)
-            datasd150.to_csv('{}{}.csv'.format(datasd150_path, _comp))
-        if version == 'sd7' or version == 'all':
-            temp_path = '{}_sd7{}'.format(root_path,extra_path)
-            datasd7 = calc_str_dep_all_wells(temp_path, mode='sd7', add_h20_cust=add_water_to_cust)
-            datasd7.to_csv('{}{}.csv'.format(datasd7_path, _comp))
-        if version == 'sd30' or version == 'all':
-            temp_path = '{}_sd30{}'.format(root_path,extra_path)
-            datasd30 = calc_str_dep_all_wells(temp_path, mode='sd30', add_h20_cust=add_water_to_cust)
-            datasd30.to_csv('{}{}.csv'.format(datasd30_path, _comp))
+    all_wells = get_all_well_row_col()
+    outdata = pd.merge(outdata,
+                       all_wells.loc[:, ['nztmx', 'nztmy', 'depth', 'mid_screen_elv', 'mx', 'my', 'mz']],
+                       how='left', left_index=True, right_index=True)
+    outdata['hor_misloc'] = ((outdata['mx'] - outdata['nztmx']) ** 2 + (outdata['my'] - outdata['nxtmy']) ** 2) ** 0.5
+    outdata['ver_misloc'] = outdata['mz'] - outdata['mid_screen_elv']
 
-
-    elif _comp == 'HP1639':
-        # combine the two datasets and add other info (depth, CRC number, x, y )
-        org_data = mt.get_original_well_data()
-        well_details = rd_sql(**sql_db.wells_db.well_details)
-        well_details = well_details.set_index('WELL_NO')
-        well_details = well_details.loc[:, ['NZTMX', 'NZTMY']]
-        well_details = well_details.rename(columns={'NZTMX': 'wells_x', 'NZTMY': 'wells_y'})
-
-        if version == 'sd150' or version == 'all':
-            flux_data = pd.DataFrame(mt.get_model_well_full_consented()['flux'])
-            flux_data *= 12 / 5
-            data_gwruns = pd.read_csv('{}GWATER02.csv'.format(datasd150_path))
-            data_dhiruns = pd.read_csv('{}DHI-Runs02.csv'.format(datasd150_path))
-            out_data = pd.concat((data_dhiruns, data_gwruns))
-            out_data = out_data.set_index(out_data.keys()[0])
-
-            # add original data
-            out_data = pd.merge(out_data, org_data, how='left', left_index=True, right_index=True)
-            out_data = out_data.drop(['flux', 'layer', 'row'], axis=1)
-            out_data = pd.merge(out_data, well_details, how='left', left_index=True, right_index=True)
-            out_data['mis_location'] = ((out_data['x'] - out_data['wells_x']) ** 2 + (
-            out_data['y'] - out_data['wells_y']) ** 2) ** 0.5
-            out_data = pd.merge(out_data, flux_data, how='left', left_index=True, right_index=True)
-
-            out_data.to_csv('{}joined.csv'.format(datasd150_path))
-
-        if version == 'sd7' or version == 'all':
-            flux_data = pd.DataFrame(mt.get_model_well_max_rate()['flux'])
-            data_gwruns = pd.read_csv('{}GWATER02.csv'.format(datasd7_path))
-            data_dhiruns = pd.read_csv('{}DHI-Runs02.csv'.format(datasd7_path))
-            out_data = pd.concat((data_dhiruns, data_gwruns))
-            out_data = out_data.set_index(out_data.keys()[0])
-
-            # add original data
-            out_data = pd.merge(out_data, org_data, how='left', left_index=True, right_index=True)
-            out_data = out_data.drop(['flux', 'layer', 'row'], axis=1)
-            out_data = pd.merge(out_data, well_details, how='left', left_index=True, right_index=True)
-            out_data['mis_location'] = ((out_data['x'] - out_data['wells_x']) ** 2 +
-                                        (out_data['y'] - out_data['wells_y']) ** 2) ** 0.5
-            out_data = pd.merge(out_data, flux_data, how='left', left_index=True, right_index=True)
-            out_data.to_csv('{}joined.csv'.format(datasd7_path))
-
-        if version == 'sd30' or version == 'all':
-            flux_data = pd.DataFrame(mt.get_model_well_max_rate()['flux'])
-            data_gwruns = pd.read_csv('{}GWATER02.csv'.format(datasd30_path))
-            data_dhiruns = pd.read_csv('{}DHI-Runs02.csv'.format(datasd30_path))
-            out_data = pd.concat((data_dhiruns, data_gwruns))
-            out_data = out_data.set_index(out_data.keys()[0])
-
-            # add original data
-            out_data = pd.merge(out_data, org_data, how='left', left_index=True, right_index=True)
-            out_data = out_data.drop(['flux', 'layer', 'row'], axis=1)
-            out_data = pd.merge(out_data, well_details, how='left', left_index=True, right_index=True)
-            out_data['mis_location'] = ((out_data['x'] - out_data['wells_x']) ** 2 +
-                                        (out_data['y'] - out_data['wells_y']) ** 2) ** 0.5
-            out_data = pd.merge(out_data, flux_data, how='left', left_index=True, right_index=True)
-            out_data.to_csv('{}joined.csv'.format(datasd30_path))
-
-    else:
-        raise ValueError('unexpected computer {}'.format(_comp))
+    # save with header
+    header = (
+    'all sd values are relative to the flux; though nwt sometimes reduces a wells pumping rate if it goes dry;'
+    'this is noted in percent_vol_abs(unitless).  m(x;y) (e.g. modelx) and nztm(z;y) are in nztm. '
+    'mid_screen_elv; mz are in m lyttleton; hor_misloc and vert_misloc are in m and vert_misloc is mz - mid_screen_elv')
+    'flux is in m3/day'
+    with open(out_path, 'w') as f:
+        f.write(header)
+    outdata.to_csv(out_path, mode='a') # todo check/debug
 
 
 if __name__ == '__main__':
-    run_type = 2
-    if run_type == 2:
-        join_sd_results('all',True)
+    print('done')

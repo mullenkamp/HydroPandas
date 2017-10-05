@@ -116,12 +116,18 @@ def get_rch_multipler(model_id):
 
 
 def get_model_name_path(model_id):
-    # model id needs to be non-numeric (start with a letter)
+    # model id needs to be non-numeric (start with a letter) and does not contain an '_' !
+    if model_id in ['test', 'opt']:
+        warn('model {} is depreciated'.format(model_id))
     model_dict = {
+        # a place holder to test the scripts
         'test': r"C:\Users\MattH\Desktop\Waimak_modeling\ex_bd_tester\test_import_gns_mod\mf_aw_ex.nam",
-    # a place holder to test the scripts
-        'opt': "{}/from_gns/optimised/mf_aw_ex/mf_aw_ex.nam".format(smt.sdp)  # the optimized model as of 26/09/2017
+
+        # the optimized model as of 26/09/2017 # likely depreciated due to concerns in eyrewell forrest
+        'opt': "{}/from_gns/optimised/mf_aw_ex/mf_aw_ex.nam".format(smt.sdp)
     }
+    if '_' in model_id:
+        raise ValueError('_ in model id: {}, model_id cannot include an "_" as this is a splitting character'.format(model_id))
     if model_id not in model_dict.keys():
         raise NotImplementedError('model {} has not yet been defined'.format(model_id))
     return model_dict[model_id]
