@@ -356,11 +356,12 @@ def change_stress_period_settings(m, spv):
         m.oc.stress_period_data = oc_stress_per_data
 
 
-def zip_non_essential_files(model_dir,include_list=False):
+def zip_non_essential_files(model_dir, include_list=False, other_files=None):
     """
     zips up the files with extensions matching the list in zip ext
     :param model_dir: the model_ws e.g. working directory
     :param include_list: Boolean if True also compress the list file
+    :param other_files: a list of other file extensions to zip up
     :return:
     """
     paths = os.listdir(model_dir)
@@ -376,6 +377,10 @@ def zip_non_essential_files(model_dir,include_list=False):
                ]
     if include_list:
         zip_ext.append('.list')
+    if other_files is not None:
+        add = list(np.atleast_1d(other_files))
+        zip_ext.extend(add)
+
     zip_paths = []
     zip_names = []
     for path in paths:
@@ -386,12 +391,16 @@ def zip_non_essential_files(model_dir,include_list=False):
 
     for path,name in zip(zip_paths,zip_names):
         ZipFile.write(path, arcname=name, compress_type=zipfile.ZIP_DEFLATED)
+
+    ZipFile.close()
+    for path in zip_paths:
         os.remove(path)
 
 
 if __name__ == '__main__':
-    testtype = 3
-
+    testtype = 4
+    if testtype == 4:
+        zip_non_essential_files(r"C:\Users\MattH\Desktop\test_sd150\opt_turn_on_L35_1074_sd150")
     if testtype == 3:
         m = import_gns_model('opt', 'test', r"C:\Users\MattH\Desktop\test_zipping")
         m.write_input()

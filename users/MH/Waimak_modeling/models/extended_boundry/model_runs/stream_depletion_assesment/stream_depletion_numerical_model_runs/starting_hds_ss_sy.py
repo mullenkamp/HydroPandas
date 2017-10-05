@@ -61,7 +61,7 @@ def _get_no_pumping_ss_hds(model_id, recalc=False):
 
 
 def get_ss_sy():
-    sy = 0.1
+    sy = np.zeros(smt.model_array_shape) + 0.1
     ss = np.zeros(smt.model_array_shape)
     ss[0, :, :] = 3.87E-3 #todo zeb will likely change these
     ss[1:, :, :] = 1.6E-5

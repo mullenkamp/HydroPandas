@@ -49,7 +49,7 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
     :return:
     """
     # check inputs are dictionaries
-    for input_arg in ['stress_vals', 'stress_to_month', 'wells_to_turn_on']:
+    for input_arg in ['stress_vals', 'wells_to_turn_on']:
         if not isinstance(eval(input_arg), dict):
             raise ValueError('incorrect input type for {} expected dict'.format(input_arg))
 
@@ -109,8 +109,8 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
     if len(sy) == 1:
         sy = np.ones((smt.layers, smt.rows, smt.cols)) * sy[0]
 
-    m.upw.ss = flopy.utils.Util3d(m, m.lpf.ss.shape, m.lpf.ss.dtype, ss, m.lpf.ss.name)
-    m.upw.sy = flopy.utils.Util3d(m, m.lpf.sy.shape, m.lpf.sy.dtype, sy, m.lpf.sy.name)
+    m.upw.ss = flopy.utils.Util3d(m, m.upw.ss.shape, m.upw.ss.dtype, ss, m.upw.ss.name)
+    m.upw.sy = flopy.utils.Util3d(m, m.upw.sy.shape, m.upw.sy.dtype, sy, m.upw.sy.name)
 
     # below included for easy manipulation
     flopy.modflow.mfnwt.ModflowNwt(m,
@@ -167,7 +167,7 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
     con = None
     if success:
         con = converged(os.path.join(m.model_ws,m.namefile.replace('.nam', '.list')))
-        zip_non_essential_files(m.model_ws, include_list=True)
+        zip_non_essential_files(m.model_ws, include_list=False, other_files=['.ddn', '.hds']) #todo are there others I can incorporate? .ddn? .hds?
     if con is None:
         success = 'convergence unknown'
     elif con:
@@ -176,3 +176,7 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
         success = 'did not converge'
     return name, success
     # todo this needs debugging
+
+
+if __name__ == '__main__':
+    print('done')

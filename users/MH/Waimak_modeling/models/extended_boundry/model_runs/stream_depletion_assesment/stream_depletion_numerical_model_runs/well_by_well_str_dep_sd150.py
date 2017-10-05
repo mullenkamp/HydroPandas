@@ -51,13 +51,13 @@ def setup_runs_sd150(model_id, well_list, base_path, ss, sy, start_heads):
         'sy': sy,
         'silent': True,
         'start_heads': start_heads,
-        'sd_7_150': 'sd7'}
+        'sd_7_150': 'sd150'} # todo what should this be
 
     out_runs = []
     for well in well_list:
         temp_kwargs = copy(base_kwargs)
         temp_kwargs['wells_to_turn_on'] = {0:[well]}
-        temp_kwargs['name'] = 'turn_on_{}_sd30'.format(well.replace('/', '_'))
+        temp_kwargs['name'] = 'turn_on_{}_sd150'.format(well.replace('/', '_'))
         out_runs.append(temp_kwargs)
 
     return out_runs
@@ -92,6 +92,7 @@ def well_by_well_depletion_sd150(model_id, well_list, base_path, notes):
     start_heads = get_starting_heads_sd150(model_id)
     multiprocessing.log_to_stderr(logging.DEBUG)
     runs = setup_runs_sd150(model_id, well_list, base_path, ss, sy, start_heads)
+    runs = runs[0:2] #todo DADB
     pool_size = multiprocessing.cpu_count()
     pool = multiprocessing.Pool(processes=pool_size,
                                 initializer=start_process,
@@ -100,7 +101,7 @@ def well_by_well_depletion_sd150(model_id, well_list, base_path, notes):
     pool.close()  # no more tasks
     pool.join()
     now = datetime.datetime.now()
-    with open("{}/forward_run_log/SD7_run_status_{}_{:02d}_{:02d}_{:02d}_{:02d}.txt".format(smt.sdp,now.year,now.month,now.day,now.hour,now.minute), 'w') as f:
+    with open("{}/forward_run_log/SD150_run_status_{}_{:02d}_{:02d}_{:02d}_{:02d}.txt".format(smt.sdp,now.year,now.month,now.day,now.hour,now.minute), 'w') as f:
         f.write(str(notes) + '\n')
         wr = ['{}: {}\n'.format(e[0], e[1]) for e in pool_outputs]
         f.writelines(wr)
@@ -108,4 +109,10 @@ def well_by_well_depletion_sd150(model_id, well_list, base_path, notes):
 
 
 if __name__ == '__main__':
+    notes = """ """
+    model_id = 'opt'
+    well_list = get_sd_well_list(model_id)
+    base_path = r"C:\Users\MattH\Desktop\test_sd150"
+    well_by_well_depletion_sd150(model_id,well_list,base_path,notes)
+
     print('done')  # todo this needs debugging
