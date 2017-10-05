@@ -13,10 +13,15 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.data_extraction.data_at_wells import \
     get_hds_file_path, hds_no_data
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.wells import \
-    get_race_data
+    get_race_data, get_full_consent
 import flopy
 import numpy as np
 
+def get_sd_well_list(model_id):
+    cav = get_full_consent(model_id)
+    cav = cav.loc[(cav.type=='well') & (cav.zone == 'n_wai') & (cav.flux < 0)]
+    well_list = list(cav.index)
+    return well_list
 
 def get_starting_heads_sd150(model_id):
     hds = _get_no_pumping_ss_hds(model_id)
@@ -39,7 +44,7 @@ def _get_no_pumping_ss_hds(model_id, recalc=False):
         hds = pickle.load(open(pickle_path))
         return hds
     dirpath = "{}/forward_supporting_models/base_str_dep".format(smt.sdp)  # model Id is added in import gns model
-    well = {0: smt.convert_well_data_to_stresspd(get_race_data())}
+    well = {0: smt.convert_well_data_to_stresspd(get_race_data(model_id))}
     m = mod_gns_model(model_id, 'base_for_str_dep', dir_path=dirpath, safe_mode=False, well=well)
     m.write_name_file()
     m.write_input()

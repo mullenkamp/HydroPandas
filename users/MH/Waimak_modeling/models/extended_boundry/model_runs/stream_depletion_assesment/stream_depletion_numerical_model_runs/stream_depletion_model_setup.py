@@ -12,7 +12,7 @@ import sys
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools import mod_gns_model, get_max_rate, \
     get_full_consent, get_race_data, zip_non_essential_files
-
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import converged
 
 def setup_and_run_stream_dep_multip(kwargs):
     """
@@ -25,10 +25,9 @@ def setup_and_run_stream_dep_multip(kwargs):
         print(name, success)
         return name, success
     except Exception as val:
-        with open('{}/error_log.txt'.format(kwargs['base_dir']), mode='a') as f:
-            f.write('{}: {}\n'.format(kwargs['name'], val))
-        print(val)
-        sys.stdout.flush()
+        name = kwargs['name']
+        success = '{}: {}'.format(type(val), val.args)
+    return name, success
 
 
 def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_turn_on, ss, sy,
@@ -74,7 +73,7 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
         sd7_flux = get_max_rate(model_id)
     for sp in range(nper):
         # set up recharge
-        rch[sp] = 0
+        rch[sp] = 0 #todo do we really want no recharge?
 
         # set up wells
         input_wells = deepcopy(base_well)
@@ -157,13 +156,23 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
         sys.stdout.flush()
     success, buff = m.run_model(silent=silent, report=True)
     if success:
-        zip_non_essential_files(m.model_ws) #todo include list? see what I need to grab
-    log_dir = '{}/logging'.format(base_dir) # todo clean up the logging
+        zip_non_essential_files(m.model_ws)
+    log_dir = '{}/logging'.format(base_dir)
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     log = '{}/{}_log.txt'.format(log_dir, name)
     buff = [e + '\n' for e in buff]
     with open(log, 'w') as f:
         f.writelines(buff)
-    return name, success #todo add the convergence check
+    con = None
+    if success:
+        con = converged(os.path.join(m.model_ws,m.namefile.replace('.nam', '.list')))
+        zip_non_essential_files(m.model_ws, include_list=True)
+    if con is None:
+        success = 'convergence unknown'
+    elif con:
+        success = 'converged'
+    else:
+        success = 'did not converge'
+    return name, success
     # todo this needs debugging

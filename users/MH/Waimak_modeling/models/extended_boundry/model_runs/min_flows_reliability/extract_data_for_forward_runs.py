@@ -97,7 +97,7 @@ def extract_and_save_all_forward_runs(forward_run_dir, outpath):
     return outpath
 
 
-def make_rel_data(data_path, meta_data_path, out_path):
+def make_rel_data(data_path, meta_data_path, out_path): #todo handle the possibility that a well or stream goes dry
     org_data = pd.read_csv(data_path, skiprows=1, index_col=0)
     meta_data = pd.read_csv(meta_data_path, index_col=0)
     model_id = os.path.basename(data_path).split('_')[0]

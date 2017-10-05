@@ -30,7 +30,7 @@ def get_race_data(model_id):
     all influx wells in the well data (e.g. streams, races, boundary fluxes)
     :return:
     """
-    outdata = get_base_well(model_id)
+    outdata = get_base_well(model_id,True) #use original pumping wells becasue it doesn't matter
     outdata = outdata.loc[outdata.loc[:, 'type'] != 'well']
     return outdata
 
@@ -272,7 +272,13 @@ def get_full_allo_multipler(org_pumping_wells, recalc=False):
 
 
 if __name__ == '__main__':
-    test_type = 1
+    test_type = 2
+    if test_type == 2:
+        max_rate = get_max_rate('opt')
+        cav = get_full_consent('opt')
+        max_rate = max_rate.loc[(max_rate.type=='well') & (max_rate.zone=='n_wai')]
+        cav = cav.loc[(cav.type=='well') & (cav.zone == 'n_wai')]
+        print('done')
     if test_type == 0:
         cc_inputs = {'rcm': 'BCC-CSM1.1',
                      'rcp': 'RCP4.5',
