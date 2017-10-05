@@ -20,6 +20,7 @@ import logging
 
 
 def calc_stream_dep(model_path, mode='sd150', add_h20_cust=False):
+    #todo have not modified
     """
     calculate a dataframe for the stream depletion
     :param model_path:
@@ -85,18 +86,23 @@ def calc_stream_dep(model_path, mode='sd150', add_h20_cust=False):
 
 
 def calc_str_dep_all_wells(base_path, mode='sd150', add_h20_cust=False):
+    #todo have not modified
     all_paths = glob.glob('{}/*/*.nam'.format(base_path))
     all_paths = [e.replace('.nam','') for e in all_paths]
     wells = ['{}/{}'.format(e.split('_')[-2], e.split('_')[-1]) for e in all_paths]
     outdata = {}
     for well, path in zip(wells, all_paths):
         outdata[well] = calc_stream_dep(path, mode=mode, add_h20_cust=add_h20_cust)
-    outdata = pd.DataFrame(outdata).transpose()
+    outdata = pd.DataFrame(outdata).transpose() #todo add a header before I save
+
+    # add additional information? todo?
+
 
     return outdata
 
 
-def join_sd_results(version='sd150',add_water_to_cust=False):
+def join_sd_results(version='sd150', add_water_to_cust=False):
+    #todo have not modified
     """
     a script to join up all the stream depletion results.  it must be first run on the remote machines to get their
     results to the server and then on my machine to compile the results

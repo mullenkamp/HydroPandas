@@ -17,6 +17,16 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
 import flopy
 import numpy as np
 
+def get_sd_starting_hds(model_id, sd_version):
+    if sd_version == 'sd7':
+        hds = get_starting_heads_sd7(model_id)
+    elif sd_version == 'sd30':
+        hds = get_starting_heads_sd30(model_id)
+    elif sd_version == 'sd150':
+        hds = get_starting_heads_sd150(model_id)
+    else:
+        raise ValueError('unexpected argument for sd_version: {}'.format(sd_version))
+
 def get_sd_well_list(model_id):
     cav = get_full_consent(model_id)
     cav = cav.loc[(cav.type=='well') & (cav.zone == 'n_wai') & (cav.flux < 0)]

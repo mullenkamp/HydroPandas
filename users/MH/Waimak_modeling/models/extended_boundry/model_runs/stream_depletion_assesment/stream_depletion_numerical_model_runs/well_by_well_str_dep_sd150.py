@@ -4,7 +4,6 @@ Date Created: 07/09/2017 4:27 PM
 """
 
 from __future__ import division
-from users.MH.Waimak_modeling.supporting_data_path import base_mod_dir
 import os
 import multiprocessing
 import logging
@@ -16,6 +15,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_too
 import psutil
 import datetime
 from future.builtins import input
+from base_sd_runs import get_sd_spv
 
 
 def setup_runs_sd150(model_id, well_list, base_path, ss, sy, start_heads):
@@ -29,11 +29,7 @@ def setup_runs_sd150(model_id, well_list, base_path, ss, sy, start_heads):
     :param start_heads: the starting heads for the model (k,i,j array)
     :return:
     """
-    spv = {'nper': 5,
-           'perlen': 30,
-           'nstp': 2,
-           'steady': [False, False, False, False, False],
-           'tsmult': 1.1}
+    spv = get_sd_spv('sd150')
 
     if not os.path.exists(base_path):
         os.makedirs(base_path)
@@ -51,7 +47,7 @@ def setup_runs_sd150(model_id, well_list, base_path, ss, sy, start_heads):
         'sy': sy,
         'silent': True,
         'start_heads': start_heads,
-        'sd_7_150': 'sd150'} # todo what should this be
+        'sd_7_150': 'sd150'}
 
     out_runs = []
     for well in well_list:
@@ -112,7 +108,7 @@ if __name__ == '__main__':
     notes = """ """
     model_id = 'opt'
     well_list = get_sd_well_list(model_id)
-    base_path = r"C:\Users\MattH\Desktop\test_sd150"
+    base_path = r"C:\Users\MattH\Desktop\test2_sd150"
     well_by_well_depletion_sd150(model_id,well_list,base_path,notes)
 
     print('done')  # todo this needs debugging

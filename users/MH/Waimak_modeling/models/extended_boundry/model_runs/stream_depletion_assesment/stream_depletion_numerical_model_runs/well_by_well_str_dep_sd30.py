@@ -16,6 +16,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_too
 import psutil
 import datetime
 from future.builtins import input
+from base_sd_runs import get_sd_spv
 
 
 def setup_runs_sd30(model_id, well_list, base_path, ss, sy, start_heads):
@@ -30,11 +31,7 @@ def setup_runs_sd30(model_id, well_list, base_path, ss, sy, start_heads):
     :return:
     """
 
-    spv = {'nper': 10,
-           'perlen': 3,
-           'nstp': 1,
-           'steady': [False, False, False, False, False, False, False, False, False, False],
-           'tsmult': 1.1}
+    spv = get_sd_spv('sd30')
 
     if not os.path.exists(base_path):
         os.makedirs(base_path)
@@ -52,7 +49,7 @@ def setup_runs_sd30(model_id, well_list, base_path, ss, sy, start_heads):
         'sy': sy,
         'silent': True,
         'start_heads': start_heads,
-        'sd_7_150': 'sd150'} #todo confirm whether this should be sd150 or sd 7
+        'sd_7_150': 'sd30'}
 
     out_runs = []
     for well in well_list:

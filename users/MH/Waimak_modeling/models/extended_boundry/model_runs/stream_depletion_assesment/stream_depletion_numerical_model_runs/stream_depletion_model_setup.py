@@ -67,6 +67,9 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
     stream = {}
 
     base_well = get_race_data(model_id)
+    if sd_7_150 == 'sd30':
+        raise NotImplementedError #todo figure out
+
     if sd_7_150 == 'sd150':
         full_consent = get_full_consent(model_id)
     elif sd_7_150 == 'sd7':
@@ -167,7 +170,7 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
     con = None
     if success:
         con = converged(os.path.join(m.model_ws,m.namefile.replace('.nam', '.list')))
-        zip_non_essential_files(m.model_ws, include_list=False, other_files=['.ddn', '.hds']) #todo are there others I can incorporate? .ddn? .hds?
+        zip_non_essential_files(m.model_ws, include_list=False, other_files=['.ddn', '.hds']) #todo  are there others I can incorporate? .ddn? .hds?
     if con is None:
         success = 'convergence unknown'
     elif con:
