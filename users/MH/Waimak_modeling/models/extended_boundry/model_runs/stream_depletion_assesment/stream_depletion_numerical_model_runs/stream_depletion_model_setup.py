@@ -122,10 +122,10 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
                                    maxiterout=100,
                                    thickfact=1e-05,
                                    linmeth=1,
-                                   iprnwt=1,  # changed from GNS
+                                   iprnwt=0,
                                    ibotav=0,
                                    options='COMPLEX',
-                                   Continue=True,  # changed from GNS
+                                   Continue=False,
                                    dbdtheta=0.4,  # only when options is specified
                                    dbdkappa=1e-05,  # only when options is specified
                                    dbdgamma=0.0,  # only when options is specified
@@ -158,8 +158,8 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
         print('starting to run model {}'.format(name))
         sys.stdout.flush()
     success, buff = m.run_model(silent=silent, report=True)
-    if success:
-        zip_non_essential_files(m.model_ws)
+
+    # write a log of the buffer
     log_dir = '{}/logging'.format(base_dir)
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
@@ -167,10 +167,12 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
     buff = [e + '\n' for e in buff]
     with open(log, 'w') as f:
         f.writelines(buff)
+
+    # get success and zip files I don't need for this analysis
     con = None
     if success:
         con = converged(os.path.join(m.model_ws,m.namefile.replace('.nam', '.list')))
-        zip_non_essential_files(m.model_ws, include_list=False) #todo  are there others I can incorporate? .ddn? .hds?
+        zip_non_essential_files(m.model_ws, include_list=False, other_files=['.sfo','.ddn']) #todo  are there others I can incorporate? .ddn? .hds?
     if con is None:
         success = 'convergence unknown'
     elif con:

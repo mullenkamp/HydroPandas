@@ -56,8 +56,7 @@ def calc_stream_dep(model_path, sd_version='sd150'):
         outdata *= np.nan
     else:
         outdata *= 1 / abs_vol
-    return outdata  # todo check/debug
-    # todo add if well has been turned off in extract sd as percent of flow
+    return outdata, abs_vol/(spv['perlen'] * spv['nspt'])  # todo check/debug
 
 def calc_str_dep_all_wells(out_path, base_path, sd_version='sd150'):
     """
@@ -78,7 +77,7 @@ def calc_str_dep_all_wells(out_path, base_path, sd_version='sd150'):
         outdata[well] = sd
         out_per_abs_vol[well] = per_abs_vol
     outdata = pd.DataFrame(outdata).transpose()
-    out_per_abs_vol = pd.DataFrame(out_per_abs_vol, index=['percent_vol_abs']).transpose()
+    out_per_abs_vol = pd.DataFrame(out_per_abs_vol, index=['model_abs_rate']).transpose()
 
     outdata = pd.merge(outdata, out_per_abs_vol)
 
@@ -100,7 +99,7 @@ def calc_str_dep_all_wells(out_path, base_path, sd_version='sd150'):
     # save with header
     header = (
     'all sd values are relative to the flux; though nwt sometimes reduces a wells pumping rate if it goes dry;'
-    'this is noted in percent_vol_abs(unitless).  m(x;y) (e.g. modelx) and nztm(z;y) are in nztm. '
+    'the average abstracted rate is noted in model_abs_rate(m3/day).  m(x;y) (e.g. modelx) and nztm(z;y) are in nztm. '
     'mid_screen_elv; mz are in m lyttleton; hor_misloc and vert_misloc are in m and vert_misloc is mz - mid_screen_elv')
     'flux is in m3/day'
     with open(out_path, 'w') as f:

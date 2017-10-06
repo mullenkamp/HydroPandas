@@ -387,12 +387,15 @@ def zip_non_essential_files(model_dir, include_list=False, other_files=None):
         if '.' + path.split('.')[-1] in zip_ext:
             zip_paths.append(os.path.join(model_dir,path))
             zip_names.append(path)
-    ZipFile = zipfile.ZipFile(os.path.join(model_dir, "non_essential_components.zip"), "w")
 
-    for path,name in zip(zip_paths,zip_names):
-        ZipFile.write(path, arcname=name, compress_type=zipfile.ZIP_DEFLATED)
+    print('creating zip archive')
+    with zipfile.ZipFile(os.path.join(model_dir, "non_essential_components.zip"), "w") as ZipFile:
+        for path,name in zip(zip_paths,zip_names):
+            ZipFile.write(path, arcname=name, compress_type=zipfile.ZIP_DEFLATED)
+            ZipFile.fp.flush()
+        os.fsync(ZipFile.fp.fileno())
 
-    ZipFile.close()
+    print('deleting original files')
     for path in zip_paths:
         os.remove(path)
 

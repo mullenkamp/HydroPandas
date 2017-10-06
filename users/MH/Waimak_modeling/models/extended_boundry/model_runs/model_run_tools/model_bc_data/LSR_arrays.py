@@ -225,7 +225,7 @@ def get_lsr_base_period_inputs(sen, rcp, rcm, per, at):
     elif rcp is not None and rcm is not None:
         rcp = 'RCPpast'
         per = 1980
-        at = 'period_mean' #todo for now setting based on the period mean for RCP past for all
+        at = 'period_mean' # setting based on the period mean for RCP past for all
     return(sen, rcp, rcm, per, at)
 
 

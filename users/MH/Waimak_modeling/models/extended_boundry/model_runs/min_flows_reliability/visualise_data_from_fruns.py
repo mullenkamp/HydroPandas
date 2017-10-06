@@ -51,7 +51,7 @@ groups.update(gw_site_groups)
 groups.update(sw_site_groups)
 
 
-def vis_cc(relative_data_path, meta_data_path):  # todo
+def vis_cc(relative_data_path, meta_data_path):
     data = pd.read_csv(relative_data_path, skiprows=1)
     metadata = pd.read_csv(meta_data_path,index_col=0)
     sens = list(metadata.loc[metadata.is_cc].index)
