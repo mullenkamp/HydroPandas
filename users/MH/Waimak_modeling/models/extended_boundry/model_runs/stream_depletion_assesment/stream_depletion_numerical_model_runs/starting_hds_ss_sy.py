@@ -27,6 +27,8 @@ def get_sd_starting_hds(model_id, sd_version):
     else:
         raise ValueError('unexpected argument for sd_version: {}'.format(sd_version))
 
+    return hds
+
 def get_sd_well_list(model_id):
     cav = get_full_consent(model_id)
     cav = cav.loc[(cav.type=='well') & (cav.zone == 'n_wai') & (cav.flux < 0)]
@@ -65,7 +67,6 @@ def _get_no_pumping_ss_hds(model_id, recalc=False):
     hds = flopy.utils.HeadFile(hds_path).get_alldata(nodata=hds_no_data)[-1, :, :, :]
     if hds.shape != (smt.layers, smt.rows, smt.cols):
         raise ValueError('unexpected shape for hds {}, expected {}'.format(hds.shape, (smt.layers, smt.rows, smt.cols)))
-    # todo check this function/debug
     pickle.dump(hds, open(pickle_path, 'w'))
     return hds
 
@@ -76,3 +77,9 @@ def get_ss_sy():
     ss[0, :, :] = 3.87E-3 #todo zeb will likely change these
     ss[1:, :, :] = 1.6E-5
     return ss, sy
+
+
+if __name__ == '__main__':
+    test = get_sd_starting_hds('opt','sd150')
+    test2 = get_starting_heads_sd150('opt')
+    print('done')

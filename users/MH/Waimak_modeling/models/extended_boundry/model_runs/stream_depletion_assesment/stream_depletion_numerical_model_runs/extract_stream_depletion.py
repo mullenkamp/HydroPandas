@@ -44,7 +44,7 @@ def calc_stream_dep(model_path, sd_version='sd150'):
     str_base = get_flux_at_points(sites=sites, base_path=baseline_path, kstpkpers=kstpkpers)
     str_sd = get_flux_at_points(sites=sites, base_path=model_path, kstpkpers=kstpkpers)
 
-    outdata = (str_base.sum(axis=1) - str_sd.sum(axis=1)) * integrater  # todo check sign
+    outdata = (str_base.sum(axis=1) - str_sd.sum(axis=1)) * integrater * -1
 
     # cumulative well abstraction budget #todo check but I think this is ok
     budget = flopy.utils.MfListBudget('{}.list'.format(model_path))
@@ -56,20 +56,22 @@ def calc_stream_dep(model_path, sd_version='sd150'):
         outdata *= np.nan
     else:
         outdata *= 1 / abs_vol
-    return outdata, abs_vol/(spv['perlen'] * spv['nspt'])  # todo check/debug
+    return outdata, abs_vol/(spv['perlen'] * spv['nstp'])  # todo check/debug
 
 def calc_str_dep_all_wells(out_path, base_path, sd_version='sd150'):
     """
 
     :param out_path: the path to save the csv to
-    :param base_path: path to the well by well stream depletion path
+    :param base_path: path to the well by well stream depletion folder
     :param sd_version: either sd150 sd30 sd7,  this defines which base mod path to use.
-    :return: dataframe with index fo wells (defined from file names) and columns of sites defined in calc_stream_dep
+    :return: saves dataframe with index fo wells (defined from file names) and columns of sites defined in calc_stream_dep
     """
     all_paths = glob.glob('{}/*/*.nam'.format(base_path))
     all_paths = [e.replace('.nam', '') for e in all_paths]
-    wells = ['{}/{}'.format(e.split('_')[-2], e.split('_')[-1]) for e in all_paths]  # todo check this is correct name
-    model_id = os.path.basename(all_paths[0]).split('_')[0]  # todo check this returns the right model id
+    wells = ['{}/{}'.format(e.split('_')[-3], e.split('_')[-2]) for e in all_paths]
+    model_id = os.path.basename(all_paths[0]).split('_')[0]
+    out_path = os.path.join(os.path.dirname(out_path),'{}_{}'.format(model_id,os.path.basename(out_path)))
+
     outdata = {}
     out_per_abs_vol = {}
     for well, path in zip(wells, all_paths):
@@ -98,14 +100,18 @@ def calc_str_dep_all_wells(out_path, base_path, sd_version='sd150'):
 
     # save with header
     header = (
+    'SD_values for model: {}. '.format(model_id),
     'all sd values are relative to the flux; though nwt sometimes reduces a wells pumping rate if it goes dry;'
     'the average abstracted rate is noted in model_abs_rate(m3/day).  m(x;y) (e.g. modelx) and nztm(z;y) are in nztm. '
-    'mid_screen_elv; mz are in m lyttleton; hor_misloc and vert_misloc are in m and vert_misloc is mz - mid_screen_elv')
-    'flux is in m3/day'
+    'mid_screen_elv; mz are in m lyttleton; hor_misloc and vert_misloc are in m and vert_misloc is mz - mid_screen_elv'
+    'flux is in m3/day')
     with open(out_path, 'w') as f:
         f.write(header)
     outdata.to_csv(out_path, mode='a') # todo check/debug
 
 
 if __name__ == '__main__':
+    calc_str_dep_all_wells(r"C:\Users\MattH\Desktop\test_extract_sd150.csv",
+                           r"C:\Users\MattH\Desktop\test_sd150_look_at",
+                           'sd150')
     print('done')
