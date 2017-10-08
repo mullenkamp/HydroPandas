@@ -74,19 +74,19 @@ def get_sd_spv(sd_version):
            'perlen': 30,
            'nstp': 2,
            'steady': [False, False, False, False, False],
-           'tsmult': 1.1}
+           'tsmult': 1.}
     elif sd_version == 'sd7':
         spv = {'nper': 7,
                'perlen': 1,
                'nstp': 1,
                'steady': [False, False, False, False, False, False, False],
-               'tsmult': 1.1}
+               'tsmult': 1.}
     elif sd_version == 'sd30':
         spv = {'nper': 10,
                'perlen': 3,
                'nstp': 1,
                'steady': [False, False, False, False, False, False, False, False, False, False],
-               'tsmult': 1.1}
+               'tsmult': 1.}
     else:
         raise ValueError('unexpected argument for version {} expected one of ["sd150", "sd30", "sd7"]'.format(sd_version))
 
