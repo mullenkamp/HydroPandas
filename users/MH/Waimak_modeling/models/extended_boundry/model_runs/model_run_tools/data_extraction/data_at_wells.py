@@ -173,6 +173,17 @@ def _get_kstkpers(bud_file, kstpkpers=None, rel_kstpkpers=None):
 
 
 def _fill_df_with_bindata(bin_file, kstpkpers, kstpkper_names, df, nodata_value, locations):
+    """
+    fills the dataframe with hds or con data
+    :param bin_file: data file either flopy.utils.Headfile or flopy.utils.Uncfile
+    :param kstpkpers: None or list of the kstpkpers to use
+    :param kstpkper_names: names to pass to the kstpkper for the colum of the dataframe
+    :param df: dataframe to fill (retuns a copy)
+    :param nodata_value: the nodata value to use for the binfile
+    :param locations: the dataframe with i,j,k
+    :return:
+    """
+    kstpkper_names = np.atleast_1d(kstpkper_names)
     df = deepcopy(df)
     data = bin_file.get_alldata(nodata=nodata_value)
     mkstpkper = bin_file.get_kstpkper()

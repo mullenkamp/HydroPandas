@@ -151,6 +151,9 @@ def _get_rch_comparison():
 
         outdict[key] = rch
 
+        irr_idx = np.isfinite(
+            smt.shape_file_to_model_array("{}\m_ex_bd_inputs\shp\wai_irr_area_intersect.shp".format(smt.sdp), 'year_irr',
+                                          'True'))
     new_no_flow = smt.get_no_flow()
     zones = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/cwms_zones.shp".format(smt.sdp),'ZONE_CODE')
     zones[~new_no_flow[0].astype(bool)] = np.nan
@@ -170,10 +173,28 @@ def _get_rch_comparison():
 
 
 if __name__ == '__main__':
-    #_get_rch_comparison()
-    rch=_get_rch(version=2,recalc=False)
-    rchold=_get_rch(version=1,recalc=False)
+    test_type = 1
 
-    smt.plt_matrix(rch)
-    np.savetxt(r"C:\Users\MattH\Desktop\to_brioch_2017_10_4\rch.txt",rch)
-    print('done')
+
+    if test_type == 2:
+        rch = _get_rch(2)
+        new_no_flow = smt.get_no_flow()
+        zones = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/cwms_zones.shp".format(smt.sdp),'ZONE_CODE')
+        zones[~new_no_flow[0].astype(bool)] = np.nan
+        # waimak = 4, chch_wm = 7, selwyn=8 , chch_wm chch_formation = 9
+        w_idx = np.isclose(zones,4)
+        c_idx = np.isclose(zones,7)
+        s_idx = np.isclose(zones,8)
+        all_idx = np.isfinite(zones)
+        irr_idx = np.isfinite(smt.shape_file_to_model_array("{}\m_ex_bd_inputs\shp\wai_irr_area_intersect.shp".format(smt.sdp),'year_irr','True'))
+        print('done')
+
+
+    if test_type ==1:
+        _get_rch_comparison()
+        rch=_get_rch(version=2,recalc=False)
+        rchold=_get_rch(version=1,recalc=False)
+
+        smt.plt_matrix(rch)
+        np.savetxt(r"C:\Users\MattH\Desktop\to_brioch_2017_10_4\rch.txt",rch)
+        print('done')

@@ -13,10 +13,12 @@ import pickle
 import flopy
 from matplotlib.colors import from_levels_and_colors
 from copy import deepcopy
+import matplotlib.pyplot as plt
 
-#todo set up exceptions is required varibles are needed
-#todo look though new modeling and add any useful tools to this class e.g convergence check or something around bc overlap
-#todo document the shit out of this
+
+# todo set up exceptions is required varibles are needed
+# todo look though new modeling and add any useful tools to this class e.g convergence check or something around bc overlap
+# todo document the shit out of this
 class ModelTools(object):
     ulx = None
     uly = None
@@ -52,10 +54,8 @@ class ModelTools(object):
         self._elv_calculator = elv_calculator
         self.model_array_shape = (self.layers, self.rows, self.cols)
 
-
-
     def get_model_x_y(self):
-        pixelWidth = pixelHeight = 200 #todo add grid spacing
+        pixelWidth = pixelHeight = 200  # todo add grid spacing
 
         x_min, y_min = self.ulx, self.uly - self.grid_space * self.rows
 
@@ -68,30 +68,30 @@ class ModelTools(object):
 
     def get_empty_model_grid(self, _3d=False):
         if _3d:
-            return np.zeros(self.layers,self.rows,self.cols)
+            return np.zeros(self.layers, self.rows, self.cols)
         else:
-            return np.zeros(self.layers,self.rows,self.cols)
+            return np.zeros(self.layers, self.rows, self.cols)
 
-    def add_mxmy_to_df(self, df): #todo make faster
+    def add_mxmy_to_df(self, df):  # todo make faster
         df = deepcopy(df)
         if 'mx' in df.keys() or 'my' in df.keys():
             warn('mx or my present in dataframe, this will be overwritten')
 
         try:
             for i in df.index:
-                row, col = df.loc[i,['row','col']]
-                x,y = self.convert_matrix_to_coords(row,col)
-                df.loc[i,'mx'] = x
-                df.loc[i,'my'] = y
+                row, col = df.loc[i, ['row', 'col']]
+                x, y = self.convert_matrix_to_coords(row, col)
+                df.loc[i, 'mx'] = x
+                df.loc[i, 'my'] = y
         except KeyError:
             for i in df.index:
-                row, col = df.loc[i,['i','j']]
-                x,y = self.convert_matrix_to_coords(row,col)
-                df.loc[i,'mx'] = x
-                df.loc[i,'my'] = y
+                row, col = df.loc[i, ['i', 'j']]
+                x, y = self.convert_matrix_to_coords(row, col)
+                df.loc[i, 'mx'] = x
+                df.loc[i, 'my'] = y
         return df
 
-    def model_where(self,condition):
+    def model_where(self, condition):
         """
         quick function to return list of model indexes from a np.where style condition assumes that the array in the
         condition has the shape (k,i,j,) or (i,j)
@@ -111,15 +111,15 @@ class ModelTools(object):
         :return: array
         """
         if _3d:
-            layval,rowval,colval = 'k','i','j'
+            layval, rowval, colval = 'k', 'i', 'j'
             if value_to_map not in dataframe.keys():
                 raise ValueError('value to map: {}, not found'.format(value_to_map))
             if not np.in1d(['k', 'i', 'j'], dataframe.keys()).all():
                 if np.in1d(['layer', 'row', 'col'], dataframe.keys()).all():
-                    layval, rowval, colval = 'layer','row','col'
+                    layval, rowval, colval = 'layer', 'row', 'col'
                 else:
                     raise ValueError('dataframe missing keys')
-            outdata = np.zeros((self.layers, self.rows, self.cols))*np.nan
+            outdata = np.zeros((self.layers, self.rows, self.cols)) * np.nan
             for i in dataframe.index:
                 layer, row, col = dataframe.loc[i, [layval, rowval, colval]].astype(int)
                 outdata[layer, row, col] = dataframe.loc[i, value_to_map]
@@ -127,7 +127,7 @@ class ModelTools(object):
             rowval, colval = 'i', 'j'
             if not np.in1d(['i', 'j', value_to_map], dataframe.keys()).all():
                 if np.in1d(['row', 'col', value_to_map], dataframe.keys()).all():
-                    rowval, colval = 'row','col'
+                    rowval, colval = 'row', 'col'
                 else:
                     raise ValueError('dataframe missing keys')
             outdata = np.zeros((self.rows, self.cols)) * np.nan
@@ -163,7 +163,7 @@ class ModelTools(object):
             return lon, lat, elv
 
     def convert_coords_to_matix(self, lon, lat, elv=None, elv_db=None,
-                                return_AE=False): #todo can this be made quicker
+                                return_AE=False):  # todo can this be made quicker
         """
         convert from real world coordinates to model indexes by comparing value to center point of array.  Where the value
         is on an edge defaults to top left corner (e.g. row 1, col 1, layer 1)
@@ -188,14 +188,14 @@ class ModelTools(object):
             elv_db = self.calc_elv_db()
         # find the index of the closest middle point
         # convert lon to col
-        col = np.abs(model_xs[0, :] - lon).argmin() #todo see if this is identical with the gdal process
+        col = np.abs(model_xs[0, :] - lon).argmin()  # todo see if this is identical with the gdal process
 
         # convert lat to row
         row = np.abs(model_ys[:, 0] - lat).argmin()
 
         if return_AE:
             x0 = (100 - (model_xs[0, :] - lon)[col]) / 200
-            y0 = (100 - (model_ys[:, 0] - lat)[row]) / 200 # todo impilment grid spacing here
+            y0 = (100 - (model_ys[:, 0] - lat)[row]) / 200  # todo impilment grid spacing here
 
         if elv is None:
             if return_AE:
@@ -225,6 +225,40 @@ class ModelTools(object):
             else:
                 return layer, row, col
 
+    def convert_elv_to_k(self, row, col, elv, elv_db=None, return_AE=False):
+        """
+        as per convert coords to matrix, but row, col already known
+        :param row:
+        :param col:
+        :param elv:
+        :param elv_db:
+        :param return_AE:
+        :return:
+        """
+        if elv_db is None:
+            # below is a pickled np.array of bottoms (with layer 1 top on the top of the stack)
+            elv_db = self.calc_elv_db()
+        top = elv_db[:-1, row, col]
+        bottom = elv_db[1:, row, col]
+        if elv > top.max():
+            warn('above top of database setting layer to zero')
+            layer = 0
+            z0 = 0
+        else:
+            layer = np.where((top > elv) & (bottom <= elv))
+            if len(layer[0]) > 1:
+                raise ValueError(
+                    'returns multiple indexes for layer')
+            elif len(layer[0]) == 0:
+                raise AssertionError('elevation: {} outside of bounds'.format(elv))
+            layer = layer[0][0]
+            if return_AE:
+                z0 = (top[layer] - elv) / (top[layer] - bottom[layer])
+        if return_AE:
+            return layer, z0
+        else:
+            return layer
+
     def get_all_adjacent_cells(self, cell_locs, _3d=False, return_loc=True):
         """
         returns indexs for all adjacent cells in list of cell location
@@ -241,32 +275,30 @@ class ModelTools(object):
             if return_loc:
                 out_locs.append(loc)
 
-
-
             if _3d:
                 k = loc[0]
                 i = loc[1]
                 j = loc[2]
-                if k != self.layers-1:
+                if k != self.layers - 1:
                     out_locs.append((k + 1, i, j))
                 if k != 0:
                     out_locs.append((k - 1, i, j))
-                if i != self.rows-1:
+                if i != self.rows - 1:
                     out_locs.append((k, i + 1, j))
                 if i != 0:
                     out_locs.append((k, i - 1, j))
-                if j != self.cols-1:
+                if j != self.cols - 1:
                     out_locs.append((k, i, j + 1))
                 if j != 0:
                     out_locs.append((k, i, j - 1))
             else:
                 i = loc[0]
                 j = loc[1]
-                if i != self.rows-1:
+                if i != self.rows - 1:
                     out_locs.append((i + 1, j))
                 if i != 0:
                     out_locs.append((i - 1, j))
-                if j != self.cols-1:
+                if j != self.cols - 1:
                     out_locs.append((i, j + 1))
                 if j != 0:
                     out_locs.append((i, j - 1))
@@ -293,7 +325,6 @@ class ModelTools(object):
         band.SetNoDataValue(-99)
 
     def plt_matrix(self, array, vmin=None, vmax=None, title=None, no_flow_layer=0, ax=None, color_bar=True, **kwargs):
-        import matplotlib.pyplot as plt
         array = deepcopy(array.astype(float))
         if vmax is None:
             vmax = np.nanmax(array)
@@ -315,11 +346,11 @@ class ModelTools(object):
             temp = np.zeros((self.rows, self.cols))
             temp[no_flow] = np.nan
             cmap, norm = from_levels_and_colors([-1, -0.5, 1, 2], ['black', 'black', 'black'])
-            ax.pcolormesh(model_xs, model_ys, np.ma.masked_invalid(temp),cmap=cmap)
+            ax.pcolormesh(model_xs, model_ys, np.ma.masked_invalid(temp), cmap=cmap)
             array[~no_flow] = np.nan
         if 'cmap' in kwargs:
-           cmap = kwargs['cmap']
-           kwargs.pop('cmap')
+            cmap = kwargs['cmap']
+            kwargs.pop('cmap')
         else:
             cmap = 'plasma'
         pcm = ax.pcolormesh(model_xs, model_ys, np.ma.masked_invalid(array),
@@ -328,7 +359,6 @@ class ModelTools(object):
             fig.colorbar(pcm, ax=ax, extend='max')
 
         return fig, ax
-
 
     def geodb_to_model_array(self, path, shape_name, attribute, alltouched=False):
         """
@@ -370,13 +400,14 @@ class ModelTools(object):
         """
         from osgeo import gdal, osr
         if not os.path.exists(self.temp_file_dir):
-            os.makedirs(self. temp_file_dir)
+            os.makedirs(self.temp_file_dir)
 
         pixelWidth = pixelHeight = self.grid_space  # depending how fine you want your raster
 
         x_min, y_min = self.ulx, self.uly - self.grid_space * self.rows
 
-        target_ds = gdal.GetDriverByName('GTiff').Create('{}/temp.tif'.format(self.temp_file_dir), self.cols, self.rows, 1,
+        target_ds = gdal.GetDriverByName('GTiff').Create('{}/temp.tif'.format(self.temp_file_dir), self.cols, self.rows,
+                                                         1,
                                                          gdal.GDT_Float64)
         target_ds.SetGeoTransform((x_min, pixelWidth, 0, y_min, 0, pixelHeight))
         band = target_ds.GetRasterBand(1)
@@ -502,7 +533,8 @@ class ModelTools(object):
 
                 if isinstance(layer_temp, list):
                     if one_val_per_well:
-                        layer_temp = max(set(layer_temp), key=layer_temp.count) #todo it may be preferable to calculate a mid screen
+                        layer_temp = max(set(layer_temp),
+                                         key=layer_temp.count)  # todo it may be preferable to calculate a mid screen
                     else:
                         layer_temp = list(set(layer_temp))
                 layer[i] = layer_temp
@@ -530,7 +562,7 @@ class ModelTools(object):
         else:
             return layer, row, col
 
-    def calc_elv_db(self,recalc=False): #todo make this stored in the class so that it isn't loaded multple times
+    def calc_elv_db(self, recalc=False):  # todo make this stored in the class so that it isn't loaded multple times
         """
         calculates the elevation database (bottoms with the top of layer one on top or loads pickel
         :param recalc: force recalculates the elv_db from the gns data even if it is not present
@@ -541,7 +573,7 @@ class ModelTools(object):
             elv_db = pickle.load(open(pickle_path))
         else:
             elv_db = self._elv_calculator()
-            pickle.dump(elv_db,open(pickle_path,'w'))
+            pickle.dump(elv_db, open(pickle_path, 'w'))
         return elv_db
 
     def get_no_flow(self, layer=None, recalc=False):
@@ -550,13 +582,13 @@ class ModelTools(object):
             no_flow = pickle.load(open(pickle_path))
         else:
             no_flow = self._no_flow_calc()
-            pickle.dump(no_flow,open(pickle_path,'w'))
+            pickle.dump(no_flow, open(pickle_path, 'w'))
         if layer is None:
             return no_flow
         else:
             return no_flow[layer]
 
-    def get_base_model(self,recalc=False): #todo raise eception if model path not passed
+    def get_base_model(self, recalc=False):  # todo raise eception if model path not passed
         import flopy
         m = flopy.modflow.Modflow.load(self.base_mod_path, model_ws=os.path.dirname(self.base_mod_path),
                                        forgive=False)
@@ -565,17 +597,17 @@ class ModelTools(object):
     def get_package_spd(self, package, recalc=False):
         import pickle
 
-        picklepath = '{}/base_{}.p'.format(self.pickle_dir,package)
+        picklepath = '{}/base_{}.p'.format(self.pickle_dir, package)
 
         if os.path.exists(picklepath) and not recalc:
             base_data = pickle.load(open(picklepath))
             return base_data
 
         org_m = self.get_base_model()
-        if package.lower in ['str','sfr','drn','wel']:
+        if package.lower in ['str', 'sfr', 'drn', 'wel']:
             base_data = org_m.get_package().stress_period_data.data[0]
         elif package.lower == 'rch':
-            raise NotImplementedError() #todo
+            raise NotImplementedError()  # todo
         else:
             raise ValueError('unexpected package {}, may not be implemented'.format(package))
         pickle.dump(base_data, open(picklepath, 'w'))
@@ -583,7 +615,8 @@ class ModelTools(object):
         return base_data
 
         # #todo think about adding get stress period data... input the package names and pickle the file if needed so you don't always have to load the thing
-    #todo eventually handle the layer,col,row vs kij keys
+
+    # todo eventually handle the layer,col,row vs kij keys
     def convert_well_data_to_stresspd(self, well_data_in):
         # convert a dataframe of well features (x,y,z,flux,type, etc.) to well standard stress period data
         # do something similar for concentration data?
@@ -593,19 +626,19 @@ class ModelTools(object):
         well_ag = g.aggregate({'flux': np.sum}).reset_index()
 
         outdata = well_ag.loc[:, ['layer', 'row', 'col', 'flux']]
-        outdata = outdata.rename(columns={'layer':'k','row':'i','col':'j'}).to_records(False)
+        outdata = outdata.rename(columns={'layer': 'k', 'row': 'i', 'col': 'j'}).to_records(False)
         outdata = outdata.astype(flopy.modflow.ModflowWel.get_default_dtype())
         return outdata
 
-    #todo think about adding default model_maps
+    # todo think about adding default model_maps
 
 
-    #todo add base map and cross section
-    #todo add elvation check
-    #todo add recalc_pickles
+    # todo add base map and cross section
+    # todo add elvation check
+    # todo add recalc_pickles
 
-    def check_layer_overlap(self,required_overlap = 0.50, top=None, bot=None, use_elv_db=False, layer=None,
-                            return_min = False):
+    def check_layer_overlap(self, required_overlap=0.50, top=None, bot=None, use_elv_db=False, layer=None,
+                            return_min=False):
         """
         check that there is at least a certain ammount of overlap between cells in a layer \
         (must match model discritation) users must specifiy either (top and bot) or (use_elv_db and layer)
@@ -623,21 +656,21 @@ class ModelTools(object):
         if use_elv_db:
             elv = self.calc_elv_db()
             top = elv[layer]
-            bot = elv[layer+1]
+            bot = elv[layer + 1]
 
-        if top.shape != (self.rows,self.cols) or bot.shape != (self.rows,self.cols):
+        if top.shape != (self.rows, self.cols) or bot.shape != (self.rows, self.cols):
             raise ValueError('top or bottom shape does not match model discritisation')
-        outdata = np.zeros((self.rows,self.cols))
+        outdata = np.zeros((self.rows, self.cols))
         for i in range(self.rows):
             for j in range(self.cols):
-                cell_top = top[i,j]
-                cell_bot = bot[i,j]
+                cell_top = top[i, j]
+                cell_bot = bot[i, j]
                 thickness = cell_top - cell_bot
-                other_cells = self.get_all_adjacent_cells((i,j),return_loc=False)
-                other_tops = np.array([min(top[tuple(e)],cell_top) for e in other_cells])
-                other_bots = np.array([max(bot[tuple(e)],cell_bot) for e in other_cells])
+                other_cells = self.get_all_adjacent_cells((i, j), return_loc=False)
+                other_tops = np.array([min(top[tuple(e)], cell_top) for e in other_cells])
+                other_bots = np.array([max(bot[tuple(e)], cell_bot) for e in other_cells])
                 other_thick_frac = (other_tops - other_bots) / thickness
-                outdata[i,j] = other_thick_frac.min()
+                outdata[i, j] = other_thick_frac.min()
 
         if not return_min:
             outdata = outdata < return_min
