@@ -12,13 +12,14 @@ from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_too
 import flopy
 import os
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import converged
+from traceback import format_exc
 
 def setup_run_forward_run_mp (kwargs):
     try:
         name, success = setup_run_forward_run(**kwargs)
     except Exception as val:
         name = kwargs['name']
-        success = '{}: {}'.format(type(val),val.args)
+        success = format_exc().replace('\n', '')
     return name, success
 
 def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, wil_eff=1, naturalised=False,

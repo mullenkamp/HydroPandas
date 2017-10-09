@@ -13,6 +13,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_too
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools import mod_gns_model, get_max_rate, \
     get_full_consent, get_race_data, zip_non_essential_files
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import converged
+from traceback import format_exc
 
 def setup_and_run_stream_dep_multip(kwargs):
     """
@@ -26,7 +27,7 @@ def setup_and_run_stream_dep_multip(kwargs):
         return name, success
     except Exception as val:
         name = kwargs['name']
-        success = '{}: {}'.format(type(val), val.args)
+        success = format_exc().replace('\n', '')
     return name, success
 
 

@@ -231,7 +231,7 @@ if __name__ == '__main__':
     safemode = True
     #todo will need to re-run with new model
     #todo define the two below before each run
-    dir_path = r"D:\mh_model_runs\forward_runs_2017_10_09" # path on rdsprod03
+    dir_path = r"D:\mh_model_runs\forward_runs_2017_10_10" # path on rdsprod03
     notes = """ 
     LSR senario changes applied to full domain, CC component of LSR changes applied to only waimakariri
     pumping changes only applied to Waimakariri with the exception of the pc5 adjustment which is applied in the full domain,

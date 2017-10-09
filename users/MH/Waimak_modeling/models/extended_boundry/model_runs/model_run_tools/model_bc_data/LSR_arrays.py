@@ -238,7 +238,7 @@ def get_lsrm_base_array(sen, rcp, rcm, per, at):
     if outdata.shape != (smt.rows,smt.cols):
         raise ValueError('incorrect shape for rch array: {}'.format(outdata.shape))
 
-    return
+    return outdata
 
 def get_ird_base_array(sen, rcp, rcm, per, at):
     path = os.path.join(lsrm_rch_base_dir, 'arrays_for_modflow/ird_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
