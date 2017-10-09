@@ -20,6 +20,7 @@ import flopy
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.wells import \
     get_max_rate, get_full_consent
 from copy import deepcopy
+import rasterio
 
 
 def _get_reliability_xyz(model_id):
@@ -65,15 +66,22 @@ def _get_reliability_xyz(model_id):
         row, col, elv = outdata.loc[well, ['i', 'j', 'use_pump_level']]
         outdata.loc[well, 'k'] = smt.convert_elv_to_k(row, col, elv, elv_db=elv_db)
 
-    # get specific capacity data (specific_c) #todo check units should be in l/s/m pull the interpolated sc data
+    # get specific capacity data (specific_c)
     idx = (outdata.specific_c < 0.00210345) & (outdata.k ==0)
+    layer0_sc = np.e**np.loadtxt(env.sci(r"Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\InitialParamaters\inital_sc_data_rasters_extended\v2\arrays\ln_spe_capacity_layer_0.txt"))
+    outdata.loc[idx,'specific_c'] = layer0_sc[outdata.loc[idx, 'i'], outdata.loc[idx, 'j']]
+
     idx = (outdata.specific_c < 0.00210345) & (outdata.k ==1)
-    idx = (outdata.specific_c < 0.00210345) & (np.in1d(outdata.k, range(2,6))) #todo chekc the rest
-    idx = (outdata.specific_c < 0.00210345) & (np.in1d(outdata.k, range(6,11))) #todo chekc the rest
+    layer1_sc = np.e**np.loadtxt(env.sci(r"Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\InitialParamaters\inital_sc_data_rasters_extended\v2\arrays\ln_spe_capacity_layer_1.txt"))
+    outdata.loc[idx,'specific_c'] = layer1_sc[outdata.loc[idx, 'i'], outdata.loc[idx, 'j']]
 
+    idx = (outdata.specific_c < 0.00210345) & (np.in1d(outdata.k, range(2,6)))
+    layer2_5_sc = np.e**np.loadtxt(env.sci(r"Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\InitialParamaters\inital_sc_data_rasters_extended\v2\arrays\ln_spe_capacity_layer_2-5.txt"))
+    outdata.loc[idx,'specific_c'] = layer2_5_sc[outdata.loc[idx, 'i'], outdata.loc[idx, 'j']]
 
-
-    raise NotImplementedError #todo grab from i,j,k and sc interpolations whereever they live
+    idx = (outdata.specific_c < 0.00210345) & (np.in1d(outdata.k, range(6,11)))
+    layer6_10_sc = np.e**np.loadtxt(env.sci(r"Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\InitialParamaters\inital_sc_data_rasters_extended\v2\arrays\ln_spe_capacity_layer_6-10.txt"))
+    outdata.loc[idx,'specific_c'] = layer6_10_sc[outdata.loc[idx, 'i'], outdata.loc[idx, 'j']]
 
     # get pumping rate
     # 2.4 * cav rate (for 6 or 12 months) for irrigation takes and 1.2 * CAV rate (12 months) or max rate whichever is lower

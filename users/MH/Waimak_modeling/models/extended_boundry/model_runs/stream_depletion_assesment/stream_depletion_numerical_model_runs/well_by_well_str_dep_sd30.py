@@ -90,7 +90,11 @@ def well_by_well_depletion_sd30(model_id, well_list, base_path, notes):
     pool = multiprocessing.Pool(processes=pool_size,
                                 initializer=start_process,
                                 )
-    pool_outputs = pool.map(setup_and_run_stream_dep_multip, runs)
+    results = pool.map_async(setup_and_run_stream_dep_multip, runs)
+    while not results.ready():
+        print('{} runs left of {}'.format(results._number_left, len(runs)))
+        time.sleep(60*5)  # sleep 5 min between printing
+    pool_outputs = results.get()
     pool.close()  # no more tasks
     pool.join()
     now = datetime.datetime.now()

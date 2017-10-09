@@ -200,7 +200,7 @@ def plt_drawdown(meta_data_path, outdir,raise_non_converged=True):
         converged = meta_data.loc[name, 'converged']
         if pd.isnull(converged):
             continue
-        ref_name = get_baseline_name(meta_data,name,raise_non_converged)
+        ref_name = get_baseline_name(meta_data, name, raise_non_converged)
         mod_per_hds_path =meta_data.loc[ref_name, 'path'].replace('.nam', '.hds')
         mod_per_hds = flopy.utils.HeadFile(mod_per_hds_path).get_data((0, 0))
         plt_out_dir = os.path.join(outdir, name)
@@ -226,7 +226,6 @@ def plt_drawdown(meta_data_path, outdir,raise_non_converged=True):
 def gen_all_outdata_forward_runs(forward_run_dir, outdir, plt_dd=False):
     if not os.path.exists(outdir):
         os.makedirs(outdir)
-    #todo extract the irrigation multiplier and the missing water from all runs
     absolute_outpath = 'absolute_data.csv'
     meta_data_path = 'meta_data.csv'
     relative_outpath = 'relative_data.csv'
