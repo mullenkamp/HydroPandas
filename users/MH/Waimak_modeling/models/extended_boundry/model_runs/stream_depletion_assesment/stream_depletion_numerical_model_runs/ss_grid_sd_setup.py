@@ -1,9 +1,11 @@
+# -*- coding: utf-8 -*-
 """
 Author: matth
-Date Created: 7/09/2017 3:43 PM
+Date Created: 9/10/2017 11:45 AM
 """
 
 from __future__ import division
+from core import env
 import numpy as np
 from copy import deepcopy
 import flopy
@@ -14,14 +16,14 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
     get_full_consent, get_race_data, zip_non_essential_files
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import converged
 
-def setup_and_run_stream_dep_multip(kwargs):
+def setup_and_run_ss_grid_stream_dep_multip(kwargs):
     """
     quick wrapper to make it easier to feed the below function to a multiprocessing script
     :param kwargs:
     :return:
     """
     try:
-        name, success = setup_and_run_stream_dep(**kwargs)
+        name, success = setup_and_run_ss_grid_stream_dep(**kwargs)
         print(name, success)
         return name, success
     except Exception as val:
@@ -29,91 +31,48 @@ def setup_and_run_stream_dep_multip(kwargs):
         success = '{}: {}'.format(type(val), val.args)
     return name, success
 
+#todo this was just a play and is not finished
 
-def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_turn_on, ss, sy,
-                             silent=True, start_heads=None, sd_7_150='sd150'):
+def setup_and_run_ss_grid_stream_dep(model_id, name, base_dir, wells_to_turn_on,
+                                     silent=True, start_heads=None,grid=False, grid_rate=None):
     """
     set up and run the stream depletion modflow models will write log to the base_dir
     :param model_id: the model id for the NSMC realisation
     :param name: name of the model
     :param base_dir: the directory to place the folder containing the model
-    :param stress_vals: see stress_period_vals of mod_gns_model
-    :param wells_to_turn_on: dictionary of list well names to turn on e.g. {s_period: list of wells}
-                              if a stress period is absent the values from the previous stress period will be propogated
-                              to the current stress period.  if want no wells to be turned on pass an empty list
-    :param ss: specific storage shape (k,i,j) or float
-    :param sy: specific yield shape (k,i,j) or float
+    :param wells_to_turn_on: list well names to turn on e.g. if want no wells to be turned on pass an empty list
     :param silent: passed to m.run_model.  if true Mirror modflow information to consol
-    :param sd_7_150: sd150: annual take over 5 stress periods
-                     sd7: use the max rate if no max rate set as annual take over 150 days
+    :param start_heads: starting heads to pass to the model
+    :param grid: boolean if false pull well data from CAV, if True pull from the grid and use grid pumping
+    :param grid_rate: the pumping rate for the grid wells
+
     :return:
     """
+    if grid:
+        raise NotImplementedError('grid not yet implemented')
+
     # check inputs are dictionaries
-    for input_arg in ['stress_vals', 'wells_to_turn_on']:
-        if not isinstance(eval(input_arg), dict):
-            raise ValueError('incorrect input type for {} expected dict'.format(input_arg))
-
-    nper = stress_vals['nper']
-
-    # propigate last defined wells and stream depletion values to turn off forward
-    if 0 not in wells_to_turn_on.keys():
-        raise ValueError('no inital wells to turn of set.  if none set stress period 0 to an empty list')
-    for per in range(nper):
-        if per not in wells_to_turn_on.keys():
-            wells_to_turn_on[per] = wells_to_turn_on[per - 1]
+    for input_arg in ['wells_to_turn_on']:
+        if not isinstance(eval(input_arg), list):
+            raise ValueError('incorrect input type for {} expected list'.format(input_arg))
 
     wells = {}
-    rch = {}
-    stream = {}
 
     base_well = get_race_data(model_id)
-    if sd_7_150 == 'sd30':
-        sd_7_150 = 'sd7'  # this effectivly uses the max rate of the consent rather than the CAV for 150 day
+    full_consent = get_full_consent(model_id)
+    # set up wells
+    input_wells = deepcopy(base_well)
+    for well in wells_to_turn_on:
+        add_well = full_consent.loc[well] #todo should this be the full consent over 150 days or over 365 etc.
+        input_wells.loc[well] = add_well
 
-    if sd_7_150 == 'sd150':
-        full_consent = get_full_consent(model_id)
-    elif sd_7_150 == 'sd7':
-        sd7_flux = get_max_rate(model_id)
-    for sp in range(nper):
-        # set up recharge
-        rch[sp] = 0 #todo do we really want no recharge?
-
-        # set up wells
-        input_wells = deepcopy(base_well)
-        for well in wells_to_turn_on[sp]:
-            if sd_7_150 == 'sd150':
-                add_well = full_consent.loc[well] #todo should this be the full consent over 150 days or over 365 etc.
-                input_wells.loc[well] = add_well
-            elif sd_7_150 == 'sd7':
-                add_well = sd7_flux.loc[well]
-                input_wells.loc[well] = add_well
-            else:
-                raise ValueError('unexpected argument for sd_7_150: {}'.format(sd_7_150))
-
-        wells[sp] = smt.convert_well_data_to_stresspd(input_wells)
+    wells[0] = smt.convert_well_data_to_stresspd(input_wells)
 
     m = mod_gns_model(model_id, name, '{}/{}'.format(base_dir, name),
                       safe_mode=False,
-                      stress_period_vals=stress_vals,
                       well=wells,
-                      drain=None,  # not modifying these stress period data
-                      recharge=rch,
-                      stream=None,
                       mt3d_link=False,
                       start_heads=start_heads)
-
-    # set specific storage and specific yield
-    ss = np.atleast_1d(ss)
-    sy = np.atleast_1d(sy)
-
-    if len(ss) == 1:
-        ss = np.ones((smt.layers, smt.rows, smt.cols)) * ss[0]
-
-    if len(sy) == 1:
-        sy = np.ones((smt.layers, smt.rows, smt.cols)) * sy[0]
-
-    m.upw.ss = flopy.utils.Util3d(m, m.upw.ss.shape, m.upw.ss.dtype, ss, m.upw.ss.name)
-    m.upw.sy = flopy.utils.Util3d(m, m.upw.sy.shape, m.upw.sy.dtype, sy, m.upw.sy.name)
 
     # below included for easy manipulation
     flopy.modflow.mfnwt.ModflowNwt(m,
@@ -172,7 +131,7 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
     con = None
     if success:
         con = converged(os.path.join(m.model_ws,m.namefile.replace('.nam', '.list')))
-        zip_non_essential_files(m.model_ws, include_list=False, other_files=['.sfo','.ddn','.hds'])
+        zip_non_essential_files(m.model_ws, include_list=False, other_files=['.sfo','.ddn']) #todo  are there others I can incorporate? .ddn? .hds?
     if con is None:
         success = 'convergence unknown'
     elif con:
@@ -180,7 +139,11 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
     else:
         success = 'did not converge'
     return name, success
+    # todo this needs debugging
 
+
+def grid_wells (): #set up a grid
+    raise NotImplementedError
 
 if __name__ == '__main__':
     print('done')

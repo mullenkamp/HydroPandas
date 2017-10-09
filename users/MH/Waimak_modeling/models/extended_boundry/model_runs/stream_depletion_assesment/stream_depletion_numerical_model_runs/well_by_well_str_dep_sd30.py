@@ -86,7 +86,6 @@ def well_by_well_depletion_sd30(model_id, well_list, base_path, notes):
     ss, sy = get_ss_sy()
     start_heads = get_starting_heads_sd30(model_id)
     runs = setup_runs_sd30(model_id, well_list, base_path, ss, sy, start_heads)
-    runs = runs[0:10] #todo DADB
     pool_size = multiprocessing.cpu_count()
     pool = multiprocessing.Pool(processes=pool_size,
                                 initializer=start_process,
@@ -108,4 +107,4 @@ if __name__ == '__main__':
     well_list = get_sd_well_list(model_id)
     base_path = r"C:\Users\MattH\Desktop\test_sd30"
     well_by_well_depletion_sd30(model_id,well_list,base_path,notes)
-    print('done')  # todo this needs debugging
+    print('done')

@@ -170,8 +170,10 @@ def _get_rch_comparison():
 
 
 if __name__ == '__main__':
-    _get_rch_comparison()
-    rch=_get_rch(version=2,recalc=True)
+    #_get_rch_comparison()
+    rch=_get_rch(version=2,recalc=False)
+    rchold=_get_rch(version=1,recalc=False)
+
     smt.plt_matrix(rch)
     np.savetxt(r"C:\Users\MattH\Desktop\to_brioch_2017_10_4\rch.txt",rch)
     print('done')

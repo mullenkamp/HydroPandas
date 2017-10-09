@@ -88,7 +88,6 @@ def well_by_well_depletion_sd150(model_id, well_list, base_path, notes):
     start_heads = get_starting_heads_sd150(model_id)
     multiprocessing.log_to_stderr(logging.DEBUG)
     runs = setup_runs_sd150(model_id, well_list, base_path, ss, sy, start_heads)
-    runs = runs[0:10] #todo DADB
     pool_size = multiprocessing.cpu_count()
     pool = multiprocessing.Pool(processes=pool_size,
                                 initializer=start_process,
@@ -111,4 +110,4 @@ if __name__ == '__main__':
     base_path = r"C:\Users\MattH\Desktop\test_sd150_look_at"
     well_by_well_depletion_sd150(model_id,well_list,base_path,notes)
 
-    print('done')  # todo this needs debugging
+    print('done')

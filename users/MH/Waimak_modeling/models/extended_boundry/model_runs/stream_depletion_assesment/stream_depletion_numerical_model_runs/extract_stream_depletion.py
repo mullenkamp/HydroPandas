@@ -16,6 +16,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.a
     get_all_well_row_col
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.wells import \
     get_full_consent, get_max_rate
+from base_sd_runs import get_sd_spv
 
 def calc_stream_dep(model_path, sd_version='sd150'):
     """
@@ -46,7 +47,7 @@ def calc_stream_dep(model_path, sd_version='sd150'):
 
     outdata = (str_base.sum(axis=1) - str_sd.sum(axis=1)) * integrater * -1
 
-    # cumulative well abstraction budget #todo check but I think this is ok
+    # cumulative well abstraction budget
     budget = flopy.utils.MfListBudget('{}.list'.format(model_path))
     temp = pd.DataFrame(budget.get_cumulative('WELLS_OUT'))
     abs_vol = temp[(temp['stress_period'] == temp['stress_period'].max()) &
@@ -55,8 +56,8 @@ def calc_stream_dep(model_path, sd_version='sd150'):
     if abs_vol == 0:
         outdata *= np.nan
     else:
-        outdata *= 1 / abs_vol
-    return outdata, abs_vol/(spv['perlen'] * spv['nstp'])  # todo check/debug
+        outdata *= 1 / abs_vol *100
+    return outdata, abs_vol/(spv['perlen'] * spv['nstp'])
 
 def calc_str_dep_all_wells(out_path, base_path, sd_version='sd150'):
     """
@@ -72,6 +73,7 @@ def calc_str_dep_all_wells(out_path, base_path, sd_version='sd150'):
     model_id = os.path.basename(all_paths[0]).split('_')[0]
     out_path = os.path.join(os.path.dirname(out_path),'{}_{}'.format(model_id,os.path.basename(out_path)))
 
+    spv = get_sd_spv(sd_version)
     outdata = {}
     out_per_abs_vol = {}
     for well, path in zip(wells, all_paths):
@@ -79,35 +81,37 @@ def calc_str_dep_all_wells(out_path, base_path, sd_version='sd150'):
         outdata[well] = sd
         out_per_abs_vol[well] = per_abs_vol
     outdata = pd.DataFrame(outdata).transpose()
-    out_per_abs_vol = pd.DataFrame(out_per_abs_vol, index=['model_abs_rate']).transpose()
+    out_per_abs_vol = pd.DataFrame(out_per_abs_vol, index=['model_abs_vol']).transpose()
 
-    outdata = pd.merge(outdata, out_per_abs_vol)
+    outdata = pd.merge(outdata, out_per_abs_vol,right_index=True,left_index=True)
 
     # add additional information
     # add flux
     if sd_version == 'sd150':
-        flux = get_full_consent(model_id).loc['flux']  # todo should this be scaled
+        #todo scaled?
+        flux = get_full_consent(model_id).loc[:, 'flux']
     else:
-        flux = get_max_rate(model_id).loc['flux']
+        flux = get_max_rate(model_id).loc[:, 'flux']
     outdata = pd.merge(outdata, pd.DataFrame(flux), how='left', left_index=True, right_index=True)
 
     all_wells = get_all_well_row_col()
     outdata = pd.merge(outdata,
                        all_wells.loc[:, ['nztmx', 'nztmy', 'depth', 'mid_screen_elv', 'mx', 'my', 'mz']],
                        how='left', left_index=True, right_index=True)
-    outdata['hor_misloc'] = ((outdata['mx'] - outdata['nztmx']) ** 2 + (outdata['my'] - outdata['nxtmy']) ** 2) ** 0.5
+    outdata['hor_misloc'] = ((outdata['mx'] - outdata['nztmx']) ** 2 + (outdata['my'] - outdata['nztmy']) ** 2) ** 0.5
     outdata['ver_misloc'] = outdata['mz'] - outdata['mid_screen_elv']
+    outdata.index.name='well'
 
     # save with header
     header = (
-    'SD_values for model: {}. '.format(model_id),
-    'all sd values are relative to the flux; though nwt sometimes reduces a wells pumping rate if it goes dry;'
-    'the average abstracted rate is noted in model_abs_rate(m3/day).  m(x;y) (e.g. modelx) and nztm(z;y) are in nztm. '
+    'SD_values for model: {}. spv: {} modflow units m and day.'
+    'all sd values are relative to model_abs_vol (%); though nwt sometimes reduces a wells pumping rate if it goes dry;'
+    'the abstracted volume is noted in model_abs_vol(m3).  m(x;y) (e.g. modelx) and nztm(z;y) are in nztm. '
     'mid_screen_elv; mz are in m lyttleton; hor_misloc and vert_misloc are in m and vert_misloc is mz - mid_screen_elv'
-    'flux is in m3/day')
+    'flux is in m3/day\n'.format(model_id,str(spv).replace(',',';')))
     with open(out_path, 'w') as f:
-        f.write(header)
-    outdata.to_csv(out_path, mode='a') # todo check/debug
+        f.write(str(header))
+    outdata.to_csv(out_path, mode='a')
 
 
 if __name__ == '__main__':

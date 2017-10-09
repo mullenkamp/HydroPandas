@@ -11,7 +11,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.stream_depletio
 import os
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_setup.realisation_id import temp_pickle_dir
 
-def get_str_dep_base_path(model_id, sd_version, recalc=False): #todo debug
+def get_str_dep_base_path(model_id, sd_version, recalc=False):
     """
     function to return the model path for the fully naturalized fully transient run and ensure that the model has been
     run this run has a ss and then full year run from july to end of june  ## for SD 7
