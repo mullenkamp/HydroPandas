@@ -74,6 +74,32 @@ def extract_forward_metadata(forward_run_dir, outpath):
     outdata.to_csv(outpath)
     return outpath
 
+def extract_and_save_all_cc_mult_missing_w(forward_run_dir, outpath):
+    paths = glob(os.path.join(forward_run_dir, '*/cc_mult_info.txt'))
+    paths = sorted(paths)
+    model_id = os.path.basename(os.path.dirname(paths[0])).split('_')[0]
+    outpath = os.path.join(os.path.dirname(outpath), '{}_{}'.format(model_id, os.path.basename(outpath)))
+    temp_names = [os.path.basename(os.path.dirname(e)).replace(model_id + '_', '') for e in paths]
+    outdata = pd.DataFrame(index=temp_names,columns=['cc_mult','missing_water'])
+    for name, path in zip(temp_names, paths):
+        with open(path) as f:
+            lines = f.readlines()
+            if len(lines) != 2:
+                raise ValueError('more than 2 lines in {}'.format(path))
+            outdata.loc[name,'missing_water'] = float(lines[1].split(':')[-1].strip())
+            outdata.loc[name, 'cc_mult'] = float(lines[0].split(':')[-1].strip())
+
+    with open(outpath, 'w') as f:
+        f.write('cc_mult and missing water from model {}. cc_mult is unitless and is applied to the irrigation '
+                'pumping wells in the waimakariri zone.  pumping is truncated at the max CAV and allocation. '
+                'missing water is the increase in irrgation demand for the LSR layer that cannot be met through '
+                'groundwater and is in units of m3/day; made {}\n'.format(model_id,
+                                                                          datetime.datetime.now().isoformat()))
+
+    outdata.to_csv(outpath, mode='a')
+    return outpath #todo test
+
+
 
 def extract_and_save_all_forward_runs(forward_run_dir, outpath):
     paths = glob(os.path.join(forward_run_dir, '*/*.nam'))
@@ -97,7 +123,7 @@ def extract_and_save_all_forward_runs(forward_run_dir, outpath):
     return outpath
 
 
-def make_rel_data(data_path, meta_data_path, out_path): #todo handle the possibility that a well or stream goes dry
+def make_rel_data(data_path, meta_data_path, out_path):
     org_data = pd.read_csv(data_path, skiprows=1, index_col=0)
     meta_data = pd.read_csv(meta_data_path, index_col=0)
     model_id = os.path.basename(data_path).split('_')[0]
@@ -106,7 +132,7 @@ def make_rel_data(data_path, meta_data_path, out_path): #todo handle the possibi
     divide_keys = list(set(org_data.keys()) - set(remove_keys))
     outdata = deepcopy(org_data)
     actual_keys = []
-    idx = outdata.index.str.contains('/')
+    well_idx = outdata.index.str.contains('/')
     for key in divide_keys:
         reference_key = get_baseline_name(meta_data=meta_data, name=key)
 
@@ -114,10 +140,19 @@ def make_rel_data(data_path, meta_data_path, out_path): #todo handle the possibi
             actual_keys.append(key)
             continue
 
+        # set up indexes for dry/no_flow in sim/ref
+        dry_ref = (np.isclose(org_data.loc[well_idx, reference_key], -888) |
+                   np.isclose(org_data.loc[~well_idx, reference_key], 0))
+        dry_sim = (np.isclose(outdata.loc[well_idx, key], -888))
+
         # relative streams
-        outdata.loc[~idx, key] *= 1 / org_data.loc[~idx, reference_key]
+        outdata.loc[~well_idx, key] *= 1 / org_data.loc[~well_idx, reference_key]
         # actual drawdown
-        outdata.loc[idx, key] = outdata.loc[idx, key] - org_data.loc[idx, reference_key]
+        outdata.loc[well_idx, key] = outdata.loc[well_idx, key] - org_data.loc[well_idx, reference_key]
+
+        # keys for dry well -888, dry(well) or zero flow (sfr/drn) in reference (-777) zero flow is left as 0%
+        outdata.loc[dry_sim, key] = -888
+        outdata.loc[dry_ref, key] = -777
 
     # write data with a header
     with open(out_path, 'w') as f:
@@ -128,7 +163,9 @@ def make_rel_data(data_path, meta_data_path, out_path): #todo handle the possibi
              'all others are relative to current'
              'draw down (wells) is senario - baseline'
              'for actuals all flow values in m3/day; all hd; z in m; x; y in nztm'
-             'i;j;k are unit less, made: {dt}\n'.format(mid=model_id, act=actual_keys,
+             'i;j;k are unit less; dry wells are filled with a value of -888 and '
+            'dry (well) or noflow (stream) in reference simulation is -777 '
+            'made: {dt}\n'.format(mid=model_id, act=actual_keys,
                                                          dt=datetime.datetime.now().isoformat()))
     # write data
     outdata.to_csv(out_path, mode='a')
@@ -189,10 +226,12 @@ def plt_drawdown(meta_data_path, outdir,raise_non_converged=True):
 def gen_all_outdata_forward_runs(forward_run_dir, outdir, plt_dd=False):
     if not os.path.exists(outdir):
         os.makedirs(outdir)
-
+    #todo extract the irrigation multiplier and the missing water from all runs
     absolute_outpath = 'absolute_data.csv'
     meta_data_path = 'meta_data.csv'
     relative_outpath = 'relative_data.csv'
+    cc_mult_path = 'cc_mult_miss_water.csv'
+    extract_and_save_all_cc_mult_missing_w(forward_run_dir,os.path.join(outdir, cc_mult_path))
     absolute_outpath = extract_and_save_all_forward_runs(forward_run_dir, os.path.join(outdir, absolute_outpath))
     meta_data_path = extract_forward_metadata(forward_run_dir, os.path.join(outdir, meta_data_path))
     make_rel_data(absolute_outpath, meta_data_path, os.path.join(outdir, relative_outpath))
@@ -202,8 +241,9 @@ def gen_all_outdata_forward_runs(forward_run_dir, outdir, plt_dd=False):
 
 
 if __name__ == '__main__':
-    gen_all_outdata_forward_runs(
-        r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\runs\forward_runs_2017_09_30",
-        r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\results\cc_only_to_waimak",
-        False)
-    print 'done'
+    #gen_all_outdata_forward_runs(
+    #    r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\runs\forward_runs_2017_09_30",
+    #    r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\results\cc_only_to_waimak",
+    #    False)
+    extract_and_save_all_cc_mult_missing_w(r"C:\Users\MattH\Desktop\forward_run_test",r"C:\Users\MattH\Downloads\test_ccmult_extract.csv")
+    print('done')

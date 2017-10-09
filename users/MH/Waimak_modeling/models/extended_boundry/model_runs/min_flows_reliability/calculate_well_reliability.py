@@ -90,8 +90,7 @@ def _get_reliability_xyz(model_id):
     return outdata
 
 
-def get_model_well_reliability(model_id, model_path,
-                               indata):  # todo save this? pass all the loc data as an argument (to speed up the for loop)
+def get_model_well_reliability(model_id, model_path, indata):  # todo save this?
     """
     calculates the well reliability
     :param model_id: which NSMC realisation
