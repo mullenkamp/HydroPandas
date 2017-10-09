@@ -17,9 +17,11 @@ from users.MH.Waimak_modeling.model_tools import get_base_rch, no_flow as old_no
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.lsr_support.map_rch_to_model_array import \
     map_rch_to_array
-from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.lsr_support.generate_an_mean_rch import gen_water_year_average_lsr_irr
+from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.lsr_support.generate_an_mean_rch import \
+    gen_water_year_average_lsr_irr
 import pandas as pd
 from warnings import warn
+
 
 def create_rch_package(m):
     rch = flopy.modflow.mfrch.ModflowRch(m,
@@ -30,8 +32,7 @@ def create_rch_package(m):
                                          unitnumber=716)
 
 
-
-def _get_rch(version=1,recalc=False):
+def _get_rch(version=1, recalc=False):
     if version == 1:
         out_rch = _get_rch_v1(recalc)
     elif version == 2:
@@ -39,6 +40,7 @@ def _get_rch(version=1,recalc=False):
     else:
         raise NotImplementedError('version {} not implemented'.format(version))
     return out_rch
+
 
 def _get_rch_v1(recalc=False):
     warn('v1 rch is depreciated in newest version of optimised model')
@@ -48,44 +50,47 @@ def _get_rch_v1(recalc=False):
         return rch
 
     new_no_flow = smt.get_no_flow()
-    zones = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/cwms_zones.shp".format(smt.sdp),'ZONE_CODE')
+    zones = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/cwms_zones.shp".format(smt.sdp), 'ZONE_CODE')
     zones[~new_no_flow[0].astype(bool)] = 0
     # waimak = 4, chch_wm = 7, selwyn=8 , chch_wm chch_formation = 9
-    confin_rch_zone = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/chch_wm_rch_split_chch_form.shp".format(smt.sdp),'ID',True)
-    zones[(zones==7) & (np.isfinite(confin_rch_zone))] = 9
-    part_zones = deepcopy(zones[:190,:])
-    part_zones[old_no_flow] = np.nan # here this is the no flow for layer 1 I created hence why i don't invert it
+    confin_rch_zone = smt.shape_file_to_model_array(
+        "{}/m_ex_bd_inputs/shp/chch_wm_rch_split_chch_form.shp".format(smt.sdp), 'ID', True)
+    zones[(zones == 7) & (np.isfinite(confin_rch_zone))] = 9
+    part_zones = deepcopy(zones[:190, :])
+    part_zones[old_no_flow] = np.nan  # here this is the no flow for layer 1 I created hence why i don't invert it
 
     old_rch = get_base_rch()
-    scaled_old_rch = np.zeros((190,365))*np.nan
-    scaled_old_rch[part_zones==4] = old_rch[part_zones==4] # do not scale waimak
-    new_old_top = np.nanpercentile(scaled_old_rch,99)
-    scaled_old_rch[scaled_old_rch> new_old_top] = new_old_top
+    scaled_old_rch = np.zeros((190, 365)) * np.nan
+    scaled_old_rch[part_zones == 4] = old_rch[part_zones == 4]  # do not scale waimak
+    new_old_top = np.nanpercentile(scaled_old_rch, 99)
+    scaled_old_rch[scaled_old_rch > new_old_top] = new_old_top
     # create rch values for south wai
     """use homogeneous rate of 270 mm/year based on Williams 2010 (modified from White 2008)
     estimate of 23.8 m³/s for 276,000 ha Te Waihora catchment area.
     Use 190 mm/year for Christchurch WM zone. scaled by an implementation of the david scott model"""
 
-    ds_rch = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/dave_scott_rch.shp".format(smt.sdp), 'rch', True)/1000
+    ds_rch = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/dave_scott_rch.shp".format(smt.sdp), 'rch',
+                                           True) / 1000
     ds_paw = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/dave_scott_rch.shp".format(smt.sdp), 'paw', True)
-    #do a bit of cleaning for the DS model
+    # do a bit of cleaning for the DS model
     ds_rch[ds_paw <= 600000] = np.nan  # get rid or rch in streams, te wai, and chch urban area
-    new_top = np.nanpercentile(ds_rch,99)
-    ds_rch[ds_rch>new_top] = new_top
-    new_bot = np.nanpercentile(ds_rch,1)
-    ds_rch[ds_rch<new_bot] = new_bot
+    new_top = np.nanpercentile(ds_rch, 99)
+    ds_rch[ds_rch > new_top] = new_top
+    new_bot = np.nanpercentile(ds_rch, 1)
+    ds_rch[ds_rch < new_bot] = new_bot
     ds_rch[np.isnan(ds_rch)] = new_bot
 
     rch = np.zeros((smt.rows, smt.cols))
-    rch[zones == 7] = ds_rch[zones==7] * 175/1000/365/ds_rch[zones==7].mean()
-    rch[zones == 9] = ds_rch[zones==9] * 100/1000/365/ds_rch[zones==9].mean()
-    rch[zones == 8] = ds_rch[zones==8] * 195/1000/365/ds_rch[zones==8].mean()
-    rch[zones == 4] = ds_rch[zones==4] * 290/1000/365/ds_rch[zones==4].mean()
+    rch[zones == 7] = ds_rch[zones == 7] * 175 / 1000 / 365 / ds_rch[zones == 7].mean()
+    rch[zones == 9] = ds_rch[zones == 9] * 100 / 1000 / 365 / ds_rch[zones == 9].mean()
+    rch[zones == 8] = ds_rch[zones == 8] * 195 / 1000 / 365 / ds_rch[zones == 8].mean()
+    rch[zones == 4] = ds_rch[zones == 4] * 290 / 1000 / 365 / ds_rch[zones == 4].mean()
     idx = np.where(np.isfinite(scaled_old_rch))
-    rch[idx]= scaled_old_rch[idx]
+    rch[idx] = scaled_old_rch[idx]
     # get new rch values for nwai
     pickle.dump(rch, open(pickle_path, 'w'))
     return rch
+
 
 def _get_rch_v2(recalc=False):
     """
@@ -108,27 +113,39 @@ def _get_rch_v2(recalc=False):
                            period_center=None,
                            mapping_shp="{}/m_ex_bd_inputs/lsrm_results_v2/test/output_test2.shp".format(smt.sdp),
                            period_length=None, return_irr_demand=False,
-                     rch_quanity='total_drainage')
+                           rch_quanity='total_drainage')
 
-    #fix tewai and chch weirdeness
-    fixer = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/rch_rm_chch_tew.shp".format(smt.sdp),'ID',True)
-    #chch
-    rch[fixer==0] = 0.0002
-    #te wai and coastal
-    rch[fixer==1] = 0
+    # fix tewai and chch weirdeness
+    fixer = get_rch_fixer()
+    # chch
+    rch[fixer == 0] = 0.0002
+    # te wai and coastal
+    rch[fixer == 1] = 0
 
-    #set ibound to 0
+    # set ibound to 0
     rch[~new_no_flow[0].astype(bool)] = 0
     pickle.dump(rch, open(pickle_path, 'w'))
     return rch
 
+
+def get_rch_fixer(recalc=False):
+    pickle_path = os.path.join(smt.pickle_dir, 'rch_fixer.p')
+
+    if os.path.exists(pickle_path) and not recalc:
+        return pickle.load(open(pickle_path))
+
+    fixer = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/rch_rm_chch_tew.shp".format(smt.sdp), 'ID', True)
+    pickle.dump(fixer, open(pickle_path, 'w'))
+    return fixer
+
+
 def _get_rch_comparison():
     new_no_flow = smt.get_no_flow()
 
-    paths ={'pc5':'vcsn_100perc.h5', 'cur':'vcsn_80perc.h5', 'nat':'vcsn_no_irr.h5'}
+    paths = {'pc5': 'vcsn_100perc.h5', 'cur': 'vcsn_80perc.h5', 'nat': 'vcsn_no_irr.h5'}
     outdict = {}
     for key in paths:
-        path = "{}/m_ex_bd_inputs/lsrm_results_v2/{}".format(smt.sdp,paths[key])
+        path = "{}/m_ex_bd_inputs/lsrm_results_v2/{}".format(smt.sdp, paths[key])
         outpath = os.path.join(os.path.dirname(path), 'wym_{}'.format(os.path.basename(path)))
         outdata = gen_water_year_average_lsr_irr(path)
         outdata.to_hdf(outpath, 'wym', mode='w')
@@ -137,16 +154,16 @@ def _get_rch_comparison():
                                period_center=None,
                                mapping_shp="{}/m_ex_bd_inputs/lsrm_results_v2/test/output_test2.shp".format(smt.sdp),
                                period_length=None, return_irr_demand=False,
-                         rch_quanity='total_drainage')
+                               rch_quanity='total_drainage')
 
-        #fix tewai and chch weirdeness
-        fixer = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/rch_rm_chch_tew.shp".format(smt.sdp),'ID',True)
-        #chch
-        rch[fixer==0] = 0.0002
-        #te wai and coastal
-        rch[fixer==1] = 0
+        # fix tewai and chch weirdeness
+        fixer = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/rch_rm_chch_tew.shp".format(smt.sdp), 'ID', True)
+        # chch
+        rch[fixer == 0] = 0.0002
+        # te wai and coastal
+        rch[fixer == 1] = 0
 
-        #set ibound to 0
+        # set ibound to 0
         rch[~new_no_flow[0].astype(bool)] = 0
 
         outdict[key] = rch
@@ -155,19 +172,19 @@ def _get_rch_comparison():
             smt.shape_file_to_model_array("{}\m_ex_bd_inputs\shp\wai_irr_area_intersect.shp".format(smt.sdp), 'year_irr',
                                           'True'))
     new_no_flow = smt.get_no_flow()
-    zones = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/cwms_zones.shp".format(smt.sdp),'ZONE_CODE')
+    zones = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/cwms_zones.shp".format(smt.sdp), 'ZONE_CODE')
     zones[~new_no_flow[0].astype(bool)] = np.nan
     # waimak = 4, chch_wm = 7, selwyn=8 , chch_wm chch_formation = 9
-    w_idx = np.isclose(zones,4)
-    c_idx = np.isclose(zones,7)
-    s_idx = np.isclose(zones,8)
+    w_idx = np.isclose(zones, 4)
+    c_idx = np.isclose(zones, 7)
+    s_idx = np.isclose(zones, 8)
     all_idx = np.isfinite(zones)
     outdata = pd.DataFrame(columns=['waimak', 'selwyn', 'chch_wm', 'total'])
     for key in outdict:
-        dat = outdict[key] *200*200
-        for idx, zone in zip([w_idx,c_idx,s_idx,all_idx],['waimak','chch_wm', 'selwyn', 'total']):
-            outdata.loc[key,zone] = np.nansum(dat[idx])
-    print(outdata/86400)
+        dat = outdict[key] * 200 * 200
+        for idx, zone in zip([w_idx, c_idx, s_idx, all_idx], ['waimak', 'chch_wm', 'selwyn', 'total']):
+            outdata.loc[key, zone] = np.nansum(dat[idx])
+    print(outdata / 86400)
     print('done')
 
 

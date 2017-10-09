@@ -18,6 +18,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
     get_rch_multipler
 from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.lsr_support.map_rch_to_model_array import \
     map_rch_to_array
+from users.MH.Waimak_modeling.models.extended_boundry.m_packages.rch_packages import get_rch_fixer
 
 lsrm_rch_base_dir = env.gw_met_data('niwa_netcdf/lsrm/lsrm_results/water_year_means')
 rch_idx_shp_path = env.gw_met_data("niwa_netcdf/lsrm/lsrm_results/test/output_test2.shp")
@@ -63,14 +64,14 @@ def get_forward_rch(model_id, naturalised, pc5=False, rcm=None, rcp=None, period
     rch_array *= rch_mult
 
     if cc_to_waimak_only:
-        base_rch = get_lsrm_base_array(sen,None,None,None,'mean')
+        base_rch = get_lsrm_base_array(sen,None,None,None,'mean') #todo watch this with next itteration
         base_rch *= rch_mult
         idx_array = get_zone_array_index(['chch','selwyn'])
         rch_array[idx_array] = base_rch[idx_array]
     # handle weirdness from the arrays (e.g. ibound ignore the weirdness from chch/te waihora paw)
 
     #fix tewai and chch weirdeness
-    fixer = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/rch_rm_chch_tew.shp".format(smt.sdp),'ID',True)
+    fixer = get_rch_fixer()
     #chch
     rch_array[fixer==0] = 0.0002
     #te wai and coastal
@@ -233,8 +234,11 @@ def get_lsrm_base_array(sen, rcp, rcm, per, at):
     path = os.path.join(lsrm_rch_base_dir, 'arrays_for_modflow/rch_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
     if not os.path.exists(path):
         raise ValueError('array not implemented, why are you using {}'.format((sen, rcp, rcm, per, at)))
+    outdata = np.loadtxt(path)
+    if outdata.shape != (smt.rows,smt.cols):
+        raise ValueError('incorrect shape for rch array: {}'.format(outdata.shape))
 
-    return np.loadtxt(path)
+    return
 
 def get_ird_base_array(sen, rcp, rcm, per, at):
     path = os.path.join(lsrm_rch_base_dir, 'arrays_for_modflow/ird_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
@@ -242,7 +246,7 @@ def get_ird_base_array(sen, rcp, rcm, per, at):
         raise ValueError('array not implemented, why are you using {}'.format((sen, rcp, rcm, per, at)))
     outdata = np.loadtxt(path)
     if outdata.shape != (smt.rows,smt.cols):
-        raise ValueError('incorrect shape for ird')
+        raise ValueError('incorrect shape for ird: {}'.format(outdata.shape))
     return outdata
 
 
