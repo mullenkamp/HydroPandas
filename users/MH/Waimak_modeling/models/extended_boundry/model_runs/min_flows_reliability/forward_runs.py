@@ -231,11 +231,10 @@ if __name__ == '__main__':
     safemode = True
     #todo will need to re-run with new model
     #todo define the two below before each run
-    dir_path = r"C:\Users\MattH\Desktop\opt_test_zipping_forward_runs" # path on rdsprod03
+    dir_path = r"D:\mh_model_runs\forward_runs_2017_10_09" # path on rdsprod03
     notes = """ 
-    just testing zipping
     LSR senario changes applied to full domain, CC component of LSR changes applied to only waimakariri
-    pumping changes only applied to Waimakariri,  trying again with some runs that didn't complete [36,56,84]
+    pumping changes only applied to Waimakariri with the exception of the pc5 adjustment which is applied in the full domain,
     run in {}
     """.format(dir_path)
     if safemode:
@@ -245,7 +244,6 @@ if __name__ == '__main__':
             if cont != 'y':
                 raise ValueError('script aborted so as not to potentially overwrite {}'.format(dir_path))
     runs = setup_run_args('opt',dir_path,cc_to_waimak_only=True)
-    runs = runs[0:2]
     import time
     t = time.time()
     run_forward_runs(runs,dir_path,notes)
