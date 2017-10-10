@@ -141,9 +141,9 @@ def make_rel_data(data_path, meta_data_path, out_path):
             continue
 
         # set up indexes for dry/no_flow in sim/ref
-        dry_ref = (np.isclose(org_data.loc[well_idx, reference_key], -888) |
-                   np.isclose(org_data.loc[~well_idx, reference_key], 0))
-        dry_sim = (np.isclose(outdata.loc[well_idx, key], -888))
+        dry_ref = ((np.isclose(org_data.loc[:, reference_key], -888) & well_idx) |
+                   (np.isclose(org_data.loc[:, reference_key], 0) & ~well_idx))
+        dry_sim = (np.isclose(outdata.loc[:, key], -888) & (well_idx))
 
         # relative streams
         outdata.loc[~well_idx, key] *= 1 / org_data.loc[~well_idx, reference_key]
@@ -165,7 +165,7 @@ def make_rel_data(data_path, meta_data_path, out_path):
              'for actuals all flow values in m3/day; all hd; z in m; x; y in nztm'
              'i;j;k are unit less; dry wells are filled with a value of -888 and '
             'dry (well) or noflow (stream) in reference simulation is -777 '
-            'made: {dt}\n'.format(mid=model_id, act=actual_keys,
+            'made: {dt}\n'.format(mid=model_id, act=str(actual_keys).replace(',',';'),
                                                          dt=datetime.datetime.now().isoformat()))
     # write data
     outdata.to_csv(out_path, mode='a')
@@ -230,19 +230,24 @@ def gen_all_outdata_forward_runs(forward_run_dir, outdir, plt_dd=False):
     meta_data_path = 'meta_data.csv'
     relative_outpath = 'relative_data.csv'
     cc_mult_path = 'cc_mult_miss_water.csv'
+    print('extracting cc_mult and missing water')
     extract_and_save_all_cc_mult_missing_w(forward_run_dir,os.path.join(outdir, cc_mult_path))
+    print('extracting absolute data')
     absolute_outpath = extract_and_save_all_forward_runs(forward_run_dir, os.path.join(outdir, absolute_outpath))
+    print('extracting metadata')
     meta_data_path = extract_forward_metadata(forward_run_dir, os.path.join(outdir, meta_data_path))
+    print('creating relative data')
     make_rel_data(absolute_outpath, meta_data_path, os.path.join(outdir, relative_outpath))
 
     if plt_dd:
+        print('plotting drawdown')
         plt_drawdown(meta_data_path, os.path.join(outdir, 'plots'))
 
 
 if __name__ == '__main__':
-    #gen_all_outdata_forward_runs(
-    #    r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\runs\forward_runs_2017_09_30",
-    #    r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\results\cc_only_to_waimak",
-    #    False)
+    gen_all_outdata_forward_runs(
+        r"D:\mh_model_runs\forward_runs_2017_10_10",
+        r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\results\cc_only_to_waimak",
+        True)
     extract_and_save_all_cc_mult_missing_w(r"C:\Users\MattH\Desktop\forward_run_test",r"C:\Users\MattH\Downloads\test_ccmult_extract.csv")
     print('done')

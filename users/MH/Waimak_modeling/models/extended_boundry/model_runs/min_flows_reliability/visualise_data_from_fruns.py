@@ -169,13 +169,13 @@ def plot_and_save_forward_vis(outdir, relitive_data_path, meta_data_path):
     g = vis_eco_min_flows(relitive_data_path=relitive_data_path)
     g.savefig(os.path.join(outdir,'{}.png'.format(g.fig._suptitle._text)))
     g = vis_relibability(relitive_data_path)
+    g.savefig(os.path.join(outdir,'{}.png'.format(g.fig._suptitle._text)))
     gs = vis_cc(relitive_data_path,meta_data_path)
     for g in gs:
-        g.savefig(os.path.join(outdir,'{}.png'.format(g.fig._suptitle._text)))
+        g.savefig(os.path.join(outdir,'{}.png'.format(g.fig._suptitle._text).replace('/','_')))
 
 
 if __name__ == '__main__':
-    vis_cc(
-        r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\results\cc_only_to_waimak\opt_relative_data.csv",
-        r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\results\cc_only_to_waimak\opt_meta_data.csv"
-    )
+    plot_and_save_forward_vis(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\results\cc_only_to_waimak\overview_plots",
+                              r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\results\cc_only_to_waimak\opt_relative_data.csv",
+                              r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\results\cc_only_to_waimak\opt_meta_data.csv")
