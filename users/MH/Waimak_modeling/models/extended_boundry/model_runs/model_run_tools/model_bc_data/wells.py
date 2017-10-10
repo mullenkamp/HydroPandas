@@ -114,7 +114,7 @@ def get_max_rate(model_id, org_pumping_wells=False, recalc=False):
     allo2 = allo2.set_index('wap')
     fluxes = pd.merge(fluxes, pd.DataFrame(allo2.loc[:, 'cwms']), right_index=True, left_index=True)
 
-    # first max_rate_wap then max_rate then cav/365
+    # first max_rate_wap then max_rate then cav/365 #todo is this the max daily rate? check mikes allo setup
     fluxes.loc[:, 'flux'] = fluxes.loc[:, 'max_rate_wap'] * -86.4  # to convert from l/s to m3/day
     fluxes.loc[fluxes.flux.isnull(), 'flux'] = fluxes.loc[:, 'max_rate'] * -86.4
     fluxes.loc[fluxes.flux.isnull(), 'flux'] = fluxes.loc[:, 'cav'] / -365

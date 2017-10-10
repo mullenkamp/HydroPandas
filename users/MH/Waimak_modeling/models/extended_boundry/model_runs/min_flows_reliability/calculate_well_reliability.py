@@ -117,7 +117,7 @@ def get_model_well_reliability(model_id, model_path, indata):  # todo save this?
     kstpkper_names = 'model_water_level'
     data = _fill_df_with_bindata(hds_file, kstpkpers, kstpkper_names, data, hds_no_data, data)
 
-    # adjust simulation to min water level #todo
+    # adjust simulation to min water level #todo need zeb to provide more info
 
     # calculate drawdown and drawdown level #ignore the componenet of drawdown from average pumping in the cell, probably minor
     data.loc[:, 'dd_water_level'] = data.loc[:, 'low_water_level'] - ((data.loc[:, 'flux'] * 1000 / 86400) /
@@ -130,6 +130,6 @@ def get_model_well_reliability(model_id, model_path, indata):  # todo save this?
 
     data.loc[data.model_water_level < -777, 'rel_rate'] = 4  # already dry at average state
 
-    # create cost of reliability #todo handle if it is dry ask zeb how he wants to handle
+    # create cost of reliability #todo handle if it is dry ask zeb how he wants to handle ask zeb what he wants as output
 
     raise NotImplementedError
