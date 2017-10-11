@@ -278,6 +278,8 @@ if __name__ == '__main__':
         cav = get_full_consent('opt')
         max_rate = max_rate.loc[(max_rate.type=='well') & (max_rate.zone=='n_wai')]
         cav = cav.loc[(cav.type=='well') & (cav.zone == 'n_wai')]
+        org_wells = _get_wel_spd_v2()
+        org_wells = org_wells.loc[(org_wells.type=='well') & (org_wells.zone =='n_wai')]
         print('done')
     if test_type == 0:
         cc_inputs = {'rcm': 'BCC-CSM1.1',
