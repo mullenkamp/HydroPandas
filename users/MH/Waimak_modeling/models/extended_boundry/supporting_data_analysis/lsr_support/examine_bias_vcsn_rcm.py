@@ -14,6 +14,8 @@ import os
 import geopandas as gpd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from scipy import stats
+import itertools
 
 zone_lats = {}
 zone_lons = {}
@@ -74,7 +76,7 @@ def make_save_rcppast_year_amalg(variable, amalg_type, outpath, groupby=('year')
     # todo debug one of these
 
 
-def plt_data(plt_idx=['year'],title=None):
+def plt_data_ts(plt_idx=['year'], title=None):
     base_dir = r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\niwa_data_explore"
 
     if plt_idx == ['year', 'month']:
@@ -94,8 +96,8 @@ def plt_data(plt_idx=['year'],title=None):
     else:
         raise ValueError('plt idx not implemented')
 
-    g = sns.FacetGrid(data, col='zone')
-    g.map_dataframe(sns.pointplot, x, 'pe', 'model', color=sns.color_palette("Set1", n_colors=8, desat=.5))
+    g = sns.FacetGrid(data, row='zone',legend_out=False)
+    g.map_dataframe(sns.pointplot, x, 'pe', 'model', palette=sns.color_palette("Set1", n_colors=8, desat=.5))
     g.add_legend()
     g.fig.suptitle(title)
     return g
@@ -112,11 +114,41 @@ def make_data():
     outpath = os.path.join(outdir, 'year_month_zonal_pe_comp.csv')
     make_save_rcppast_year_amalg('pe', np.nanmean, outpath, ['year', 'month'])
 
-
-if __name__ == '__main__':
-    make_data()
-    g1 = plt_data(['year'],'year')
-    g2 = plt_data(['year','month'],'month-year')
-    g3 = plt_data(['month'],'month')
+def plot_all_data_ts():
+    g1 = plt_data_ts(['year'], 'year')
+    g2 = plt_data_ts(['year', 'month'], 'month-year')
+    g3 = plt_data_ts(['month'], 'month')
     plt.show()
 
+def plot_month_year_relationship(outpath):
+    base_dir = r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\niwa_data_explore"
+    path = os.path.join(base_dir, 'year_month_zonal_pe_comp.csv')
+    data = pd.read_csv(path)
+    data.loc[:, 'datetime'] = [pd.datetime(y, m, 15) for y, m in
+                               data.loc[:, ['year', 'month']].itertuples(False, None)]
+    vcsn_data = data.loc[data.model=='VirtualClimate']
+    rcm_data = data.loc[~(data.model=='VirtualClimate')]
+    plot_data = pd.merge(rcm_data,vcsn_data,on=['zone','datetime'])
+    # do regression
+    outdata = pd.DataFrame(data=list(itertools.product(set(plot_data.zone),set(plot_data.model_x))), columns=['zone','model'])
+    for key in ['slope', 'intercept', 'r_value', 'p_value', 'std_err']:
+        outdata[key] = np.nan
+    for i,zone, model_x in outdata.loc[:,['zone','model']].itertuples(True,None):
+        temp = plot_data.loc[(plot_data.model_x==model_x) & (plot_data.zone == zone)]
+        slope, intercept, r_value, p_value, std_err = stats.linregress(temp['pe_x'], temp['pe_y']) #todo do I have this order right?
+        outdata.loc[i,['slope', 'intercept', 'r_value', 'p_value', 'std_err']] = slope, intercept, r_value, p_value, std_err
+    outdata.to_csv(outpath)
+    # plot
+    g = sns.FacetGrid(plot_data, row='zone', col='model_x')
+    g.map_dataframe(sns.regplot, x='pe_x', y='pe_y')
+    g2 = sns.FacetGrid(plot_data, row='zone', col='model_x')
+    g2.map_dataframe(sns.residplot, x='pe_x', y='pe_y')
+    plt.show()
+
+
+
+
+if __name__ == '__main__':
+    #make_data()
+    #plot_all_data_ts()
+    plot_month_year_relationship(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\niwa_data_explore\test_regressions.csv")

@@ -14,7 +14,7 @@ from copy import deepcopy
 
 
 def map_rch_to_array(hdf, method, period_center, mapping_shp, period_length=10, return_irr_demand=False,
-                     rch_quanity='total_drainage'): #todo I should make IRD be an array should be done, just debug
+                     rch_quanity='total_drainage'):
     """
     takes a hdf and maps it into an array for the model, assumes that the hdf file is a water year amalgimation
     :param hdf: the hdf file that contains the water year average of the LSR from the LSRM
@@ -72,7 +72,7 @@ def map_rch_to_array(hdf, method, period_center, mapping_shp, period_length=10, 
             map_data = data.loc[data.year == low_year].groupby('site').aggregate({rch_quanity: np.mean})
             if return_irr_demand:
                 ird_map_data = data.loc[data.year == low_year].groupby('site').aggregate({'irr_demand': np.mean})
-        elif method == '3_lowest_con_mean':
+        elif method == '3_lowest_con_mean': #todo perhaps add an indexer so only waimak? this is hard
             if len(year_data) < 3:
                 raise ValueError('3 year consectuative mean cannot be calculated on data with less than 3 years')
             elif len(year_data) == 3:

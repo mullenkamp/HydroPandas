@@ -135,7 +135,9 @@ for it in param_dict:
     print('Read in the input data')
 
     precip_et = rd_niwa_data_lsrm(bound_shp, nc_dir, buffer_dis=buffer_dis, from_date=from_date, to_date=to_date)
-
+    #todo here is the place to add the pe adjustment, not that hard...
+    #todo this is a dataframe, of y,x,time,rain,pe.  it might be worth making it a geodataframe and then selecting in
+    #todo polygon in order to correctly get teh sites in each polygon and then return it back to the pevious shape
     ##########################################
     ### Process data
     ## Resample met data data
