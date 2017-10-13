@@ -195,7 +195,7 @@ def _write_netcdf_regress_all(outpath, out_lats, out_lons, out_data, pe_path, mo
     outfile.source = 'original data: {}, script: {}'.format(pe_path, sys.argv[0])
 
 
-def make_month_year_vcsn_data():  # todo
+def make_month_year_vcsn_data():
     pe_path = r"Y:\VirtualClimate\vcsn_precip_et_2016-06-06.nc"
     print(pe_path)
     model = os.path.basename(os.path.dirname(pe_path))
@@ -328,7 +328,7 @@ def make_slope_intercept_grid_all():
         vcsn_wp = np.zeros(outshape) * np.nan
         for latidx, lonidx in itertools.product(range(rcm_pe.shape[1]), range(rcm_pe.shape[2])):
             x = np.log(rcm_pe[:, latidx, lonidx])
-            y = np.log(vcsn_pe[:, latidx, lonidx])  # todo still testing log
+            y = np.log(vcsn_pe[:, latidx, lonidx])
             mask = np.isfinite(x) & np.isfinite(y)
             count = mask.sum()
             if count == 0:
@@ -521,7 +521,7 @@ def visualise_regress_data_all_ols(outdir):
         fig.savefig(os.path.join(outdir, 'all_{}.png'.format(var)))
 
 
-def plot_example_sites(outdir, log_tranform=False):  # todo looks like log is better
+def plot_example_sites(outdir, log_tranform=False):  # log is better
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
