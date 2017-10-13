@@ -133,16 +133,23 @@ def plot_month_year_relationship(outpath):
     outdata = pd.DataFrame(data=list(itertools.product(set(plot_data.zone),set(plot_data.model_x))), columns=['zone','model'])
     for key in ['slope', 'intercept', 'r_value', 'p_value', 'std_err']:
         outdata[key] = np.nan
+    title = 'not log transform'
+    #plot_data.loc[:,'pe_x'] = np.log(plot_data.pe_x) #may be commented out as I'm playing with log tranforming data #todo define in the end looks like log it better
+    #plot_data.loc[:,'pe_y'] = np.log(plot_data.pe_y) #may be commented out as I'm playing with log tranforming data
+    #title = 'log_transform' #may be commented out as I'm playing with log tranforming data
+
     for i,zone, model_x in outdata.loc[:,['zone','model']].itertuples(True,None):
         temp = plot_data.loc[(plot_data.model_x==model_x) & (plot_data.zone == zone)]
         slope, intercept, r_value, p_value, std_err = stats.linregress(temp['pe_x'], temp['pe_y']) #todo do I have this order right?
-        outdata.loc[i,['slope', 'intercept', 'r_value', 'p_value', 'std_err']] = slope, intercept, r_value, p_value, std_err
+        outdata.loc[i, ['slope', 'intercept', 'r_value', 'p_value', 'std_err']] = slope, intercept, r_value, p_value, std_err
     outdata.to_csv(outpath)
     # plot
     g = sns.FacetGrid(plot_data, row='zone', col='model_x')
     g.map_dataframe(sns.regplot, x='pe_x', y='pe_y')
+    g.fig.suptitle(title)
     g2 = sns.FacetGrid(plot_data, row='zone', col='model_x')
     g2.map_dataframe(sns.residplot, x='pe_x', y='pe_y')
+    g2.fig.suptitle(title)
     plt.show()
 
 
