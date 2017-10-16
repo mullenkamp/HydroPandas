@@ -24,7 +24,6 @@ from os import path
 from pandas import read_hdf
 from collections import OrderedDict
 import os
-from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 start1 = time()
 
 #############################################
@@ -78,7 +77,7 @@ with open(os.path.join(output_dir,'READ_ME.txt'),'w') as f:
     f.write('using corrected pet data, and using irrigation data {}'.format(irr_type_dict))
 
 
-### Iteration parameters #todo debug, but this should be working
+### Iteration parameters
 # these folders contain a smaller copy of the rain data and the waimak corrected pe data from adjust_rcm_et.py
 rcppast = env.gw_met_data(r"niwa_netcdf\rain_waimak_corrected_pe_data\RCPpast")
 rcp4 = env.gw_met_data(r"niwa_netcdf\rain_waimak_corrected_pe_data\RCP4.5")
