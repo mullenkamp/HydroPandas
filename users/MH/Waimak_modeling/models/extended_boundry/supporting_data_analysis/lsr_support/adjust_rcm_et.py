@@ -16,6 +16,8 @@ import pickle
 import statsmodels
 import datetime
 import sys
+import matplotlib.pyplot as plt
+import pandas as pd
 
 geom = gpd.read_file(
     r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\niwa_data_explore\montly_nc_data\bound.shp"
@@ -37,6 +39,9 @@ def adjust_rcm_pet(baseoutdir):
 
     for pe_path in paths:
         model = os.path.basename(os.path.dirname(pe_path))
+        if model != 'BCC-CSM1.1': #todo DADB
+            print('skipping {}'.format(model)) # this is a place holder, but I need ot re-run the things as the BCC-CSM1 did not have the 8.5 variables
+            continue
         rcm = os.path.basename(os.path.dirname((os.path.dirname(pe_path))))
         outdir = os.path.join(baseoutdir,rcm,model)
         if not os.path.exists(outdir):
@@ -194,11 +199,11 @@ def copy_area_precip_data(baseoutdir):
     paths.extend(glob(env.gw_met_data(r"niwa_netcdf\climate_projections\RCPpast\*\TotalPrecipCorr*.nc")))
     for rain_path in paths:
         rcm = os.path.basename(os.path.dirname((os.path.dirname(rain_path))))
-        outdir = os.path.join(baseoutdir,rcm)
+        model = os.path.basename(os.path.dirname(rain_path))
+        outdir = os.path.join(baseoutdir,rcm,model)
         if not os.path.exists(outdir):
             os.makedirs(outdir)
         print(rain_path)
-        model = os.path.basename(os.path.dirname(rain_path))
 
         # pull out data
         rain_data = nc.Dataset(rain_path)
@@ -223,11 +228,168 @@ def copy_area_precip_data(baseoutdir):
 
 
 
-def check_new_rcm_data(model):  # todo
+def check_new_rcm_data(base_dir):
+    # monthly and annual averaged ET time periods at sites all rcms
+    outdir = os.path.join(base_dir,'site_plots')
+    rcps = ['RCPpast','RCP4.5','RCP8.5']
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
 
-    raise NotImplementedError
+    shp_sites = gpd.read_file(
+        r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\niwa_data_explore\montly_nc_data\regressions\sites.shp")
+    sites = {name: (geom.x, geom.y) for name, geom in
+             shp_sites.loc[:, ['site_name', 'geometry']].itertuples(False, None)}
+    for site, (lon, lat) in sites.items():
+        print(site)
+        for style in ['year','month','10year']:
+            print(style)
+            fig, axs = plt.subplots(nrows=3,figsize=(18.5, 9.5))
+            for rcp,ax in zip(rcps, axs.flatten()):
+                data = {}
+                all_times = {}
+                paths = glob(
+                    r"K:\niwa_netcdf\rain_waimak_corrected_pe_data\{}\*\PE*.nc".format(rcp))
+                for path in paths:
+                    temp = nc.Dataset(path)
+                    model = os.path.basename(path).replace('_monthly_pe.nc', '')
+                    data[model] = np.array(temp.variables['pe'])
+                    all_times[model] = nc.num2date(np.array(temp.variables['time']), temp.variables['time'].units)
+
+                base_cols = ['c', 'y', 'm', 'k', 'g', 'b']
+                colors = {key: col for key, col in zip(data.keys(), base_cols)}
+                colors['vcsn'] = 'r'
+                if rcp == 'RCPpast':
+                    pe_path = r"Y:\VirtualClimate\vcsn_precip_et_2016-06-06.nc"
+                    pe_data = nc.Dataset(pe_path)
+                    pe = np.array(pe_data.variables['pe'])
+                    vcsn_time = nc.num2date(np.array(pe_data.variables['time']), pe_data.variables['time'].units)
+                    lats, lons = np.array(pe_data['latitude']), np.array(pe_data['longitude'])
+                    lats = np.flip(lats, 0)
+                    pe = np.swapaxes(pe, 0, 2)
+                    pe = np.flip(pe, axis=1)
+
+                    # set bounds for lat lon and time
+                    lat_idx = np.where((lats >= lat_bounds[0]) & (lats <= lat_bounds[1]))
+                    lon_idx = np.where((lons >= lon_bounds[0]) & (lons <= lon_bounds[1]))
+
+                    # bound the data
+                    lats = lats[lat_idx]
+                    lons = lons[lon_idx]
+
+                    pe = pe[:, lat_idx[0], :][:, :, lon_idx[0]]
+                    data['vcsn'] = pe
+                    all_times['vcsn'] = vcsn_time
+
+                lats = np.array(temp.variables['latitude'])
+                lons = np.array(temp.variables['longitude'])
+
+                lat_idx = np.argmin(np.abs(np.abs(lats) - np.abs(lat)))
+                lon_idx = np.argmin(np.abs(np.abs(lons) - np.abs(lon)))
+                print(lat, lat_idx, lon, lon_idx)
+                for m, dat in data.items():
+                    rcm_site_df = pd.DataFrame(index=all_times[m], data=dat[:, lat_idx, lon_idx], columns=['pet'])
+                    if style == 'month':
+                        plt_data = rcm_site_df.resample('M').mean()
+                    elif style == 'year':
+                        plt_data = rcm_site_df.resample('A').mean()
+                    elif style == '10year':
+                        plt_data = rcm_site_df.resample('10A').mean()
+                    # make a ts plot
+                    ax.plot(plt_data.index, plt_data.pet, c=colors[m], label=m)
+                    ax.set_ylabel('pet mm/day')
+                    ax.set_xlabel('time')
+                    ax.set_title(rcp)
+
+            fig.suptitle(site)
+            handles, labels = fig.axes[0].get_legend_handles_labels()
+            fig.legend(handles, labels, 'upper right')
+            fig.savefig(os.path.join(outdir, 'mean_PE_{}_ts_{}__plot.png'.format(style, site)))
+
+
+
+def check_new_rcm_data_rain(base_dir):
+    # monthly and annual averaged ET time periods at sites all rcms
+    outdir = os.path.join(base_dir,'site_plots')
+    rcps = ['RCPpast','RCP4.5','RCP8.5']
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+
+    shp_sites = gpd.read_file(
+        r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\niwa_data_explore\montly_nc_data\regressions\sites.shp")
+    sites = {name: (geom.x, geom.y) for name, geom in
+             shp_sites.loc[:, ['site_name', 'geometry']].itertuples(False, None)}
+    for site, (lon, lat) in sites.items():
+        print(site)
+        for style in ['year','month','10year']:
+            print(style)
+            fig, axs = plt.subplots(nrows=3,figsize=(18.5, 9.5))
+            for rcp,ax in zip(rcps, axs.flatten()):
+                data = {}
+                all_times = {}
+                paths = glob(
+                    r"K:\niwa_netcdf\rain_waimak_corrected_pe_data\{}\*\Tot*.nc".format(rcp))
+                for path in paths:
+                    temp = nc.Dataset(path)
+                    model = os.path.basename(os.path.dirname(path))
+                    data[model] = np.array(temp.variables['rain'])
+                    all_times[model] = nc.num2date(np.array(temp.variables['time']), temp.variables['time'].units)
+
+                base_cols = ['c', 'y', 'm', 'k', 'g', 'b']
+                colors = {key: col for key, col in zip(data.keys(), base_cols)}
+                colors['vcsn'] = 'r'
+                if rcp == 'RCPpast':
+                    pe_path = r"Y:\VirtualClimate\vcsn_precip_et_2016-06-06.nc"
+                    pe_data = nc.Dataset(pe_path)
+                    pe = np.array(pe_data.variables['rain'])
+                    vcsn_time = nc.num2date(np.array(pe_data.variables['time']), pe_data.variables['time'].units)
+                    lats, lons = np.array(pe_data['latitude']), np.array(pe_data['longitude'])
+                    lats = np.flip(lats, 0)
+                    pe = np.swapaxes(pe, 0, 2)
+                    pe = np.flip(pe, axis=1)
+
+                    # set bounds for lat lon and time
+                    lat_idx = np.where((lats >= lat_bounds[0]) & (lats <= lat_bounds[1]))
+                    lon_idx = np.where((lons >= lon_bounds[0]) & (lons <= lon_bounds[1]))
+
+                    # bound the data
+                    lats = lats[lat_idx]
+                    lons = lons[lon_idx]
+
+                    pe = pe[:, lat_idx[0], :][:, :, lon_idx[0]]
+                    data['vcsn'] = pe
+                    all_times['vcsn'] = vcsn_time
+
+                lats = np.array(temp.variables['latitude'])
+                lons = np.array(temp.variables['longitude'])
+
+                lat_idx = np.argmin(np.abs(np.abs(lats) - np.abs(lat)))
+                lon_idx = np.argmin(np.abs(np.abs(lons) - np.abs(lon)))
+                print(lat, lat_idx, lon, lon_idx)
+                for m, dat in data.items():
+                    rcm_site_df = pd.DataFrame(index=all_times[m], data=dat[:, lat_idx, lon_idx], columns=['pet'])
+                    if style == 'month':
+                        plt_data = rcm_site_df.resample('M').sum()
+                    elif style == 'year':
+                        plt_data = rcm_site_df.resample('A').sum()
+                    elif style == '10year':
+                        plt_data = rcm_site_df.resample('10A').mean()
+                    # make a ts plot
+                    ax.plot(plt_data.index, plt_data.pet, c=colors[m], label=m)
+                    ax.set_ylabel('rain mm/day')
+                    ax.set_xlabel('time')
+                    ax.set_title(rcp)
+
+            fig.suptitle(site)
+            handles, labels = fig.axes[0].get_legend_handles_labels()
+            fig.legend(handles, labels, 'upper right')
+            fig.savefig(os.path.join(outdir, 'rain_sum_{}_ts_{}__plot.png'.format(style, site)))
+
+
+
 
 
 if __name__ == '__main__':
-    copy_area_precip_data(env.gw_met_data("niwa_netcdf/rain_waimak_corrected_pe_data"))
+    #copy_area_precip_data(env.gw_met_data("niwa_netcdf/rain_waimak_corrected_pe_data"))
     adjust_rcm_pet(env.gw_met_data("niwa_netcdf/rain_waimak_corrected_pe_data"))
+    check_new_rcm_data(r"K:\niwa_netcdf\rain_waimak_corrected_pe_data\check_plots")
+    #check_new_rcm_data_rain(r"K:\niwa_netcdf\rain_waimak_corrected_pe_data\check_plots")

@@ -24,6 +24,8 @@ def get_sd_starting_hds(model_id, sd_version):
         hds = get_starting_heads_sd30(model_id)
     elif sd_version == 'sd150':
         hds = get_starting_heads_sd150(model_id)
+    elif sd_version == 'grid':
+        hds = _get_no_pumping_ss_hds(model_id)
     else:
         raise ValueError('unexpected argument for sd_version: {}'.format(sd_version))
 

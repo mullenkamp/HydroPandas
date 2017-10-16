@@ -122,7 +122,7 @@ class ModelTools(object):
             outdata = np.zeros((self.layers, self.rows, self.cols)) * np.nan
             for i in dataframe.index:
                 layer, row, col = dataframe.loc[i, [layval, rowval, colval]].astype(int)
-                outdata[layer, row, col] = dataframe.loc[i, value_to_map]
+                outdata[int(layer), int(row), int(col)] = dataframe.loc[i, value_to_map]
         else:
             rowval, colval = 'i', 'j'
             if not np.in1d(['i', 'j', value_to_map], dataframe.keys()).all():

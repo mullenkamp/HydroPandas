@@ -217,6 +217,7 @@ if model_version == 'a':
     smt.sfr_version, smt.seg_v, smt.reach_v = 1, 1, 1
     smt.k_version = 1
     smt.wel_version = 1
+smt.temp_pickle_dir = os.path.join(smt.pickle_dir,'temp_pickle_dir')
 
 
 

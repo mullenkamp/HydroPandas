@@ -231,11 +231,20 @@ def make_month_year_vcsn_data():
         amalg_idx = np.where(np.isclose(years, year) & np.isclose(months, month))
         temp = np.nanmean(pe[amalg_idx[0], :, :], 0)
         out_pe[i] = temp
+    # apply course step change correction for the added inland site in 2000  see jen's memo: Comparison of rainfall and
+    # evaporation data with the Virtual Climate Station network (VCSN) in the Ashley-Waimakariri zone
+    out_time = np.array([datetime.datetime(y, m, 15) for y, m in iterator])
+    idx_2000 = out_time < datetime.datetime(2001, 1, 1)
+    for i, j in itertools.product(range(out_pe.shape[1]), range(out_pe.shape[2])):
+        temp = pd.DataFrame(index=out_time, data=out_pe[:, i, j], columns=['pe'])
+        temp = temp.resample('A').sum()
+        scale = temp.loc[temp.index >= datetime.datetime(2001, 1, 1), 'pe'].mean() / temp.loc[
+            temp.index < datetime.datetime(2001, 1, 1), 'pe'].mean()
+        out_pe[idx_2000, i, j] *= scale
 
     # save to netcdf4
     out_lats = lats
     out_lons = lons
-    out_time = np.array([datetime.datetime(y, m, 15) for y, m in iterator])
 
     outpath = os.path.join(outdir, '{}_monthly_pe.nc'.format(model))
     _write_netcdf_year(outpath, out_lats, out_lons, out_time, out_pe, pe_path, model)
@@ -446,7 +455,7 @@ def make_slope_intercept_grid_all_ols():
             outdata[e] = eval(e)
 
         _write_netcdf_regress_all(outpath, lats, lons, outdata, path, model)
-        pickle.dump(regressions,open(os.path.join(outdir, 'regressions_{}.p'.format(model)),'w'))
+        pickle.dump(regressions, open(os.path.join(outdir, 'regressions_{}.p'.format(model)), 'w'))
 
 
 def visualise_regress_data_seasonal(path, outdir):
@@ -494,6 +503,7 @@ def visualise_regress_data_all(outdir):
         fig.suptitle(var)
         fig.savefig(os.path.join(outdir, 'all_{}.png'.format(var)))
 
+
 def visualise_regress_data_all_ols(outdir):
     if not os.path.exists(outdir):
         os.makedirs(outdir)
@@ -501,7 +511,7 @@ def visualise_regress_data_all_ols(outdir):
         r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\niwa_data_explore\montly_nc_data\regressions\all_ols\*.nc")
 
     for var in ['counts', 'slopes', 't1s', 't2s', 't3s', 'intercepts', 'r_values', 'p_values_x', 'p_values_t1',
-                     'p_values_t2', 'p_values_t3', 'p_values_intercept', 'fp_values']:
+                'p_values_t2', 'p_values_t3', 'p_values_intercept', 'fp_values']:
         maxes, mins = [], []
         for path in paths:
             dataset = nc.Dataset(path)
@@ -604,13 +614,13 @@ def abline(slope, intercept, ax, color=None):
 
 if __name__ == '__main__':
     # make_month_year_rcm_data()
-    # make_month_year_vcsn_data()
-    # make_slope_intercept_grid_all_ols()
+    make_month_year_vcsn_data()
+    make_slope_intercept_grid_all_ols()
     plot_dir = r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\niwa_data_explore\montly_nc_data\regressions\plots"
     # plot all
     visualise_regress_data_all_ols(os.path.join(plot_dir, 'all_ols'))
 
-    plt_regress = False
+    plt_regress = True
     if plt_regress:
         plot_dir = r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\niwa_data_explore\montly_nc_data\regressions\plots"
         # plot all

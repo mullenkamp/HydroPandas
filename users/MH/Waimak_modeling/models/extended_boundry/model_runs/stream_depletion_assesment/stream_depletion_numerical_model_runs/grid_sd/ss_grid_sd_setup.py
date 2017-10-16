@@ -16,6 +16,9 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
     get_full_consent, get_race_data, zip_non_essential_files
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import converged
 from traceback import format_exc
+import pandas as pd
+import pickle
+
 
 def setup_and_run_ss_grid_stream_dep_multip(kwargs):
     """
@@ -32,30 +35,26 @@ def setup_and_run_ss_grid_stream_dep_multip(kwargs):
         success = format_exc().replace('\n', '')
     return name, success
 
-#todo this was just a play and is not finished
+
+# todo this was just a play and is not finished
 
 def setup_and_run_ss_grid_stream_dep(model_id, name, base_dir, wells_to_turn_on,
-                                     silent=True, start_heads=None,grid=False, grid_rate=None):
+                                     silent=True, start_heads=None, grid=False):
     """
     set up and run the stream depletion modflow models will write log to the base_dir
     :param model_id: the model id for the NSMC realisation
     :param name: name of the model
     :param base_dir: the directory to place the folder containing the model
-    :param wells_to_turn_on: list well names to turn on e.g. if want no wells to be turned on pass an empty list
+    :param wells_to_turn_on: dataframe of well  if none pass None
     :param silent: passed to m.run_model.  if true Mirror modflow information to consol
     :param start_heads: starting heads to pass to the model
-    :param grid: boolean if false pull well data from CAV, if True pull from the grid and use grid pumping
-    :param grid_rate: the pumping rate for the grid wells
-
     :return:
     """
-    if grid:
-        raise NotImplementedError('grid not yet implemented')
 
     # check inputs are dictionaries
     for input_arg in ['wells_to_turn_on']:
-        if not isinstance(eval(input_arg), list):
-            raise ValueError('incorrect input type for {} expected list'.format(input_arg))
+        if not isinstance(eval(input_arg), pd.DataFrame):
+            raise ValueError('incorrect input type for {} expected dataframe'.format(input_arg))
 
     wells = {}
 
@@ -63,9 +62,8 @@ def setup_and_run_ss_grid_stream_dep(model_id, name, base_dir, wells_to_turn_on,
     full_consent = get_full_consent(model_id)
     # set up wells
     input_wells = deepcopy(base_well)
-    for well in wells_to_turn_on:
-        add_well = full_consent.loc[well] #todo should this be the full consent over 150 days or over 365 etc.
-        input_wells.loc[well] = add_well
+    if wells_to_turn_on is not None:
+        input_wells = pd.concat((input_wells, wells_to_turn_on))
 
     wells[0] = smt.convert_well_data_to_stresspd(input_wells)
 
@@ -131,8 +129,8 @@ def setup_and_run_ss_grid_stream_dep(model_id, name, base_dir, wells_to_turn_on,
     # get success and zip files I don't need for this analysis
     con = None
     if success:
-        con = converged(os.path.join(m.model_ws,m.namefile.replace('.nam', '.list')))
-        zip_non_essential_files(m.model_ws, include_list=False, other_files=['.sfo','.ddn']) #todo  are there others I can incorporate? .ddn? .hds?
+        con = converged(os.path.join(m.model_ws, m.namefile.replace('.nam', '.list')))
+        zip_non_essential_files(m.model_ws, include_list=False, other_files=['.sfo', '.ddn', '.hds'])
     if con is None:
         success = 'convergence unknown'
     elif con:
@@ -143,8 +141,52 @@ def setup_and_run_ss_grid_stream_dep(model_id, name, base_dir, wells_to_turn_on,
     # todo this needs debugging
 
 
-def grid_wells (): #set up a grid
-    raise NotImplementedError
+def grid_wells(flux, recalc=False):  # set up a grid
+    pickle_path = os.path.join(smt.temp_pickle_dir, 'grid_sd_wells.p')
+
+    if os.path.exists(pickle_path) and not recalc:
+        outdata = pickle.load(open(pickle_path))
+    else:
+        base_dir = env.sci(
+            "Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\grid_sd\inputs")
+        layer_shapes = {0: 'layer1_2.shp',  # the file names are 1 indexed while they python layers are zero indexed
+                        1: 'layer1_2.shp',
+                        2: 'layer3_5_clip2.shp',
+                        3: 'layer3_5_clip2.shp',
+                        4: 'layer3_5_clip2.shp',
+                        5: 'layer6_10_clip2.shp',
+                        6: 'layer6_10_clip2.shp',
+                        7: 'layer6_10_clip2.shp',
+                        8: 'layer6_10_clip2.shp',
+                        9: 'layer6_10_clip2.shp'}
+        outdata = []
+        for layer, path in layer_shapes.items():
+            no_flow = smt.get_no_flow(layer)
+            no_flow[no_flow < 0] = 0
+            temp_array = smt.shape_file_to_model_array(os.path.join(base_dir, path), 'Id', True)
+            temp_array[~no_flow.astype(bool)] = np.nan
+            temp = np.array(smt.model_where(np.isfinite(temp_array)))
+
+            rows, cols = temp[:, 0], temp[:, 1]
+            layers = (np.zeros(rows.shape) + layer).astype(int)
+            temp_df = pd.DataFrame({'row': rows, 'col': cols, 'layer': layers})
+            outdata.append(temp_df)
+        outdata = pd.concat(outdata).reset_index()
+        pickle.dump(outdata, open(pickle_path, 'w'))
+
+    outdata.loc[:, 'flux'] = flux  # todo check
+    outdata.loc[:, 'name'] = ['well_kijf_{}_{}_{}_{:.2f}'.format(k, i, j, f) for k, i, j, f in
+                              outdata.loc[:, ['layer', 'row', 'col', 'flux']].itertuples(False, None)]
+    outdata = outdata.set_index('name')
+    return outdata
+
 
 if __name__ == '__main__':
+    test = grid_wells(10, True)
+    temp = smt.df_to_array(test, 'flux', True)
+    for i in range(smt.layers):
+        smt.plt_matrix(temp[i], title=i)
+    import matplotlib.pyplot as plt
+
+    plt.show()
     print('done')
