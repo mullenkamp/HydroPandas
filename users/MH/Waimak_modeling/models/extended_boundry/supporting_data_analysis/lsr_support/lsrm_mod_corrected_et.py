@@ -31,7 +31,7 @@ start1 = time()
 
 ### Reading data
 irr_type_dict = {'server': 'SQL2012PROD05', 'database': 'GIS',
-                 'table': 'AQUALINC_NZTM_IRRIGATED_AREA_20160629', 'column': 'type'} # not useing the 2016 irrigation
+                 'table': 'AQUALINC_NZTM_IRRIGATED_AREA_20160629', 'column': 'type'} # useing the 2016 irrigation for the future senarios
 paw_dict = {'server': 'SQL2012PROD05', 'database': 'GIS', 'table': 'LAND_NZTM_NEWZEALANDFUNDAMENTALSOILS', 'column': 'PAW_MID'}
 
 bound_shp = r'P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\m_ex_bd_inputs\shp\model_grid_domain.shp'

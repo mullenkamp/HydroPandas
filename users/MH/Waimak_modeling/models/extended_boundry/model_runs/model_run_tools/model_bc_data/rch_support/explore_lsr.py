@@ -163,6 +163,7 @@ def plt_rch_budget(base_dir):
         for ax in axes.flatten():
             ax.set_ylim([np.min(mins), np.max(maxs)])
         fig.savefig(os.path.join(base_dir, '{}.png'.format(ttl)))
+        plt.close(fig)
 
     # rcppast
     fig,axs = plt.subplots(nrows=3,ncols=3)
@@ -191,6 +192,7 @@ def plt_rch_budget(base_dir):
     for ax in axs.flatten():
         ax.set_ylim([np.min(mins), np.max(maxs)])
     fig.savefig(os.path.join(base_dir,'rcppast.png'))
+    plt.close(fig)
 
 
     # model_per and vcsn
