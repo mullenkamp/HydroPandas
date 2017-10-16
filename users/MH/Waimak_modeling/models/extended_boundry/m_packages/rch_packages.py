@@ -104,7 +104,7 @@ def _get_rch_v2(recalc=False):
         return rch
 
     new_no_flow = smt.get_no_flow()
-    path = "{}/m_ex_bd_inputs/lsrm_results_v2/vcsn_80perc.h5".format(smt.sdp)
+    path = "{}/m_ex_bd_inputs/lsrm_results_v2/vcsn_80perc.h5".format(smt.sdp) # uses the modified 2012 irrgation layer
     outpath = os.path.join(os.path.dirname(path), 'wym_{}'.format(os.path.basename(path)))
     outdata = gen_water_year_average_lsr_irr(path)
     outdata.to_hdf(outpath, 'wym', mode='w')

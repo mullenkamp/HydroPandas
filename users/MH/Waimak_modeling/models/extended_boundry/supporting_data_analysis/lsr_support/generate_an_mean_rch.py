@@ -39,13 +39,18 @@ def gen_water_year_average_lsr_irr(path):
     for key in ['precip', 'pet', 'paw', 'total_drainage']:  # raising memory error so trying to do it one at a time
         outdata[key] *= (1 / (365 * outdata.site_area))
     outdata['irr_drainage'] *= (1 / (365 * outdata.site_area * outdata.irr_area_ratio))  # per area of irrigation
-    outdata['irr_demand'] *= (1 / (365 * outdata.site_area * outdata.irr_area_ratio))  # m3/day #todo rerun this
+    outdata['irr_demand'] *= (1 / (365 * outdata.site_area * outdata.irr_area_ratio))  # m3/day
     outdata['non_irr_drainage'] = (
     1 / (365 * outdata.site_area * (1 - outdata.irr_area_ratio)))  # per area of non-irrigation
     return outdata
 
 
 def gen_all_wy_averages(base_dir):
+    """
+    generate all the water year mean recharge needs to be run with 20+ g of ram
+    :param base_dir: the directory that holds all of the LSRM results
+    :return:
+    """
     out_dir = '{}/water_year_means'.format(base_dir)
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
@@ -58,4 +63,4 @@ def gen_all_wy_averages(base_dir):
 
 
 if __name__ == '__main__':
-    gen_all_wy_averages(env.gw_met_data("niwa_netcdf/lsrm/lsrm_results"))
+    gen_all_wy_averages(env.gw_met_data("niwa_netcdf/lsrm/lsrm_results")) #todo move files and re-run

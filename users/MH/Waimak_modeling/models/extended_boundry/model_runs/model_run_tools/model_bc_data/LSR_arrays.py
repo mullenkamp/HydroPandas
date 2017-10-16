@@ -219,6 +219,15 @@ def _create_all_lsrm_arrays():
         np.savetxt(outpath_ird, ird)
 
 def get_lsr_base_period_inputs(sen, rcp, rcm, per, at):
+    """
+    keep sen consitant for cc results
+    :param sen:
+    :param rcp:
+    :param rcm:
+    :param per:
+    :param at:
+    :return:
+    """
     if rcp is None and rcm is None:
         per = None
         at = 'mean'
@@ -253,7 +262,7 @@ def get_ird_base_array(sen, rcp, rcm, per, at):
 if __name__ == '__main__':
 
     testtype=1
-    if testtype ==1:
+    if testtype ==1: #todo re-run
         _create_all_lsrm_arrays()
 
     if testtype ==2:

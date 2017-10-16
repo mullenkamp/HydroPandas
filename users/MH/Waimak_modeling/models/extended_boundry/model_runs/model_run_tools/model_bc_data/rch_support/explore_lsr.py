@@ -7,16 +7,14 @@ Date Created: 27/09/2017 2:17 PM
 from __future__ import division
 from core import env
 import numpy as np
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.LSR_arrays import \
-    get_lsrm_base_array
 import pandas as pd
 import matplotlib.pyplot as plt
 from users.MH.Waimak_modeling.models.extended_boundry.m_packages.rch_packages import _get_rch
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.LSR_arrays import \
+    get_lsrm_base_array, get_lsr_base_period_inputs
 import itertools
 import os
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
-
-org_rch = _get_rch()
 
 
 def plt_cc_rch(naturalised, pc5, title):
@@ -45,8 +43,9 @@ def plt_cc_rch(naturalised, pc5, title):
             data = []
             for period in periods:
                 temp = get_lsrm_base_array(sen, rcp, rcm, period, at)
-                data.append(np.nanmean(temp))
-            data = np.array(data) / np.nanmean(org_rch)
+                base_rch = get_lsrm_base_array(**get_lsr_base_period_inputs(sen, rcp, rcm, period, at))
+                data.append(np.nanmean(temp / base_rch))
+            data = np.array(data)
             ax.plot(periods, data, linestyle=linestl, color=color, label=rcp)
     ax.legend()
     return fig, ax
@@ -78,60 +77,70 @@ def comp_amalg_types(rcm, rcp, naturalised=False, pc5=False):
         data = []
         for period in periods:
             temp = get_lsrm_base_array(sen, rcp, rcm, period, at)
-            data.append(np.nanmean(temp))
-        data = np.array(data) / np.nanmean(org_rch)
+            base_rch = get_lsrm_base_array(**get_lsr_base_period_inputs(sen, rcp, rcm, period, at))
+            data.append(np.nanmean(temp / base_rch))
+        data = np.array(data)
         ax.plot(periods, data, color=color, label=at)
     ax.legend()
     return fig, ax
 
 
+def plt_change_maps(base_dir):
+    rcps = ['RCP4.5', 'RCP8.5']
+    rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
+    sens = ['current', 'pc5', 'nat']
+    amalg_types = ['period_mean', '3_lowest_con_mean', 'lowest_year']
+    per = 2090
+    no_flow = smt.get_no_flow()
+    no_flow[no_flow < 0] = 0
+    no_flow = no_flow.astype(bool)
+    for rcp, rcm, sen, at in itertools.product(rcps, rcms, sens, amalg_types):
+        mod_rch = get_lsrm_base_array(sen, rcp, rcm, per, at)
+        base_rch = get_lsrm_base_array(**get_lsr_base_period_inputs(sen, rcp, rcm, per, at))
+        plt_data = mod_rch / base_rch
+        plt_data[~no_flow] = np.nan
+        ttl = 'cc_vs_rcppast_{}-{}-{}-{}-{}'.format(sen, rcp, rcm, per, at)
+        mapfig, mapax = smt.plt_matrix(plt_data, title=ttl, cmap='RdBu')  # todo set vmin/vmax if problems develop
+        mapfig.savefig(os.path.join(base_dir, '{}.png'.format(ttl)))
+        plt.close(mapfig)
+
+def plt_ts_at_comp(base_dir):
+    # 100%
+    fig, ax = plt_cc_rch(False, True, 'pc5')
+    fig.savefig(os.path.join(base_dir, ax.title._text + '.png'))
+    # 80%
+    fig2, ax2 = plt_cc_rch(False, False, 'no_change')
+    fig2.savefig(os.path.join(base_dir, ax2.title._text + '.png'))
+
+    # Nat
+    fig3, ax3 = plt_cc_rch(True, False, 'naturalised')
+    fig3.savefig(os.path.join(base_dir, ax3.title._text + '.png'))
+
+    # amalg types
+    rcps = ['RCP4.5', 'RCP8.5']
+    rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
+    for rcm, rcp in itertools.product(rcms, rcps):
+        fig, ax = comp_amalg_types(rcm, rcp)
+        fig.savefig(os.path.join(base_dir, ax.title._text + '.png'))
+    for rcm, rcp in itertools.product(rcms, rcps):
+        fig, ax = comp_amalg_types(rcm, rcp, True)
+        fig.savefig(os.path.join(base_dir, ax.title._text + '.png'))
+
+
 if __name__ == '__main__':
-    base_dir = "C:\Users\MattH\Desktop\lsr_checks"
+    # todo run this when I get new data
+    base_dir_all = env.sci(
+        "Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\lsr_checks")
     # note this means RCP past is not tested, and vcsn only minimally tested
-    if not os.path.exists(base_dir):
-        os.makedirs(base_dir)
-    base_dir2 = os.path.join(base_dir, 'maps')
-    if not os.path.exists(base_dir2):
-        os.makedirs(base_dir2)
-    test_type = [1]
-    if 1 in test_type:
-        rcps = ['RCP4.5', 'RCP8.5']
-        rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
-        for rcm, rcp in itertools.product(rcms, rcps):
-            temp2010 = get_lsrm_base_array('pc5', 'RCPpast', rcm, 1980, 'period_mean')
-            temp2090 = get_lsrm_base_array('pc5', rcp, rcm, 2090, 'period_mean')
-            plt_data = (temp2090 - temp2010) / temp2010
-            fix, ax = smt.plt_matrix(plt_data, cmap='RdBu', title='pc5_mean_90-pastperpast_{}_{}'.format(rcm, rcp),
-                                     vmin=-2, vmax=2)
-            fix.savefig(os.path.join(base_dir2, ax.title._text + '.png'))
-        rcps = ['RCP4.5', 'RCP8.5']
-        rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
-        for rcm, rcp in itertools.product(rcms, rcps):
-            temp2010 = get_lsrm_base_array('nat', 'RCPpast', rcm, 1980, '3_lowest_con_mean')
-            temp2090 = get_lsrm_base_array('nat', rcp, rcm, 2090, '3_lowest_con_mean')
-            plt_data = (temp2090 - temp2010) / temp2010
-            fix, ax = smt.plt_matrix(plt_data, cmap='RdBu', title='pc5_3yl_90-pastperpast_{}_{}'.format(rcm, rcp),
-                                     vmin=-2, vmax=2)
-            fix.savefig(os.path.join(base_dir2, ax.title._text + '.png'))
+    base_dir_comp = os.path.join(base_dir_all, 'comparisons')
+    if not os.path.exists(base_dir_comp):
+        os.makedirs(base_dir_comp)
+    base_dir_maps = os.path.join(base_dir_all, 'maps')
+    if not os.path.exists(base_dir_maps):
+        os.makedirs(base_dir_maps)
+    test_type = [0, 1]
 
     if 0 in test_type:
-        # 100%
-        fig, ax = plt_cc_rch(False, True, 'pc5')
-        fig.savefig(os.path.join(base_dir, ax.title._text + '.png'))
-        # 80%
-        fig2, ax2 = plt_cc_rch(False, False, 'no_change')
-        fig2.savefig(os.path.join(base_dir, ax2.title._text + '.png'))
-
-        # Nat
-        fig3, ax3 = plt_cc_rch(True, False, 'naturalised')
-        fig3.savefig(os.path.join(base_dir, ax3.title._text + '.png'))
-
-        # amalg types
-        rcps = ['RCP4.5', 'RCP8.5']
-        rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
-        for rcm, rcp in itertools.product(rcms, rcps):
-            fig, ax = comp_amalg_types(rcm, rcp)
-            fig.savefig(os.path.join(base_dir, ax.title._text + '.png'))
-        for rcm, rcp in itertools.product(rcms, rcps):
-            fig, ax = comp_amalg_types(rcm, rcp, True)
-            fig.savefig(os.path.join(base_dir, ax.title._text + '.png'))
+        plt_ts_at_comp(base_dir_comp)
+    if 1 in test_type:
+        plt_change_maps(base_dir_maps)
