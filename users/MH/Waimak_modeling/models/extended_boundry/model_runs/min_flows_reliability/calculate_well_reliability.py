@@ -131,5 +131,5 @@ def get_model_well_reliability(model_id, model_path, indata):  # todo save this?
     data.loc[data.model_water_level < -777, 'rel_rate'] = 4  # already dry at average state
 
     # create cost of reliability #todo handle if it is dry ask zeb how he wants to handle ask zeb what he wants as output
-
+    # assign full consent volume.
     raise NotImplementedError

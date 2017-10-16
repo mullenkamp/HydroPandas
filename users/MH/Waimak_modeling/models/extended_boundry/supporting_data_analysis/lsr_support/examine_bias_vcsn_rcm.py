@@ -58,10 +58,10 @@ def make_save_rcppast_year_amalg(variable, amalg_type, outpath, groupby=('year')
             print(np.isnan(temp_var).sum() / len(temp_var.flatten()))
             if path == r"Y:\VirtualClimate\vcsn_precip_et_2016-06-06.nc":
                 temp_var = amalg_type(temp_var[lon_idx[0], :, :][:, lat_idx[0], :],
-                                      axis=(1, 0))  # todo confirm this works both idx and axis
+                                      axis=(1, 0))
             else:
                 temp_var = amalg_type(temp_var[:, lat_idx[0]][:, :, lon_idx[0]],
-                                      axis=(2, 1))  # todo confirm this works both idx and axis
+                                      axis=(2, 1))
             years = [e.year for e in nc.num2date(np.array(data.variables['time']), data.variables['time'].units)]
             month = [e.month for e in nc.num2date(np.array(data.variables['time']), data.variables['time'].units)]
             temp_outdata = pd.DataFrame({'year': years, 'month': month, variable: temp_var})
@@ -73,7 +73,7 @@ def make_save_rcppast_year_amalg(variable, amalg_type, outpath, groupby=('year')
 
     outdata = pd.concat(outdata)
     outdata.to_csv(outpath)
-    # todo debug one of these
+
 
 
 def plt_data_ts(plt_idx=['year'], title=None):
@@ -133,14 +133,13 @@ def plot_month_year_relationship(outpath):
     outdata = pd.DataFrame(data=list(itertools.product(set(plot_data.zone),set(plot_data.model_x))), columns=['zone','model'])
     for key in ['slope', 'intercept', 'r_value', 'p_value', 'std_err']:
         outdata[key] = np.nan
-    title = 'not log transform'
-    #plot_data.loc[:,'pe_x'] = np.log(plot_data.pe_x) #may be commented out as I'm playing with log tranforming data #todo define in the end looks like log it better
-    #plot_data.loc[:,'pe_y'] = np.log(plot_data.pe_y) #may be commented out as I'm playing with log tranforming data
-    #title = 'log_transform' #may be commented out as I'm playing with log tranforming data
+    plot_data.loc[:,'pe_x'] = np.log(plot_data.pe_x) # the end looks like log it better
+    plot_data.loc[:,'pe_y'] = np.log(plot_data.pe_y)
+    title = 'log_transform'
 
     for i,zone, model_x in outdata.loc[:,['zone','model']].itertuples(True,None):
         temp = plot_data.loc[(plot_data.model_x==model_x) & (plot_data.zone == zone)]
-        slope, intercept, r_value, p_value, std_err = stats.linregress(temp['pe_x'], temp['pe_y']) #todo do I have this order right?
+        slope, intercept, r_value, p_value, std_err = stats.linregress(temp['pe_x'], temp['pe_y'])
         outdata.loc[i, ['slope', 'intercept', 'r_value', 'p_value', 'std_err']] = slope, intercept, r_value, p_value, std_err
     outdata.to_csv(outpath)
     # plot

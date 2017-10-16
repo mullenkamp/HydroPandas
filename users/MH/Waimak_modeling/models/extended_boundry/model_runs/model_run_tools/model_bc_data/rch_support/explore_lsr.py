@@ -9,19 +9,20 @@ from core import env
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from users.MH.Waimak_modeling.models.extended_boundry.m_packages.rch_packages import _get_rch
+from users.MH.Waimak_modeling.models.extended_boundry.m_packages.rch_packages import _get_rch_comparison
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.LSR_arrays import \
     get_lsrm_base_array, get_lsr_base_period_inputs
 import itertools
 import os
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.cwms_index import get_zone_array_index
 
 
 def plt_cc_rch(naturalised, pc5, title):
     periods = range(2010, 2100, 20)
     rcps = ['RCP4.5', 'RCP8.5']
-    rcps_lines = {'RCP4.5': '-', 'RCP8.5': '--'}
     rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
+    rcps_lines = {'RCP4.5': '-', 'RCP8.5': '--'}
     rcm_colors = {'BCC-CSM1.1': 'k', 'CESM1-CAM5': 'r', 'GFDL-CM3': 'g', 'GISS-EL-R': 'b', 'HadGEM2-ES': 'orange',
                   'NorESM1-M': 'purple'}
     sen = 'current'
@@ -100,9 +101,10 @@ def plt_change_maps(base_dir):
         plt_data = mod_rch / base_rch
         plt_data[~no_flow] = np.nan
         ttl = 'cc_vs_rcppast_{}-{}-{}-{}-{}'.format(sen, rcp, rcm, per, at)
-        mapfig, mapax = smt.plt_matrix(plt_data, title=ttl, cmap='RdBu')  # todo set vmin/vmax if problems develop
+        mapfig, mapax = smt.plt_matrix(plt_data, title=ttl, cmap='RdBu',vmin=0.2,vmax=1.8)  # todo reset vmin/vmax if problems develop
         mapfig.savefig(os.path.join(base_dir, '{}.png'.format(ttl)))
         plt.close(mapfig)
+
 
 def plt_ts_at_comp(base_dir):
     # 100%
@@ -127,6 +129,87 @@ def plt_ts_at_comp(base_dir):
         fig.savefig(os.path.join(base_dir, ax.title._text + '.png'))
 
 
+def plt_rch_budget(base_dir):
+    rcps = ['RCP4.5', 'RCP8.5']
+    rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
+    sens = ['current', 'pc5', 'nat']
+    amalg_types = ['period_mean', '3_lowest_con_mean', 'lowest_year']
+    rcps_lines = {'RCP4.5': '-', 'RCP8.5': '--'}
+    rcm_colors = {'BCC-CSM1.1': 'k', 'CESM1-CAM5': 'r', 'GFDL-CM3': 'g', 'GISS-EL-R': 'b', 'HadGEM2-ES': 'orange',
+                  'NorESM1-M': 'purple'}
+    periods = range(2010, 2100, 20)
+
+    for at, (zone, name) in itertools.product(amalg_types,
+                                              zip(['chch', 'waimak', 'selwyn', ['chch', 'waimak', 'selwyn']],
+                                                  ['chch', 'waimak', 'selwyn', 'total'])):
+        zidx = get_zone_array_index(zone)
+        fig, axes = plt.subplots(nrows=3)
+        ttl = 'forward_{}-{}'.format(at, name)
+        fig.suptitle(ttl)
+        mins = []
+        maxs = []
+        for ax, sen in zip(axes.flatten(), sens):
+            for rcp in rcps:
+                for rcm in rcms:
+                    temp_data = []
+                    for per in periods:
+                        temp_rch = get_lsrm_base_array(sen, rcp, rcm, per, at) * 200 * 200
+                        temp_data.append(temp_rch[zidx].sum() / 86400)
+                    ax.plot(periods, temp_data, linestyle=rcps_lines[rcp], color=rcm_colors[rcm], label=rcp)
+            ax.legend()
+            ax.set_ylabel('zonal rch m3/s')
+            mins.append(ax.get_ylim()[0])
+            maxs.append(ax.get_ylim()[1])
+        for ax in axes.flatten():
+            ax.set_ylim([np.min(mins), np.max(maxs)])
+        fig.savefig(os.path.join(base_dir, '{}.png'.format(ttl)))
+
+    # rcppast
+    fig,axs = plt.subplots(nrows=3,ncols=3)
+    fig.suptitle('rcp_past')
+    mins = []
+    maxs = []
+    for i,sen in enumerate(sens):
+        for j, at in enumerate(amalg_types):
+            ax = axs[i,j]
+            ax.set_title('{}|{}'.format(sen,at))
+            names = []
+            data = []
+            for k, (zone, name) in enumerate(zip(['chch', 'waimak', 'selwyn', ['chch', 'waimak', 'selwyn']],
+                                              ['chch', 'waimak', 'selwyn', 'total'])):
+                zidx = get_zone_array_index(zone)
+                names.append(name)
+                temp = []
+                for rcm in rcms:
+                    rch = get_lsrm_base_array(sen,'RCPpast',rcm,1980,at)*200*200
+                    temp.append(rch[zidx].sum()/86400)
+                data.append(temp)
+            ax.boxplot(data)
+            ax.set_xticklabels(names)
+            mins.append(ax.get_ylim()[0])
+            maxs.append(ax.get_ylim()[1])
+    for ax in axs.flatten():
+        ax.set_ylim([np.min(mins), np.max(maxs)])
+    fig.savefig(os.path.join(base_dir,'rcppast.png'))
+
+
+    # model_per and vcsn
+    model_per = _get_rch_comparison()/86400
+    model_per.index = ['mod_per_{}'.format(e) for e in model_per.index]
+
+    # vcsn
+    temp = ['vcsn_{}'.format(e) for e in sens]
+    vcsn = pd.DataFrame(index=temp, columns=['chch', 'waimak', 'selwyn', 'total'])
+    for sen, (zone, name) in itertools.product(sens,zip(['chch', 'waimak', 'selwyn', ['chch', 'waimak', 'selwyn']],
+                                              ['chch', 'waimak', 'selwyn', 'total'])):
+        zidx = get_zone_array_index(zone)
+        rch = get_lsrm_base_array(sen,None,None,None,None)*200*200
+        vcsn.loc['vcsn_{}'.format(sen),name] = rch[zidx].sum()/86400
+    outdata = pd.concat((model_per,vcsn))
+    outdata.to_csv(os.path.join(base_dir,'mod_per_vcsn_budgets.csv'))
+
+
+
 if __name__ == '__main__':
     # todo run this when I get new data
     base_dir_all = env.sci(
@@ -138,9 +221,14 @@ if __name__ == '__main__':
     base_dir_maps = os.path.join(base_dir_all, 'maps')
     if not os.path.exists(base_dir_maps):
         os.makedirs(base_dir_maps)
-    test_type = [0, 1]
+    base_dir_budget = os.path.join(base_dir_all, 'budgets')
+    if not os.path.exists(base_dir_budget):
+        os.makedirs(base_dir_budget)
+    test_type = [0, 1, 2]
 
     if 0 in test_type:
         plt_ts_at_comp(base_dir_comp)
     if 1 in test_type:
         plt_change_maps(base_dir_maps)
+    if 2 in test_type:
+        plt_rch_budget(base_dir_budget)

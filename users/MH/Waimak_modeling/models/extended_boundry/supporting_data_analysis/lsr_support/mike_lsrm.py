@@ -98,7 +98,7 @@ base_param_dict = {'no_irr': {'irr_eff': 1, 'include_irr': False}, '80perc': {'i
 vcsn_param_dict = {'80perc': {'irr_eff': 0.8, 'include_irr': True}, '100perc': {'irr_eff': 1, 'include_irr': True}, 'no_irr': {'irr_eff': 1, 'include_irr': False}}
 
 param_dict = OrderedDict()
-#for f in all_dir: #todo this is for projectsion
+#for f in all_dir: # this is for projectsion
 #    model = path.split(f)[1]
 #    rcp = path.split(path.split(f)[0])[1]
 #    nc_dir = f
@@ -108,7 +108,7 @@ param_dict = OrderedDict()
 #        dict1.update({'nc_dir': nc_dir, 'from_date': None, 'to_date': None})
 #        param_dict.update({name: dict1})
 
-for v in vcsn_param_dict: #todo this is for VCSN
+for v in vcsn_param_dict: # this is for VCSN
     name = '_'.join(['vcsn', v])
     dict1 = vcsn_param_dict[v].copy()
     dict1.update({'nc_dir': vcsn, 'from_date': '2008-07-01', 'to_date': '2015-06-30'})
@@ -135,9 +135,6 @@ for it in param_dict:
     print('Read in the input data')
 
     precip_et = rd_niwa_data_lsrm(bound_shp, nc_dir, buffer_dis=buffer_dis, from_date=from_date, to_date=to_date)
-    #todo here is the place to add the pe adjustment, not that hard...
-    #todo this is a dataframe, of y,x,time,rain,pe.  it might be worth making it a geodataframe and then selecting in
-    #todo polygon in order to correctly get teh sites in each polygon and then return it back to the pevious shape
     ##########################################
     ### Process data
     ## Resample met data data

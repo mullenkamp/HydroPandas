@@ -14,7 +14,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
-# todo pickle both of these
 lats = (-43.474998, -43.275002)
 lons = (171.975006, 172.725006)
 
@@ -29,14 +28,14 @@ def make_save_rcppast_year_amalg(variable, amalg_type, groupby=['year'],outpath=
     if variable == 'pe':
         paths = glob(env.gw_met_data(
             r"niwa_netcdf\climate_projections\RCPpast\*\PE_VCSN_*_RCPpast_1971_2005_south-island_p05_daily_ECan.nc"))
-        at = np.nanmean  # todo does this make sense
+        at = np.nanmean
     elif variable == 'rain':
         paths = glob(env.gw_met_data(
             r"niwa_netcdf\climate_projections\RCPpast\*\TotalPrecipCorr_VCSN_*_RCPpast_1971_2005_south-island_p05_daily_ECan.nc"))
         at = np.nansum
     outdata = []
     for path in paths:
-        # todo heaps of these data are nan why? consistant 60% perhaps the number of stations?
+        # heaps of these data are nan why? because they are in the ocean
         data = nc.Dataset(path)
         lat, lon = np.array(data['latitude']), np.array(data['longitude'])
         lat_idx = np.where((lat >= lats[0]) & (lat <= lats[1]))
@@ -45,7 +44,7 @@ def make_save_rcppast_year_amalg(variable, amalg_type, groupby=['year'],outpath=
         temp_var[np.isclose(temp_var, data.variables[variable]._FillValue)] = np.nan
         print(np.isnan(temp_var).sum() / len(temp_var.flatten()))
         temp_var = amalg_type(temp_var[:, lat_idx[0]][:, :, lon_idx[0]],
-                              axis=(2, 1))  # todo confirm this works both idx and axis
+                              axis=(2, 1))
         outdata.append(temp_var[:, np.newaxis])
     outdata = np.concatenate(outdata, axis=1).mean(axis=1)
     years = [e.year for e in nc.num2date(np.array(data.variables['time']), data.variables['time'].units)]
@@ -60,9 +59,9 @@ def make_save_rcppast_year_amalg(variable, amalg_type, groupby=['year'],outpath=
 
 def make_save_vcsn_year_mean(variable, amalg_type, groupby=['year'], outpath=None):
     data_path = "C:\Users\MattH\Desktop\{}_rcm_year.csv".format(variable)
-    # todo check units, pe is in mm/day and rain is in mm
+    # units, pe is in mm/day and rain is in mm
     if variable == 'pe':
-        at = np.nanmean  # todo does this make sense
+        at = np.nanmean
     elif variable == 'rain':
         at = np.nansum
     path = r"Y:\VirtualClimate\vcsn_precip_et_2016-06-06.nc"
@@ -74,7 +73,7 @@ def make_save_vcsn_year_mean(variable, amalg_type, groupby=['year'], outpath=Non
     temp_var[np.isclose(temp_var, data.variables[variable]._FillValue)] = np.nan
     print(np.isnan(temp_var).sum() / len(temp_var.flatten()))
     temp_var = amalg_type(temp_var[lon_idx[0], :, :][:, lat_idx[0], :],
-                          axis=(0, 1))  # todo confirm this works both idx and axis
+                          axis=(0, 1))
     years = [e.year for e in nc.num2date(np.array(data.variables['time']), data.variables['time'].units)]
     month = [e.month for e in nc.num2date(np.array(data.variables['time']), data.variables['time'].units)]
     outdata = pd.DataFrame({'year': years, 'month': month, variable: temp_var})

@@ -39,9 +39,6 @@ def adjust_rcm_pet(baseoutdir):
 
     for pe_path in paths:
         model = os.path.basename(os.path.dirname(pe_path))
-        if model != 'BCC-CSM1.1': #todo DADB
-            print('skipping {}'.format(model)) # this is a place holder, but I need ot re-run the things as the BCC-CSM1 did not have the 8.5 variables
-            continue
         rcm = os.path.basename(os.path.dirname((os.path.dirname(pe_path))))
         outdir = os.path.join(baseoutdir,rcm,model)
         if not os.path.exists(outdir):

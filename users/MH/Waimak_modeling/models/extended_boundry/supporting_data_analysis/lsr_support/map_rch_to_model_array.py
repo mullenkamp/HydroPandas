@@ -14,7 +14,7 @@ from copy import deepcopy
 
 
 def map_rch_to_array(hdf, method, period_center, mapping_shp, period_length=10, return_irr_demand=False,
-                     rch_quanity='total_drainage'):
+                     rch_quanity='total_drainage',site_list=None):
     """
     takes a hdf and maps it into an array for the model, assumes that the hdf file is a water year amalgimation
     :param hdf: the hdf file that contains the water year average of the LSR from the LSRM
@@ -22,13 +22,14 @@ def map_rch_to_array(hdf, method, period_center, mapping_shp, period_length=10, 
                             'mean': mean of the full dataset
                             'period_mean': mean of the period defined above if the period is longer than the data set
                                            this is equivelent to 'mean' but warning is passed
-                            '3_lowest_con_mean': mean of the three lowest consecuative years
-                            'lowest_year': simply the lowest year
+                            '3_lowest_con_mean': mean of the three lowest consecuative years for sites defined by site_list
+                            'lowest_year': simply the lowest year for sites defined by site_list
     :param mapping_shp: the path to the shapefile that links the data to the geometry
     :param period_center: the year of the center (int)
     :param period_length: the length of the period in years (int) must be even
     :param return_irr_demand: if true then returen both recharge and average annual (spatially summed) irrigation demand (single number)
     :param rch_quanity: the value to use
+    :param site_list: a list of site number (from the data) which should be considered for lowest year.  if None then all considered
     :return: array of the shape of (smt.rows, smt.cols) if return irr_demand then (rch, irr_demand)
     """
     # quick check of inputs
@@ -56,7 +57,12 @@ def map_rch_to_array(hdf, method, period_center, mapping_shp, period_length=10, 
         data = data.loc[
             (data.year >= period_center - period_length / 2) & (data.year <= period_center + period_length / 2)]
 
-        year_data = data.groupby('year').aggregate({rch_quanity: np.sum, 'irr_demand': np.sum})
+        if site_list is None:
+            year_data = data.groupby('year').aggregate({rch_quanity: np.sum, 'irr_demand': np.sum})
+        else:
+            if not set(site_list).issubset(set(data.site)):
+                raise ValueError('sites not defined: {}'.format(set(site_list)-set(data.site)))
+            year_data = data.loc[np.in1d(data.site,site_list)].groupby('year').aggregate({rch_quanity: np.sum, 'irr_demand': np.sum})
 
         expected_years = range(int(period_center - period_length / 2), int(period_center + period_length / 2 + 1))
         if not all(np.in1d(expected_years, year_data.index)):
@@ -72,7 +78,7 @@ def map_rch_to_array(hdf, method, period_center, mapping_shp, period_length=10, 
             map_data = data.loc[data.year == low_year].groupby('site').aggregate({rch_quanity: np.mean})
             if return_irr_demand:
                 ird_map_data = data.loc[data.year == low_year].groupby('site').aggregate({'irr_demand': np.mean})
-        elif method == '3_lowest_con_mean': #todo perhaps add an indexer so only waimak? this is hard
+        elif method == '3_lowest_con_mean':
             if len(year_data) < 3:
                 raise ValueError('3 year consectuative mean cannot be calculated on data with less than 3 years')
             elif len(year_data) == 3:

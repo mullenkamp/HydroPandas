@@ -63,4 +63,4 @@ def gen_all_wy_averages(base_dir):
 
 
 if __name__ == '__main__':
-    gen_all_wy_averages(env.gw_met_data("niwa_netcdf/lsrm/lsrm_results")) #todo move files and re-run
+    gen_all_wy_averages(env.gw_met_data("niwa_netcdf/lsrm/lsrm_results"))

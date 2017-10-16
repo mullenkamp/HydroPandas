@@ -73,17 +73,18 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
 
     if sd_7_150 == 'sd150':
         full_consent = get_full_consent(model_id)
+        full_consent.loc[full_consent.use_type == 'irrigation-sw','flux'] *= 12/5 # scale irrigation wells to CAV over 150 days
     elif sd_7_150 == 'sd7':
         sd7_flux = get_max_rate(model_id)
     for sp in range(nper):
         # set up recharge
-        rch[sp] = 0 #todo do we really want no recharge?
+        rch[sp] = 0
 
         # set up wells
         input_wells = deepcopy(base_well)
         for well in wells_to_turn_on[sp]:
             if sd_7_150 == 'sd150':
-                add_well = full_consent.loc[well] #todo should this be the full consent over 150 days or over 365 etc.
+                add_well = full_consent.loc[well]
                 input_wells.loc[well] = add_well
             elif sd_7_150 == 'sd7':
                 add_well = sd7_flux.loc[well]

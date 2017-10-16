@@ -6,7 +6,7 @@ Date Created: 16/10/2017 1:45 PM
 
 from __future__ import division
 from core import env
-from ss_grid_sd_setup import grid_wells,setup_and_run_ss_grid_stream_dep,setup_and_run_ss_grid_stream_dep_multip
+from ss_grid_sd_setup import grid_wells, setup_and_run_ss_grid_stream_dep, setup_and_run_ss_grid_stream_dep_multip
 import pandas as pd
 import os
 from copy import copy
@@ -15,10 +15,12 @@ import psutil
 import time
 import logging
 import datetime
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.stream_depletion_assesment.stream_depletion_numerical_model_runs.starting_hds_ss_sy import get_sd_starting_hds
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.stream_depletion_assesment.stream_depletion_numerical_model_runs.starting_hds_ss_sy import \
+    get_sd_starting_hds
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 from warnings import warn
 from future.builtins import input
+
 
 def setup_runs_grid(model_id, flux, base_path, start_heads, positive_flux_behavior='raise'):
     """
@@ -30,10 +32,10 @@ def setup_runs_grid(model_id, flux, base_path, start_heads, positive_flux_behavi
     :param positive_flux_behavior: 'raise' or 'warn'.  What to do on positive flux
     :return:
     """
-    if positive_flux_behavior not in ['warn','raise']:
+    if positive_flux_behavior not in ['warn', 'raise']:
         raise ValueError('unexpected values for positive_flux_behviour: {}'.format(positive_flux_behavior))
     if flux > 0:
-        if positive_flux_behavior =='warn':
+        if positive_flux_behavior == 'warn':
             warn('using a positive flux this means injection wells')
         elif positive_flux_behavior == 'raise':
             raise ValueError('flux is >= 0, i.e. injection, not permitted under current positive flux behavior')
@@ -84,7 +86,7 @@ def well_by_well_depletion_grid(model_id, flux, base_path, notes):
         if cont.lower() != 'y':
             raise KeyboardInterrupt('run  stopped to prevent overwrite of {}'.format(base_path))
 
-    start_heads = get_sd_starting_hds(model_id,'grid')
+    start_heads = get_sd_starting_hds(model_id, 'grid')
     t = time.time()
     multiprocessing.log_to_stderr(logging.DEBUG)
     runs = setup_runs_grid(model_id, flux, base_path, start_heads)
@@ -95,16 +97,25 @@ def well_by_well_depletion_grid(model_id, flux, base_path, notes):
     results = pool.map_async(setup_and_run_ss_grid_stream_dep_multip, runs)
     while not results.ready():
         print('{} runs left of {}'.format(results._number_left, len(runs)))
-        time.sleep(60*5)  # sleep 5 min between printing
+        time.sleep(60 * 5)  # sleep 5 min between printing
     pool_outputs = results.get()
     pool.close()  # no more tasks
     pool.join()
     now = datetime.datetime.now()
-    with open("{}/forward_run_log/SDgrid_run_status_{}_{:02d}_{:02d}_{:02d}_{:02d}.txt".format(smt.sdp,now.year,now.month,now.day,now.hour,now.minute), 'w') as f:
+    with open("{}/forward_run_log/SDgrid_run_status_{}_{:02d}_{:02d}_{:02d}_{:02d}.txt".format(smt.sdp, now.year,
+                                                                                               now.month, now.day,
+                                                                                               now.hour, now.minute),
+              'w') as f:
         f.write(str(notes) + '\n')
         wr = ['{}: {}\n'.format(e[0], e[1]) for e in pool_outputs]
         f.writelines(wr)
     print('{} runs completed in {} minutes'.format(len(runs), ((time.time() - t) / 60)))
 
+
 if __name__ == '__main__':
-    well_by_well_depletion_grid('opt',-1000,r"C:\Users\MattH\Desktop\can probably delete\sdgrid_test",'just a test')
+    base_dir = None  # todo define prior to running
+    fluxes = []  # todo define 3 fluxes to run todo check the size requirments make sure all are negative
+    model_id = 'opt'  # todo re-define
+    for flux in fluxes:
+        path = os.path.join(base_dir, 'flux_{}'.format(flux))
+        well_by_well_depletion_grid(model_id, flux, path, 'one flux of 3, using flux of {} m3/d'.format(flux))

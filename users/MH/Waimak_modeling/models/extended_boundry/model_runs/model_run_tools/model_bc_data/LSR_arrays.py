@@ -18,7 +18,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
     get_rch_multipler
 from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.lsr_support.map_rch_to_model_array import \
     map_rch_to_array
-from users.MH.Waimak_modeling.models.extended_boundry.m_packages.rch_packages import get_rch_fixer
+from users.MH.Waimak_modeling.models.extended_boundry.m_packages.rch_packages import get_rch_fixer, _get_rch
 
 lsrm_rch_base_dir = env.gw_met_data('niwa_netcdf/lsrm/lsrm_results/water_year_means')
 rch_idx_shp_path = env.gw_met_data("niwa_netcdf/lsrm/lsrm_results/test/output_test2.shp")
@@ -64,9 +64,9 @@ def get_forward_rch(model_id, naturalised, pc5=False, rcm=None, rcp=None, period
     rch_array *= rch_mult
 
     if cc_to_waimak_only:
-        base_rch = get_lsrm_base_array(sen,None,None,None,'mean') #todo watch this with next itteration
+        base_rch = _get_rch(2)
         base_rch *= rch_mult
-        idx_array = get_zone_array_index(['chch','selwyn'])
+        idx_array = get_zone_array_index(['chch', 'selwyn'])
         rch_array[idx_array] = base_rch[idx_array]
     # handle weirdness from the arrays (e.g. ibound ignore the weirdness from chch/te waihora paw)
 
@@ -122,7 +122,8 @@ def _create_all_lsrm_arrays():
     """
     if not os.path.exists(os.path.join(lsrm_rch_base_dir, 'arrays_for_modflow')):
         os.makedirs(os.path.join(lsrm_rch_base_dir, 'arrays_for_modflow'))
-
+    zidx = get_zone_array_index('waimak')
+    site_list = list(set(smt.shape_file_to_model_array(rch_idx_shp_path, 'site', True)[zidx]))
     periods = range(2010, 2100, 20)
     rcps = ['RCP4.5', 'RCP8.5']
     rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
@@ -148,7 +149,8 @@ def _create_all_lsrm_arrays():
                                 period_center=per,
                                 mapping_shp=rch_idx_shp_path,
                                 period_length=20,
-                                return_irr_demand=True)
+                                return_irr_demand=True,
+                                site_list=site_list)
         outpath = os.path.join(lsrm_rch_base_dir,
                                'arrays_for_modflow/rch_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
         outpath_ird = os.path.join(lsrm_rch_base_dir,
