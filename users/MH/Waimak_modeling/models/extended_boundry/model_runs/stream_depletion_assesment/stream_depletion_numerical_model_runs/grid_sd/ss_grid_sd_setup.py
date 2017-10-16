@@ -36,7 +36,6 @@ def setup_and_run_ss_grid_stream_dep_multip(kwargs):
     return name, success
 
 
-# todo this was just a play and is not finished
 
 def setup_and_run_ss_grid_stream_dep(model_id, name, base_dir, wells_to_turn_on,
                                      silent=True, start_heads=None, grid=False):
@@ -138,7 +137,6 @@ def setup_and_run_ss_grid_stream_dep(model_id, name, base_dir, wells_to_turn_on,
     else:
         success = 'did not converge'
     return name, success
-    # todo this needs debugging
 
 
 def grid_wells(flux, recalc=False):  # set up a grid
@@ -174,7 +172,7 @@ def grid_wells(flux, recalc=False):  # set up a grid
         outdata = pd.concat(outdata).reset_index()
         pickle.dump(outdata, open(pickle_path, 'w'))
 
-    outdata.loc[:, 'flux'] = flux  # todo check
+    outdata.loc[:, 'flux'] = flux
     outdata.loc[:, 'name'] = ['well_kijf_{}_{}_{}_{:.2f}'.format(k, i, j, f) for k, i, j, f in
                               outdata.loc[:, ['layer', 'row', 'col', 'flux']].itertuples(False, None)]
     outdata = outdata.set_index('name')

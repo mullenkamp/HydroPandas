@@ -17,16 +17,28 @@ import logging
 import datetime
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.stream_depletion_assesment.stream_depletion_numerical_model_runs.starting_hds_ss_sy import get_sd_starting_hds
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
+from warnings import warn
+from future.builtins import input
 
-def setup_runs_grid(model_id, flux, base_path, start_heads):
+def setup_runs_grid(model_id, flux, base_path, start_heads, positive_flux_behavior='raise'):
     """
     sets up the model runs for stream depletion 7 day assessment
     :param model_id: the NSMC realisation to use
     :param flux: the flux to attribute to each well
     :param base_path: the path to put all of the folders containing each well model
     :param start_heads: the starting heads for the model (k,i,j array)
+    :param positive_flux_behavior: 'raise' or 'warn'.  What to do on positive flux
     :return:
     """
+    if positive_flux_behavior not in ['warn','raise']:
+        raise ValueError('unexpected values for positive_flux_behviour: {}'.format(positive_flux_behavior))
+    if flux > 0:
+        if positive_flux_behavior =='warn':
+            warn('using a positive flux this means injection wells')
+        elif positive_flux_behavior == 'raise':
+            raise ValueError('flux is >= 0, i.e. injection, not permitted under current positive flux behavior')
+    elif flux == 0:
+        raise ValueError('why are you setting flux to zero!')
 
     if not os.path.exists(base_path):
         os.makedirs(base_path)
@@ -64,6 +76,7 @@ def well_by_well_depletion_grid(model_id, flux, base_path, notes):
     :param model_id: the NSMC realisation to use
     :param flux: the flux to use for each well
     :param base_path: the path to put all of the folders containing each well model
+    :param notes: a string to write to a text file
     :return:
     """
     if os.path.exists(base_path):
@@ -87,10 +100,11 @@ def well_by_well_depletion_grid(model_id, flux, base_path, notes):
     pool.close()  # no more tasks
     pool.join()
     now = datetime.datetime.now()
-    with open("{}/forward_run_log/SD7_run_status_{}_{:02d}_{:02d}_{:02d}_{:02d}.txt".format(smt.sdp,now.year,now.month,now.day,now.hour,now.minute), 'w') as f:
+    with open("{}/forward_run_log/SDgrid_run_status_{}_{:02d}_{:02d}_{:02d}_{:02d}.txt".format(smt.sdp,now.year,now.month,now.day,now.hour,now.minute), 'w') as f:
         f.write(str(notes) + '\n')
         wr = ['{}: {}\n'.format(e[0], e[1]) for e in pool_outputs]
         f.writelines(wr)
     print('{} runs completed in {} minutes'.format(len(runs), ((time.time() - t) / 60)))
 
-#todo debug but should be good
+if __name__ == '__main__':
+    well_by_well_depletion_grid('opt',-1000,r"C:\Users\MattH\Desktop\can probably delete\sdgrid_test",'just a test')
