@@ -31,20 +31,46 @@ sw_site_groups = {
                    'ohoka_island',
                    'silverstream_neeves']
 }
-gw_site_groups = {  # todo get a bunch of wells?
+gw_site_groups = {
     'inland_shallow': ['M34/0306',
-                       'L35/0062'],
+                       'L35/0062',
+                       # I added below
+                       'L35/0004',
+                       'M35/4757',
+                       'M35/0029'],
     'midplains_shallow': ['M35/0058',
                           'M35/6295',
-                          'M35/4873'],
-    'coast_shallow': ['M35/0538'],
+                          'M35/4873',
+
+                          #I added below
+                          'M35/0222',
+                          'M35/2679',
+                          'M35/0596'],
+    'coast_shallow': ['M35/0538',
+
+                      #I added below
+                      'M35/0724',
+                      'M35/17982'
+
+                      ],
 
     'inland_deep': ['M35/9154',
-                    'L35/0686'],
+                    'L35/0686',
+
+                    # below are things I picked out
+                    'L35/0716',
+                    'BW22/0002',
+                    'L35/0882',
+                    'M34/5704'
+                    ],
     'midplains_deep': ['BW23/0133',
                        'BW23/0134',
                        'M35/11283'],
-    'coast_deep': ['M35/5445']
+    'coast_deep': ['M35/5445',
+                   # below I added
+                   'M34/0734',
+                   'M35/7024'
+                   ]
 }
 
 groups = {}
