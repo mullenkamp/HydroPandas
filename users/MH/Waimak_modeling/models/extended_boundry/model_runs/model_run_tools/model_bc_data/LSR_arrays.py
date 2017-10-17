@@ -258,6 +258,8 @@ def get_ird_base_array(sen, rcp, rcm, per, at):
     outdata = np.loadtxt(path)
     if outdata.shape != (smt.rows,smt.cols):
         raise ValueError('incorrect shape for ird: {}'.format(outdata.shape))
+    if sen =='current':
+        outdata *= 1.2 # this accounts for the 20 % leakage in our current senario which is 80% efficient.  there is no difference between the two irrigation demand arrays otherwise
     return outdata
 
 

@@ -11,7 +11,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from users.MH.Waimak_modeling.models.extended_boundry.m_packages.rch_packages import _get_rch_comparison
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.LSR_arrays import \
-    get_lsrm_base_array, get_lsr_base_period_inputs
+    get_lsrm_base_array, get_lsr_base_period_inputs, get_ird_base_array
 import itertools
 import os
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
@@ -275,6 +275,64 @@ def boxplot_cc_projections(base_dir):
         fig.savefig(os.path.join(base_dir, '{}.png'.format(ttl)))
         plt.close(fig)
 
+def boxplot_cc_projections_ird(base_dir):
+    rcps = ['RCP4.5', 'RCP8.5']
+    rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
+    sens = ['current', 'pc5', 'nat']
+    amalg_types = ['period_mean', '3_lowest_con_mean', 'lowest_year']
+    rcp_colors = {'RCP4.5': 'b', 'RCP8.5': 'r'}
+    periods = range(2010, 2100, 20)
+
+
+    for at, (zone, name) in itertools.product(amalg_types,
+                                              zip(['chch', 'waimak', 'selwyn',
+                                                   ['chch', 'waimak', 'selwyn'], 'inland_waimak', 'coastal_waimak'],
+                                                  ['chch', 'waimak', 'selwyn',
+                                                   'total', 'inland_waimak', 'coastal_waimak'])):
+        zidx = get_zone_array_index(zone)
+        fig, axes = plt.subplots(nrows=3, figsize=(18.5, 9.5))
+        ttl = 'ird_boxplot_forward_{}-{}'.format(at, name)
+        fig.suptitle(ttl)
+        mins = []
+        maxs = []
+        for ax, sen in zip(axes.flatten(), sens):
+            for rcp in rcps:
+                plt_data = []
+                temp_data = []
+                for rcm in rcms:
+                    temp_rch = get_ird_base_array(sen,'RCPpast',rcm,1980,at) *200 *200
+                    temp_data.append(np.nansum(temp_rch[zidx]) / 86400)
+                plt_data.append(temp_data)
+                for per in periods:
+                    temp_data = []
+                    for rcm in rcms:
+                        temp_rch = get_ird_base_array(sen, rcp, rcm, per, at) * 200 * 200
+                        temp_data.append(np.nansum(temp_rch[zidx]) / 86400)
+
+                    plt_data.append(temp_data)
+                if rcp == 'RCP8.5':
+                    add_val = 0.1
+                else:
+                    add_val = 0
+                bp = ax.boxplot(plt_data,positions=np.array(range(len(periods)+1)) + add_val)
+                for box in bp['boxes']:
+                    # change outline color
+                    box.set(color=rcp_colors[rcp], linewidth=2, alpha=0.5)
+
+            ax.set_ylabel('zonal rch m3/s')
+            ax.set_title(sen)
+            ax.set_xticklabels([1980] + periods)
+            mins.append(ax.get_ylim()[0])
+            maxs.append(ax.get_ylim()[1])
+        for ax in axes.flatten():
+            ax.set_ylim([np.min(mins), np.max(maxs)])
+        handles = [mpatches.Patch(color='r', label='RCP8.5'),mpatches.Patch(color='b', label='RCP4.5')]
+        labels = ['RCP8.5', 'RCP4.5']
+        fig.legend(handles,labels)
+        fig.tight_layout()
+        fig.savefig(os.path.join(base_dir, '{}.png'.format(ttl)))
+        plt.close(fig)
+
 
 
 if __name__ == '__main__':
@@ -291,7 +349,7 @@ if __name__ == '__main__':
     base_dir_budget = os.path.join(base_dir_all, 'budgets')
     if not os.path.exists(base_dir_budget):
         os.makedirs(base_dir_budget)
-    test_type = [3]
+    test_type = [4]
 
     if 0 in test_type:
         plt_ts_at_comp(base_dir_comp)
@@ -301,3 +359,5 @@ if __name__ == '__main__':
         plt_rch_budget(base_dir_budget)
     if 3 in test_type:
         boxplot_cc_projections(base_dir_budget)
+    if 4 in test_type:
+        boxplot_cc_projections_ird(base_dir_budget)
