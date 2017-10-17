@@ -237,7 +237,7 @@ if __name__ == '__main__':
     #todo define the two below before each run
     dir_path = r"D:\mh_model_runs\forward_runs_2017_10_10" # path on rdsprod03
     notes = """ 
-    LSR senario changes applied to full domain, CC component of LSR changes applied to only waimakariri
+    LSR senario changes applied to full domain, CC component of LSR changes applied to whole domain, but ccmult and missing h20 is waimak only
     pumping changes only applied to Waimakariri with the exception of the pc5 adjustment which is applied in the full domain,
     run in {}
     """.format(dir_path)
@@ -247,7 +247,7 @@ if __name__ == '__main__':
                 'run all forward runs, this could overwrite item in :\n {} \n continue y/n\n'.format(dir_path)).lower()
             if cont != 'y':
                 raise ValueError('script aborted so as not to potentially overwrite {}'.format(dir_path))
-    runs = setup_run_args('opt',dir_path,cc_to_waimak_only=True)
+    runs = setup_run_args('opt',dir_path,cc_to_waimak_only=False)
     import time
     t = time.time()
     run_forward_runs(runs,dir_path,notes)

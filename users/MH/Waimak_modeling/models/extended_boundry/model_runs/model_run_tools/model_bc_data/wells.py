@@ -216,12 +216,8 @@ def get_cc_pumping_muliplier(cc_inputs):
     ird_current_period = get_ird_base_array(*get_lsr_base_period_inputs(sen, rcp, rcm, per, at))
     ird_modeled_period = get_ird_base_array(sen, rcp, rcm, per, at)
     outdata = ird_modeled_period/ird_current_period
-    if cc_inputs['cc_to_waimak_only']:
-        w_idx = get_zone_array_index('waimak')
-        outdata = outdata[w_idx]
-    else:
-        all_idx = get_zone_array_index(['waimak', 'selwyn', 'chch'])
-        outdata = outdata[all_idx]
+    w_idx = get_zone_array_index('waimak') # regardless where the cc input are applied only apply ccmul to waimaik so only use that zone
+    outdata = outdata[w_idx]
     return np.nanmean(outdata)
 
 
