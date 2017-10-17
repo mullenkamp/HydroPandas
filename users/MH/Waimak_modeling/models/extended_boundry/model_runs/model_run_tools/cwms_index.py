@@ -39,7 +39,7 @@ def get_zone_array_index(zones, recalc=False):
         zones_idx_dict['coastal_waimak'] = temp_idx
         temp_idx = (zones_idx==1) & zones_idx_dict['waimak']
         zones_idx_dict['inland_waimak'] = temp_idx
-        pickle.dump(zones_idx, open(pickle_path, 'w'))
+        pickle.dump(zones_idx_dict, open(pickle_path, 'w'))
     out_idx = np.zeros((smt.rows,smt.cols))
     for key in zones:
         out_idx += zones_idx_dict[key]
