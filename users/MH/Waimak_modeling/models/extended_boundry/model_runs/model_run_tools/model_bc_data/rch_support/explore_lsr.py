@@ -16,7 +16,7 @@ import itertools
 import os
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.cwms_index import get_zone_array_index
-
+import matplotlib.patches as mpatches
 
 def plt_cc_rch(naturalised, pc5, title):
     periods = range(2010, 2100, 20)
@@ -44,7 +44,7 @@ def plt_cc_rch(naturalised, pc5, title):
             data = []
             for period in periods:
                 temp = get_lsrm_base_array(sen, rcp, rcm, period, at)
-                base_rch = get_lsrm_base_array(**get_lsr_base_period_inputs(sen, rcp, rcm, period, at))
+                base_rch = get_lsrm_base_array(*get_lsr_base_period_inputs(sen, rcp, rcm, period, at))
                 data.append(np.nanmean(temp / base_rch))
             data = np.array(data)
             ax.plot(periods, data, linestyle=linestl, color=color, label=rcp)
@@ -78,7 +78,7 @@ def comp_amalg_types(rcm, rcp, naturalised=False, pc5=False):
         data = []
         for period in periods:
             temp = get_lsrm_base_array(sen, rcp, rcm, period, at)
-            base_rch = get_lsrm_base_array(**get_lsr_base_period_inputs(sen, rcp, rcm, period, at))
+            base_rch = get_lsrm_base_array(*get_lsr_base_period_inputs(sen, rcp, rcm, period, at))
             data.append(np.nanmean(temp / base_rch))
         data = np.array(data)
         ax.plot(periods, data, color=color, label=at)
@@ -92,17 +92,20 @@ def plt_change_maps(base_dir):
     sens = ['current', 'pc5', 'nat']
     amalg_types = ['period_mean', '3_lowest_con_mean', 'lowest_year']
     per = 2090
-    no_flow = smt.get_no_flow()
+    no_flow = smt.get_no_flow(1)
     no_flow[no_flow < 0] = 0
     no_flow = no_flow.astype(bool)
     for rcp, rcm, sen, at in itertools.product(rcps, rcms, sens, amalg_types):
         mod_rch = get_lsrm_base_array(sen, rcp, rcm, per, at)
-        base_rch = get_lsrm_base_array(**get_lsr_base_period_inputs(sen, rcp, rcm, per, at))
+        base_rch = get_lsrm_base_array(*get_lsr_base_period_inputs(sen, rcp, rcm, per, at))
         plt_data = mod_rch / base_rch
         plt_data[~no_flow] = np.nan
         ttl = 'cc_vs_rcppast_{}-{}-{}-{}-{}'.format(sen, rcp, rcm, per, at)
         mapfig, mapax = smt.plt_matrix(plt_data, title=ttl, cmap='RdBu',vmin=0.2,vmax=1.8)  # todo reset vmin/vmax if problems develop
-        mapfig.savefig(os.path.join(base_dir, '{}.png'.format(ttl)))
+        outdir = os.path.join(base_dir, at)
+        if not os.path.exists(outdir):
+            os.makedirs(outdir)
+        mapfig.savefig(os.path.join(outdir, '{}.png'.format(ttl)))
         plt.close(mapfig)
 
 
@@ -143,7 +146,7 @@ def plt_rch_budget(base_dir):
                                               zip(['chch', 'waimak', 'selwyn', ['chch', 'waimak', 'selwyn']],
                                                   ['chch', 'waimak', 'selwyn', 'total'])):
         zidx = get_zone_array_index(zone)
-        fig, axes = plt.subplots(nrows=3)
+        fig, axes = plt.subplots(nrows=3, figsize=(18.5, 9.5))
         ttl = 'forward_{}-{}'.format(at, name)
         fig.suptitle(ttl)
         mins = []
@@ -156,29 +159,32 @@ def plt_rch_budget(base_dir):
                         temp_rch = get_lsrm_base_array(sen, rcp, rcm, per, at) * 200 * 200
                         temp_data.append(temp_rch[zidx].sum() / 86400)
                     ax.plot(periods, temp_data, linestyle=rcps_lines[rcp], color=rcm_colors[rcm], label=rcp)
-            ax.legend()
             ax.set_ylabel('zonal rch m3/s')
+            ax.set_title(sen)
             mins.append(ax.get_ylim()[0])
             maxs.append(ax.get_ylim()[1])
         for ax in axes.flatten():
             ax.set_ylim([np.min(mins), np.max(maxs)])
+        handles, labels = ax.get_legend_handles_labels()
+        fig.legend(handles,labels)
+        fig.tight_layout()
         fig.savefig(os.path.join(base_dir, '{}.png'.format(ttl)))
         plt.close(fig)
 
     # rcppast
-    fig,axs = plt.subplots(nrows=3,ncols=3)
+    fig,axs = plt.subplots(nrows=3,ncols=4,figsize=(18.5, 9.5))
     fig.suptitle('rcp_past')
     mins = []
     maxs = []
     for i,sen in enumerate(sens):
-        for j, at in enumerate(amalg_types):
+        for j, (zone,name) in enumerate(zip(['chch', 'waimak', 'selwyn', ['chch', 'waimak', 'selwyn']],
+                                              ['chch', 'waimak', 'selwyn', 'total'])):
             ax = axs[i,j]
-            ax.set_title('{}|{}'.format(sen,at))
+            ax.set_title('{}|{}'.format(sen,name))
             names = []
             data = []
-            for k, (zone, name) in enumerate(zip(['chch', 'waimak', 'selwyn', ['chch', 'waimak', 'selwyn']],
-                                              ['chch', 'waimak', 'selwyn', 'total'])):
-                zidx = get_zone_array_index(zone)
+            zidx = get_zone_array_index(zone)
+            for k, at in enumerate(amalg_types):
                 names.append(name)
                 temp = []
                 for rcm in rcms:
@@ -186,11 +192,12 @@ def plt_rch_budget(base_dir):
                     temp.append(rch[zidx].sum()/86400)
                 data.append(temp)
             ax.boxplot(data)
-            ax.set_xticklabels(names)
+            ax.set_xticklabels(amalg_types)
             mins.append(ax.get_ylim()[0])
             maxs.append(ax.get_ylim()[1])
     for ax in axs.flatten():
         ax.set_ylim([np.min(mins), np.max(maxs)])
+    fig.tight_layout()
     fig.savefig(os.path.join(base_dir,'rcppast.png'))
     plt.close(fig)
 
@@ -205,10 +212,68 @@ def plt_rch_budget(base_dir):
     for sen, (zone, name) in itertools.product(sens,zip(['chch', 'waimak', 'selwyn', ['chch', 'waimak', 'selwyn']],
                                               ['chch', 'waimak', 'selwyn', 'total'])):
         zidx = get_zone_array_index(zone)
-        rch = get_lsrm_base_array(sen,None,None,None,None)*200*200
+        rch = get_lsrm_base_array(sen,None,None,None,'mean')*200*200
         vcsn.loc['vcsn_{}'.format(sen),name] = rch[zidx].sum()/86400
     outdata = pd.concat((model_per,vcsn))
     outdata.to_csv(os.path.join(base_dir,'mod_per_vcsn_budgets.csv'))
+
+def boxplot_cc_projections(base_dir):
+    rcps = ['RCP4.5', 'RCP8.5']
+    rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
+    sens = ['current', 'pc5', 'nat']
+    amalg_types = ['period_mean', '3_lowest_con_mean', 'lowest_year']
+    rcp_colors = {'RCP4.5': 'b', 'RCP8.5': 'r'}
+    periods = range(2010, 2100, 20)
+
+
+    for at, (zone, name) in itertools.product(amalg_types,
+                                              zip(['chch', 'waimak', 'selwyn',
+                                                   ['chch', 'waimak', 'selwyn'], 'inland_waimak', 'coastal_waimak'],
+                                                  ['chch', 'waimak', 'selwyn',
+                                                   'total', 'inland_waimak', 'coastal_waimak'])):
+        zidx = get_zone_array_index(zone)
+        fig, axes = plt.subplots(nrows=3, figsize=(18.5, 9.5))
+        ttl = 'boxplot_forward_{}-{}'.format(at, name)
+        fig.suptitle(ttl)
+        mins = []
+        maxs = []
+        for ax, sen in zip(axes.flatten(), sens):
+            for rcp in rcps:
+                plt_data = []
+                temp_data = []
+                for rcm in rcms:
+                    temp_rch = get_lsrm_base_array(sen,'RCPpast',rcm,1980,at) *200 *200
+                    temp_data.append(temp_rch[zidx].sum() / 86400)
+                plt_data.append(temp_data)
+                for per in periods:
+                    temp_data = []
+                    for rcm in rcms:
+                        temp_rch = get_lsrm_base_array(sen, rcp, rcm, per, at) * 200 * 200
+                        temp_data.append(temp_rch[zidx].sum() / 86400)
+
+                    plt_data.append(temp_data)
+                if rcp == 'RCP8.5':
+                    add_val = 0.1
+                else:
+                    add_val = 0
+                bp = ax.boxplot(plt_data,positions=np.array(range(len(periods)+1)) + add_val)
+                for box in bp['boxes']:
+                    # change outline color
+                    box.set(color=rcp_colors[rcp], linewidth=2, alpha=0.5)
+
+            ax.set_ylabel('zonal rch m3/s')
+            ax.set_title(sen)
+            ax.set_xticklabels([1980] + periods)
+            mins.append(ax.get_ylim()[0])
+            maxs.append(ax.get_ylim()[1])
+        for ax in axes.flatten():
+            ax.set_ylim([np.min(mins), np.max(maxs)])
+        handles = [mpatches.Patch(color='r', label='RCP8.5'),mpatches.Patch(color='b', label='RCP4.5')]
+        labels = ['RCP8.5', 'RCP4.5']
+        fig.legend(handles,labels)
+        fig.tight_layout()
+        fig.savefig(os.path.join(base_dir, '{}.png'.format(ttl)))
+        plt.close(fig)
 
 
 
@@ -226,7 +291,7 @@ if __name__ == '__main__':
     base_dir_budget = os.path.join(base_dir_all, 'budgets')
     if not os.path.exists(base_dir_budget):
         os.makedirs(base_dir_budget)
-    test_type = [0, 1, 2]
+    test_type = [3]
 
     if 0 in test_type:
         plt_ts_at_comp(base_dir_comp)
@@ -234,3 +299,5 @@ if __name__ == '__main__':
         plt_change_maps(base_dir_maps)
     if 2 in test_type:
         plt_rch_budget(base_dir_budget)
+    if 3 in test_type:
+        boxplot_cc_projections(base_dir_budget)
