@@ -36,9 +36,8 @@ def setup_and_run_ss_grid_stream_dep_multip(kwargs):
     return name, success
 
 
-
 def setup_and_run_ss_grid_stream_dep(model_id, name, base_dir, wells_to_turn_on,
-                                     silent=True, start_heads=None, grid=False):
+                                     silent=True, start_heads=None):
     """
     set up and run the stream depletion modflow models will write log to the base_dir
     :param model_id: the model id for the NSMC realisation
@@ -170,6 +169,14 @@ def grid_wells(flux, recalc=False):  # set up a grid
             temp_df = pd.DataFrame({'row': rows, 'col': cols, 'layer': layers})
             outdata.append(temp_df)
         outdata = pd.concat(outdata).reset_index()
+        elv_db = smt.calc_elv_db()
+        for i in outdata.index:
+            layer, row, col = outdata.loc[i, ['layer', 'row', 'col']].astype(int)
+            x, y, z = smt.convert_matrix_to_coords(row, col, layer, elv_db)
+            outdata.loc[i, 'mx'] = x
+            outdata.loc[i, 'my'] = y
+            outdata.loc[i, 'mz'] = z
+            outdata.loc[i, 'depth'] = elv_db[layer, row, col] - z
         pickle.dump(outdata, open(pickle_path, 'w'))
 
     outdata.loc[:, 'flux'] = flux
@@ -177,6 +184,18 @@ def grid_wells(flux, recalc=False):  # set up a grid
                               outdata.loc[:, ['layer', 'row', 'col', 'flux']].itertuples(False, None)]
     outdata = outdata.set_index('name')
     return outdata
+
+
+def get_base_grid_sd_path(model_id):
+    path = os.path.join(smt.temp_pickle_dir, '{}_grid_sd_base.cbc'.format(model_id))
+    if os.path.exists(path):
+        return path.replace('.cbc', '')
+
+    setup_and_run_ss_grid_stream_dep(model_id=model_id,
+                                     name='grid_sd_base',
+                                     base_dir=smt.temp_pickle_dir,
+                                     wells_to_turn_on=None)
+    return path.replace('.cbc', '')
 
 
 if __name__ == '__main__':

@@ -16,8 +16,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.a
     get_all_well_row_col
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.wells import \
     get_full_consent, get_max_rate
-from base_sd_runs import get_sd_spv
-
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import converged
 
 def calc_stream_dep(model_path, sd_version='sd150'):
     """
@@ -53,6 +52,10 @@ def calc_stream_dep(model_path, sd_version='sd150'):
     temp = pd.DataFrame(budget.get_cumulative('WELLS_OUT'))
     abs_vol = temp[(temp['stress_period'] == temp['stress_period'].max()) &
                    (temp['time_step'] == temp['time_step'].max())]['WELLS_OUT'].iloc[0]
+
+
+    if not converged('{}.list'.format(model_path)):
+        outdata *= np.nan
 
     if abs_vol == 0:
         outdata *= np.nan

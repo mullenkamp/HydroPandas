@@ -173,7 +173,7 @@ def make_rel_data(data_path, meta_data_path, out_path):
 
 def get_baseline_name(meta_data, name, raise_non_converged=True):
     if not meta_data.loc[name, 'is_cc']:
-        outname = 'mod_period'
+        outname = 'current'
 
     else:
         rcp = 'RCPpast'

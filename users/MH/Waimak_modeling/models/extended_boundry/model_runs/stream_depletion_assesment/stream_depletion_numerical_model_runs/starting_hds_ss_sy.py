@@ -53,9 +53,11 @@ def get_starting_heads_sd7(model_id):
 
 
 def _get_no_pumping_ss_hds(model_id, recalc=False):
-    pickle_path = "{}/model_well_full_abstraction.p".format(smt.pickle_dir)
+    pickle_path = "{}/model_{}_sd_starting_hds.p".format(smt.pickle_dir, model_id)
     if (os.path.exists(pickle_path)) and (not recalc):
         hds = pickle.load(open(pickle_path))
+        if hds.shape != (smt.layers, smt.rows, smt.cols):
+            raise ValueError('unexpected shape for hds {}, expected {}'.format(hds.shape, (smt.layers, smt.rows, smt.cols)))
         return hds
     dirpath = "{}/forward_supporting_models/base_str_dep".format(smt.sdp)  # model Id is added in import gns model
     well = {0: smt.convert_well_data_to_stresspd(get_race_data(model_id))}
