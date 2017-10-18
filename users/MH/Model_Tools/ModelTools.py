@@ -385,7 +385,12 @@ class ModelTools(object):
         if 'alpha' in kwargs:
             alpha = kwargs['alpha']
             kwargs.pop('alpha')
-
+        if alpha == 1:
+            linewidth = None
+            edgecolors = 'face'
+        else:
+            edgecolors = 'face'
+            linewidth = 0
         if self._no_flow_calc is not None and no_flow_layer is not None:
             no_flow = self.get_no_flow(no_flow_layer).astype(bool)
             ax.contour(model_xs, model_ys, no_flow)
@@ -393,7 +398,7 @@ class ModelTools(object):
             temp[no_flow] = np.nan
             if plt_background:
                 cmap, norm = from_levels_and_colors([-1, -0.5, 1, 2], ['black', 'black', 'black'])
-                ax.pcolor(model_xs, model_ys, np.ma.masked_invalid(temp), cmap=cmap, alpha=alpha, edgecolors=None)
+                ax.pcolor(model_xs, model_ys, np.ma.masked_invalid(temp), cmap=cmap, alpha=alpha, edgecolors=edgecolors)
             array[~no_flow] = np.nan
         if 'cmap' in kwargs:
             cmap = kwargs['cmap']
@@ -401,7 +406,7 @@ class ModelTools(object):
         else:
             cmap = 'plasma'
         pcm = ax.pcolor(model_xs, model_ys, np.ma.masked_invalid(array),
-                            cmap=cmap, vmin=vmin, vmax=vmax, alpha=alpha, edgecolors=None, **kwargs)
+                            cmap=cmap, vmin=vmin, vmax=vmax, alpha=alpha, edgecolors=edgecolors, linewidth=linewidth, **kwargs)
         if color_bar:
             cbar = fig.colorbar(pcm, ax=ax, extend='max')
             cbar.set_alpha(1)

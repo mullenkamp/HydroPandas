@@ -17,6 +17,7 @@ import datetime
 import sys
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.data_extraction.data_from_streams import \
     get_samp_points_df
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.cwms_index import get_zone_array_index
 import matplotlib.pyplot as plt
 
 depths = [5, 10, 15, 25, 30, 40, 50, 75, 100, 150, 200] #todo confirm with zeb
@@ -37,17 +38,26 @@ def get_mask(recalc=False):
     xs, ys = smt.get_model_x_y(False)
     y, z, x = np.meshgrid(ys, depths, xs)
     z = elv_db[0] - z
-    mask = (np.zeros(smt.model_array_shape) * np.nan).flatten()
-    for i, (tx, ty, tz) in enumerate(zip(x.flatten(), y.flatten(), z.flatten())):
-        layer, row, col = smt.convert_coords_to_matix(tx, ty, tz)
-        mask[i] = no_flow[layer, row, col]
+    mask = np.zeros(smt.model_array_shape)
+    zidx = np.repeat(get_zone_array_index('waimak')[np.newaxis,:,:],11,axis=0)
+    mask[~zidx] = np.nan
+
+    mask = mask.flatten()
+    for i, (tx, ty, tz, m) in enumerate(zip(x.flatten(), y.flatten(), z.flatten(), mask)): # todo I could probably speed this up...
+        if np.isnan(m):
+            continue
+        try:
+            layer, row, col = smt.convert_coords_to_matix(tx, ty, tz)
+            mask[i] = no_flow[layer, row, col]
+        except AssertionError:
+            mask[i] = 0
     mask = mask.reshape(smt.model_array_shape)
     mask = mask == 1
     pickle.dump(mask, open(pickle_path, 'w'))
     return mask
 
 
-def krig_stream(data, stream):
+def krig_stream(data, stream): #todo check speed I may want to re-sample the grid minimally I should mask everything south of waimak
     # 3d krigging on x,y, depth x,y resolution of 200 m ? (e.g. model grid)
     x = data.loc[:, 'mx'].values
     y = data.loc[:, 'my'].values

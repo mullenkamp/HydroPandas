@@ -225,9 +225,4 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     temp = np.zeros(smt.model_array_shape)
     smt.plt_matrix(temp[0], base_map=True,alpha=0.5,title=0.5)
-    smt.plt_matrix(temp[0], base_map=True,alpha=0.6,title=0.6)
-    smt.plt_matrix(temp[0], base_map=True,alpha=0.7,title=0.7)
-    smt.plt_matrix(temp[0], base_map=True,alpha=0.75,title=0.75)
-    smt.plt_matrix(temp[0], base_map=True,alpha=0.8,title=0.8)
-    smt.plt_matrix(temp[0], base_map=True,alpha=0.9,title=0.9)
     plt.show()
