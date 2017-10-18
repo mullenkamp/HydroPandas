@@ -14,6 +14,7 @@ import flopy
 from matplotlib.colors import from_levels_and_colors
 from copy import deepcopy
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 
 
 # todo set up exceptions is required varibles are needed
@@ -34,7 +35,7 @@ class ModelTools(object):
     _elv_calculator = None
 
     def __init__(self, model_version_name, sdp=None, ulx=None, uly=None, layers=None, rows=None, cols=None,
-                 grid_space=None, no_flow_calc=None, temp_file_dir=None, elv_calculator=None, base_mod_path=None):
+                 grid_space=None, no_flow_calc=None, temp_file_dir=None, elv_calculator=None, base_mod_path=None,base_map_path=None):
         self.ulx = ulx
         self.uly = uly
         self.grid_space = grid_space
@@ -53,16 +54,29 @@ class ModelTools(object):
         self.base_mod_path = base_mod_path
         self._elv_calculator = elv_calculator
         self.model_array_shape = (self.layers, self.rows, self.cols)
+        self.base_map_path = base_map_path
 
-    def get_model_x_y(self):
-        pixelWidth = pixelHeight = 200  # todo add grid spacing
+    def _get_xlim_ylim(self):
+        x_min, y_min = self.ulx, self.uly - self.grid_space * self.rows
+        x_max = x_min + self.grid_space*self.cols
+        y_max = self.uly
+        return (x_min,x_max), (y_min,y_max)
+
+    def get_model_x_y(self,grid=True):
+        """
+        returns the x and y coordinates
+        :param grid: if True return the grid, else return the 1d arrays
+        :return:
+        """
+        pixelWidth = pixelHeight = self.grid_space  # todo add grid spacing
 
         x_min, y_min = self.ulx, self.uly - self.grid_space * self.rows
 
         # mid points of the array
         x = np.linspace(x_min + 100, (x_min + 100 + pixelWidth * (self.cols - 1)), self.cols)
         y = np.linspace((y_min + 100 + pixelHeight * (self.rows - 1)), y_min + 100, self.rows)
-
+        if not grid:
+            return x,y
         model_xs, model_ys = np.meshgrid(x, y)
         return model_xs, model_ys
 
@@ -324,7 +338,9 @@ class ModelTools(object):
         band.FlushCache()
         band.SetNoDataValue(-99)
 
-    def plt_matrix(self, array, vmin=None, vmax=None, title=None, no_flow_layer=0, ax=None, color_bar=True, **kwargs):
+    def plt_matrix(self, array, vmin=None, vmax=None, title=None, no_flow_layer=0, ax=None, color_bar=True,
+                   base_map=False, plt_background=True, **kwargs):
+        alpha = 1
         array = deepcopy(array.astype(float))
         if vmax is None:
             vmax = np.nanmax(array)
@@ -340,23 +356,56 @@ class ModelTools(object):
             fig = ax.figure
             ax.set_aspect('equal')
         model_xs, model_ys = self.get_model_x_y()
+        if base_map:
+            if 'alpha' not in kwargs:
+                alpha = 0.5 #todo play with value
+            if self.base_map_path is None:
+                raise ValueError('in order to use base_map self.base_map_path must be defined')
+            #todo implement a basemap check
+            from osgeo.gdal import Open
+
+            ds = Open(self.base_map_path)
+            width = ds.RasterXSize
+            height = ds.RasterYSize
+            gt = ds.GetGeoTransform()
+            minx = gt[0]
+            miny = gt[3] + width * gt[4] + height * gt[5]
+            maxx = gt[0] + width * gt[1] + height * gt[2]
+            maxy = gt[3]
+
+            image = mpimg.imread(self.base_map_path)
+            ll = (minx, miny)
+            ur = (maxx, maxy)
+
+            ax.imshow(image, extent=[ll[0], ur[0], ll[1], ur[1]],cmap='gray')
+            xlim, ylim = self._get_xlim_ylim()
+            ax.set_xlim(xlim)
+            ax.set_ylim(ylim)
+
+        if 'alpha' in kwargs:
+            alpha = kwargs['alpha']
+            kwargs.pop('alpha')
+
         if self._no_flow_calc is not None and no_flow_layer is not None:
             no_flow = self.get_no_flow(no_flow_layer).astype(bool)
             ax.contour(model_xs, model_ys, no_flow)
             temp = np.zeros((self.rows, self.cols))
             temp[no_flow] = np.nan
-            cmap, norm = from_levels_and_colors([-1, -0.5, 1, 2], ['black', 'black', 'black'])
-            ax.pcolormesh(model_xs, model_ys, np.ma.masked_invalid(temp), cmap=cmap)
+            if plt_background:
+                cmap, norm = from_levels_and_colors([-1, -0.5, 1, 2], ['black', 'black', 'black'])
+                ax.pcolor(model_xs, model_ys, np.ma.masked_invalid(temp), cmap=cmap, alpha=alpha, edgecolors=None)
             array[~no_flow] = np.nan
         if 'cmap' in kwargs:
             cmap = kwargs['cmap']
             kwargs.pop('cmap')
         else:
             cmap = 'plasma'
-        pcm = ax.pcolormesh(model_xs, model_ys, np.ma.masked_invalid(array),
-                            cmap=cmap, vmin=vmin, vmax=vmax, **kwargs)
+        pcm = ax.pcolor(model_xs, model_ys, np.ma.masked_invalid(array),
+                            cmap=cmap, vmin=vmin, vmax=vmax, alpha=alpha, edgecolors=None, **kwargs)
         if color_bar:
-            fig.colorbar(pcm, ax=ax, extend='max')
+            cbar = fig.colorbar(pcm, ax=ax, extend='max')
+            cbar.set_alpha(1)
+            cbar.draw_all()
 
         return fig, ax
 

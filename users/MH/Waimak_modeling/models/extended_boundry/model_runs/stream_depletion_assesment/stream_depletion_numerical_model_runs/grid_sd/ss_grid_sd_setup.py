@@ -176,7 +176,7 @@ def grid_wells(flux, recalc=False):  # set up a grid
             outdata.loc[i, 'mx'] = x
             outdata.loc[i, 'my'] = y
             outdata.loc[i, 'mz'] = z
-            outdata.loc[i, 'depth'] = elv_db[layer, row, col] - z
+            outdata.loc[i, 'depth'] = elv_db[0, row, col] - z
         pickle.dump(outdata, open(pickle_path, 'w'))
 
     outdata.loc[:, 'flux'] = flux

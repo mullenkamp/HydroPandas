@@ -206,7 +206,7 @@ def _get_constant_heads():
 smt = ModelTools(
     'ex_bd_va', sdp='{}/ex_bd_va_sdp'.format(sdp), ulx=1512162.53275, uly=5215083.5772, layers=layers, rows=rows,
     cols=cols, grid_space=200, no_flow_calc=_no_flow_calc, temp_file_dir=temp_file_dir, elv_calculator=_elvdb_calc,
-    base_mod_path=None
+    base_mod_path=None, base_map_path="{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/base_map.tif".format(sdp)
 )
 
 # quick versioning
@@ -222,7 +222,12 @@ smt.temp_pickle_dir = os.path.join(smt.pickle_dir,'temp_pickle_dir')
 
 
 if __name__ == '__main__':
-    smt.pickle_dir
-    start = time.time()
-    temp = _no_flow_calc()
-    print('took {} seconds'.format((time.time()-start)))
+    import matplotlib.pyplot as plt
+    temp = np.zeros(smt.model_array_shape)
+    smt.plt_matrix(temp[0], base_map=True,alpha=0.5,title=0.5)
+    smt.plt_matrix(temp[0], base_map=True,alpha=0.6,title=0.6)
+    smt.plt_matrix(temp[0], base_map=True,alpha=0.7,title=0.7)
+    smt.plt_matrix(temp[0], base_map=True,alpha=0.75,title=0.75)
+    smt.plt_matrix(temp[0], base_map=True,alpha=0.8,title=0.8)
+    smt.plt_matrix(temp[0], base_map=True,alpha=0.9,title=0.9)
+    plt.show()
