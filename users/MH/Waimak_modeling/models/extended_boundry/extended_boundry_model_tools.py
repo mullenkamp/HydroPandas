@@ -222,6 +222,7 @@ smt.temp_pickle_dir = os.path.join(smt.pickle_dir,'temp_pickle_dir')
 
 
 if __name__ == '__main__':
+    smt.pickle_dir
     start = time.time()
     temp = _no_flow_calc()
     print('took {} seconds'.format((time.time()-start)))

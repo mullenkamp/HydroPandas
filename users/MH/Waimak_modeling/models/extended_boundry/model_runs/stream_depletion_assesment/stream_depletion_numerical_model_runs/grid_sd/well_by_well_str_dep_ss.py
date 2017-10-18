@@ -114,6 +114,8 @@ def well_by_well_depletion_grid(model_id, flux, base_path, notes):
 
 if __name__ == '__main__':
     base_dir = None  # todo define prior to running
+    # size requirements: one run (one well) is ~ 47 MB there are one full grid run is ~85 GB
+    # run time requirments:
     fluxes = []  # todo define 3 fluxes to run todo check the size requirments make sure all are negative
     model_id = 'opt'  # todo re-define
     for flux in fluxes:

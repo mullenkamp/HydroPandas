@@ -68,7 +68,7 @@ def calc_str_dep_all_wells_grid(out_path, base_path):
     all_paths = glob.glob('{}/*/*.nam'.format(base_path))
     all_paths = [e.replace('.nam', '') for e in all_paths]
     model_id = os.path.basename(all_paths[0]).split('_')[0]
-    wells = [os.path.basename(e).replace('{}_'.format(model_id), '') for e in all_paths]  # todo check
+    wells = [os.path.basename(e).replace('{}_'.format(model_id), '') for e in all_paths]
     out_path = os.path.join(os.path.dirname(out_path), '{}_{}'.format(model_id, os.path.basename(out_path)))
 
     outdata = {}

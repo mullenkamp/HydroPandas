@@ -101,7 +101,7 @@ def plt_change_maps(base_dir):
         plt_data = mod_rch / base_rch
         plt_data[~no_flow] = np.nan
         ttl = 'cc_vs_rcppast_{}-{}-{}-{}-{}'.format(sen, rcp, rcm, per, at)
-        mapfig, mapax = smt.plt_matrix(plt_data, title=ttl, cmap='RdBu',vmin=0.2,vmax=1.8)  # todo reset vmin/vmax if problems develop
+        mapfig, mapax = smt.plt_matrix(plt_data, title=ttl, cmap='RdBu',vmin=0.2,vmax=1.8)
         outdir = os.path.join(base_dir, at)
         if not os.path.exists(outdir):
             os.makedirs(outdir)
@@ -336,7 +336,6 @@ def boxplot_cc_projections_ird(base_dir):
 
 
 if __name__ == '__main__':
-    # todo run this when I get new data
     base_dir_all = env.sci(
         "Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\lsr_checks")
     # note this means RCP past is not tested, and vcsn only minimally tested

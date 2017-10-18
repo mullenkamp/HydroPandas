@@ -266,7 +266,7 @@ def get_ird_base_array(sen, rcp, rcm, per, at):
 if __name__ == '__main__':
 
     testtype=1
-    if testtype ==1: #todo re-run
+    if testtype ==1:
         _create_all_lsrm_arrays()
 
     if testtype ==2:

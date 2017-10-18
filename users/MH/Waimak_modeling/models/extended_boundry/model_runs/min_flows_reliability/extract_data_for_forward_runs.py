@@ -97,7 +97,7 @@ def extract_and_save_all_cc_mult_missing_w(forward_run_dir, outpath):
                                                                           datetime.datetime.now().isoformat()))
 
     outdata.to_csv(outpath, mode='a')
-    return outpath #todo test
+    return outpath
 
 
 
