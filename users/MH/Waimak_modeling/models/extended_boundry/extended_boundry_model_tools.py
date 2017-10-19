@@ -206,7 +206,8 @@ def _get_constant_heads():
 smt = ModelTools(
     'ex_bd_va', sdp='{}/ex_bd_va_sdp'.format(sdp), ulx=1512162.53275, uly=5215083.5772, layers=layers, rows=rows,
     cols=cols, grid_space=200, no_flow_calc=_no_flow_calc, temp_file_dir=temp_file_dir, elv_calculator=_elvdb_calc,
-    base_mod_path=None, base_map_path="{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/base_map.tif".format(sdp)
+    base_mod_path=None,
+    base_map_path=env.sci(r"Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\topo250small.tif")
 )
 
 # quick versioning
@@ -225,4 +226,5 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     temp = np.zeros(smt.model_array_shape)
     smt.plt_matrix(temp[0], base_map=True,alpha=0.5,title=0.5)
+    smt.plt_matrix(temp[0], base_map=True,alpha=1,title=1)
     plt.show()

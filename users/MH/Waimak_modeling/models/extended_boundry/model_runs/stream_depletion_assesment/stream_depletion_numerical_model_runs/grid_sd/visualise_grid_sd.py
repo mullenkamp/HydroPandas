@@ -20,11 +20,12 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.cwms_index import get_zone_array_index
 import matplotlib.pyplot as plt
 
-depths = [5, 10, 15, 25, 30, 40, 50, 75, 100, 150, 200] #todo confirm with zeb
+depths = [10, 15, 20, 30, 40, 50, 75, 100, 150, 200, 225]  # todo confirm with zeb # where do we have data
+
 
 def get_mask(recalc=False):
     """
-    define the mask for kriging from noflow array should be k,i,j
+    define the mask for kriging from no flow array should be k,i,j
     :param recalc:
     :return:
     """
@@ -35,29 +36,31 @@ def get_mask(recalc=False):
 
     elv_db = smt.calc_elv_db()
     no_flow = smt.get_no_flow()
+    no_flow[no_flow < 0] = 0
     xs, ys = smt.get_model_x_y(False)
     y, z, x = np.meshgrid(ys, depths, xs)
     z = elv_db[0] - z
     mask = np.zeros(smt.model_array_shape)
-    zidx = np.repeat(get_zone_array_index('waimak')[np.newaxis,:,:],11,axis=0)
+    zidx = np.repeat(get_zone_array_index('waimak')[np.newaxis, :, :], 11, axis=0)
     mask[~zidx] = np.nan
 
-    mask = mask.flatten()
-    for i, (tx, ty, tz, m) in enumerate(zip(x.flatten(), y.flatten(), z.flatten(), mask)): # todo I could probably speed this up...
-        if np.isnan(m):
-            continue
-        try:
-            layer, row, col = smt.convert_coords_to_matix(tx, ty, tz)
-            mask[i] = no_flow[layer, row, col]
-        except AssertionError:
-            mask[i] = 0
-    mask = mask.reshape(smt.model_array_shape)
-    mask = mask == 1
+    # depth no_flow
+    depth_no_flow = elv_db[0] - elv_db[1:]  # gives all depths
+    depth_no_flow[no_flow.astype(bool)] = np.nan
+    for k, d in enumerate(depths):
+        mask[k][np.nanmin(depth_no_flow, axis=0) <= d] = np.nan
+
+        # above midpoint of layer 1
+        mask[k][(elv_db[0] - elv_db[1]) / 2 > d] = np.nan
+        # above midpoint of layer 1
+        mask[k][(elv_db[0] - elv_db[10]) - 20 < d] = np.nan
+
+    mask = np.isnan(mask)
     pickle.dump(mask, open(pickle_path, 'w'))
     return mask
 
 
-def krig_stream(data, stream): #todo check speed I may want to re-sample the grid minimally I should mask everything south of waimak
+def krig_stream(data, stream):
     # 3d krigging on x,y, depth x,y resolution of 200 m ? (e.g. model grid)
     x = data.loc[:, 'mx'].values
     y = data.loc[:, 'my'].values
@@ -68,8 +71,8 @@ def krig_stream(data, stream): #todo check speed I may want to re-sample the gri
     ok3d = OrdinaryKriging3D(x=x, y=y, z=z, val=val, variogram_model='spherical')
     # this returns a shape of z,y,x
     k3d_temp, ss3d_temp = ok3d.execute('masked', grid_x, grid_y, depths,
-                             mask=mask,
-                             backend='vectorized')  # this may cause a memory error if so switch to 'loop'
+                                       mask=mask,
+                                       backend='vectorized')  # this may cause a memory error if so switch to 'loop'
 
     k3d = k3d_temp.data
     k3d[k3d_temp.mask] = np.nan
@@ -119,22 +122,22 @@ def extract_all_stream_krig(data_path, outpath):
 
     for site in sites:
         k3d, ss3d = krig_stream(data, site)
-        site_k3d = outfile.createVariable('var_{}'.format(site), 'f8', ('depth', 'latitude', 'longitude'),
-                                          fill_value=np.nan)
-        site_k3d.setncatts({'units': 'None',
-                            'long_name': 'variance of interpolated stream depletion from {}'.format(site),
-                            'missing_value': np.nan})
-        site_k3d[:] = k3d
-        site_ss3d = outfile.createVariable('sd_{}'.format(site), 'f8', ('depth', 'latitude', 'longitude'),
+        site_ss3d = outfile.createVariable('var_{}'.format(site), 'f8', ('depth', 'latitude', 'longitude'),
                                            fill_value=np.nan)
-        site_ss3d.setncatts({'units': 'percent of pumping',
-                             'long_name': 'stream depletion from {}'.format(site),
+        site_ss3d.setncatts({'units': 'None',
+                             'long_name': 'variance of interpolated stream depletion from {}'.format(site),
                              'missing_value': np.nan})
         site_ss3d[:] = ss3d
+        site_k3d = outfile.createVariable('sd_{}'.format(site), 'f8', ('depth', 'latitude', 'longitude'),
+                                          fill_value=np.nan)
+        site_k3d.setncatts({'units': 'percent of pumping',
+                            'long_name': 'stream depletion from {}'.format(site),
+                            'missing_value': np.nan})
+        site_k3d[:] = k3d
 
     # set global attributes
     outfile.description = (
-    'interpolated stream depletion (and variance) at steady state for flux: {} m3/day'.format(flux))
+        'interpolated stream depletion (and variance) at steady state for flux: {} m3/day'.format(flux))
     outfile.history = 'created {}'.format(datetime.datetime.now().isoformat())
     outfile.source = 'original data: {}, script: {}'.format(data_path, sys.argv[0])
     outfile.flux = flux
@@ -153,23 +156,37 @@ def plot_all_streams_sd(nc_path, outdir):
     for var in data.variables.keys():
         if var in ['longitude', 'latitude', 'depth']:
             continue
-        varoutdir = os.path.join(outdir,var)
+
+        if 'var' in var:
+            vmin, vmax = None, None
+        elif 'sd' in var:
+            vmin, vmax = 1, 100  # todo vmin and vmax?
+        else:
+            raise ValueError('shouldnt get here')
+
+        varoutdir = os.path.join(outdir, var)
         if not os.path.exists(varoutdir):
             os.makedirs(varoutdir)
 
         temp = np.array(data.variables[var])
         for layer in range(len(depths)):
             fig, ax = smt.plt_matrix(temp[layer], vmin=0, vmax=100, cmap='RdBu',
-                                     title='{} for flux: {}'.format(var,flux),base_map=True)  #todo vmin and vmax
+                                     title='{} for flux: {}'.format(var, flux), base_map=True)
             fig.savefig(os.path.join(varoutdir))
             plt.close(fig)
 
 
-
-def plot_relationship_3_fluxes():  # todo I really don't know how to visualise this maybe hold off?
+def plot_relationship_3_fluxes():  # I really don't know how to visualise this maybe hold off?
     raise NotImplementedError
 
 
-if __name__ == '__main__':
+def krig_plot_sd_grid(data_path, outdir):
+    nc_path = os.path.join(outdir, 'interpolated_{}.nc'.format(os.path.basename(data_path).replace('.csv', '')))
+    extract_all_stream_krig(data_path, nc_path)
+    plot_out_dir = os.path.join(outdir, 'plots_{}'.format(os.path.basename(nc_path).replace('.nc','')))
+    plot_all_streams_sd(nc_path, plot_out_dir)
+
+
+if __name__ == '__main__':  # todo debug this set
     mask = get_mask()
     print('done')

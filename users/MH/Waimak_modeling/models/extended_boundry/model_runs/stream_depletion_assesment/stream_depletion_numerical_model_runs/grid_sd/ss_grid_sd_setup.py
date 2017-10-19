@@ -200,9 +200,9 @@ def get_base_grid_sd_path(model_id):
 
 if __name__ == '__main__':
     test = grid_wells(10, True)
-    temp = smt.df_to_array(test, 'flux', True)
+    temp = smt.df_to_array(test, 'depth', True)
     for i in range(smt.layers):
-        smt.plt_matrix(temp[i], title=i)
+        smt.plt_matrix(temp[i], title=i,base_map=True,alpha=1)
     import matplotlib.pyplot as plt
 
     plt.show()

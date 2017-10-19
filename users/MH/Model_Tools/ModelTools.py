@@ -340,6 +340,21 @@ class ModelTools(object):
 
     def plt_matrix(self, array, vmin=None, vmax=None, title=None, no_flow_layer=0, ax=None, color_bar=True,
                    base_map=False, plt_background=True, **kwargs):
+        """
+
+        :param array: they array to plot (of i,j)
+        :param vmin: vmin to pass to the plot
+        :param vmax: vmax to pass to the plot
+        :param title: a title to include on the plot
+        :param no_flow_layer: the layer to plot the no flow boundry on
+        :param ax: None or a matplotlib ax to plot on top of, not frequently used (execpt in subplots)
+        :param color_bar: Boolean if true plot a color bar scale
+        :param base_map: Boolean if True underlie the plot with greyscale basemap of the region the map is defined by
+                         self.base_map_pathsets default alpha to 0.5
+        :param plt_background: Boolean if True plot the noflow boundary as black
+        :param kwargs: other kwargs passed to matplotlib.pcolor alpha is the only kwarg that is also passed to the background
+        :return: fig, ax
+        """
         alpha = 1
         array = deepcopy(array.astype(float))
         if vmax is None:
@@ -361,7 +376,6 @@ class ModelTools(object):
                 alpha = 0.5 #todo play with value
             if self.base_map_path is None:
                 raise ValueError('in order to use base_map self.base_map_path must be defined')
-            #todo implement a basemap check
             from osgeo.gdal import Open
 
             ds = Open(self.base_map_path)
@@ -373,11 +387,13 @@ class ModelTools(object):
             maxx = gt[0] + width * gt[1] + height * gt[2]
             maxy = gt[3]
 
-            image = mpimg.imread(self.base_map_path)
+            image = ds.ReadAsArray()
+            if image.ndim == 3: # if a rgb image then plot as greyscale
+                image = image.mean(axis=0)
             ll = (minx, miny)
             ur = (maxx, maxy)
 
-            ax.imshow(image, extent=[ll[0], ur[0], ll[1], ur[1]],cmap='gray')
+            ax.imshow(image, extent=[ll[0], ur[0], ll[1], ur[1]], cmap='gray') #
             xlim, ylim = self._get_xlim_ylim()
             ax.set_xlim(xlim)
             ax.set_ylim(ylim)

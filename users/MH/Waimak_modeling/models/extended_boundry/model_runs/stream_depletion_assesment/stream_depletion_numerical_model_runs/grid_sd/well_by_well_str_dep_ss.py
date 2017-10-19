@@ -116,7 +116,8 @@ if __name__ == '__main__':
     base_dir = None  # todo define prior to running
     # size requirements: one run (one well) is ~ 47 MB there are one full grid run is ~85 GB
     # run time requirments:
-    fluxes = []  # todo define 3 fluxes to run todo check the size requirments make sure all are negative
+    fluxes = [-5, -25, -100]
+    fluxes = [e * 86.4 for e in fluxes]  # todo define 3 fluxes to run todo check the size requirments make sure all are negative
     model_id = 'opt'  # todo re-define
     for flux in fluxes:
         path = os.path.join(base_dir, 'flux_{}'.format(flux))
