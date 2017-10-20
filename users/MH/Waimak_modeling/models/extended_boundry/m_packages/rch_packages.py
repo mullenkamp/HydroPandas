@@ -24,6 +24,11 @@ from warnings import warn
 
 
 def create_rch_package(m):
+    """
+    create and add the recharge package
+    :param m: a flopy model instance
+    :return:
+    """
     rch = flopy.modflow.mfrch.ModflowRch(m,
                                          nrchop=3,
                                          ipakcb=740,
@@ -33,6 +38,12 @@ def create_rch_package(m):
 
 
 def _get_rch(version=1, recalc=False):
+    """
+    a wrapper to get the correct recharge
+    :param version: which version to use
+    :param recalc: boolean whether to recalc (True) or load from pickle if avalible
+    :return:
+    """
     if version == 1:
         out_rch = _get_rch_v1(recalc)
     elif version == 2:
@@ -43,6 +54,11 @@ def _get_rch(version=1, recalc=False):
 
 
 def _get_rch_v1(recalc=False):
+    """
+    a meld of fouad's LSR mike shear model and expert judgments
+    :param recalc: boolean whether to recalc (True) or load from pickle if avalible
+    :return: rch array m/day (i,j)
+    """
     warn('v1 rch is depreciated in newest version of optimised model')
     pickle_path = '{}/org_rch.p'.format(smt.pickle_dir)
     if os.path.exists(pickle_path) and not recalc:
@@ -95,8 +111,8 @@ def _get_rch_v1(recalc=False):
 def _get_rch_v2(recalc=False):
     """
     dave scott recharge for all using 2012 irrigation layer (with some simplifications
-    :param recalc:
-    :return:
+    :param recalc: boolean whether to recalc (True) or load from pickle if avalible
+    :return: rch array m/day (i,j)
     """
     pickle_path = '{}/org_rch_v2.p'.format(smt.pickle_dir)
     if os.path.exists(pickle_path) and not recalc:
@@ -129,6 +145,11 @@ def _get_rch_v2(recalc=False):
 
 
 def get_rch_fixer(recalc=False):
+    """
+    an array to index the abnormal recharge in chch and te waihora 1 = tewaihora and coastal, 0 = chch, all others nan
+    :param recalc: boolean whether to recalc (True) or load from pickle if avalible
+    :return:
+    """
     pickle_path = os.path.join(smt.pickle_dir, 'rch_fixer.p')
 
     if os.path.exists(pickle_path) and not recalc:
@@ -140,6 +161,10 @@ def get_rch_fixer(recalc=False):
 
 
 def _get_rch_comparison():
+    """
+    create a budget of the recharge between teh current, pc5 and naturalised states
+    :return:
+    """
     new_no_flow = smt.get_no_flow()
 
     paths = {'pc5': 'vcsn_100perc.h5', 'cur': 'vcsn_80perc.h5', 'nat': 'vcsn_no_irr.h5'}
@@ -191,6 +216,7 @@ def _get_rch_comparison():
 
 
 if __name__ == '__main__':
+    # tests
     test_type = 1
 
 

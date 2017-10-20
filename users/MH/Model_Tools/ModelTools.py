@@ -36,6 +36,22 @@ class ModelTools(object):
 
     def __init__(self, model_version_name, sdp=None, ulx=None, uly=None, layers=None, rows=None, cols=None,
                  grid_space=None, no_flow_calc=None, temp_file_dir=None, elv_calculator=None, base_mod_path=None,base_map_path=None):
+        """
+        rotation and differential grid spacing not supported
+        :param model_version_name: required the model version name
+        :param sdp: the path to the folder containing supporting data (for ease of reference)
+        :param ulx: upper left x coordinate for the model grid
+        :param uly:  the upper left y coordinate for the model grid
+        :param layers: the number of layers in the model
+        :param rows: the number of rows in the model
+        :param cols: the number of columns in the model
+        :param grid_space: the grid spacing (must be equally spaced at present)
+        :param no_flow_calc: the function which is used to return the ibound
+        :param temp_file_dir: a path to a directory to dump temporary files (mostly for shapefile conversion)
+        :param elv_calculator: the function whcih is used to return the elevation data base (top,bottoms) shape (k,i,j)
+        :param base_mod_path: the path to the base model (depreciated
+        :param base_map_path: the path to a geotiff to allow underlaying it below plots
+        """
         self.ulx = ulx
         self.uly = uly
         self.grid_space = grid_space
@@ -57,6 +73,10 @@ class ModelTools(object):
         self.base_map_path = base_map_path
 
     def _get_xlim_ylim(self):
+        """
+        returns the x and y lim of the grid
+        :return:
+        """
         x_min, y_min = self.ulx, self.uly - self.grid_space * self.rows
         x_max = x_min + self.grid_space*self.cols
         y_max = self.uly
@@ -81,12 +101,22 @@ class ModelTools(object):
         return model_xs, model_ys
 
     def get_empty_model_grid(self, _3d=False):
+        """
+        returns a numpy zeros array of the model grid
+        :param _3d: Boolean if True return a grid of (k,i,j) else (i,j)
+        :return:
+        """
         if _3d:
             return np.zeros(self.layers, self.rows, self.cols)
         else:
             return np.zeros(self.layers, self.rows, self.cols)
 
     def add_mxmy_to_df(self, df):  # todo make faster
+        """
+        adds the x and y centroid of the cells to a dataframe with either row,col or i,j in the keys
+        :param df:
+        :return:
+        """
         df = deepcopy(df)
         if 'mx' in df.keys() or 'my' in df.keys():
             warn('mx or my present in dataframe, this will be overwritten')
@@ -320,8 +350,16 @@ class ModelTools(object):
         return out_locs
 
     def array_to_raster(self, path, array, no_flow_layer=None):
+        """
+        saves a 2d model array as a raster
+        :param path: path to save the raster
+        :param array: array to save (must be 2d model array)
+        :param no_flow_layer: None or int the no-flow layer to mask the array on
+        :return:
+        """
         from osgeo import osr, gdal
-
+        if array.shape != (self.rows,self.cols):
+            raise ValueError('array must match model grid shape')
         if no_flow_layer is not None:
             no_flow = self.get_no_flow(no_flow_layer).astype(bool)
             array[~no_flow] = -99
@@ -659,12 +697,23 @@ class ModelTools(object):
             return no_flow[layer]
 
     def get_base_model(self, recalc=False):  # todo raise eception if model path not passed
+        """
+        This has not been used much perhaps depreciate
+        :param recalc:
+        :return:
+        """
         import flopy
         m = flopy.modflow.Modflow.load(self.base_mod_path, model_ws=os.path.dirname(self.base_mod_path),
                                        forgive=False)
         return m
 
     def get_package_spd(self, package, recalc=False):
+        """
+        this had not been used much perhaps depreciate
+        :param package:
+        :param recalc:
+        :return:
+        """
         import pickle
 
         picklepath = '{}/base_{}.p'.format(self.pickle_dir, package)
@@ -688,6 +737,11 @@ class ModelTools(object):
 
     # todo eventually handle the layer,col,row vs kij keys
     def convert_well_data_to_stresspd(self, well_data_in):
+        """
+        take a dataframe aggregates the wells and returns the well stress period data for the well package
+        :param well_data_in: pd.Dataframe needs columns layer, row, col, flux
+        :return:
+        """
         # convert a dataframe of well features (x,y,z,flux,type, etc.) to well standard stress period data
         # do something similar for concentration data?
 

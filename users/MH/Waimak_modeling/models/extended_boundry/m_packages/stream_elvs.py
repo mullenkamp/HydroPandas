@@ -6,6 +6,11 @@ import matplotlib.pyplot as plt
 from copy import deepcopy
 
 def clean_weird_points(data):
+    """
+    take the reach data and clean up any reaches that are uphill and downstream
+    :param data: sfr reach data
+    :return:
+    """
     counter = 0
     while any(np.array(data.iloc[0:-2])<=np.array(data.iloc[1:-1])):
         counter +=1
@@ -24,6 +29,10 @@ def clean_weird_points(data):
     return data
 
 def get_reach_elv():
+    """
+    gets the stream tops to use for the reaches either from the previous model or lidar
+    :return:
+    """
 
     str_seg_trib_dict = { # dictionary to link stream segments to tributaries
         1: None,
@@ -219,4 +228,5 @@ def get_reach_elv():
 
 
 if __name__ == '__main__':
+    #tests
     get_reach_elv()

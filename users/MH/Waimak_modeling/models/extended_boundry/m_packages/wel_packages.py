@@ -20,6 +20,12 @@ from warnings import warn
 
 
 def create_wel_package(m, wel_version):
+    """
+    create and add the well package
+    :param m: a flopy model instance
+    :param wel_version: which version of wells to use
+    :return:
+    """
     wel = flopy.modflow.mfwel.ModflowWel(m,
                                          ipakcb=740,
                                          stress_period_data={
@@ -29,6 +35,12 @@ def create_wel_package(m, wel_version):
 
 
 def get_wel_spd(version, recalc=False):
+    """
+    get the well data
+    :param version: which well version to use
+    :param recalc: boolean whether to recalc (True) or load from pickle if avalible
+    :return: pd.dataframe
+    """
     if version == 1:
         outdata = _get_wel_spd_v1(recalc, sub_version=1)
     elif version == 0:
@@ -41,6 +53,12 @@ def get_wel_spd(version, recalc=False):
 
 
 def _get_wel_spd_v1(recalc=False, sub_version=1):
+    """
+    version 1, which is deprecated but uses use data and other estimates for the waimakariri zone
+    :param recalc: boolean whether to recalc (True) or load from pickle if avalible
+    :param sub_version: passed to get swai wells
+    :return: pd.DataFrame
+    """
     warn('v1 wells are depreciated in the newest itteration of the model')
     pickle_path = '{}/well_spd.p'.format(smt.pickle_dir)
     if os.path.exists(pickle_path) and not recalc and sub_version != 0:
@@ -183,10 +201,11 @@ def _get_wel_spd_v1(recalc=False, sub_version=1):
 
 def _get_wel_spd_v3(recalc=False, sub_version=1):
     """
-    all wells derived from mikes usage estimates I may pull down some of the WDC WS wells
-    :param recalc:
-    :param sub_version:
-    :return:
+    all wells derived from mikes usage estimates I may pull down some of the WDC WS wells this was used in teh model as
+    of 20/10/2017
+    :param recalc: boolean whether to recalc (True) or load from pickle if avalible
+    :param sub_version: passed to get all wells
+    :return: pd.DataFrame
     """
     pickle_path = '{}/well_spd_v3.p'.format(smt.pickle_dir)
     if os.path.exists(pickle_path) and not recalc and sub_version != 0:
@@ -330,7 +349,7 @@ def _get_wel_spd_v3(recalc=False, sub_version=1):
 def _get_2014_2015_waimak_usage():
     """
     get the 2014-2015 usage for the waimakariri zone
-    :return:
+    :return: pd.DataFrame
     """
     mike = pd.read_hdf("{}/m_ex_bd_inputs/sd_est_all_mon_vol.h5".format(smt.sdp))
     mike = mike.loc[(mike.time >= pd.datetime(2014, 7, 1)) & (mike.take_type == 'Take Groundwater')]
@@ -368,10 +387,10 @@ def _get_2014_2015_waimak_usage():
 
 def _get_wel_spd_v2(recalc=False, sub_version=1):
     """
-    as version 1 but uses the 2014-2015 usage for the waimakariri zone
-    :param recalc:
-    :param sub_version:
-    :return:
+    as version 1 but uses the 2014-2015 usage for the waimakariri zone used for the forward runs
+    :param recalc: boolean whether to recalc (True) or load from pickle if avalible
+    :param sub_version: passed to get s wai wells
+    :return: pd.Dataframe
     """
     warn('v2 pumping is for 2014 to 2015 period')
     pickle_path = '{}/well_spd_v2.p'.format(smt.pickle_dir)
@@ -508,6 +527,12 @@ def _get_wel_spd_v2(recalc=False, sub_version=1):
 
 
 def _get_s_wai_wells(subversion=1):
+    """
+    get wells south of the river
+    :param subversion: if 0 use mike's allo data (depreciated, but held for histories sake)
+                       if 1 use mike's usage estimate
+    :return: pd.DataFrame
+    """
     if subversion == 1:
         mike = pd.read_hdf("{}/m_ex_bd_inputs/sd_est_all_mon_vol.h5".format(smt.sdp))
         mike = mike.loc[(mike.time >= pd.datetime(2008, 1, 1)) & (mike.take_type == 'Take Groundwater')]
@@ -570,6 +595,10 @@ def _get_s_wai_wells(subversion=1):
 
 
 def _get_all_wai_wells():
+    """
+    get's well data from mike's usage for V3
+    :return: pd.DataFrame
+    """
     # there are some wells where the flux is greater than the CAV;
     # however these are rather minor, moslty in Selwyn, and most could be true.
     mike = pd.read_hdf("{}/m_ex_bd_inputs/sd_est_all_mon_vol.h5".format(smt.sdp))
@@ -609,6 +638,10 @@ def _get_all_wai_wells():
 
 
 def _check_chch_wells():
+    """
+    some well checks
+    :return:
+    """
     allo = pd.read_csv("{}/inputs/wells/allo_gis.csv".format(sdp), index_col='crc')
 
     # option 2
@@ -650,6 +683,10 @@ def _check_chch_wells():
 
 
 def _check_waimak_wells():
+    """
+    some well checks
+    :return:
+    """
     allo = pd.read_csv("{}/inputs/wells/allo_gis.csv".format(sdp), index_col='crc')
 
     # option 2
@@ -691,6 +728,10 @@ def _check_waimak_wells():
 
 
 def _get_s_wai_rivers():
+    """
+    get the well features that are being used to represent the selwyn hillfed streams
+    :return:
+    """
     # julian's report suggeststs that the hawkins is mostly a balanced flow and it was not included in
     # scott and thorley 2009 so it is not being simulated here
 
@@ -730,6 +771,10 @@ def _get_s_wai_rivers():
 
 
 def get_s_wai_races():
+    """
+    get the wells that represent the race systems
+    :return:
+    """
     no_flow = smt.get_no_flow(0)
     race_array = smt.shape_file_to_model_array('{}/m_ex_bd_inputs/shp/s_wai_races.shp'.format(smt.sdp), 'race_code',
                                                True)
@@ -765,6 +810,11 @@ def get_s_wai_races():
 
 
 def add_use_type(data):
+    """
+    add the use type to a set of well data
+    :param data: well data (pd.DataFrame)
+    :return:
+    """
     data = deepcopy(data)
     allo = pd.read_csv("{}/inputs/wells/allo_gis.csv".format(sdp))
     allo = allo.set_index('wap')
@@ -778,6 +828,7 @@ def add_use_type(data):
 
 
 if __name__ == '__main__':
+    # tests
     from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.well_budget import get_well_budget
     from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.wells import get_max_rate, get_full_consent
     new = _get_wel_spd_v2(recalc=True)

@@ -9,6 +9,13 @@ import flopy
 import numpy as np
 
 def create_lay_prop_package(m, mfv,k_version=1):
+    """
+    create the layer property package
+    :param m: a flopy model instance
+    :param mfv: the modflow version mf2005 or mfnwt (e.g. lpf vs upw package)
+    :param k_version: the ks to use, this was never really used
+    :return:
+    """
     layer_type = np.array([1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0])
     layer_avg = 0
     chani = -1
