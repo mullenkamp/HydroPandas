@@ -83,6 +83,7 @@ def well_by_well_depletion_sd7(model_id, well_list, base_path,notes):
     t = time.time()
     multiprocessing.log_to_stderr(logging.DEBUG)
     runs = setup_runs_sd7(model_id, well_list, base_path, ss, sy, start_heads)
+    setup_and_run_stream_dep(**runs[0]) #todo DADB
     pool_size = multiprocessing.cpu_count()
     pool = multiprocessing.Pool(processes=pool_size,
                                 initializer=start_process,
@@ -104,7 +105,7 @@ def well_by_well_depletion_sd7(model_id, well_list, base_path,notes):
 
 if __name__ == '__main__':
     notes = """ """
-    model_id = 'opt'
+    model_id = 'StrOpt'
     well_list = get_sd_well_list(model_id)
     base_path = r"C:\Users\MattH\Desktop\sd7_test_extraction"
 
