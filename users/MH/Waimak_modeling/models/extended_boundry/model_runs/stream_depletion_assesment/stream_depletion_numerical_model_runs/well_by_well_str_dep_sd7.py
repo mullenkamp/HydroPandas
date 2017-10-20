@@ -83,8 +83,6 @@ def well_by_well_depletion_sd7(model_id, well_list, base_path,notes):
     t = time.time()
     multiprocessing.log_to_stderr(logging.DEBUG)
     runs = setup_runs_sd7(model_id, well_list, base_path, ss, sy, start_heads)
-    setup_and_run_stream_dep(**runs[0]) #todo DADB
-    raise
     pool_size = multiprocessing.cpu_count()
     pool = multiprocessing.Pool(processes=pool_size,
                                 initializer=start_process,

@@ -253,6 +253,7 @@ def mod_gns_model(model_id, name, dir_path, safe_mode=True, stress_period_vals=N
             if per == 0:
                 continue
             data_set_5[per] = data_set5_vals
+        warnings.warn('in future flopy changing dataset5 will raise an exception')
         m.get_package('SFR').dataset_5 = data_set_5
 
     return m
