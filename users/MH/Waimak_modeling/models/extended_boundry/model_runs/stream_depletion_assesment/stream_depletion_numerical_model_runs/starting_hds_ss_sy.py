@@ -61,7 +61,7 @@ def _get_no_pumping_ss_hds(model_id, recalc=False):
         return hds
     dirpath = "{}/forward_supporting_models/base_str_dep".format(smt.sdp)  # model Id is added in import gns model
     well = {0: smt.convert_well_data_to_stresspd(get_race_data(model_id))}
-    m = mod_gns_model(model_id, 'base_for_str_dep', dir_path=dirpath, safe_mode=False, well=well)
+    m = mod_gns_model(model_id, 'base_hds_for_str_dep', dir_path=dirpath, safe_mode=False, well=well)
     m.write_name_file()
     m.write_input()
     suc, buff = m.run_model()

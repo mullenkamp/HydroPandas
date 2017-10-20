@@ -24,7 +24,7 @@ if __name__ == '__main__':
     get_rch_multipler(model_id)
     m = import_gns_model(model_id,'test',r"C:\Users\MattH\Desktop\test")
     print(m)
-    m.write_inputs()
+    m.write_input()
     m.write_name_file()
     m.run_model()
     print('{} at least loaded'.format(model_id))
