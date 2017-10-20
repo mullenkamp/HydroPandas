@@ -17,14 +17,16 @@ if __name__ == '__main__':
     # a conveninance function to run all of the non-well stream depletion assesments and data extraction
 
     #### todo update below parameters ####
+    # on DHI-runs02
     model_id = 'opt'
 
     sd7_notes = """ """
     sd30_notes = """ """
     sd150_notes = """ """
 
-    model_base_path = r"C:\Users\MattH\Desktop\sd7_test_extraction"
-    data_outdir = None #todo
+
+    model_base_path = r"D:\mattH\python_wm_runs\sd_runs\{}_2017_10_20".format(model_id)
+    data_outdir = r"D:\mattH\python_wm_runs\sd_runs\data_{}_2017_10_20".format(model_id)
     run_models = True
 
     # below should not change

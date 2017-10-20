@@ -18,17 +18,18 @@ if __name__ == '__main__':
     # note that the well reliablity scripts where not completed at the time that this was run so are not included here
     # and must be run separately, if I need to re-run the scripts at a later date include this item
 
+    # done on rdsprod03
     #### todo inputs to define for each run####
     safemode = True
-    model_dir_path = r"D:\mh_model_runs\forward_runs_2017_10_10"  # path on rdsprod03 #todo update
     model_id = 'opt'  # todo update
-    results_dir = None #todo update
-    cc_to_waimak_only = False #todo update
+    model_dir_path = r"D:\mh_model_runs\{}_forward_runs_2017_10_20".format(model_id)  # path on rdsprod03
+    results_dir = r"D:\mh_model_runs\{}_forward_runs_2017_10_20_results".format(model_id)
+    cc_to_waimak_only = False
     notes = """ 
     LSR senario changes applied to full domain, CC component of LSR changes applied to whole domain, but ccmult and missing h20 is waimak only
     pumping changes only applied to Waimakariri with the exception of the pc5 adjustment which is applied in the full domain,
     run in {}
-    """.format(model_dir_path) #todo update
+    """.format(model_dir_path)
     run_models = True
 
     #### run the models ####

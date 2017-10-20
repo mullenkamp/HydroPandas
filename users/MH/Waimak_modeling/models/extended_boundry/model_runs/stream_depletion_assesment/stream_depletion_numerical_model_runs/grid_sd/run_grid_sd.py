@@ -18,9 +18,10 @@ if __name__ == '__main__':
     # run time requirments:
 
     #### todo update the below parameters ####
+    # run on GWruns02
     model_id = 'opt'  # todo re-define
-    base_dir = None  # todo define prior to running
-    data_out_dir = None #todo define prior to running
+    base_dir = "D:\mh_waimak_models\grid_sd_runs\{}_models_2017_10_20".format(model_id)
+    data_out_dir = "D:\mh_waimak_models\grid_sd_runs\{}_data_2017_10_20".format(model_id)
     run_models = True
 
     # below should not change
