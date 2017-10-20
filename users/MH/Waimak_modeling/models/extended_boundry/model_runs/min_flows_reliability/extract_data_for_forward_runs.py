@@ -22,6 +22,11 @@ import matplotlib.pyplot as plt
 
 
 def extract_forward_run(name_file_path):
+    """
+    extract the data from a forward run
+    :param name_file_path: path to teh mf name file with or without extension
+    :return: pd.DataFrame
+    """
     wells = [
         'M34/0306',
         'L35/0062',
@@ -49,6 +54,12 @@ def extract_forward_run(name_file_path):
 
 
 def extract_forward_metadata(forward_run_dir, outpath):
+    """
+    extract and save the metadata senario, convergence, path, name, rcp ect...
+    :param forward_run_dir:
+    :param outpath: path to save the data at
+    :return: outpath
+    """
     paths = glob(os.path.join(forward_run_dir, '*/*.nam'))
     model_id = os.path.basename(paths[0]).split('_')[0]
     outpath = os.path.join(os.path.dirname(outpath), '{}_{}'.format(model_id, os.path.basename(outpath)))
@@ -75,6 +86,12 @@ def extract_forward_metadata(forward_run_dir, outpath):
     return outpath
 
 def extract_and_save_all_cc_mult_missing_w(forward_run_dir, outpath):
+    """
+    extract and save all of the ccmults and missing waters from teh forward runs
+    :param forward_run_dir: directory with teh forward runs
+    :param outpath: path to save csv at
+    :return: outpath
+    """
     paths = glob(os.path.join(forward_run_dir, '*/cc_mult_info.txt'))
     paths = sorted(paths)
     model_id = os.path.basename(os.path.dirname(paths[0])).split('_')[0]
@@ -102,6 +119,12 @@ def extract_and_save_all_cc_mult_missing_w(forward_run_dir, outpath):
 
 
 def extract_and_save_all_forward_runs(forward_run_dir, outpath):
+    """
+    extract and save all of the forward run data as absolute flow and hds
+    :param forward_run_dir: directory with the forward run
+    :param outpath: the path to save the csv
+    :return: outpath
+    """
     paths = glob(os.path.join(forward_run_dir, '*/*.nam'))
     paths = sorted(paths)
     model_id = os.path.basename(paths[0]).split('_')[0]
@@ -124,6 +147,13 @@ def extract_and_save_all_forward_runs(forward_run_dir, outpath):
 
 
 def make_rel_data(data_path, meta_data_path, out_path):
+    """
+    convert the absolute data to reletive data
+    :param data_path: absolute data path
+    :param meta_data_path: path to the meta data
+    :param out_path: path to save the relative data
+    :return:
+    """
     org_data = pd.read_csv(data_path, skiprows=1, index_col=0)
     meta_data = pd.read_csv(meta_data_path, index_col=0)
     model_id = os.path.basename(data_path).split('_')[0]
@@ -172,6 +202,15 @@ def make_rel_data(data_path, meta_data_path, out_path):
 
 
 def get_baseline_name(meta_data, name, raise_non_converged=True):
+    """
+    get teh appropriate baseline to make relative data
+    cc_senarios: rcppast for the senario and rcm
+    non_cc_senarios: the current (2014/15 pumping senario)
+    :param meta_data: the metadata pd.DataFrame
+    :param name: the name of the run
+    :param raise_non_converged: if True raise a value error if the baseline senario did not converge
+    :return:
+    """
     if not meta_data.loc[name, 'is_cc']:
         outname = 'current'
 
@@ -193,6 +232,13 @@ def get_baseline_name(meta_data, name, raise_non_converged=True):
 
 
 def plt_drawdown(meta_data_path, outdir,raise_non_converged=True):
+    """
+    plot the drawdown for each senario as compared to the base senario
+    :param meta_data_path: path to the metadata
+    :param outdir: directory to save the plots
+    :param raise_non_converged: passed to get baseline senario
+    :return:
+    """
     if not os.path.exists(outdir):
         os.makedirs(outdir)
     meta_data = pd.read_csv(meta_data_path, index_col=0)
@@ -224,6 +270,13 @@ def plt_drawdown(meta_data_path, outdir,raise_non_converged=True):
 
 
 def gen_all_outdata_forward_runs(forward_run_dir, outdir, plt_dd=False):
+    """
+    a wrapper to extract all data from the forward runs
+    :param forward_run_dir: the directory that holds the forward runs
+    :param outdir: the directory to save all teh data in
+    :param plt_dd: boolean if True plot the drawdown for each senario
+    :return:
+    """
     if not os.path.exists(outdir):
         os.makedirs(outdir)
     absolute_outpath = 'absolute_data.csv'
@@ -245,6 +298,7 @@ def gen_all_outdata_forward_runs(forward_run_dir, outdir, plt_dd=False):
 
 
 if __name__ == '__main__':
+    #tests (run in the run script for forward runs)
     gen_all_outdata_forward_runs(
         r"D:\mh_model_runs\forward_runs_2017_10_10",
         r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\results\cc_only_to_waimak",

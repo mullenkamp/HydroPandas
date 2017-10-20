@@ -15,6 +15,11 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
 from traceback import format_exc
 
 def setup_run_forward_run_mp (kwargs):
+    """
+     a wrapper to allow easy multiprocessing
+    :param kwargs: kwargs to pass to setup_run_forward_model
+    :return: (model_name, (convergence('convereged'/'did not converge') or trace back to exception))
+    """
     try:
         name, success = setup_run_forward_run(**kwargs)
     except Exception as val:
@@ -50,7 +55,7 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
     :param full_allo: boolean if true use the full allocation of pumping
     :param org_efficency: not used, held to prevent cleaning up!
     :param org_pumping_wells: if True use the model peiod wells if false use the 2014-2015 usage for the waimak wells
-    :return:
+    :return: (model name, convergence('convereged'/'did not converge'))
     """
 
     # cc inputs are a dict

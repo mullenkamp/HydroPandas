@@ -79,6 +79,12 @@ groups.update(sw_site_groups)
 
 
 def vis_cc(relative_data_path, meta_data_path):
+    """
+    visualise the cc data
+    :param relative_data_path: for forward runs
+    :param meta_data_path: for forward runs
+    :return: list of sns.FacetGrid objects
+    """
     data = pd.read_csv(relative_data_path, skiprows=1)
     metadata = pd.read_csv(meta_data_path, index_col=0)
     sens = list(metadata.loc[metadata.is_cc].index)
@@ -119,7 +125,12 @@ def vis_cc(relative_data_path, meta_data_path):
 
 
 def vis_eco_min_flows(relitive_data_path):  # todo handle dry missing wells
-    # nat, full abs, full allo, fulla lo abs
+    """
+    plot nat, full abs, full allo, full_alo_abs on a box and whisker
+    :param relitive_data_path: for the forward runs
+    :return: a sns.FacetGrid object
+    """
+
     sens = ['naturalised',
             'full_abs',
             'full_abs_allo',
@@ -156,8 +167,13 @@ def vis_eco_min_flows(relitive_data_path):  # todo handle dry missing wells
 
 
 def vis_relibability(relitive_data_path):  # todo handle dry missing wells
-    # mod_period, pc5, will eff, pc5 + will eff
-    sens = ['current',
+    """
+    plot # mod_period, pc5, will eff, pc5 + will eff
+    :param relitive_data_path: for relative data
+    :return:
+    """
+
+    sens = ['mod_period',
             'pc5_80',
             'pc5_80_wil_eff',
             'wil_eff']
@@ -192,6 +208,13 @@ def vis_relibability(relitive_data_path):  # todo handle dry missing wells
     return g
 
 def plot_and_save_forward_vis(outdir, relitive_data_path, meta_data_path):
+    """
+    wrapper to plot and save everything
+    :param outdir: dir to save the plots in
+    :param relitive_data_path: for the forward runs
+    :param meta_data_path: for the forward runs
+    :return:
+    """
     g = vis_eco_min_flows(relitive_data_path=relitive_data_path)
     g.savefig(os.path.join(outdir,'{}.png'.format(g.fig._suptitle._text)))
     g = vis_relibability(relitive_data_path)
@@ -202,6 +225,7 @@ def plot_and_save_forward_vis(outdir, relitive_data_path, meta_data_path):
 
 
 if __name__ == '__main__':
+    # test see run script for actual use
     plot_and_save_forward_vis(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\results\cc_only_to_waimak\overview_plots",
                               r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\results\cc_only_to_waimak\opt_relative_data.csv",
                               r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\results\cc_only_to_waimak\opt_meta_data.csv")

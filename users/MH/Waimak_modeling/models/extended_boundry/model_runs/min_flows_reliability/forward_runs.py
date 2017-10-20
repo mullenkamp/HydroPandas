@@ -19,6 +19,14 @@ import datetime
 import psutil
 
 def run_cc_senarios(base_kwargs, cc_to_waimak_only=False):
+    """
+    set up a sweet of climate change runs from a base run
+    :param base_kwargs: the base run to run through climate change senairos
+    :param cc_to_waimak_only: boolean if True then only apply the LSR changes to the waimakariri esle apply to whole
+                              model domain pumping is only applied to waimakariri as there is too much uncertainty in
+                              teh selwyn due to central plains
+    :return: list of runs
+    """
     runs = []
     base_kwargs = deepcopy(base_kwargs)
     periods = range(2010, 2100, 20)
@@ -45,7 +53,7 @@ def setup_run_args(model_id, forward_run_dir, cc_to_waimak_only=False):
     set up the forward runs
     :param model_id: which MC realisation to use
     :param forward_run_dir: the dir that all of teh model directories will be placed
-    :return:
+    :return: list of runs
     """
     runs = []
     # base model run handled separately in base forward runs with identified by the name 'mod_period'
@@ -199,6 +207,10 @@ def setup_run_args(model_id, forward_run_dir, cc_to_waimak_only=False):
 
 
 def start_process():
+    """
+    function to run at the start of each multiprocess sets the priority lower
+    :return:
+    """
     print('Starting', multiprocessing.current_process().name)
     p = psutil.Process(os.getpid())
     # set to lowest priority, this is windows only, on Unix use ps.nice(19)
@@ -206,6 +218,13 @@ def start_process():
 
 
 def run_forward_runs(runs,forward_run_dir, notes=None):
+    """
+    run the runs via multiprocessing
+    :param runs: runs to run
+    :param forward_run_dir: dir to put all runs in
+    :param notes: notes to save as a readme file
+    :return:
+    """
     with open(os.path.join(forward_run_dir,'READ_ME.txt'),'w') as f:
         f.write(str(notes) + '\n')
 
@@ -232,6 +251,7 @@ def run_forward_runs(runs,forward_run_dir, notes=None):
 
 
 if __name__ == '__main__':
+    # tests run in the run script for forward runs
     safemode = True
     #todo will need to re-run with new model
     #todo define the two below before each run
