@@ -19,6 +19,13 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
 import matplotlib.patches as mpatches
 
 def plt_cc_rch(naturalised, pc5, title):
+    """
+    plot up the recharge as lines for the chch data
+    :param naturalised: boolean
+    :param pc5: Boolean
+    :param title: title to pass to the plot
+    :return: fig, ax
+    """
     periods = range(2010, 2100, 20)
     rcps = ['RCP4.5', 'RCP8.5']
     rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
@@ -58,6 +65,14 @@ def plt_vcsn():
 
 
 def comp_amalg_types(rcm, rcp, naturalised=False, pc5=False):
+    """
+    plot up and check the differnt amalgimation types
+    :param rcm: the rcm
+    :param rcp: the rcp
+    :param naturalised: boolean
+    :param pc5: boolean
+    :return: fig,ax
+    """
     periods = range(2010, 2100, 20)
     amalg_types = ['period_mean', '3_lowest_con_mean', 'lowest_year']
     des = 'current_practice'
@@ -87,6 +102,11 @@ def comp_amalg_types(rcm, rcp, naturalised=False, pc5=False):
 
 
 def plt_change_maps(base_dir):
+    """
+    plot maps of the changes in LSR to a base period
+    :param base_dir: the directory to save the plots in
+    :return:
+    """
     rcps = ['RCP4.5', 'RCP8.5']
     rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
     sens = ['current', 'pc5', 'nat']
@@ -110,6 +130,11 @@ def plt_change_maps(base_dir):
 
 
 def plt_ts_at_comp(base_dir):
+    """
+    plot all three of the time series
+    :param base_dir: the dir to save the plots in
+    :return:
+    """
     # 100%
     fig, ax = plt_cc_rch(False, True, 'pc5')
     fig.savefig(os.path.join(base_dir, ax.title._text + '.png'))
@@ -133,6 +158,11 @@ def plt_ts_at_comp(base_dir):
 
 
 def plt_rch_budget(base_dir):
+    """
+    plot budgets of recharge for different sensarios
+    :param base_dir: dir to save the plots in
+    :return:
+    """
     rcps = ['RCP4.5', 'RCP8.5']
     rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
     sens = ['current', 'pc5', 'nat']
@@ -218,6 +248,11 @@ def plt_rch_budget(base_dir):
     outdata.to_csv(os.path.join(base_dir,'mod_per_vcsn_budgets.csv'))
 
 def boxplot_cc_projections(base_dir):
+    """
+    plot up boxplots of the senarios of recharge budgets
+    :param base_dir: dir to save the plots
+    :return:
+    """
     rcps = ['RCP4.5', 'RCP8.5']
     rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
     sens = ['current', 'pc5', 'nat']
@@ -276,6 +311,11 @@ def boxplot_cc_projections(base_dir):
         plt.close(fig)
 
 def boxplot_cc_projections_ird(base_dir):
+    """
+    plot boxplots of the irrigation demand budgets
+    :param base_dir: dir to save the plots in
+    :return:
+    """
     rcps = ['RCP4.5', 'RCP8.5']
     rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
     sens = ['current', 'pc5', 'nat']
@@ -336,6 +376,7 @@ def boxplot_cc_projections_ird(base_dir):
 
 
 if __name__ == '__main__':
+    # runs
     base_dir_all = env.sci(
         "Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\lsr_checks")
     # note this means RCP past is not tested, and vcsn only minimally tested

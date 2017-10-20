@@ -28,6 +28,7 @@ from users.MH.Waimak_modeling.supporting_data_path import sdp
 def get_race_data(model_id):
     """
     all influx wells in the well data (e.g. streams, races, boundary fluxes)
+    :param model_id: the NSMC realisation
     :return:
     """
     outdata = get_base_well(model_id,True) #use original pumping wells becasue it doesn't matter
@@ -38,7 +39,10 @@ def get_race_data(model_id):
 def get_full_consent(model_id, org_pumping_wells=False, recalc=False):
     """
     EAV/consented annual volume I need to think about this one
-    :return: # the full dataframe with just the flux converted
+    :param model_id: the NSMC realisation
+    :param org_pumping_wells: Boolean if true use the model period wells else use the 2014/2015 pumping
+    :param recalc: Boolean, if true recalculate otherwise load from a pickle
+    :return: the full dataframe with just the flux converted
     """
     if org_pumping_wells:
         new = 'mod_period'
@@ -87,8 +91,10 @@ def get_full_consent(model_id, org_pumping_wells=False, recalc=False):
 def get_max_rate(model_id, org_pumping_wells=False, recalc=False):
     """
     replaces the flux value with the full consented volumes for the wells north of the waimakariri
-    :param recalc: if true recalc the pickle
-    :return:
+    :param model_id: the NSMC realisation
+    :param org_pumping_wells: Boolean if true use the model period wells else use the 2014/2015 pumping
+    :param recalc: Boolean, if true recalculate otherwise load from a pickle
+    :return: the full dataframe with just the flux converted
     """
     if org_pumping_wells:
         new = 'mod_period'
@@ -203,6 +209,11 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
 
 
 def get_cc_pumping_muliplier(cc_inputs):
+    """
+    get the relative pumping multipler from the irrigation demand only calculated over the waimakariri zone
+    :param cc_inputs: the cc inputs dictionary see forward wells
+    :return: float
+    """
     # return a single value for now which is senario/baseline for the senario see below
     amalg_dict = {None: 'mean', 'mean': 'mean', 'tym': 'period_mean', 'low_3_m': '3_lowest_con_mean',
                   'min': 'lowest_year'}
@@ -223,9 +234,10 @@ def get_cc_pumping_muliplier(cc_inputs):
 
 def get_full_allo_multipler(org_pumping_wells, recalc=False):
     """
+    get the multipliers (on a per well basis) to move to full allocation
     :param org_pumping_wells: if true use model period wells, else use 2014/15 wells
     :param recalc: usual recalc
-    :return:
+    :return: pd.Series
     """
     # return a series with index well numbers and values multiplier
     # these wells only in Waimakariri Zone
@@ -268,6 +280,7 @@ def get_full_allo_multipler(org_pumping_wells, recalc=False):
 
 
 if __name__ == '__main__':
+    #tests
     test_type = 2
     if test_type == 2:
         max_rate = get_max_rate('opt')

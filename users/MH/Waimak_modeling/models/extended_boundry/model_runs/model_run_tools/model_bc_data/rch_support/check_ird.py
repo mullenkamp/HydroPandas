@@ -11,13 +11,16 @@ from glob import glob
 import os
 import matplotlib.pyplot as plt
 
-lsrm_rch_base_dir = env.gw_met_data('niwa_netcdf/lsrm/lsrm_results/water_year_means')
-paths = glob(os.path.join(lsrm_rch_base_dir,'*/ird*.txt'))
 
-data = []
-for path in paths:
-    with open(path) as f:
-        data.append(float(f.readline()))
-data = np.array(data)
+if __name__ == '__main__':
+    # a test script to look at teh irrigation demand
+    lsrm_rch_base_dir = env.gw_met_data('niwa_netcdf/lsrm/lsrm_results/water_year_means')
+    paths = glob(os.path.join(lsrm_rch_base_dir,'*/ird*.txt'))
 
-print 'done'
+    data = []
+    for path in paths:
+        with open(path) as f:
+            data.append(float(f.readline()))
+    data = np.array(data)
+
+    print 'done'

@@ -222,12 +222,13 @@ def _create_all_lsrm_arrays():
 
 def get_lsr_base_period_inputs(sen, rcp, rcm, per, at):
     """
-    keep sen consitant for cc results
-    :param sen:
-    :param rcp:
-    :param rcm:
-    :param per:
-    :param at:
+    get the LSR comparison period
+
+    :param sen: the senario, senarios = ['pc5', 'nat', 'current']
+    :param rcp: rcps = ['RCPpast', 'RCP4.5', 'RCP8.5']
+    :param rcm: rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
+    :param per: None(vcsn), 1980(RCPpast),  periods = range(2010, 2100, 20) (climate change)
+    :param at: ['period_mean', '3_lowest_con_mean', 'lowest_year'] (climate change) ['mean'] vcsn
     :return:
     """
     if rcp is None and rcm is None:
@@ -242,6 +243,15 @@ def get_lsr_base_period_inputs(sen, rcp, rcm, per, at):
 
 
 def get_lsrm_base_array(sen, rcp, rcm, per, at):
+    """
+    get the lsr array
+    :param sen: see above
+    :param rcp:
+    :param rcm:
+    :param per:
+    :param at:
+    :return:
+    """
     path = os.path.join(lsrm_rch_base_dir, 'arrays_for_modflow/rch_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
     if not os.path.exists(path):
         raise ValueError('array not implemented, why are you using {}'.format((sen, rcp, rcm, per, at)))
@@ -252,6 +262,15 @@ def get_lsrm_base_array(sen, rcp, rcm, per, at):
     return outdata
 
 def get_ird_base_array(sen, rcp, rcm, per, at):
+    """
+    get the irrigation demand array
+    :param sen: see above
+    :param rcp:
+    :param rcm:
+    :param per:
+    :param at:
+    :return:
+    """
     path = os.path.join(lsrm_rch_base_dir, 'arrays_for_modflow/ird_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
     if not os.path.exists(path):
         raise ValueError('array not implemented, why are you using {}'.format((sen, rcp, rcm, per, at)))
@@ -264,7 +283,7 @@ def get_ird_base_array(sen, rcp, rcm, per, at):
 
 
 if __name__ == '__main__':
-
+    # tests
     testtype=1
     if testtype ==1:
         _create_all_lsrm_arrays()
