@@ -16,7 +16,7 @@ import pandas as pd
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 from copy import deepcopy
 from users.MH.Waimak_modeling.supporting_data_path import sdp
-from realisation_id import get_base_rch, get_base_well, get_model_name_path, get_model
+from realisation_id import get_base_well, get_model_name_path, get_model
 import zipfile
 
 org_data_dir = "{}/from_GNS".format(sdp)
@@ -419,7 +419,6 @@ if __name__ == '__main__':
         wells = get_base_well(temp_id)
         wells = smt.convert_well_data_to_stresspd(wells)
 
-        rch = get_base_rch(temp_id)
         spv = {'nper': 7,
                'perlen': 1,
                'nstp': 1,
