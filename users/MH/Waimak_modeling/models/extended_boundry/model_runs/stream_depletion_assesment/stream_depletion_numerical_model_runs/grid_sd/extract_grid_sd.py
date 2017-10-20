@@ -43,16 +43,25 @@ def calc_stream_dep_grid(model_path):
     outdata = (str_base.sum(axis=1) - str_sd.sum(axis=1)) * integrater * -1
 
     # cumulative well abstraction budget
-    budget = flopy.utils.MfListBudget('{}.list'.format(model_path))
-    temp = pd.DataFrame(budget.get_cumulative('WELLS_OUT'))
-    abs_vol = temp[(temp['stress_period'] == temp['stress_period'].max()) &
+    model_budget = flopy.utils.MfListBudget('{}.list'.format(model_path))
+    temp = pd.DataFrame(model_budget.get_cumulative('WELLS_OUT'))
+    abs_vol_model = temp[(temp['stress_period'] == temp['stress_period'].max()) &
                    (temp['time_step'] == temp['time_step'].max())]['WELLS_OUT'].iloc[0]
+
+    base_budget = flopy.utils.MfListBudget('{}.list'.format(baseline_path))
+    temp2 = pd.DataFrame(base_budget.get_cumulative('WELLS_OUT'))
+    abs_vol_base = temp2[(temp2['stress_period'] == temp2['stress_period'].max()) &
+                   (temp2['time_step'] == temp2['time_step'].max())]['WELLS_OUT'].iloc[0]
+    abs_vol = abs_vol_model - abs_vol_base
 
     if not converged('{}.list'.format(model_path)):
         outdata *= np.nan
 
     if abs_vol == 0:
         outdata *= np.nan
+    elif abs_vol < 0:
+        outdata *=0
+        outdata += -999
     else:
         outdata *= 1 / abs_vol * 100
     return outdata, abs_vol
@@ -92,6 +101,7 @@ def calc_str_dep_all_wells_grid(out_path, base_path):
     header = (
         'SD_values for model: {}. flux: {} modflow units m and day.'
         'all sd values are relative to model_abs_vol (%); though nwt sometimes reduces a wells pumping rate if it goes dry;'
+        'the flag -999 means the abstraction volume for the model was calculated at less than zero.'
         'the abstracted volume is noted in model_abs_vol(m3).  m(x;y) (e.g. modelx) and nztm(z;y) are in nztm. '
         'mid_screen_elv; mz are in m lyttleton; hor_misloc and vert_misloc are in m and vert_misloc is mz - mid_screen_elv'
         'flux is in m3/day\n'.format(model_id, flux_val))
