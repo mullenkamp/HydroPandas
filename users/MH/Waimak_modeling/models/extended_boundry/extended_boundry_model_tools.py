@@ -21,6 +21,10 @@ _mt = ModelTools('ex_bd_va', sdp='{}/ex_bd_va_sdp'.format(sdp), ulx=1512162.5327
 
 
 def _elvdb_calc():
+    """
+    calculate the elevation database
+    :return:
+    """
     top = gdalOpen("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/tops.tif".format(sdp)).ReadAsArray()
     top[np.isclose(top, -3.40282306074e+038)] = 0
 
@@ -91,6 +95,10 @@ def _elvdb_calc():
     return outdata
 
 def _get_basement():
+    """
+    get the model basement
+    :return:
+    """
     basement = gdalOpen("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/basement2.tif".format(sdp)).ReadAsArray()
     basement[np.isclose(basement, 9999999)] = np.nan
     basement = basement[1:,:]
@@ -99,6 +107,10 @@ def _get_basement():
 
 
 def _no_flow_calc():
+    """
+    calculate the ibound
+    :return:
+    """
     no_flow = np.zeros((_mt.rows,_mt.cols))
     outline = _mt.shape_file_to_model_array("{}/ex_bd_va_sdp/m_ex_bd_inputs/shp/new_active_domain.shp".format(sdp),'DN',True)
     no_flow[np.isfinite(outline)] = 1
@@ -142,6 +154,10 @@ def _no_flow_calc():
 
 
 def _get_constant_heads():
+    """
+    get teh constant heads values
+    :return:
+    """
 
     temp_c_heads_down = np.zeros((_mt.rows,_mt.cols)) * np.nan
     outdata = np.zeros((_mt.layers, _mt.rows, _mt.cols))*np.nan
