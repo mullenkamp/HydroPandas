@@ -58,7 +58,7 @@ def setup_runs_grid(model_id, flux, base_path, start_heads, positive_flux_behavi
     well_list = grid_wells(flux)
     for well in well_list.index:
         temp_kwargs = copy(base_kwargs)
-        temp_kwargs['wells_to_turn_on'] = pd.DataFrame(well_list.loc[well_list.index[0]]).transpose()
+        temp_kwargs['wells_to_turn_on'] = pd.DataFrame(well_list.loc[well]).transpose()
         temp_kwargs['name'] = well
         out_runs.append(temp_kwargs)
 
@@ -113,6 +113,7 @@ def well_by_well_depletion_grid(model_id, flux, base_path, notes):
 
 
 if __name__ == '__main__':
+    setup_runs_grid('StrOpt',-10,'test',-999)
     base_dir = None  # todo define prior to running
     # size requirements: one run (one well) is ~ 47 MB there are one full grid run is ~85 GB
     # run time requirments:
