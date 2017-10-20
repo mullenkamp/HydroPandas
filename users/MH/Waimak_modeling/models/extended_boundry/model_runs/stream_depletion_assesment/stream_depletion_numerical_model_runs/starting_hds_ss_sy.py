@@ -32,7 +32,7 @@ def get_sd_starting_hds(model_id, sd_version):
     return hds
 
 def get_sd_well_list(model_id):
-    cav = get_full_consent(model_id)
+    cav = get_full_consent(model_id) # note this is identical to max rate well list
     cav = cav.loc[(cav.type=='well') & (cav.zone == 'n_wai') & (cav.flux < 0)]
     well_list = list(cav.index)
     return well_list

@@ -191,10 +191,18 @@ def get_base_grid_sd_path(model_id):
     if os.path.exists(path):
         return path.replace('.cbc', '')
 
-    setup_and_run_ss_grid_stream_dep(model_id=model_id,
+    name, success = setup_and_run_ss_grid_stream_dep(model_id=model_id,
                                      name='grid_sd_base',
                                      base_dir=smt.temp_pickle_dir,
                                      wells_to_turn_on=None)
+
+    if not os.path.exists(path):
+        raise ValueError('for some reason the cbc path did not write')
+
+    if success != 'converged':
+        os.remove(path) # to prevent it from returing the path on a future run
+        raise ValueError('base model did not converge')
+
     return path.replace('.cbc', '')
 
 

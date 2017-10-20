@@ -127,6 +127,8 @@ def get_model_name_path(model_id):
     :param model_id:
     :return:
     """
+    # new model check the well package, check the sfr package and run new_model_run
+
     if model_id in ['test', 'opt']:
         warn('model {} is depreciated'.format(model_id))
     model_dict = {
@@ -134,7 +136,11 @@ def get_model_name_path(model_id):
         'test': r"C:\Users\MattH\Desktop\Waimak_modeling\ex_bd_tester\test_import_gns_mod\mf_aw_ex.nam",
 
         # the optimized model as of 26/09/2017 # likely depreciated due to concerns in eyrewell forrest
-        'opt': "{}/from_gns/optimised/mf_aw_ex/mf_aw_ex.nam".format(smt.sdp)
+        'opt': "{}/from_gns/optimised/mf_aw_ex/mf_aw_ex.nam".format(smt.sdp),
+
+        # an opitimised model recieved 20/10/2017 that has the new priors, well and rch packages
+        # which fits the heads, streams, ofshore flows, but not the deep heads, and not the verticle targets
+        'StrOpt': "{}/from_gns/StrOpt/AW20171019_i3_optver/mf_aw_ex.nam".format(smt.sdp)
     }
     if '_' in model_id:
         raise ValueError('_ in model id: {}, model_id cannot include an "_" as this is a splitting character'.format(model_id))
