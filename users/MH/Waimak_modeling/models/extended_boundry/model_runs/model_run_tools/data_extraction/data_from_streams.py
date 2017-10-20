@@ -303,6 +303,10 @@ def _get_sw_samp_pts_dict(recalc=False):
 
 
 def _make_swaz_drn_points():
+    """
+    a function to make the swaz points from previous data
+    :return:
+    """
     # only run one set
     import geopandas as gpd
     paths = [
@@ -318,6 +322,7 @@ def _make_swaz_drn_points():
 
 
 if __name__ == '__main__':
+    # tests
     test = get_samp_points_df()
     #test2 = _get_sw_samp_pts_dict()
     #drn, sfr = _get_flux_flow_arrays('ashley_swaz',test2,test)

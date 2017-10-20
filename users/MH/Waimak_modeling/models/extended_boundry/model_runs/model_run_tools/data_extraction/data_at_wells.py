@@ -21,7 +21,7 @@ unc_no_data = -999.99  # todo confirm this
 
 def get_well_positions(well_list, missing_handeling='warn'):
     """
-
+    get the position for all of the wells
     :param well_list: list of well numbers or a well number
     :param missing_handeling: one of: 'raise' : raise an exception for any nan values with well numbers
                                   'forgive': silently remove nan values
@@ -54,6 +54,13 @@ def get_well_positions(well_list, missing_handeling='warn'):
 
 
 def get_hds_file_path(name_file_path=None, hds_path=None, m=None):
+    """
+    get the head file path from one of the paths below
+    :param name_file_path:
+    :param hds_path:
+    :param m:
+    :return:
+    """
     loc_inputs = 0
     if hds_path is not None:
         if '.hds' not in hds_path:
@@ -146,6 +153,13 @@ def get_con_at_wells(well_list, unc_file_path, kstpkpers=None, rel_kstpkpers=Non
 
 
 def _get_kstkpers(bud_file, kstpkpers=None, rel_kstpkpers=None):
+    """
+    get teh kstpkpers to use from either a list of kstpkpers or a list of relative kstpkpers
+    :param bud_file: the budget file for the model in question
+    :param kstpkpers: the kstkpers
+    :param rel_kstpkpers:  the relative kstpkpers to use
+    :return: 2d np array
+    """
     if kstpkpers is not None and rel_kstpkpers is not None:
         raise ValueError('must define only one of kstpkpers or rel_kstpkpers')
     elif kstpkpers is not None:
@@ -210,6 +224,7 @@ def _fill_df_with_bindata(bin_file, kstpkpers, kstpkper_names, df, nodata_value,
 
 
 if __name__ == '__main__':
+    #tests
     hds = (
     r"C:\Users\MattH\Desktop\Waimak_modeling\python_models\component_con_n_ss\rch_constant_con\mf_constant_concentration.hds")
     unc =r"C:\Users\MattH\Desktop\Waimak_modeling\python_models\component_con_n_ss\rch_constant_con\MT3D001.UCN"
