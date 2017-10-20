@@ -21,7 +21,7 @@ if __name__ == '__main__':
     # done on rdsprod03
     #### todo inputs to define for each run####
     safemode = True
-    model_id = 'opt'  # todo update
+    model_id = 'StrOpt'  # todo update
     model_dir_path = r"D:\mh_model_runs\{}_forward_runs_2017_10_20".format(model_id)  # path on rdsprod03
     results_dir = r"D:\mh_model_runs\{}_forward_runs_2017_10_20_results".format(model_id)
     cc_to_waimak_only = False

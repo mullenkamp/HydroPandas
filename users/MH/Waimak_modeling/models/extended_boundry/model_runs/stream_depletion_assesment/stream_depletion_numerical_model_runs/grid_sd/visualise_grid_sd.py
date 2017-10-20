@@ -20,7 +20,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.cwms_index import get_zone_array_index
 import matplotlib.pyplot as plt
 
-depths = [10, 15, 20, 30, 40, 50, 75, 100, 150, 200, 225]  # todo confirm with zeb # where do we have data
+depths = [10, 15, 20, 30, 40, 50, 75, 100, 150, 200, 225]
 
 
 def get_mask(recalc=False):

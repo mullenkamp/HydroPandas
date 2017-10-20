@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     #### todo update below parameters ####
     # on DHI-runs02
-    model_id = 'opt'
+    model_id = 'StrOpt'
 
     sd7_notes = """ """
     sd30_notes = """ """
