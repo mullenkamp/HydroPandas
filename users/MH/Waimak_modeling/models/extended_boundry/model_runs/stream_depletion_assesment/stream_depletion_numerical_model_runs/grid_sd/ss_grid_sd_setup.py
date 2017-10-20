@@ -50,8 +50,8 @@ def setup_and_run_ss_grid_stream_dep(model_id, name, base_dir, wells_to_turn_on,
     """
 
     # check inputs are dictionaries
-    for input_arg in ['wells_to_turn_on']:
-        if not isinstance(eval(input_arg), pd.DataFrame):
+    for input_arg in ['wells_to_turn_on'] :
+        if not isinstance(eval(input_arg), pd.DataFrame) and eval(input_arg) is not None:
             raise ValueError('incorrect input type for {} expected dataframe'.format(input_arg))
 
     wells = {}

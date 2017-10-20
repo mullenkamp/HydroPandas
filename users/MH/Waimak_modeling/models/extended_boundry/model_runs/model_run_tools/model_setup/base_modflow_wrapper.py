@@ -405,7 +405,7 @@ if __name__ == '__main__':
     if testtype == 4:
         zip_non_essential_files(r"C:\Users\MattH\Desktop\test_sd30\opt_turn_on_M35_0122_sd30 - Copy",other_files='.hds')
     if testtype == 3:
-        m = import_gns_model('opt', 'test', r"C:\Users\MattH\Desktop\test_zipping")
+        m = import_gns_model('StrOpt', 'test', r"C:\Users\MattH\Desktop\test_zipping")
         m.write_input()
         m.write_name_file()
         m.run_model()
