@@ -187,7 +187,7 @@ def grid_wells(flux, recalc=False):  # set up a grid
 
 
 def get_base_grid_sd_path(model_id):
-    path = os.path.join(smt.temp_pickle_dir, '{}_grid_sd_base.cbc'.format(model_id))
+    path = os.path.join(smt.temp_pickle_dir, '{}_grid_sd_base'.format(model_id), '{}_grid_sd_base.cbc'.format(model_id))
     if os.path.exists(path):
         return path.replace('.cbc', '')
 
