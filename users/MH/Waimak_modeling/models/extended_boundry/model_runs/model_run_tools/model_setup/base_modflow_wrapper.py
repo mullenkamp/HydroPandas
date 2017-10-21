@@ -18,6 +18,7 @@ from copy import deepcopy
 from users.MH.Waimak_modeling.supporting_data_path import sdp
 from realisation_id import get_base_well, get_model_name_path, get_model
 import zipfile
+import itertools
 
 org_data_dir = "{}/from_GNS".format(sdp)
 
@@ -351,8 +352,9 @@ def change_stress_period_settings(m, spv):
     dis.steady = flopy.utils.Util2d(m, (nper,), bool, spv['steady'], 'steady')
     dis.tsmult = flopy.utils.Util2d(m, (nper,), np.float32, spv['tsmult'], 'tsmult')
     dis.check()
-    if oc_stress_per_data is None:
-        m.oc.stress_period_data = {(0, 0): ['save head', 'save drawdown', 'save budget', 'print budget']}
+    if oc_stress_per_data is None: #todo I dont' think this works with nwt
+        for step,per in itertools.product(spv['nstp'],spv['nper']):
+            m.oc.stress_period_data = {(per, step): ['save head', 'save drawdown', 'save budget', 'print budget']}
     else:
         m.oc.stress_period_data = oc_stress_per_data
 

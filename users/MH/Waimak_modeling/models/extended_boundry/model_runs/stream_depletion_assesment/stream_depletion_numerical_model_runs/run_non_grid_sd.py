@@ -20,13 +20,13 @@ if __name__ == '__main__':
     # on DHI-runs02
     model_id = 'StrOpt'
 
-    sd7_notes = """ """
-    sd30_notes = """ """
-    sd150_notes = """ """
+    sd7_notes = """ should write all spv now"""
+    sd30_notes = """ should write all spv now """
+    sd150_notes = """ should write all spv now """
 
 
-    model_base_path = r"D:\mattH\python_wm_runs\sd_runs\{}_2017_10_20".format(model_id)
-    data_outdir = r"D:\mattH\python_wm_runs\sd_runs\data_{}_2017_10_20".format(model_id)
+    model_base_path = r"D:\mattH\python_wm_runs\sd_runs\{}_2017_10_22".format(model_id)
+    data_outdir = r"D:\mattH\python_wm_runs\sd_runs\data_{}_2017_10_22".format(model_id)
     run_models = True
 
     # below should not change
