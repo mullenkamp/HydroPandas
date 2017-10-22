@@ -342,6 +342,7 @@ def change_stress_period_settings(m, spv):
     spv = _check_stress_period_values(spv)
     dis = m.get_package('dis')
     nper = spv['nper']
+    nstp = spv['nstp']
     if 'oc_stress_per_data' not in spv.keys():
         oc_stress_per_data = None
     else:
@@ -353,10 +354,12 @@ def change_stress_period_settings(m, spv):
     dis.tsmult = flopy.utils.Util2d(m, (nper,), np.float32, spv['tsmult'], 'tsmult')
     dis.check()
     if oc_stress_per_data is None: #todo I dont' think this works with nwt
-        for step,per in itertools.product(spv['nstp'],spv['nper']):
-            m.oc.stress_period_data = {(per, step): ['save head', 'save drawdown', 'save budget', 'print budget']}
-    else:
-        m.oc.stress_period_data = oc_stress_per_data
+        oc_stress_per_data = {}
+        for per in range(nper):
+            for step in range(nstp[per]):
+                oc_stress_per_data[(per, step)]= ['save head', 'save drawdown', 'save budget', 'print budget']
+
+    m.oc.stress_period_data = oc_stress_per_data
 
 
 def zip_non_essential_files(model_dir, include_list=False, other_files=None):
