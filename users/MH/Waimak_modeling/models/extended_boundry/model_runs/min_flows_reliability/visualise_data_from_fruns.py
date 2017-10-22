@@ -98,29 +98,34 @@ def vis_cc(relative_data_path, meta_data_path):
     data['condition'] = ['_'.join((i, j)) for i, j in data.loc[:, ['rcp', 'amalg_type']].itertuples(False)]
 
     out_plots = []
+    exception_sites = []
     for site in list(itertools.chain(*groups.values())):
-        print(site)
-        if site == 'cust_oxford':  # todo just to test, see if it is still going dry and if so handle this
-            continue
-        if '/' in site:
-            ylab = 'draw down'
-        else:
-            ylab = 'percent RCPpast flow'
-        temp_data = data.loc[(data.site == site) & (data.converged) & (data.rcp != 'RCPpast')]
-        g = sns.FacetGrid(temp_data, row='sen', sharey=True, sharex=True,
-                          row_order=['naturalised', 'current', 'pc5_80_wil_eff'])
-        g.map_dataframe(sns.tsplot, time='period', unit='rcm', value='value', ci=95, condition='condition',
-                        color={'RCP4.5_tym': 'b', 'RCP4.5_low_3_m': 'c', 'RCP8.5_tym': 'r', 'RCP8.5_low_3_m': 'orange'})
-        order = ['RCP4.5_tym', 'RCP8.5_tym', 'RCP4.5_low_3_m', 'RCP8.5_low_3_m']
-        temp = np.array(g.axes[0, 0].get_legend_handles_labels())
-        tidx = [np.where(temp[1] == e)[0][0] for e in order]
-        handles = temp[0, tidx]
-        labels = temp[1, tidx]
-        g.set_axis_labels('year', ylab)
-        g.fig.legend(handles=handles, labels=labels, loc=6)
-        g.fig.suptitle('cc_{}'.format(site))
-        g.fig.set_size_inches((18.5, 9.5))
-        out_plots.append(g)
+        try:
+            print(site)
+            if site == 'cust_oxford':  # todo just to test, see if it is still going dry and if so handle this
+                continue
+            if '/' in site:
+                ylab = 'draw down'
+            else:
+                ylab = 'percent RCPpast flow'
+            temp_data = data.loc[(data.site == site) & (data.converged) & (data.rcp != 'RCPpast')]
+            g = sns.FacetGrid(temp_data, row='sen', sharey=True, sharex=True,
+                              row_order=['naturalised', 'current', 'pc5_80_wil_eff'])
+            g.map_dataframe(sns.tsplot, time='period', unit='rcm', value='value', ci=95, condition='condition',
+                            color={'RCP4.5_tym': 'b', 'RCP4.5_low_3_m': 'c', 'RCP8.5_tym': 'r', 'RCP8.5_low_3_m': 'orange'})
+            order = ['RCP4.5_tym', 'RCP8.5_tym', 'RCP4.5_low_3_m', 'RCP8.5_low_3_m']
+            temp = np.array(g.axes[0, 0].get_legend_handles_labels())
+            tidx = [np.where(temp[1] == e)[0][0] for e in order]
+            handles = temp[0, tidx]
+            labels = temp[1, tidx]
+            g.set_axis_labels('year', ylab)
+            g.fig.legend(handles=handles, labels=labels, loc=6)
+            g.fig.suptitle('cc_{}'.format(site))
+            g.fig.set_size_inches((18.5, 9.5))
+            out_plots.append(g)
+        except:
+            exception_sites.append(site)
+    print('sites that raised an exception {}'.format(exception_sites))
     return out_plots
 
 
@@ -139,6 +144,7 @@ def vis_eco_min_flows(relitive_data_path):  # todo handle dry missing wells
     data = data.loc[:, sens + ['site']]
     data = pd.melt(data, id_vars=['site'], var_name='scenario')
     idx = data.site.str.contains('/')
+    data.loc[data.value<-700,'value'] = np.nan # excluding dry wells
     data.loc[idx, 'type'] = 'well'
     data.loc[~idx, 'type'] = 'stream'
     data.loc[~idx, 'value'] *= 100
@@ -215,6 +221,8 @@ def plot_and_save_forward_vis(outdir, relitive_data_path, meta_data_path):
     :param meta_data_path: for the forward runs
     :return:
     """
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
     g = vis_eco_min_flows(relitive_data_path=relitive_data_path)
     g.savefig(os.path.join(outdir,'{}.png'.format(g.fig._suptitle._text)))
     g = vis_relibability(relitive_data_path)

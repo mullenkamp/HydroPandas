@@ -19,6 +19,8 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
     zipped_converged
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import matplotlib.pyplot as plt
+from visualise_data_from_fruns import gw_site_groups
+import itertools
 
 
 def extract_forward_run(name_file_path):
@@ -27,20 +29,7 @@ def extract_forward_run(name_file_path):
     :param name_file_path: path to teh mf name file with or without extension
     :return: pd.DataFrame
     """
-    wells = [
-        'M34/0306',
-        'L35/0062',
-        'M35/0538',
-        'M35/5445',
-        'L35/0686',
-        'M35/9154',
-        'M35/11283',
-        'M35/0058',
-        'M35/4873',
-        'BW23/0133',
-        'BW23/0134',
-        'M35/6295'
-    ]
+    wells = list(itertools.chain(*gw_site_groups.values())) # set in visualise data
     streams = get_samp_points_df()
     streams = streams.loc[streams.m_type == 'min_flow'].index
 
