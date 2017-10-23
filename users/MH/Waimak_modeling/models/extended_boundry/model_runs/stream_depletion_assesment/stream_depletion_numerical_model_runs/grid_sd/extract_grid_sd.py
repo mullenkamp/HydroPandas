@@ -54,8 +54,6 @@ def calc_stream_dep_grid(model_path):
                    (temp2['time_step'] == temp2['time_step'].max())]['WELLS_OUT'].iloc[0]
     abs_vol = abs_vol_model - abs_vol_base
 
-    if not converged('{}.list'.format(model_path)):
-        outdata *= np.nan
 
     if abs_vol == 0:
         outdata *= np.nan
@@ -64,6 +62,11 @@ def calc_stream_dep_grid(model_path):
         outdata += -999
     else:
         outdata *= 1 / abs_vol * 100
+
+    if not converged('{}.list'.format(model_path)):
+        outdata *= np.nan
+        abs_vol *= np.nan
+
     return outdata, abs_vol
 
 
@@ -79,11 +82,21 @@ def calc_str_dep_all_wells_grid(out_path, base_path):
     model_id = os.path.basename(all_paths[0]).split('_')[0]
     wells = [os.path.basename(e).replace('{}_'.format(model_id), '') for e in all_paths]
     out_path = os.path.join(os.path.dirname(out_path), '{}_{}'.format(model_id, os.path.basename(out_path)))
+    outdir = os.path.dirname(out_path)
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+
+    samp_points_df = get_samp_points_df()
+    sites = list(samp_points_df[samp_points_df.m_type == 'swaz'].index)
 
     outdata = {}
     out_per_abs_vol = {}
     for well, path in zip(wells, all_paths):
-        sd, per_abs_vol = calc_stream_dep_grid(path)
+        if os.path.getsize('{}.cbc'.format(path)) == 0:  # the model fell over and nothing was written to the cbc
+            per_abs_vol = np.nan
+            sd = pd.Series(index=sites)
+        else:
+            sd, per_abs_vol = calc_stream_dep_grid(path)
         outdata[well] = sd
         out_per_abs_vol[well] = per_abs_vol
     outdata = pd.DataFrame(outdata).transpose()

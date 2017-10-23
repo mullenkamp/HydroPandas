@@ -60,26 +60,30 @@ def get_mask(recalc=False):
     return mask
 
 
-def krig_stream(data, stream):
+def krig_stream(inputdata, stream):
     # 3d krigging on x,y, depth x,y resolution of 200 m ? (e.g. model grid)
+    data = inputdata.loc[inputdata[stream].notnull()]
+    val = data.loc[:, stream].values
     x = data.loc[:, 'mx'].values
     y = data.loc[:, 'my'].values
     z = data.loc[:, 'depth'].values
-    val = data.loc[:, stream].values
     mask = get_mask()
     grid_x, grid_y = smt.get_model_x_y(False)
     ok3d = OrdinaryKriging3D(x=x, y=y, z=z, val=val, variogram_model='spherical')
     # this returns a shape of z,y,x
-    k3d_temp, ss3d_temp = ok3d.execute('masked', grid_x, grid_y, depths,
-                                       mask=mask,
-                                       backend='vectorized')  # this may cause a memory error if so switch to 'loop'
+    k3d_temp, ss3d_temp = np.zeros((len(depths),len(grid_y),len(grid_x)))*np.nan, np.zeros((len(depths),len(grid_y),len(grid_x)))*np.nan
+    for i,depth in enumerate(depths): # try running each interpolation layer by layer to avoid memory error
+        k, ss = ok3d.execute('masked', grid_x, grid_y, np.array([depth]).astype(float),
+                                           mask=mask[i][np.newaxis,:,:],
+                                           backend='vectorized')  # this may cause a memory error if so switch to 'loop'
 
-    k3d = k3d_temp.data
-    k3d[k3d_temp.mask] = np.nan
-    ss3d = ss3d_temp.data
-    ss3d[ss3d_temp.mask] = np.nan
+        k3d_temp[i] = k.data[0]
+        k3d_temp[i][k.mask[0]] = np.nan
+        ss3d_temp[i] = ss.data[0]
+        ss3d_temp[i][ss.mask[0]] = np.nan
 
-    return k3d, ss3d
+
+    return k3d_temp, ss3d_temp
 
 
 def extract_all_stream_krig(data_path, outpath):
@@ -91,7 +95,7 @@ def extract_all_stream_krig(data_path, outpath):
     """
     samp_points_df = get_samp_points_df()
     sites = list(samp_points_df[samp_points_df.m_type == 'swaz'].index)
-    data = pd.read_csv(data_path)
+    data = pd.read_csv(data_path, skiprows=1)
     flux = data.loc[:, 'flux'].iloc[0]
 
     outfile = nc.Dataset(outpath, 'w')
@@ -142,6 +146,7 @@ def extract_all_stream_krig(data_path, outpath):
     outfile.source = 'original data: {}, script: {}'.format(data_path, sys.argv[0])
     outfile.flux = flux
     outfile.flux_units = 'm3/day'
+    outfile.close()
 
 
 def plot_all_streams_sd(nc_path, outdir):
@@ -169,10 +174,10 @@ def plot_all_streams_sd(nc_path, outdir):
             os.makedirs(varoutdir)
 
         temp = np.array(data.variables[var])
-        for layer in range(len(depths)):
-            fig, ax = smt.plt_matrix(temp[layer], vmin=0, vmax=100, cmap='RdBu',
+        for layer, dpth in enumerate(depths):
+            fig, ax = smt.plt_matrix(temp[layer], vmin=vmin, vmax=vmax, cmap='RdBu',
                                      title='{} for flux: {}'.format(var, flux), base_map=True)
-            fig.savefig(os.path.join(varoutdir))
+            fig.savefig(os.path.join(varoutdir,'depth_{}_{}_flux_{}.png'.format(dpth, var, flux)))
             plt.close(fig)
 
 
@@ -182,7 +187,7 @@ def plot_relationship_3_fluxes():  # I really don't know how to visualise this m
 
 def krig_plot_sd_grid(data_path, outdir):
     nc_path = os.path.join(outdir, 'interpolated_{}.nc'.format(os.path.basename(data_path).replace('.csv', '')))
-    extract_all_stream_krig(data_path, nc_path)
+    #extract_all_stream_krig(data_path, nc_path) #todo uncomment after run (just to speed things up)
     plot_out_dir = os.path.join(outdir, 'plots_{}'.format(os.path.basename(nc_path).replace('.nc','')))
     plot_all_streams_sd(nc_path, plot_out_dir)
 

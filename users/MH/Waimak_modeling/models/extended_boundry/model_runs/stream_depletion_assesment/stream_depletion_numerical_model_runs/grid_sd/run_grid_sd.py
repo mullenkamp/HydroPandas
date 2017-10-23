@@ -11,6 +11,7 @@ import time
 from well_by_well_str_dep_ss import well_by_well_depletion_grid
 from extract_grid_sd import calc_str_dep_all_wells_grid
 from visualise_grid_sd import krig_plot_sd_grid
+import socket
 
 if __name__ == '__main__':
     # a convenience function to run all of the grid sd, extract, and visualise the data
@@ -20,13 +21,24 @@ if __name__ == '__main__':
     #### todo update the below parameters ####
     # run on GWruns02
     model_id = 'StrOpt'  # todo re-define
-    base_dir = "D:\mh_waimak_models\grid_sd_runs\{}_models_2017_10_21".format(model_id)
-    data_out_dir = "D:\mh_waimak_models\grid_sd_runs\{}_data_2017_10_21".format(model_id)
-    run_models = True
+    run_models = False
+    amalg_results = False
+    if socket.gethostname() == 'RDSProd03':
+        base_dir = "D:\mh_model_runs\grid_sd_runs\{}_models_2017_10_21".format(model_id)
+        data_out_dir = "D:\mh_model_runs\grid_sd_runs\{}_data_2017_10_21".format(model_id)
 
-    # below should not change
-    fluxes = [-5, -25, -100]
-    fluxes = [e * 86.4 for e in fluxes]
+        # below should not change
+        fluxes = [ -100]
+        fluxes = [e * 86.4 for e in fluxes]
+
+    else:
+
+        base_dir = "D:\mh_waimak_models\grid_sd_runs\{}_models_2017_10_21".format(model_id)
+        data_out_dir = "D:\mh_waimak_models\grid_sd_runs\{}_data_2017_10_21".format(model_id)
+
+        # below should not change
+        fluxes = [-5, -25]
+        fluxes = [e * 86.4 for e in fluxes]
 
     #### run the models ####
     if run_models:
@@ -50,10 +62,13 @@ if __name__ == '__main__':
     for path in base_paths:
         out_path = os.path.join(data_out_dir,'sd_grid_data_{}.csv'.format(os.path.basename(path)))
         outpaths.append(out_path)
-        calc_str_dep_all_wells_grid(out_path, path)
+        if amalg_results:
+            calc_str_dep_all_wells_grid(out_path, path)
 
+    print('finished extracting data')
     # krig and plot all data
     for path in outpaths:
-        krig_plot_sd_grid(path,data_out_dir)
+        rd_path = os.path.join(os.path.dirname(path),'{}_{}'.format(model_id,os.path.basename(path)))
+        krig_plot_sd_grid(rd_path,data_out_dir)
 
 
