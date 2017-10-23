@@ -104,7 +104,7 @@ def calc_str_dep_all_wells(out_path, base_path, sd_version='sd150'):
     # add flux
     if sd_version == 'sd150':
         flux = get_full_consent(model_id)
-        flux[flux.use_type == 'irrigation-sw', 'flux'] *= 12 / 5 # scale irrigation wells to CAV over 150 days
+        flux.loc[flux.use_type == 'irrigation-sw', 'flux'] *= 12 / 5 # scale irrigation wells to CAV over 150 days
         flux = flux.loc[:, 'flux']
     else:
         flux = get_max_rate(model_id).loc[:, 'flux']

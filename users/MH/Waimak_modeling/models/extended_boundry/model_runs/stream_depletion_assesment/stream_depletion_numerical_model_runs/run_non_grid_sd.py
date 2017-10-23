@@ -27,7 +27,7 @@ if __name__ == '__main__':
 
     model_base_path = r"D:\mattH\python_wm_runs\sd_runs\{}_2017_10_22".format(model_id)
     data_outdir = r"D:\mattH\python_wm_runs\sd_runs\data_{}_2017_10_22".format(model_id)
-    run_models = True
+    run_models = False
 
     # below should not change
     well_list = get_sd_well_list(model_id)
@@ -47,6 +47,8 @@ if __name__ == '__main__':
         print('done after {} minutes for {} model runs'.format((time.time() - t) / 60, len(well_list) * 3))
 
     #### extract data ####
+    if not os.path.exists(data_outdir):
+        os.makedirs(data_outdir)
     calc_str_dep_all_wells(os.path.join(data_outdir, "extract_sd150.csv"), sd150_base_path, 'sd150')
     calc_str_dep_all_wells(os.path.join(data_outdir, "extract_sd30.csv"), sd30_base_path, 'sd30')
     calc_str_dep_all_wells(os.path.join(data_outdir, "extract_sd7.csv"), sd7_base_path, 'sd7')
