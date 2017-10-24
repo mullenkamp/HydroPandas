@@ -230,7 +230,7 @@ def run_forward_runs(runs,forward_run_dir, notes=None):
     """
     with open(os.path.join(forward_run_dir,'READ_ME.txt'),'w') as f:
         f.write(str(notes) + '\n')
-
+    model_id = runs[0]['model_id']
     t = time.time()
     multiprocessing.log_to_stderr(logging.DEBUG)
     pool_size = multiprocessing.cpu_count()
@@ -245,7 +245,7 @@ def run_forward_runs(runs,forward_run_dir, notes=None):
     pool.close()  # no more tasks
     pool.join()
     now = datetime.datetime.now()
-    with open("{}/forward_run_log/forward_run_status_{}_{:02d}_{:02d}_{:02d}_{:02d}.txt".format(smt.sdp,now.year,now.month,now.day,now.hour,now.minute), 'w') as f:
+    with open("{}/forward_run_log/{}_forward_run_status_{}_{:02d}_{:02d}_{:02d}_{:02d}.txt".format(smt.sdp,model_id,now.year,now.month,now.day,now.hour,now.minute), 'w') as f:
         f.write(str(notes) + '\n')
         wr = ['{}: {}\n'.format(e[0], e[1]) for e in pool_outputs]
         f.writelines(wr)

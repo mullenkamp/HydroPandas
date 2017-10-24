@@ -148,7 +148,11 @@ def get_model_name_path(model_id):
 
         # the previous optimisation recived 24/10/2017 iterattion to VertUnstabB which does not fit the targets as well,
         # but is more stable
-        'VertUnstabA': "{}/from_gns/VertUnstabA/AW20171022_i3_optver/i3/mf_aw_ex.nam".format(smt.sdp)
+        'VertUnstabA': "{}/from_gns/VertUnstabA/AW20171022_i3_optver/i3/mf_aw_ex.nam".format(smt.sdp),
+
+        # optimisation recieved on 24/10/2017 which is more stable and better hits the targets than either of the
+        # VertUnstab models.  if the jacobian runs fine then this will be the base for the NSMC
+        'NsmcBase': "{}/from_gns/NsmcBase/AW20171024_2_i2_optver/i2/mf_aw_ex.nam".format(smt.sdp)
     }
     if '_' in model_id:
         raise ValueError('_ in model id: {}, model_id cannot include an "_" as this is a splitting character'.format(model_id))

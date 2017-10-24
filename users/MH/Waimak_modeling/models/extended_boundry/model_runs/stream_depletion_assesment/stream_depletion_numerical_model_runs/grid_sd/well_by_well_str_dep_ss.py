@@ -102,7 +102,8 @@ def well_by_well_depletion_grid(model_id, flux, base_path, notes):
     pool.close()  # no more tasks
     pool.join()
     now = datetime.datetime.now()
-    with open("{}/forward_run_log/SDgrid_run_status_{}_{:02d}_{:02d}_{:02d}_{:02d}.txt".format(smt.sdp, now.year,
+    with open("{}/forward_run_log/{}_SDgrid_run_status_{}_{:02d}_{:02d}_{:02d}_{:02d}.txt".format(smt.sdp, model_id,
+                                                                                                  now.year,
                                                                                                now.month, now.day,
                                                                                                now.hour, now.minute),
               'w') as f:
