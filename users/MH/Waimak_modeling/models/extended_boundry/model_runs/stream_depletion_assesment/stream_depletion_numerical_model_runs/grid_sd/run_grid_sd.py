@@ -67,6 +67,7 @@ if __name__ == '__main__':
             calc_str_dep_all_wells_grid(out_path, path)
 
     print('finished extracting data')
+    raise NotImplementedError('plotting will change, so dont run')
     # krig and plot all data
     for path in outpaths:
         rd_path = os.path.join(os.path.dirname(path),'{}_{}'.format(model_id,os.path.basename(path)))
