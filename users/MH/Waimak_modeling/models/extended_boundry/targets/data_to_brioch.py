@@ -78,4 +78,4 @@ def generate_all_data_for_brioch(outdir):
 if __name__ == '__main__':
     temp = gen_constant_head_targets()
     temp = gen_sfr_flow_target_array()
-    generate_all_data_for_brioch(r"C:\Users\MattH\Desktop\data_to_brioch_06-09-2017_kspit\target_data")
+    generate_all_data_for_brioch(r"C:\Users\MattH\Desktop\data_to_brioch_2017_10_24")

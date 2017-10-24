@@ -6,7 +6,7 @@ Date Created: 17/10/2017 11:07 AM
 
 from __future__ import division
 from core import env
-from pykrige.ok3d import OrdinaryKriging3D
+from pykrige.ok import OrdinaryKriging
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import pickle
 import numpy as np
@@ -63,24 +63,24 @@ def get_mask(recalc=False):
 def krig_stream(inputdata, stream):
     # 3d krigging on x,y, depth x,y resolution of 200 m ? (e.g. model grid)
     data = inputdata.loc[inputdata[stream].notnull()]
-    val = data.loc[:, stream].values
-    x = data.loc[:, 'mx'].values
-    y = data.loc[:, 'my'].values
-    z = data.loc[:, 'depth'].values
-    mask = get_mask()
     grid_x, grid_y = smt.get_model_x_y(False)
-    ok3d = OrdinaryKriging3D(x=x, y=y, z=z, val=val, variogram_model='spherical')
     # this returns a shape of z,y,x
     k3d_temp, ss3d_temp = np.zeros((len(depths),len(grid_y),len(grid_x)))*np.nan, np.zeros((len(depths),len(grid_y),len(grid_x)))*np.nan
-    for i,depth in enumerate(depths): # try running each interpolation layer by layer to avoid memory error
-        k, ss = ok3d.execute('masked', grid_x, grid_y, np.array([depth]).astype(float),
-                                           mask=mask[i][np.newaxis,:,:],
+    for layer in range(smt.layers):
+        idx = data.layer == layer
+        val = data.loc[idx, stream].values
+        x = data.loc[idx, 'mx'].values
+        y = data.loc[idx, 'my'].values
+        ok2d = OrdinaryKriging(x=x, y=y, z=val)
+        mask = smt.get_no_flow(layer)
+        k, ss = ok2d.execute('masked', grid_x, grid_y,
+                                           mask=mask[:,:],
                                            backend='vectorized')  # this may cause a memory error if so switch to 'loop'
 
-        k3d_temp[i] = k.data[0]
-        k3d_temp[i][k.mask[0]] = np.nan
-        ss3d_temp[i] = ss.data[0]
-        ss3d_temp[i][ss.mask[0]] = np.nan
+        k3d_temp[layer] = k.data
+        k3d_temp[layer][k.mask] = np.nan
+        ss3d_temp[layer] = ss.data
+        ss3d_temp[layer][ss.mask] = np.nan
 
 
     return k3d_temp, ss3d_temp
@@ -103,12 +103,12 @@ def extract_all_stream_krig(data_path, outpath):
     # create dimensions
     outfile.createDimension('latitude', len(y))
     outfile.createDimension('longitude', len(x))
-    outfile.createDimension('depth', len(depths))
+    outfile.createDimension('layer', len(depths))
 
     # create variables
-    depth = outfile.createVariable('depth', 'f8', ('depth',), fill_value=np.nan)
-    depth.setncatts({'units': 'm',
-                     'long_name': 'depth',
+    depth = outfile.createVariable('depth', 'f8', ('layer',), fill_value=np.nan)
+    depth.setncatts({'units': 'none',
+                     'long_name': 'layer',
                      'missing_value': np.nan})
     depth[:] = depths
 
@@ -126,13 +126,13 @@ def extract_all_stream_krig(data_path, outpath):
 
     for site in sites:
         k3d, ss3d = krig_stream(data, site)
-        site_ss3d = outfile.createVariable('var_{}'.format(site), 'f8', ('depth', 'latitude', 'longitude'),
+        site_ss3d = outfile.createVariable('var_{}'.format(site), 'f8', ('layer', 'latitude', 'longitude'),
                                            fill_value=np.nan)
         site_ss3d.setncatts({'units': 'None',
                              'long_name': 'variance of interpolated stream depletion from {}'.format(site),
                              'missing_value': np.nan})
         site_ss3d[:] = ss3d
-        site_k3d = outfile.createVariable('sd_{}'.format(site), 'f8', ('depth', 'latitude', 'longitude'),
+        site_k3d = outfile.createVariable('sd_{}'.format(site), 'f8', ('layer', 'latitude', 'longitude'),
                                           fill_value=np.nan)
         site_k3d.setncatts({'units': 'percent of pumping',
                             'long_name': 'stream depletion from {}'.format(site),
@@ -187,11 +187,11 @@ def plot_relationship_3_fluxes():  # I really don't know how to visualise this m
 
 def krig_plot_sd_grid(data_path, outdir):
     nc_path = os.path.join(outdir, 'interpolated_{}.nc'.format(os.path.basename(data_path).replace('.csv', '')))
-    #extract_all_stream_krig(data_path, nc_path) #todo uncomment after run (just to speed things up)
+    extract_all_stream_krig(data_path, nc_path)
     plot_out_dir = os.path.join(outdir, 'plots_{}'.format(os.path.basename(nc_path).replace('.nc','')))
     plot_all_streams_sd(nc_path, plot_out_dir)
 
 
-if __name__ == '__main__':  # todo debug this set
+if __name__ == '__main__':
     mask = get_mask()
     print('done')

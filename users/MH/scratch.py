@@ -16,21 +16,20 @@ import flopy
 import os
 import traceback
 
-drn_data = _get_drn_spd(1,1)
-cbb = flopy.utils.CellBudgetFile("C:\Users\MattH\Desktop\mf_aw_ex_vert\mf_aw_ex.cbc")
-flux = cbb.get_data(kstpkper=cbb.get_kstpkper()[-1],text='drain',full3D=True)[0][0]
-ncarpet = (smt.df_to_array(drn_data.loc[drn_data.group == 'ash_carpet'],'j'))
+def ash_carpet_budget(path):
+    drn_data = _get_drn_spd(1,1)
+    cbb = flopy.utils.CellBudgetFile(path)
+    flux = cbb.get_data(kstpkper=cbb.get_kstpkper()[-1],text='drain',full3D=True)[0][0]
+    ncarpetj = (smt.df_to_array(drn_data.loc[drn_data.group == 'ash_carpet'],'j'))
+    ncarpeti = (smt.df_to_array(drn_data.loc[drn_data.group == 'ash_carpet'],'i'))
 
-outdata = {}
-for target_id in set(drn_data.target_group):
-    temp = np.isfinite(smt.df_to_array(drn_data.loc[drn_data.target_group == target_id],'j'))
-    outdata[target_id] = flux[temp].sum()
+    outdata = {}
+    for target_id, (imin,imax),(jmin,jmax) in zip(['ne_ash', 'nw_ash','se_ash','sw_ash'],
+                                                  [(0,0),(0,0),(0,0),(0,0)],  # i's
+                                                  [(0,0),(0,0),(0,0),(0,0)]):  # j's
+        temp = (ncarpeti <= imax) & (ncarpeti >= imin) & (ncarpetj <= jmax) & (ncarpetj >= jmin)
+        outdata[target_id] = flux[temp].sum()
 
-outdata = pd.DataFrame({'flux':outdata})/86400
-print(outdata)
+    outdata = pd.DataFrame({'flux':outdata})/86400
+    print(outdata)
 
-
-ecam = 295
-ns = 41
-
-print('done')
