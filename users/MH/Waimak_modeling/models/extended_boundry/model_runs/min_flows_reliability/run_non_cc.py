@@ -22,8 +22,8 @@ if __name__ == '__main__':
     # done on rdsprod03
     #### todo inputs to define for each run####
     safemode = True
-    run_modelses = [False, True]
-    model_ids = ['VertUnstabA', 'VertUnstabB']  # todo update
+    run_modelses = [True]
+    model_ids = ['NsmcBase']  # todo update
 
     #### run the models ####
     for model_id, run_models in zip(model_ids, run_modelses):
