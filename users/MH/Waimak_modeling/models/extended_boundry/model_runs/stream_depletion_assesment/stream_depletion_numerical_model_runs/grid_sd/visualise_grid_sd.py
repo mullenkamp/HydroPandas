@@ -23,17 +23,12 @@ import matplotlib.pyplot as plt
 depths = [10, 15, 20, 30, 40, 50, 75, 100, 150, 200, 225]
 
 
-def get_mask(recalc=False):
+def get_mask():
     """
     define the mask for kriging from no flow array should be k,i,j
     :param recalc:
     :return:
     """
-    pickle_path = os.path.join(smt.temp_pickle_dir, 'sd_grid_krig_mask.p')
-    if os.path.exists(pickle_path) and not recalc:
-        mask = pickle.load(open(pickle_path))
-        return mask
-
     elv_db = smt.calc_elv_db()
     no_flow = smt.get_no_flow()
     no_flow[no_flow < 0] = 0
@@ -43,20 +38,10 @@ def get_mask(recalc=False):
     mask = np.zeros(smt.model_array_shape)
     zidx = np.repeat(get_zone_array_index('waimak')[np.newaxis, :, :], 11, axis=0)
     mask[~zidx] = np.nan
-
-    # depth no_flow
-    depth_no_flow = elv_db[0] - elv_db[1:]  # gives all depths
-    depth_no_flow[no_flow.astype(bool)] = np.nan
-    for k, d in enumerate(depths):
-        mask[k][np.nanmin(depth_no_flow, axis=0) <= d] = np.nan
-
-        # above midpoint of layer 1
-        mask[k][(elv_db[0] - elv_db[1]) / 2 > d] = np.nan
-        # above midpoint of layer 1
-        mask[k][(elv_db[0] - elv_db[10]) - 20 < d] = np.nan
-
+    mask[~no_flow.astype(bool)] = np.nan
     mask = np.isnan(mask)
-    pickle.dump(mask, open(pickle_path, 'w'))
+    # depth no_flow
+
     return mask
 
 
@@ -66,13 +51,14 @@ def krig_stream(inputdata, stream):
     grid_x, grid_y = smt.get_model_x_y(False)
     # this returns a shape of z,y,x
     k3d_temp, ss3d_temp = np.zeros((len(depths),len(grid_y),len(grid_x)))*np.nan, np.zeros((len(depths),len(grid_y),len(grid_x)))*np.nan
-    for layer in range(smt.layers):
+    all_mask = get_mask()
+    for layer in range(smt.layers-1):
         idx = data.layer == layer
         val = data.loc[idx, stream].values
         x = data.loc[idx, 'mx'].values
         y = data.loc[idx, 'my'].values
         ok2d = OrdinaryKriging(x=x, y=y, z=val)
-        mask = smt.get_no_flow(layer)
+        mask = all_mask[layer]
         k, ss = ok2d.execute('masked', grid_x, grid_y,
                                            mask=mask[:,:],
                                            backend='vectorized')  # this may cause a memory error if so switch to 'loop'
@@ -103,7 +89,7 @@ def extract_all_stream_krig(data_path, outpath):
     # create dimensions
     outfile.createDimension('latitude', len(y))
     outfile.createDimension('longitude', len(x))
-    outfile.createDimension('layer', len(depths))
+    outfile.createDimension('layer', smt.layers-1)
 
     # create variables
     depth = outfile.createVariable('depth', 'f8', ('layer',), fill_value=np.nan)
@@ -174,10 +160,10 @@ def plot_all_streams_sd(nc_path, outdir):
             os.makedirs(varoutdir)
 
         temp = np.array(data.variables[var])
-        for layer, dpth in enumerate(depths):
+        for layer in range(smt.layers-1):
             fig, ax = smt.plt_matrix(temp[layer], vmin=vmin, vmax=vmax, cmap='RdBu',
                                      title='{} for flux: {}'.format(var, flux), base_map=True)
-            fig.savefig(os.path.join(varoutdir,'depth_{}_{}_flux_{}.png'.format(dpth, var, flux)))
+            fig.savefig(os.path.join(varoutdir,'layer_{:2d}_{}_flux_{}.png'.format(layer, var, flux)))
             plt.close(fig)
 
 
