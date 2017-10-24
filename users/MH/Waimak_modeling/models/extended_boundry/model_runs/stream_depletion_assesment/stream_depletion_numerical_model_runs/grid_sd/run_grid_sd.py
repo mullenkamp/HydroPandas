@@ -24,7 +24,7 @@ if __name__ == '__main__':
     if socket.gethostname() == 'RDSProd03':
         base_dir = "D:\mh_model_runs\grid_sd_runs\{}_models_2017_10_24".format(model_id)
         data_out_dir = "D:\mh_model_runs\grid_sd_runs\{}_data_2017_10_24".format(model_id)
-        run_models = True
+        run_models = False
         amalg_results = True
 
         # below should not change
@@ -32,7 +32,7 @@ if __name__ == '__main__':
         fluxes = [e * 86.4 for e in fluxes]
 
     else: # runs on gw02
-        run_models = True
+        run_models = False
         amalg_results = True
         base_dir = "D:\mh_waimak_models\grid_sd_runs\{}_models_2017_10_24".format(model_id)
         data_out_dir = "D:\mh_waimak_models\grid_sd_runs\{}_data_2017_10_24".format(model_id)
