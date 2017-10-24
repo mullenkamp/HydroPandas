@@ -22,11 +22,11 @@ if __name__ == '__main__':
     # done on rdsprod03
     #### todo inputs to define for each run####
     safemode = True
-    run_models = True
+    run_modelses = [False, True]
     model_ids = ['VertUnstabA', 'VertUnstabB']  # todo update
 
     #### run the models ####
-    for model_id in model_ids:
+    for model_id, run_models in zip(model_ids, run_modelses):
         model_dir_path = r"D:\mh_model_runs\{}_non_cc_forward_runs_2017_10_24".format(model_id)  # path on rdsprod03
         results_dir = r"D:\mh_model_runs\{}_non_cc_forward_runs_2017_10_24_results".format(model_id)
         cc_to_waimak_only = False
@@ -44,6 +44,10 @@ if __name__ == '__main__':
                     if cont != 'y':
                         raise ValueError('script aborted so as not to potentially overwrite {}'.format(model_dir_path))
 
+            if not os.path.exists(model_dir_path):
+                os.makedirs(model_dir_path)
+            if not os.path.exists(results_dir):
+                os.makedirs(results_dir)
             runs = setup_run_args(model_id, model_dir_path, cc_to_waimak_only=cc_to_waimak_only, cc_runs=False)
 
             t = time.time()
@@ -54,13 +58,13 @@ if __name__ == '__main__':
         gen_all_outdata_forward_runs(
             model_dir_path,
             results_dir,
-            True)
+            False)
         extract_and_save_all_cc_mult_missing_w(model_dir_path, os.path.join(results_dir, "ccmult_extract.csv"))
         print('done')
 
         plot_and_save_forward_vis(
             os.path.join(results_dir, "overview_plots"),
-            os.path.join(results_dir, "opt_relative_data.csv"),
-            os.path.join(results_dir, "opt_meta_data.csv"),
+            os.path.join(results_dir, "{}_relative_data.csv".format(model_id)),
+            os.path.join(results_dir, "{}_meta_data.csv".format(model_id)),
             cc_runs=False
         )
