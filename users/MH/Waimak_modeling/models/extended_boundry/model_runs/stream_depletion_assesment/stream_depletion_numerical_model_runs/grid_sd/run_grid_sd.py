@@ -22,8 +22,8 @@ if __name__ == '__main__':
     # run on GWruns02
     model_id = 'NsmcBase'  # todo re-define
     if socket.gethostname() == 'RDSProd03':
-        base_dir = "D:\mh_model_runs\grid_sd_runs\{}_models_2017_10_21".format(model_id)
-        data_out_dir = "D:\mh_model_runs\grid_sd_runs\{}_data_2017_10_21".format(model_id)
+        base_dir = "D:\mh_model_runs\grid_sd_runs\{}_models_2017_10_24".format(model_id)
+        data_out_dir = "D:\mh_model_runs\grid_sd_runs\{}_data_2017_10_24".format(model_id)
         run_models = True
         amalg_results = True
 
@@ -34,8 +34,8 @@ if __name__ == '__main__':
     else: # runs on gw02
         run_models = True
         amalg_results = True
-        base_dir = "D:\mh_waimak_models\grid_sd_runs\{}_models_2017_10_21".format(model_id)
-        data_out_dir = "D:\mh_waimak_models\grid_sd_runs\{}_data_2017_10_21".format(model_id)
+        base_dir = "D:\mh_waimak_models\grid_sd_runs\{}_models_2017_10_24".format(model_id)
+        data_out_dir = "D:\mh_waimak_models\grid_sd_runs\{}_data_2017_10_24".format(model_id)
 
         # below should not change
         fluxes = [-5]
