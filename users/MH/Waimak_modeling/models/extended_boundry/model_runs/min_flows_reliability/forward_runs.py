@@ -48,11 +48,13 @@ def run_cc_senarios(base_kwargs, cc_to_waimak_only=False):
     return runs
 
 
-def setup_run_args(model_id, forward_run_dir, cc_to_waimak_only=False):
+def setup_run_args(model_id, forward_run_dir, cc_to_waimak_only=False, cc_runs=True):
     """
     set up the forward runs
     :param model_id: which MC realisation to use
     :param forward_run_dir: the dir that all of teh model directories will be placed
+    :param cc_to_waimak_only: boolean if true only apply the climate changes stuff to waimakariri
+    :param cc_runs: boolean if True set up the runs for the climate change senarios else just the normal senarios
     :return: list of runs
     """
     runs = []
@@ -188,18 +190,19 @@ def setup_run_args(model_id, forward_run_dir, cc_to_waimak_only=False):
     }
     runs.append(pc5_80_will_eff)
 
-    # climate change senarios (lots of runs)
-    # nat + cc
-    runs.extend(run_cc_senarios(nat, cc_to_waimak_only=cc_to_waimak_only))
+    if cc_runs:
+        # climate change senarios (lots of runs)
+        # nat + cc
+        runs.extend(run_cc_senarios(nat, cc_to_waimak_only=cc_to_waimak_only))
 
-    # climate change
-    runs.extend(run_cc_senarios(current, cc_to_waimak_only=cc_to_waimak_only))
+        # climate change
+        runs.extend(run_cc_senarios(current, cc_to_waimak_only=cc_to_waimak_only))
 
-    # climate change + pc5 + will efficieny
-    runs.extend(run_cc_senarios(pc5_80_will_eff, cc_to_waimak_only=cc_to_waimak_only))
+        # climate change + pc5 + will efficieny
+        runs.extend(run_cc_senarios(pc5_80_will_eff, cc_to_waimak_only=cc_to_waimak_only))
 
-    if not os.path.exists(forward_run_dir):
-        os.makedirs(forward_run_dir)
+        if not os.path.exists(forward_run_dir):
+            os.makedirs(forward_run_dir)
 
     for i in runs:
         i['base_dir'] = '{}/{}'.format(forward_run_dir, i['name'])

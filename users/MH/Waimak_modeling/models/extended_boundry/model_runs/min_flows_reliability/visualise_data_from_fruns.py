@@ -213,12 +213,13 @@ def vis_relibability(relitive_data_path):  # todo handle dry missing wells
     g.fig.suptitle('reliability')
     return g
 
-def plot_and_save_forward_vis(outdir, relitive_data_path, meta_data_path):
+def plot_and_save_forward_vis(outdir, relitive_data_path, meta_data_path, cc_runs=True):
     """
     wrapper to plot and save everything
     :param outdir: dir to save the plots in
     :param relitive_data_path: for the forward runs
     :param meta_data_path: for the forward runs
+    :param cc_runs: boolean if true plot the cc runs
     :return:
     """
     if not os.path.exists(outdir):
@@ -227,9 +228,10 @@ def plot_and_save_forward_vis(outdir, relitive_data_path, meta_data_path):
     g.savefig(os.path.join(outdir,'{}.png'.format(g.fig._suptitle._text)))
     g = vis_relibability(relitive_data_path)
     g.savefig(os.path.join(outdir,'{}.png'.format(g.fig._suptitle._text)))
-    gs = vis_cc(relitive_data_path,meta_data_path)
-    for g in gs:
-        g.savefig(os.path.join(outdir,'{}.png'.format(g.fig._suptitle._text).replace('/','_')))
+    if cc_runs:
+        gs = vis_cc(relitive_data_path,meta_data_path)
+        for g in gs:
+            g.savefig(os.path.join(outdir,'{}.png'.format(g.fig._suptitle._text).replace('/','_')))
 
 
 if __name__ == '__main__':

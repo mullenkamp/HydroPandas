@@ -367,6 +367,17 @@ def check_non_head_targets():
 
 
 if __name__ == '__main__':
-    ar,dict = gen_drn_target_array()
-    check_non_head_targets()
+    import matplotlib.pyplot as plt
+    hds = get_head_targets()
+    hds.loc[:,'test_weight_1'] = 1/(np.log10(hds.total_error_m) +1)
+    hds.loc[:,'test_weight_2'] = 1/ (((hds.total_error_m - hds.total_error_m.min())/(hds.total_error_m.max() - hds.total_error_m.min()))+1)
+
+    for var in ['total_error_m', 'weight', 'test_weight_1', 'test_weight_2']:
+        fig, ax = plt.subplots()
+        data = []
+        for k in range(smt.layers):
+            data.append(np.log10(hds.loc[hds.layer==k, var].values))
+        ax.boxplot(data)
+        ax.set_title(var)
+    plt.show()
     print('done')

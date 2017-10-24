@@ -135,12 +135,20 @@ def get_model_name_path(model_id):
         # a place holder to test the scripts
         'test': r"C:\Users\MattH\Desktop\Waimak_modeling\ex_bd_tester\test_import_gns_mod\mf_aw_ex.nam",
 
-        # the optimized model as of 26/09/2017 # likely depreciated due to concerns in eyrewell forrest
+        # the optimized model as of 26/09/2017; depreciated due to concerns in eyrewell forrest area and changes
+        # in the recharge and well packages in the waimakariri Zone
         'opt': "{}/from_gns/optimised/mf_aw_ex/mf_aw_ex.nam".format(smt.sdp),
 
         # an opitimised model recieved 20/10/2017 that has the new priors, well and rch packages
         # which fits the heads, streams, ofshore flows, but not the deep heads, and not the verticle targets
-        'StrOpt': "{}/from_gns/StrOpt/AW20171019_i3_optver/mf_aw_ex.nam".format(smt.sdp)
+        'StrOpt': "{}/from_gns/StrOpt/AW20171019_i3_optver/mf_aw_ex.nam".format(smt.sdp),
+
+        # an optimised model revieved 24/10/2017 which fits all targets, but is rather unstable
+        'VertUnstabB': "{}/from_gns/VertUnstabB/AW20171022_i4_optver/i4/mf_aw_ex.nam".format(smt.sdp),
+
+        # the previous optimisation recived 24/10/2017 iterattion to VertUnstabB which does not fit the targets as well,
+        # but is more stable
+        'VertUnstabA': "{}/from_gns/VertUnstabA/AW20171022_i3_optver/i3/mf_aw_ex.nam".format(smt.sdp)
     }
     if '_' in model_id:
         raise ValueError('_ in model id: {}, model_id cannot include an "_" as this is a splitting character'.format(model_id))
