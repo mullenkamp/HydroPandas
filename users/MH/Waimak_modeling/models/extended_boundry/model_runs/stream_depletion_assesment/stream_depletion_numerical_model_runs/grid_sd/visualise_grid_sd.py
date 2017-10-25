@@ -30,12 +30,8 @@ def get_mask():
     :param recalc:
     :return:
     """
-    elv_db = smt.calc_elv_db()
     no_flow = smt.get_no_flow()
     no_flow[no_flow < 0] = 0
-    xs, ys = smt.get_model_x_y(False)
-    y, z, x = np.meshgrid(ys, depths, xs)
-    z = elv_db[0] - z
     mask = np.zeros(smt.model_array_shape)
     zidx = np.repeat(get_zone_array_index('waimak')[np.newaxis, :, :], 11, axis=0)
     mask[~zidx] = np.nan
@@ -49,9 +45,9 @@ def get_mask():
 def interplotate_stream(inputdata, stream):
     # 3d krigging on x,y, depth x,y resolution of 200 m ? (e.g. model grid)
     data = inputdata.loc[inputdata[stream].notnull()]
-    grid_x, grid_y = smt.get_model_x_y(False)
+    grid_x, grid_y = smt.get_model_x_y()
     # this returns a shape of z,y,x
-    outdata = smt.get_empty_model_grid(True)[0:smt.layers - 1] * np.nan,
+    outdata = smt.get_empty_model_grid(True)*np.nan
     all_mask = get_mask()
     for layer in range(smt.layers - 1):
         idx = data.layer == layer
@@ -65,7 +61,7 @@ def interplotate_stream(inputdata, stream):
 
         outdata[layer][~mask] = temp
 
-    return outdata
+    return outdata[0:smt.layers-1]
 
 
 def extract_all_stream_krig(data_path, outpath):
@@ -146,7 +142,7 @@ def plot_all_streams_sd(nc_path, outdir):
     data = nc.Dataset(nc_path)
     flux = data.flux
     for var in data.variables.keys():
-        if var in ['longitude', 'latitude', 'depth']:
+        if var in ['longitude', 'latitude', 'layer', 'crs']:
             continue
 
         if 'var' in var:
