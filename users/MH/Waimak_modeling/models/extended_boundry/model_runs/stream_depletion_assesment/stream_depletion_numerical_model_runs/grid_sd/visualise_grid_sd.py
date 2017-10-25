@@ -51,9 +51,9 @@ def interplotate_stream(inputdata, stream):
     data = inputdata.loc[inputdata[stream].notnull()]
     grid_x, grid_y = smt.get_model_x_y(False)
     # this returns a shape of z,y,x
-    outdata = smt.get_empty_model_grid(True)[0:smt.layers-1]*np.nan,
+    outdata = smt.get_empty_model_grid(True)[0:smt.layers - 1] * np.nan,
     all_mask = get_mask()
-    for layer in range(smt.layers-1):
+    for layer in range(smt.layers - 1):
         idx = data.layer == layer
         val = data.loc[idx, stream].values
         x = data.loc[idx, 'mx'].values
@@ -85,25 +85,36 @@ def extract_all_stream_krig(data_path, outpath):
     # create dimensions
     outfile.createDimension('latitude', len(y))
     outfile.createDimension('longitude', len(x))
-    outfile.createDimension('layer', smt.layers-1)
+    outfile.createDimension('layer', smt.layers - 1)
 
     # create variables
     depth = outfile.createVariable('layer', 'f8', ('layer',), fill_value=np.nan)
     depth.setncatts({'units': 'none',
                      'long_name': 'layer',
                      'missing_value': np.nan})
-    depth[:] = range(smt.layers-1)
+    depth[:] = range(smt.layers - 1)
+
+    proj = outfile.createVariable('crs', 'i1') #todo check this shit
+    proj.setncatts({'grid_mapping_name': "transverse_mercator",
+                    'scale_factor_at_central_meridian': 0.9996,
+                    'longitude_of_central_meridian': 173.0,
+                    'latitude_of_projection_origin': 0.0,
+                    'false_easting': 1600000,
+                    'false_northing': 10000000,
+                    })
 
     lat = outfile.createVariable('latitude', 'f8', ('latitude',), fill_value=np.nan)
     lat.setncatts({'units': 'NZTM',
                    'long_name': 'latitude',
-                   'missing_value': np.nan})
+                   'missing_value': np.nan,
+                   'standard_name': 'projection_y_coordinate'})
     lat[:] = y
 
     lon = outfile.createVariable('longitude', 'f8', ('longitude',), fill_value=np.nan)
     lat.setncatts({'units': 'NZTM',
                    'long_name': 'longitude',
-                   'missing_value': np.nan})
+                   'missing_value': np.nan,
+                   'standard_name': 'projection_x_coordinate'})
     lon[:] = x
 
     for site in sites:
@@ -150,10 +161,10 @@ def plot_all_streams_sd(nc_path, outdir):
             os.makedirs(varoutdir)
 
         temp = np.array(data.variables[var])
-        for layer in range(smt.layers-1):
+        for layer in range(smt.layers - 1):
             fig, ax = smt.plt_matrix(temp[layer], vmin=vmin, vmax=vmax, cmap='RdBu',
                                      title='{} for flux: {}'.format(var, flux), base_map=True)
-            fig.savefig(os.path.join(varoutdir,'layer_{:2d}_{}_flux_{}.png'.format(layer, var, flux)))
+            fig.savefig(os.path.join(varoutdir, 'layer_{:2d}_{}_flux_{}.png'.format(layer, var, flux)))
             plt.close(fig)
 
 
@@ -164,7 +175,7 @@ def plot_relationship_3_fluxes():  # I really don't know how to visualise this m
 def krig_plot_sd_grid(data_path, outdir):
     nc_path = os.path.join(outdir, 'interpolated_{}.nc'.format(os.path.basename(data_path).replace('.csv', '')))
     extract_all_stream_krig(data_path, nc_path)
-    plot_out_dir = os.path.join(outdir, 'plots_{}'.format(os.path.basename(nc_path).replace('.nc','')))
+    plot_out_dir = os.path.join(outdir, 'plots_{}'.format(os.path.basename(nc_path).replace('.nc', '')))
     plot_all_streams_sd(nc_path, plot_out_dir)
 
 
