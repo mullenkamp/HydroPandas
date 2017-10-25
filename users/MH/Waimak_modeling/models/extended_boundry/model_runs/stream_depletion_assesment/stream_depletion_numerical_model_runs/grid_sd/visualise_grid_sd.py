@@ -92,11 +92,11 @@ def extract_all_stream_krig(data_path, outpath):
     outfile.createDimension('layer', smt.layers-1)
 
     # create variables
-    depth = outfile.createVariable('depth', 'f8', ('layer',), fill_value=np.nan)
+    depth = outfile.createVariable('layer', 'f8', ('layer',), fill_value=np.nan)
     depth.setncatts({'units': 'none',
                      'long_name': 'layer',
                      'missing_value': np.nan})
-    depth[:] = depths
+    depth[:] = range(smt.layers-1)
 
     lat = outfile.createVariable('latitude', 'f8', ('latitude',), fill_value=np.nan)
     lat.setncatts({'units': 'NZTM',

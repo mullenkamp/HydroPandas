@@ -23,13 +23,14 @@ sites_table = 'WQ_sites'
 data_table = 'WQ_data'
 
 
-hts = r'\\hilltop01\Hilltop\Data\Squalarc.hts'
+hts_gw = r'\\hilltop01\Hilltop\Data\WQGroundwater.hts'
+hts_sw = r'\\hilltop01\Hilltop\Data\WQSurfacewater.hts'
 #hts = r'\\hilltop01\Hilltop\Data\Annual\Selwyn.hts'
 
 #sites = ['SQ36287']
 
 #df1 = rd_ht_quan_data(hts)
-df5, sites_info = rd_ht_wq_data(hts, output_site_data=True)
+df5, sites_info = rd_ht_wq_data(hts_gw, output_site_data=True)
 
 sites_info2 = sites_info.drop('divisor', axis=1)
 
@@ -55,6 +56,7 @@ param2[param2.str.contains('nitrite', case=False, na=False)].sort_values()
 
 sites_df = sites1.copy()
 
+df6, sites1 = rd_ht_wq_data(hts_gw, sites=['M36/1160'], output_site_data=True)
 
 
 

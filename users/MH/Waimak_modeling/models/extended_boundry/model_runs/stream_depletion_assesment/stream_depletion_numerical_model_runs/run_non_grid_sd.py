@@ -18,15 +18,15 @@ if __name__ == '__main__':
 
     #### todo update below parameters ####
     # on DHI-runs02
-    model_id = 'StrOpt'
+    model_id = 'NsmcBase'
 
     sd7_notes = """ should write all spv now"""
     sd30_notes = """ should write all spv now """
     sd150_notes = """ should write all spv now """
 
 
-    model_base_path = r"D:\mattH\python_wm_runs\sd_runs\{}_2017_10_22".format(model_id)
-    data_outdir = r"D:\mattH\python_wm_runs\sd_runs\data_{}_2017_10_22".format(model_id)
+    model_base_path = r"D:\mattH\python_wm_runs\sd_runs\{}_2017_10_24".format(model_id)
+    data_outdir = r"D:\mattH\python_wm_runs\sd_runs\data_{}_2017_10_24".format(model_id)
     run_models = False
 
     # below should not change
