@@ -152,8 +152,8 @@ def rd_hilltop_sites(hts, sites=None, mtypes=None):
     mtypes -- A list of measurement types that should be returned.
     """
     from win32com.client import Dispatch
-    from pandas import DataFrame, to_datetime
-    from core.misc import select_sites
+    from pandas import DataFrame
+    from core.misc import select_sites, pytime_to_datetime
 
     if sites is not None:
         sites = select_sites(sites)
@@ -185,13 +185,13 @@ def rd_hilltop_sites(hts, sites=None, mtypes=None):
         while cat.GetNextDataSource:
             ds_name = cat.DataSource
             try:
-                start1 = to_datetime(cat.DataStartTime.Format('%Y-%m-%d %H:%M'))
-                end1 = to_datetime(cat.DataEndTime.Format('%Y-%m-%d %H:%M'))
+                start1 = pytime_to_datetime(cat.DataStartTime)
+                end1 = pytime_to_datetime(cat.DataEndTime)
             except ValueError:
                 bool_site = dfile.FromSite(site_name, ds_name, 1)
                 if bool_site:
-                    start1 = to_datetime(dfile.DataStartTime.Format('%Y-%m-%d %H:%M'))
-                    end1 = to_datetime(dfile.DataEndTime.Format('%Y-%m-%d %H:%M'))
+                    start1 = pytime_to_datetime(cat.DataStartTime)
+                    end1 = pytime_to_datetime(cat.DataEndTime)
                 else:
                     print('No site data for ' + site_name + '...for some reason...')
             while cat.GetNextMeasurement:
@@ -209,7 +209,7 @@ def rd_hilltop_sites(hts, sites=None, mtypes=None):
                 if unit1 == '%':
 #                    print('Site ' + name1 + ' has no units')
                     unit1 = ''
-                sites_lst.append([site_name, ds_name, mtype1, unit1, divisor, start1.strftime('%Y-%m-%d %H:%M'), end1.strftime('%Y-%m-%d %H:%M')])
+                sites_lst.append([site_name, ds_name, mtype1, unit1, divisor, str(start1), str(end1)])
 
     sites_df = DataFrame(sites_lst, columns=['site', 'data_source', 'mtype', 'unit', 'divisor', 'start_date', 'end_date'])
     dfile.Close()
@@ -235,7 +235,7 @@ def rd_ht_quan_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
     from core.ecan_io.hilltop import rd_hilltop_sites
     from win32com.client import Dispatch
     from pandas import DataFrame, to_datetime, Series, concat
-    from core.misc import time_switch
+    from core.misc import time_switch, pytime_to_datetime
 
     agg_name_dict = {'sum': 4, 'count': 5, 'mean': 1}
     agg_unit_dict = {'l/s': 1, 'm3/s': 1, 'm3/hour': 1, 'mm': 1, 'm3': 4}
@@ -269,7 +269,7 @@ def rd_ht_quan_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
             ## Set up start and end times and aggregation initiation
             if (start is None):
                 if (agg_period is not None):
-                    start1 = to_datetime(dfile.DataStartTime.Format('%Y-%m-%d %H:%M')).ceil(str(agg_n) + time_switch(agg_period))
+                    start1 = to_datetime(pytime_to_datetime(dfile.DataStartTime)).ceil(str(agg_n) + time_switch(agg_period))
                 else:
                     start1 = dfile.DataStartTime
             else:
@@ -293,10 +293,10 @@ def rd_ht_quan_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
                     print('site ' + site + ' has nonsense data')
                 else:
                     data.append(t1)
-                    time.append(dfile.time.Format('%Y-%m-%d %H:%M:%S'))
+                    time.append(str(pytime_to_datetime(dfile.time)))
                     while dfile.getsinglevbs == 0:
                         data.append(dfile.value)
-                        time.append(dfile.time.Format('%Y-%m-%d %H:%M:%S'))
+                        time.append(str(pytime_to_datetime(dfile.time)))
                     if data:
                         df_temp = DataFrame({'time': time, 'data': data, 'site': site, 'mtype': mtype})
                         df_lst.append(df_temp)
@@ -333,7 +333,7 @@ def rd_ht_wq_data(hts=r'\\hilltop01\Hilltop\Data\Squalarc.hts', sites=None, mtyp
     from geopandas import GeoDataFrame
     from core.ecan_io import rd_sql
     from core.spatial import xy_to_gpd, sel_sites_poly
-    from core.misc import select_sites
+    from core.misc import select_sites, pytime_to_datetime
 
 #    agg_unit_dict = {'l/s': 1, 'm3/s': 1, 'm3/hour': 1, 'mm': 1, 'm3': 4}
 #    unit_convert = {'l/s': 0.001, 'm3/s': 1, 'm3/hour': 1, 'mm': 1, 'm3': 4}
@@ -396,7 +396,7 @@ def rd_ht_wq_data(hts=r'\\hilltop01\Hilltop\Data\Squalarc.hts', sites=None, mtyp
         time = []
         while wqr.GetNext:
             data.append(wqr.value)
-            time.append(wqr.time.Format('%Y-%m-%d %H:%M:%S'))
+            time.append(str(pytime_to_datetime(wqr.time)))
         if data:
             df_temp = DataFrame({'time': time, 'data': data, 'site': site, 'mtype': mtype})
             df_lst.append(df_temp)

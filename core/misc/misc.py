@@ -235,6 +235,15 @@ def get_subdir(a_dir, full_path=False):
         return [name for name in listdir(a_dir) if path.isdir(path.join(a_dir, name))]
 
 
+def pytime_to_datetime(pytime):
+    """
+    Function to convert a PyTime object to a datetime object.
+    """
+    from datetime import datetime
+
+    dt1 = datetime(year=pytime.year, month=pytime.month, day=pytime.day, hour=pytime.hour, minute=pytime.minute)
+    return(dt1)
+
 
 
 

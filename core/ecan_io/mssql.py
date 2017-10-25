@@ -347,7 +347,7 @@ def write_sql(server, database, table, df, dtype_dict, create_table=True, drop_t
 
     #### Drop table if it exists
     if drop_table:
-        drop_stmt = "IF OBJECT_ID(" + str([table])[1:-1] + ", 'U') IS NOT NULL DROP TABLE " + table
+        drop_stmt = "IF OBJECT_ID(" + str([str(table)])[1:-1] + ", 'U') IS NOT NULL DROP TABLE " + table
         cursor.execute(drop_stmt)
         conn.commit()
 

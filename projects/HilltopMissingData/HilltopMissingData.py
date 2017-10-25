@@ -41,6 +41,8 @@ for j in hts_files:
     print(j)
     ## Sites
     sdata = rd_hilltop_sites(j)
+    if sdata.empty:
+        continue
     base_path, filename = split(j)
     sdata['hts_file'] = filename
     sdata['folder'] = base_path
