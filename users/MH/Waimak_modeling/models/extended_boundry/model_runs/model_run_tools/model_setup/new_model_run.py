@@ -10,7 +10,7 @@ import os
 
 if __name__ == '__main__':
     # a script to pull through all of the pickles needed for a new model_id
-    model_id = 'NsmcBase'
+    model_id = 'NsmcBaseB'
 
     from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.wells import get_full_consent, get_max_rate
     from base_modflow_wrapper import import_gns_model
@@ -22,28 +22,28 @@ if __name__ == '__main__':
     t = False # do not change instead change indentation
     if t: # just a quick way to skip things when debugging
         print('stuff to skip')
-    get_model_name_path(model_id)
-    get_rch_multipler(model_id)
-    m = import_gns_model(model_id,'test',r"C:\Users\MattH\Desktop\test")
-    print(m)
-    m.write_input()
-    m.write_name_file()
-    m.run_model()
-    print('{} at least loaded'.format(model_id))
-    con = converged(os.path.join(m.model_ws,'{}.list'.format(m.name)))
-    if not con:
-        raise ValueError('model did not converge')
+        get_model_name_path(model_id)
+        get_rch_multipler(model_id)
+        m = import_gns_model(model_id,'test',r"C:\Users\MattH\Desktop\test")
+        print(m)
+        m.write_input()
+        m.write_name_file()
+        m.run_model()
+        print('{} at least loaded'.format(model_id))
+        con = converged(os.path.join(m.model_ws,'{}.list'.format(m.name)))
+        if not con:
+            raise ValueError('model did not converge')
 
-    get_full_consent(model_id,org_pumping_wells=True)
-    get_full_consent(model_id,org_pumping_wells=False)
-    get_max_rate(model_id,org_pumping_wells=True)
-    get_max_rate(model_id,org_pumping_wells=False)
-    get_base_well(model_id,org_pumping_wells=True)
-    get_base_well(model_id,org_pumping_wells=False)
+        get_full_consent(model_id,org_pumping_wells=True)
+        get_full_consent(model_id,org_pumping_wells=False)
+        get_max_rate(model_id,org_pumping_wells=True)
+        get_max_rate(model_id,org_pumping_wells=False)
+        get_base_well(model_id,org_pumping_wells=True)
+        get_base_well(model_id,org_pumping_wells=False)
 
-    print('can start running models')
-    get_str_dep_base_path(model_id, 'sd7')
-    get_str_dep_base_path(model_id, 'sd30')
+        print('can start running models')
+        get_str_dep_base_path(model_id, 'sd7')
+        get_str_dep_base_path(model_id, 'sd30')
     get_str_dep_base_path(model_id, 'sd150')
     get_base_grid_sd_path(model_id)
     _get_no_pumping_ss_hds(model_id)

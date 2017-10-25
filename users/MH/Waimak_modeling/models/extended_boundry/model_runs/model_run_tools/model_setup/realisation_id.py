@@ -129,7 +129,7 @@ def get_model_name_path(model_id):
     """
     # new model check the well package, check the sfr package and run new_model_run
 
-    if model_id in ['test', 'opt']:
+    if model_id in ['test', 'opt', 'NsmcBase']:
         warn('model {} is depreciated'.format(model_id))
     model_dict = {
         # a place holder to test the scripts
@@ -152,7 +152,11 @@ def get_model_name_path(model_id):
 
         # optimisation recieved on 24/10/2017 which is more stable and better hits the targets than either of the
         # VertUnstab models.  if the jacobian runs fine then this will be the base for the NSMC
-        'NsmcBase': "{}/from_gns/NsmcBase/AW20171024_2_i2_optver/i2/mf_aw_ex.nam".format(smt.sdp)
+        'NsmcBase': "{}/from_gns/NsmcBase/AW20171024_2_i2_optver/i2/mf_aw_ex.nam".format(smt.sdp),
+
+        # optimisation revieved on 25/10/2017 which is the previous iteration to NsmcBase.  NsmcBase was quite unstable,
+        # which is why we are considering the previous optimisation
+        'NsmcBaseB': "{}/from_gns/NsmcBaseB/AW20171024_2_i1_optver/i1/mf_aw_ex.nam".format(smt.sdp)
     }
     if '_' in model_id:
         raise ValueError('_ in model id: {}, model_id cannot include an "_" as this is a splitting character'.format(model_id))
