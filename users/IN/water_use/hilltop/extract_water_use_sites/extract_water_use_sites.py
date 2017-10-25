@@ -12,11 +12,6 @@ from pandas import concat, DataFrame, to_datetime
 from configparser import ConfigParser
 from os import path, getcwd
 
-from Tkinter import Tk
-from tkFileDialog import askdirectory, askopenfilename
-
-Tk().withdraw()
-
 #######################################################
 #### Parameters
 
@@ -25,10 +20,8 @@ Tk().withdraw()
 #### Load in ini parameters
 py_dir = path.realpath(path.join(getcwd(), path.dirname(__file__)))
 
-ini_dir = askopenfilename(initialdir=py_dir, title='Select the ini file', defaultextension='.ini', filetypes=[('ini file', '*.ini')])
-
 ini1 = ConfigParser()
-ini1.read([ini_dir])
+ini1.read([path.join(py_dir, path.splitext(__file__)[0] + '.ini')])
 
 dsn_path = ini1.get('Input', 'dsn_file')
 server = ini1.get('SQLOutput', 'server')
