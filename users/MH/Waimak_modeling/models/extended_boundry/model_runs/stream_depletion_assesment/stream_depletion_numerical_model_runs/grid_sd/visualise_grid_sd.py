@@ -159,7 +159,7 @@ def plot_all_streams_sd(nc_path, outdir):
         temp = np.array(data.variables[var])
         for layer in range(smt.layers - 1):
             fig, ax = smt.plt_matrix(temp[layer], vmin=vmin, vmax=vmax, cmap='RdBu',
-                                     title='{} for flux: {}'.format(var, flux), base_map=True)
+                                     title='{} layer {} for flux: {}'.format(var, layer, flux), base_map=True)
             fig.savefig(os.path.join(varoutdir, 'layer_{:2d}_{}_flux_{}.png'.format(layer, var, flux)))
             plt.close(fig)
 
