@@ -15,21 +15,26 @@ import flopy
 
 import os
 import traceback
+from scipy.interpolate import griddata
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.stream_depletion_assesment.stream_depletion_numerical_model_runs.grid_sd.visualise_grid_sd import get_mask
 
-def ash_carpet_budget(path):
-    drn_data = _get_drn_spd(1,1)
-    cbb = flopy.utils.CellBudgetFile(path)
-    flux = cbb.get_data(kstpkper=cbb.get_kstpkper()[-1],text='drain',full3D=True)[0][0]
-    ncarpetj = (smt.df_to_array(drn_data.loc[drn_data.group == 'ash_carpet'],'j'))
-    ncarpeti = (smt.df_to_array(drn_data.loc[drn_data.group == 'ash_carpet'],'i'))
+stream = 'kaiapoi_swaz'
+layer = 0
+mask = get_mask()[layer]
+inputdata = pd.read_csv(r"K:\mh_modeling\StrOpt_grid_sd\StrOpt_sd_grid_data_flux_-2160.0.csv", skiprows=1)
+data = inputdata.loc[inputdata[stream].notnull()]
+grid_x, grid_y = smt.get_model_x_y()
+idx = data.layer == layer
+val = data.loc[idx, stream].values
+x = data.loc[idx, 'mx'].values
+y = data.loc[idx, 'my'].values
+xs = grid_x[~mask]
+ys = grid_y[~mask]
+outdata = smt.get_empty_model_grid()*np.nan
 
-    outdata = {}
-    for target_id, (imin,imax),(jmin,jmax) in zip(['ne_ash', 'nw_ash','se_ash','sw_ash'],
-                                                  [(0,0),(0,0),(0,0),(0,0)],  # i's
-                                                  [(0,0),(0,0),(0,0),(0,0)]):  # j's
-        temp = (ncarpeti <= imax) & (ncarpeti >= imin) & (ncarpetj <= jmax) & (ncarpetj >= jmin)
-        outdata[target_id] = flux[temp].sum()
+test = griddata(points=(x,y), values=val, xi=(xs,ys), method='cubic')
 
-    outdata = pd.DataFrame({'flux':outdata})/86400
-    print(outdata)
+outdata[~mask] = test
+print('done')
+
 

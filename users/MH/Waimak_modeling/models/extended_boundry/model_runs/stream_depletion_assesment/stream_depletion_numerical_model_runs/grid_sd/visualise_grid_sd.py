@@ -7,6 +7,7 @@ Date Created: 17/10/2017 11:07 AM
 from __future__ import division
 from core import env
 from pykrige.ok import OrdinaryKriging
+from scipy.interpolate import griddata
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import pickle
 import numpy as np
@@ -45,31 +46,26 @@ def get_mask():
     return mask
 
 
-def krig_stream(inputdata, stream):
+def interplotate_stream(inputdata, stream):
     # 3d krigging on x,y, depth x,y resolution of 200 m ? (e.g. model grid)
     data = inputdata.loc[inputdata[stream].notnull()]
     grid_x, grid_y = smt.get_model_x_y(False)
     # this returns a shape of z,y,x
-    k3d_temp, ss3d_temp = np.zeros((len(depths),len(grid_y),len(grid_x)))*np.nan, np.zeros((len(depths),len(grid_y),len(grid_x)))*np.nan
+    outdata = smt.get_empty_model_grid(True)[0:smt.layers-1]*np.nan,
     all_mask = get_mask()
     for layer in range(smt.layers-1):
         idx = data.layer == layer
         val = data.loc[idx, stream].values
         x = data.loc[idx, 'mx'].values
         y = data.loc[idx, 'my'].values
-        ok2d = OrdinaryKriging(x=x, y=y, z=val)
         mask = all_mask[layer]
-        k, ss = ok2d.execute('masked', grid_x, grid_y,
-                                           mask=mask[:,:],
-                                           backend='vectorized')  # this may cause a memory error if so switch to 'loop'
+        xs = grid_x[~mask]
+        ys = grid_y[~mask]
+        temp = griddata(points=(x, y), values=val, xi=(xs, ys), method='cubic')
 
-        k3d_temp[layer] = k.data
-        k3d_temp[layer][k.mask] = np.nan
-        ss3d_temp[layer] = ss.data
-        ss3d_temp[layer][ss.mask] = np.nan
+        outdata[layer][~mask] = temp
 
-
-    return k3d_temp, ss3d_temp
+    return outdata
 
 
 def extract_all_stream_krig(data_path, outpath):
@@ -111,13 +107,7 @@ def extract_all_stream_krig(data_path, outpath):
     lon[:] = x
 
     for site in sites:
-        k3d, ss3d = krig_stream(data, site)
-        site_ss3d = outfile.createVariable('var_{}'.format(site), 'f8', ('layer', 'latitude', 'longitude'),
-                                           fill_value=np.nan)
-        site_ss3d.setncatts({'units': 'None',
-                             'long_name': 'variance of interpolated stream depletion from {}'.format(site),
-                             'missing_value': np.nan})
-        site_ss3d[:] = ss3d
+        k3d = interplotate_stream(data, site)
         site_k3d = outfile.createVariable('sd_{}'.format(site), 'f8', ('layer', 'latitude', 'longitude'),
                                           fill_value=np.nan)
         site_k3d.setncatts({'units': 'percent of pumping',

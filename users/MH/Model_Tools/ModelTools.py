@@ -107,9 +107,9 @@ class ModelTools(object):
         :return:
         """
         if _3d:
-            return np.zeros(self.layers, self.rows, self.cols)
+            return np.zeros((self.layers, self.rows, self.cols))
         else:
-            return np.zeros(self.layers, self.rows, self.cols)
+            return np.zeros((self.rows, self.cols))
 
     def add_mxmy_to_df(self, df):  # todo make faster
         """
