@@ -12,16 +12,23 @@ from pandas import concat, DataFrame, to_datetime
 from configparser import ConfigParser
 from os import path, getcwd
 
+from Tkinter import Tk
+from tkFileDialog import askdirectory, askopenfilename
+
+Tk().withdraw()
+
 #######################################################
 #### Parameters
 
-ini_file = 'HilltopMissingData.ini'
+#ini_file = 'HilltopMissingData.ini'
 
 #### Load in ini parameters
 py_dir = path.realpath(path.join(getcwd(), path.dirname(__file__)))
 
+ini_dir = askopenfilename(initialdir=py_dir, title='Select the ini file', defaultextension='.ini', filetypes=[('ini file', '*.ini')])
+
 ini1 = ConfigParser()
-ini1.read([path.join(py_dir, ini_file)])
+ini1.read([ini_dir])
 
 dsn_path = ini1.get('Input', 'dsn_file')
 server = ini1.get('SQLOutput', 'server')
@@ -30,6 +37,8 @@ sites_table = ini1.get('SQLOutput', 'sites_table')
 
 ########################################################
 ### Run through all hts files
+
+print('Read hts files')
 
 hts_files = parse_dsn(dsn_path)
 
@@ -46,6 +55,8 @@ for j in hts_files:
     sdata['folder'] = base_path
     ht_sites_lst.append(sdata)
 
+print('Process data')
+
 ht_sites = concat(ht_sites_lst).apply(lambda x: x.str.encode('utf-8'), axis=1)
 ht_sites.drop('divisor', axis=1, inplace=True)
 ht_sites.drop_duplicates(inplace=True)
@@ -60,6 +71,8 @@ ht_sites = ht_sites.dropna()
 
 ## Save to SQl
 
+print('Save to SQL database table')
+
 sites_dtype = {}
 for i in ht_sites:
     if i in ['start_date', 'end_date']:
@@ -69,6 +82,8 @@ for i in ht_sites:
         sites_dtype.update({i: 'VARCHAR(' + str(max1 + 1) + ')'})
 
 write_sql(server, database, sites_table, ht_sites.copy(), sites_dtype, drop_table=True)
+
+print('Sucess!')
 
 
 
