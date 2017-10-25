@@ -12,6 +12,7 @@ from well_by_well_str_dep_sd7 import get_sd_well_list, well_by_well_depletion_sd
 from well_by_well_str_dep_sd30 import well_by_well_depletion_sd30
 from well_by_well_str_dep_sd150 import well_by_well_depletion_sd150
 from extract_stream_depletion import calc_str_dep_all_wells
+from sd_metadata import save_sd_metadata
 
 if __name__ == '__main__':
     # a conveninance function to run all of the non-well stream depletion assesments and data extraction
@@ -52,3 +53,9 @@ if __name__ == '__main__':
     calc_str_dep_all_wells(os.path.join(data_outdir, "extract_sd150.csv"), sd150_base_path, 'sd150')
     calc_str_dep_all_wells(os.path.join(data_outdir, "extract_sd30.csv"), sd30_base_path, 'sd30')
     calc_str_dep_all_wells(os.path.join(data_outdir, "extract_sd7.csv"), sd7_base_path, 'sd7')
+
+    # metadata
+    save_sd_metadata(os.path.join(data_outdir, "sd150_metadata.csv"), sd150_base_path)
+    save_sd_metadata(os.path.join(data_outdir, "sd30_metadata.csv"), sd30_base_path)
+    save_sd_metadata(os.path.join(data_outdir, "sd7_metadata.csv"), sd7_base_path)
+

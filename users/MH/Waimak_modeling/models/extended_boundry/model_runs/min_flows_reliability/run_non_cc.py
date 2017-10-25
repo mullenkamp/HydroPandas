@@ -12,6 +12,8 @@ import time
 from forward_runs import setup_run_args, run_forward_runs
 from extract_data_for_forward_runs import gen_all_outdata_forward_runs, extract_and_save_all_cc_mult_missing_w
 from visualise_data_from_fruns import plot_and_save_forward_vis
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.transfer_readme import trans_readme
+
 
 if __name__ == '__main__':
     # a convinence set to run everything for the forward runs
@@ -61,7 +63,7 @@ if __name__ == '__main__':
             False)
         extract_and_save_all_cc_mult_missing_w(model_dir_path, os.path.join(results_dir, "ccmult_extract.csv"))
         print('done')
-
+        trans_readme(model_dir_path,results_dir)
         plot_and_save_forward_vis(
             os.path.join(results_dir, "overview_plots"),
             os.path.join(results_dir, "{}_relative_data.csv".format(model_id)),

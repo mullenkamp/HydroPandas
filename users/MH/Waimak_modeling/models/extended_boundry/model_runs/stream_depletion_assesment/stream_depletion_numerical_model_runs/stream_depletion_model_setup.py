@@ -121,7 +121,7 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
     flopy.modflow.mfnwt.ModflowNwt(m,
                                    headtol=1e-5,
                                    fluxtol=500,
-                                   maxiterout=150,
+                                   maxiterout=100,
                                    thickfact=1e-05,
                                    linmeth=1,
                                    iprnwt=0,

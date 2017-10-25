@@ -235,8 +235,8 @@ if __name__ == '__main__':
 
 
     if test_type ==1:
+        rch=_get_rch(version=2,recalc=False)*1000*365
         _get_rch_comparison()
-        rch=_get_rch(version=2,recalc=False)
         rchold=_get_rch(version=1,recalc=False)
 
         smt.plt_matrix(rch)

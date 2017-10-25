@@ -12,6 +12,7 @@ from well_by_well_str_dep_ss import well_by_well_depletion_grid
 from extract_grid_sd import calc_str_dep_all_wells_grid
 from visualise_grid_sd import krig_plot_sd_grid
 import socket
+from ..sd_metadata import save_sd_metadata
 
 if __name__ == '__main__':
     # a convenience function to run all of the grid sd, extract, and visualise the data
@@ -68,6 +69,9 @@ if __name__ == '__main__':
 
     print('finished extracting data')
     raise NotImplementedError('plotting will change, so dont run')
+    # add metadata
+    for path in base_paths:
+        save_sd_metadata(data_out_dir,'sd_grid_metadata_{}.csv'.format(os.path.basename(path)),path)
     # krig and plot all data
     for path in outpaths:
         rd_path = os.path.join(os.path.dirname(path),'{}_{}'.format(model_id,os.path.basename(path)))

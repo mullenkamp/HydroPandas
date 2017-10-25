@@ -831,7 +831,7 @@ if __name__ == '__main__':
     # tests
     from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.well_budget import get_well_budget
     from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.wells import get_max_rate, get_full_consent
-    new = _get_wel_spd_v2(recalc=True)
+    new = _get_wel_spd_v2()
 
     print('NEW')
     print(get_well_budget(new) / 86400)
@@ -850,10 +850,10 @@ if __name__ == '__main__':
     well_data = well_data.loc[:, ['layer', 'row', 'col', 'flux', 'type']]
     well_data.to_csv(r"C:\Users\MattH\Desktop\to_brioch_2017_10_4/well_data.csv")
 
+    new_nwai = _get_2014_2015_waimak_usage()
     raise
     nwai = get_nwai_wells()
     s_wells = _get_s_wai_wells()
-    new_nwai = _get_2014_2015_waimak_usage()
 
     test = get_s_wai_races()
     old = _get_wel_spd_v1(recalc=False)
