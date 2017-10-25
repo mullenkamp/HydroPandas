@@ -69,8 +69,10 @@ if __name__ == '__main__':
 
     print('finished extracting data')
     # add metadata
-    for path in base_paths: #todo uncomment after debug #todo add to amalg results
-        save_sd_metadata(os.path.join(data_out_dir,'sd_grid_metadata_{}.csv'.format(os.path.basename(path))),path)
+    if amalg_results:
+        for path in base_paths:
+            save_sd_metadata(os.path.join(data_out_dir,'sd_grid_metadata_{}.csv'.format(os.path.basename(path))),path)
+
     # krig and plot all data
     for path in outpaths:
         rd_path = os.path.join(os.path.dirname(path),'{}_{}'.format(model_id,os.path.basename(path)))
