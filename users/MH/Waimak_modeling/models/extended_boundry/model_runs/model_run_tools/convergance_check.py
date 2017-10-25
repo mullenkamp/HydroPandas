@@ -13,9 +13,9 @@ import zipfile
 def zipped_converged(name_File_path, zipped_file_name = 'non_essential_components.zip',return_nans = False):
     """
     check if a path converged, if retun nan's then if the path is missing retuns a nan otherwise raises an ioerror
-    :param name_File_path:
-    :param zipped_file_name:
-    :param return_nans:
+    :param name_File_path: for the model
+    :param zipped_file_name: for the model
+    :param return_nans: if true then return nans on ioerrors
     :return:
     """
 
@@ -36,7 +36,7 @@ def zipped_converged(name_File_path, zipped_file_name = 'non_essential_component
 
 def converged(list_path):
     """
-
+    returned convergence of the model
     :param list_path:
     :return: True if converged, False if not, None if not realised
     """

@@ -9,6 +9,11 @@ import flopy
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 
 def create_dis_package(m):
+    """
+    create and add the dis package
+    :param m: a flopy model instance
+    :return:
+    """
     elv_db = smt.calc_elv_db()
     dis = flopy.modflow.mfdis.ModflowDis(m,
                                          nlay=smt.layers,

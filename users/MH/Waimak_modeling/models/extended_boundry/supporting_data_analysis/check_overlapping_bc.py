@@ -18,7 +18,7 @@ if __name__ == '__main__':
     well_data['bc_type'] = 'well'
     well_data = well_data.loc[well_data.layer==0]
     well_data = well_data.rename(columns={'row':'i','col':'j','layer':'k'})
-    drn_data = _get_drn_spd(1,1) #todo this could cause problems as carpets could be a lot of the overlap
+    drn_data = _get_drn_spd(1,1)
     carpet_names = [
         'ash_carpet',
         'chch_carpet',

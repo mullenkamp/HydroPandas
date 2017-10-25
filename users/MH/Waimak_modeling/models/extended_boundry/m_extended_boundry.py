@@ -14,6 +14,18 @@ from users.MH.Waimak_modeling.supporting_data_path import sdp
 from extended_boundry_model_tools import smt
 
 def create_m_extended_boundry(name, dir_path, safe_mode=True, mt3d_link=False, version=smt.model_version, mfv='mfnwt',n_car_dns=True):
+    """
+    this was used to provide brioch with most of the boundary conditions
+    :param name: model name
+    :param dir_path: model dir path
+    :param safe_mode: normal safe modes
+    :param mt3d_link: boolean include mt3d link
+    :param version: model versino
+    :param mfv: modflow version
+    :param n_car_dns: include north carpet drains
+    :return: model
+    """
+
     # sort out paths for the model
     name = 'm_ex_bd_v{}-{}'.format(version, name)
     dir_path = '{}/m_ex_bd_v{}-{}'.format(os.path.dirname(dir_path), version, os.path.basename(dir_path))
@@ -117,6 +129,7 @@ def create_m_extended_boundry(name, dir_path, safe_mode=True, mt3d_link=False, v
 
     return m
 if __name__ == '__main__':
+    #tests
     outdir = r"C:\Users\MattH\Desktop\to_test_write"
     if not os.path.exists(outdir):
         os.makedirs(outdir)

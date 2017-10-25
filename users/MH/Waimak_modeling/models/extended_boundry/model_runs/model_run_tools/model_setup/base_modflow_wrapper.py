@@ -16,8 +16,9 @@ import pandas as pd
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 from copy import deepcopy
 from users.MH.Waimak_modeling.supporting_data_path import sdp
-from realisation_id import get_base_rch, get_base_well, get_model_name_path, get_model
+from realisation_id import get_base_well, get_model_name_path, get_model
 import zipfile
+import itertools
 
 org_data_dir = "{}/from_GNS".format(sdp)
 
@@ -253,6 +254,7 @@ def mod_gns_model(model_id, name, dir_path, safe_mode=True, stress_period_vals=N
             if per == 0:
                 continue
             data_set_5[per] = data_set5_vals
+        warnings.warn('in future flopy changing dataset5 will raise an exception')
         m.get_package('SFR').dataset_5 = data_set_5
 
     return m
@@ -340,6 +342,7 @@ def change_stress_period_settings(m, spv):
     spv = _check_stress_period_values(spv)
     dis = m.get_package('dis')
     nper = spv['nper']
+    nstp = spv['nstp']
     if 'oc_stress_per_data' not in spv.keys():
         oc_stress_per_data = None
     else:
@@ -350,17 +353,21 @@ def change_stress_period_settings(m, spv):
     dis.steady = flopy.utils.Util2d(m, (nper,), bool, spv['steady'], 'steady')
     dis.tsmult = flopy.utils.Util2d(m, (nper,), np.float32, spv['tsmult'], 'tsmult')
     dis.check()
-    if oc_stress_per_data is None:
-        m.oc.stress_period_data = {(0, 0): ['save head', 'save drawdown', 'save budget', 'print budget']}
-    else:
-        m.oc.stress_period_data = oc_stress_per_data
+    if oc_stress_per_data is None: #todo I dont' think this works with nwt
+        oc_stress_per_data = {}
+        for per in range(nper):
+            for step in range(nstp[per]):
+                oc_stress_per_data[(per, step)]= ['save head', 'save drawdown', 'save budget', 'print budget']
+
+    m.oc.stress_period_data = oc_stress_per_data
 
 
-def zip_non_essential_files(model_dir,include_list=False):
+def zip_non_essential_files(model_dir, include_list=False, other_files=None):
     """
     zips up the files with extensions matching the list in zip ext
     :param model_dir: the model_ws e.g. working directory
     :param include_list: Boolean if True also compress the list file
+    :param other_files: a list of other file extensions to zip up
     :return:
     """
     paths = os.listdir(model_dir)
@@ -376,24 +383,35 @@ def zip_non_essential_files(model_dir,include_list=False):
                ]
     if include_list:
         zip_ext.append('.list')
+    if other_files is not None:
+        add = list(np.atleast_1d(other_files))
+        zip_ext.extend(add)
+
     zip_paths = []
     zip_names = []
     for path in paths:
         if '.' + path.split('.')[-1] in zip_ext:
             zip_paths.append(os.path.join(model_dir,path))
             zip_names.append(path)
-    ZipFile = zipfile.ZipFile(os.path.join(model_dir, "non_essential_components.zip"), "w")
 
-    for path,name in zip(zip_paths,zip_names):
-        ZipFile.write(path, arcname=name, compress_type=zipfile.ZIP_DEFLATED)
+    print('creating zip archive')
+    with zipfile.ZipFile(os.path.join(model_dir, "non_essential_components.zip"), "w") as ZipFile:
+        for path,name in zip(zip_paths,zip_names):
+            ZipFile.write(path, arcname=name, compress_type=zipfile.ZIP_DEFLATED)
+            ZipFile.fp.flush()
+        os.fsync(ZipFile.fp.fileno())
+
+    print('deleting original files')
+    for path in zip_paths:
         os.remove(path)
 
 
 if __name__ == '__main__':
     testtype = 3
-
+    if testtype == 4:
+        zip_non_essential_files(r"C:\Users\MattH\Desktop\test_sd30\opt_turn_on_M35_0122_sd30 - Copy",other_files='.hds')
     if testtype == 3:
-        m = import_gns_model('opt', 'test', r"C:\Users\MattH\Desktop\test_zipping")
+        m = import_gns_model('StrOpt', 'test', r"C:\Users\MattH\Desktop\test_zipping")
         m.write_input()
         m.write_name_file()
         m.run_model()
@@ -407,7 +425,6 @@ if __name__ == '__main__':
         wells = get_base_well(temp_id)
         wells = smt.convert_well_data_to_stresspd(wells)
 
-        rch = get_base_rch(temp_id)
         spv = {'nper': 7,
                'perlen': 1,
                'nstp': 1,

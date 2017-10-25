@@ -16,6 +16,7 @@ import geopandas as gpd
 import os
 import matplotlib.pyplot as plt
 
+
 def gen_drn_target_array():
     drn_data = _get_drn_spd(smt.reach_v, smt.wel_version)
     out_dict = {}
@@ -26,8 +27,8 @@ def gen_drn_target_array():
         out_array[np.isfinite(temp_array)] = i
         out_dict[i] = group
 
-    kspit = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/kspit.shp".format(smt.sdp),'Id',True)
-    out_array[np.isfinite(kspit) & (np.isclose(out_array,22) | np.isclose(out_array,3))] = 45
+    kspit = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/kspit.shp".format(smt.sdp), 'Id', True)
+    out_array[np.isfinite(kspit) & (np.isclose(out_array, 22) | np.isclose(out_array, 3))] = 45
     out_dict[45] = 'd_kspit'
 
     return out_array.astype(int), out_dict
@@ -99,18 +100,18 @@ def gen_constant_head_targets():  # watch if we have constant heads in the sw bo
     chbs = _get_constant_heads()
     shp_path = "{}/m_ex_bd_inputs/shp/coastal_head_target_zones.shp".format(smt.sdp)
     zones = smt.shape_file_to_model_array(shp_path, 'Id', alltouched=True)
-    zones[np.isnan(chbs[0]) ] = 0
+    zones[np.isnan(chbs[0])] = 0
     zones[np.isnan(zones)] = 0
-    inland = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/inland_zones.shp".format(smt.sdp),'Id',alltouched=True)
-    zones[np.isfinite(inland) & (np.isclose(zones,0))] = 9
-    zones = np.repeat(zones[np.newaxis,:,:],11,axis=0)
+    inland = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/inland_zones.shp".format(smt.sdp), 'Id',
+                                           alltouched=True)
+    zones[np.isfinite(inland) & (np.isclose(zones, 0))] = 9
+    zones = np.repeat(zones[np.newaxis, :, :], 11, axis=0)
     no_flow = smt.get_no_flow()
-    zones[np.isclose(no_flow,0)] = 0
+    zones[np.isclose(no_flow, 0)] = 0
     zone_data = gpd.read_file(shp_path)
     zone_data = zone_data.set_index('Id')
     zone_data = zone_data.loc[:, 'name'].to_dict()
     zone_data[9] = 'onshore'
-
 
     return zones.astype(int), zone_data
 
@@ -197,8 +198,8 @@ def get_target_group_values():
                         'sfx_a2_gol': 'mid_ash_g',
                         'sfx_a3_tul': 'mid_ash_g',
                         'sfx_a4_sh1': -0.40,
-                        'sfx_c1_swa': None, # previously but doesn't add up -0.43,
-                        'sfx_c2_mil': None, # previously but doesn't add up -0.42,
+                        'sfx_c1_swa': None,  # previously but doesn't add up -0.43,
+                        'sfx_c2_mil': None,  # previously but doesn't add up -0.42,
                         'sfx_e1_stf': 1.6,
                         'sfx_w1_cou': -0.9,  # Waimakariri Gorge- Courtenay Road
                         'sfx_w2_tom': 1.1,  # Courtenay Road - Halkett
@@ -211,12 +212,12 @@ def get_target_group_values():
                         # these targets assume that the model can model underflow in the
                         # waimakariri river, which we think is implausable given the 30m+
                         # layer 0 thickness
-                        #'sfx_w1_cou': 2.8, # old kept for posterity
-                        #'sfx_w2_tom': 1.1, # old kept for posterity
-                        #'sfx_w3_ros': 2.2, # old kept for posterity
-                        #'sfx_w4_mcl': 5.7, # old kept for posterity
-                        #'sfx_w5_wat': -0.1, # old kept for posterity
-                        #'sfx_w6_sh1': -0.5, # old kept for posterity
+                        # 'sfx_w1_cou': 2.8, # old kept for posterity
+                        # 'sfx_w2_tom': 1.1, # old kept for posterity
+                        # 'sfx_w3_ros': 2.2, # old kept for posterity
+                        # 'sfx_w4_mcl': 5.7, # old kept for posterity
+                        # 'sfx_w5_wat': -0.1, # old kept for posterity
+                        # 'sfx_w6_sh1': -0.5, # old kept for posterity
 
                         'sfx_3drn': None,
                         'sfx_2adrn': None,
@@ -257,26 +258,35 @@ def get_vertical_gradient_targets():
 
     all_targets = pd.read_csv(env.sci(
         "Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/head_targets_2008_inc_error.csv"),
-                              index_col=0)
+        index_col=0)
+    head_targets = get_head_targets(True)
     idx = vert_targets.index
+    # reviesd error for the NSMc as of 24/10/2017 take the total error and scale it between 1 and 10
+    vert_targets.loc[idx, 'weight_2'] = head_targets.loc[idx,'weight_2']
     vert_targets.loc[idx, 'weight'] = 1 / all_targets.loc[idx, 'total_error_m']
-    vert_targets.loc[idx,'GWL_RL'] = all_targets.loc[idx,'h2o_elv_mean']
+    vert_targets.loc[idx, 'GWL_RL'] = all_targets.loc[idx, 'h2o_elv_mean']
 
-    outdata = vert_targets.loc[:, ['NZTM_x', 'NZTM_y', 'layer', 'GWL_RL', 'weight', 'row', 'col', 'group', 'Location','code']].rename(
+    all_targets = vert_targets.loc[:,
+                  ['NZTM_x', 'NZTM_y', 'layer', 'GWL_RL', 'weight', 'weight_2', 'row', 'col', 'group', 'Location', 'code']].rename(
         columns={'NZTM_x': 'x', 'NZTM_y': 'y', 'GWL_RL': 'obs', 'row': 'i', 'col': 'j'})
     # return a dataframe: lat, lon, layer, obs, weight?, i,j
     # pull weight from uncertainty
-    outdata = outdata.dropna()
-    outdata = outdata.loc[outdata.duplicated('group',keep=False)]
+    all_targets = all_targets.dropna()
+    all_targets = all_targets.loc[all_targets.duplicated('group', keep=False)]
 
-    return outdata
+    return all_targets
 
 
-def get_head_targets():
+def get_head_targets(return_missing = False):
+    """
+
+    :param return_missing: boolean if true return 'BW23/0165' (for incorporation of new target weights)
+    :return:
+    """
     # lat, lon, layer, obs, weigth? i, j
     all_targets = pd.read_csv(env.sci(
         "Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/head_targets/head_targets_2008_inc_error.csv"),
-                              index_col=0)
+        index_col=0)
     all_targets = all_targets.loc[(all_targets.h2o_elv_mean.notnull()) & (all_targets.row.notnull()) &
                                   (all_targets.col.notnull()) & (all_targets.layer.notnull())]
 
@@ -298,13 +308,22 @@ def get_head_targets():
         idx = (all_targets.layer == layer) & (all_targets.readings_nondry >= min_readings[layer])
         outdata = pd.concat((outdata, all_targets.loc[idx, ['nztmx', 'nztmy', 'layer', 'h2o_elv_mean',
                                                             'weight', 'row', 'col', 'total_error_m']]))
+    outdata.loc['BW23/0165'] = all_targets.loc['BW23/0165', ['nztmx', 'nztmy', 'layer', 'h2o_elv_mean',
+                                                            'weight', 'row', 'col', 'total_error_m']]
     no_flow = smt.get_no_flow()
     for i in outdata.index:
-        layer,row,col = outdata.loc[i,['layer','row','col']].astype(int)
+        layer, row, col = outdata.loc[i, ['layer', 'row', 'col']].astype(int)
         if no_flow[layer, row, col] == 0:  # get rid of non-active wells
             outdata.loc[i, 'layer'] = np.nan
-    outdata = outdata.dropna(subset=['layer','row','col'])
-    return outdata
+    outdata = outdata.dropna(subset=['layer', 'row', 'col'])
+    # reviesd error for the NSMc as of 24/10/2017 take the total error and scale it between 1 and 10
+    outdata.loc[:, 'error_2'] = (((outdata.loc[:, 'total_error_m'] - outdata.total_error_m.min()) /
+                                  (outdata.total_error_m.max() - outdata.total_error_m.min())) * 9 + 1)
+    outdata.loc[:, 'weight_2'] = 1 / outdata.loc[:, 'error_2']
+    if return_missing:
+        return outdata
+    else:
+        return outdata.loc[outdata.index != 'BW23/0165']
 
 
 def get_seg_param_dict():
@@ -324,9 +343,9 @@ def get_seg_param_dict():
         41: 44,
         43: 44
 
-
     }
     return seg_param_dict
+
 
 def save_dict_to_csv(path, indict, from_lab, to_lab):
     temp = pd.Series(indict, name=to_lab)
@@ -339,19 +358,19 @@ def check_non_head_targets():
                  gen_sfr_flow_target_array, gen_drn_target_array]
     target_values = get_target_group_values()
     for f in functions:
-        target_array,target_dict = f()
+        target_array, target_dict = f()
         if f == gen_constant_head_targets:
             for l in range(smt.layers):
-                fig,ax = smt.plt_matrix(target_array[l],no_flow_layer=l)
+                fig, ax = smt.plt_matrix(target_array[l], no_flow_layer=l)
                 for j in target_dict.keys():
                     if target_values[target_dict[j]] is None:
                         temp_lab = target_values[target_dict[j]]
-                    elif isinstance(target_values[target_dict[j]],str):
-                        temp_lab = target_values[target_values[target_dict[j]]]/86400
+                    elif isinstance(target_values[target_dict[j]], str):
+                        temp_lab = target_values[target_values[target_dict[j]]] / 86400
                     else:
-                        temp_lab= target_values[target_dict[j]]/86400
-                    print('idx: {}, name: {}, value: {}'.format(j,target_dict[j],temp_lab))
-                #plt.show(fig)
+                        temp_lab = target_values[target_dict[j]] / 86400
+                    print('idx: {}, name: {}, value: {}'.format(j, target_dict[j], temp_lab))
+                # plt.show(fig)
                 plt.close(fig)
             continue
         for i in target_dict.keys():
@@ -362,11 +381,30 @@ def check_non_head_targets():
             else:
                 temp_lab = target_values[target_dict[i]] / 86400
 
-            fig,ax = smt.plt_matrix(target_array,title='idx: {}, name: {}, value: {}'.format(i,target_dict[i],temp_lab),vmin=i-0.5,vmax=i+0.5)
+            fig, ax = smt.plt_matrix(target_array,
+                                     title='idx: {}, name: {}, value: {}'.format(i, target_dict[i], temp_lab),
+                                     vmin=i - 0.5, vmax=i + 0.5)
             plt.show(fig)
 
 
 if __name__ == '__main__':
-    ar,dict = gen_drn_target_array()
-    check_non_head_targets()
+    import matplotlib.pyplot as plt
+
+    outdata = get_head_targets()
+    outdata2 = get_head_targets(True)
+    vert = get_vertical_gradient_targets()
+    outdata.loc[:, 'test_error_1'] = (np.log10(outdata.loc[:, 'total_error_m']) + 1)
+    outdata.loc[:, 'test_error_2'] = (((outdata.loc[:, 'total_error_m'] - outdata.total_error_m.min()) /
+                                       (outdata.total_error_m.max() - outdata.total_error_m.min())) * 10 + 1)
+    outdata.loc[:, 'test_error_3'] = outdata.loc[:, 'total_error_m']
+    outdata.loc[outdata.test_error_3 < 1, 'test_error_3'] = 1
+    outdata.loc[outdata.test_error_3 > 10, 'test_error_3'] = 10
+    for var in ['total_error_m', 'weight', 'test_error_1', 'test_error_2', 'test_error_3','weight_2']:
+        fig, ax = plt.subplots()
+        data = []
+        for k in range(smt.layers):
+            data.append(outdata.loc[outdata.layer == k, var].values)
+        ax.boxplot(data)
+        ax.set_title(var)
+    plt.show()
     print('done')

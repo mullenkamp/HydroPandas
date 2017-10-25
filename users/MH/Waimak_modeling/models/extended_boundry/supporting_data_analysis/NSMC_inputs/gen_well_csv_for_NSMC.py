@@ -7,10 +7,12 @@ Date Created: 28/08/2017 4:17 PM
 from __future__ import division
 from core import env
 import pandas as pd
-from users.MH.Waimak_modeling.models.extended_boundry.m_packages.wel_packages import _get_wel_spd_v1
+from users.MH.Waimak_modeling.models.extended_boundry.m_packages.wel_packages import get_wel_spd
+from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.well_budget import get_well_budget
 
-def get_well_NSMC_base():
-    all_wells = _get_wel_spd_v1(recalc=True)
+def get_well_NSMC_base(version=1):
+    all_wells =get_wel_spd(version=version,recalc=True)
+    print(get_well_budget(all_wells)/86400)
     all_wells.loc[:,'nsmc_type'] = ''
     #pumping wells
     all_wells.loc[(all_wells.type=='well') & (all_wells.cwms=='chch'),'nsmc_type'] = 'pump_c'
@@ -37,3 +39,7 @@ def get_template_data():
     pram_id = ['${}$'.format(e) for e in groups]
     out_data = pd.DataFrame(index=groups,data=pram_id)
     return out_data
+
+if __name__ == '__main__':
+    well_data = get_well_NSMC_base(3)
+    well_data.to_csv(r"C:\Users\MattH\Desktop\to_brioch_2017_10_4/well_data.csv")

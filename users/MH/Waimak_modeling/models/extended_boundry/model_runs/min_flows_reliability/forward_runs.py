@@ -19,6 +19,14 @@ import datetime
 import psutil
 
 def run_cc_senarios(base_kwargs, cc_to_waimak_only=False):
+    """
+    set up a sweet of climate change runs from a base run
+    :param base_kwargs: the base run to run through climate change senairos
+    :param cc_to_waimak_only: boolean if True then only apply the LSR changes to the waimakariri esle apply to whole
+                              model domain pumping is only applied to waimakariri as there is too much uncertainty in
+                              teh selwyn due to central plains
+    :return: list of runs
+    """
     runs = []
     base_kwargs = deepcopy(base_kwargs)
     periods = range(2010, 2100, 20)
@@ -34,21 +42,23 @@ def run_cc_senarios(base_kwargs, cc_to_waimak_only=False):
         per = 1980
         rcp = 'RCPpast'
         temp = deepcopy(base_kwargs)
-        temp['cc_inputs'] = {'rcm': rcm, 'rcp': rcp, 'period': per, 'amag_type': at, 'cc_to_waimak_only':cc_to_waimak_only} #todo the last iteration of runs 'forward_runs_2017_09_30' did not have waimak only for cc inputs
+        temp['cc_inputs'] = {'rcm': rcm, 'rcp': rcp, 'period': per, 'amag_type': at, 'cc_to_waimak_only':cc_to_waimak_only}
         temp['name'] = '{}_{}_{}_{}_{}'.format(temp['name'], rcm, rcp, per, at)
         runs.append(temp)
     return runs
 
 
-def setup_run_args(model_id, forward_run_dir, cc_to_waimak_only=False):
+def setup_run_args(model_id, forward_run_dir, cc_to_waimak_only=False, cc_runs=True):
     """
     set up the forward runs
     :param model_id: which MC realisation to use
     :param forward_run_dir: the dir that all of teh model directories will be placed
-    :return:
+    :param cc_to_waimak_only: boolean if true only apply the climate changes stuff to waimakariri
+    :param cc_runs: boolean if True set up the runs for the climate change senarios else just the normal senarios
+    :return: list of runs
     """
     runs = []
-    # base model run
+    # base model run handled separately in base forward runs with identified by the name 'mod_period'
     mod_per = {
         'model_id': model_id,
         'name': 'mod_period',
@@ -180,18 +190,19 @@ def setup_run_args(model_id, forward_run_dir, cc_to_waimak_only=False):
     }
     runs.append(pc5_80_will_eff)
 
-    # climate change senarios (lots of runs)
-    # nat + cc
-    runs.extend(run_cc_senarios(nat, cc_to_waimak_only=cc_to_waimak_only))
+    if cc_runs:
+        # climate change senarios (lots of runs)
+        # nat + cc
+        runs.extend(run_cc_senarios(nat, cc_to_waimak_only=cc_to_waimak_only))
 
-    # climate change
-    runs.extend(run_cc_senarios(current, cc_to_waimak_only=cc_to_waimak_only))
+        # climate change
+        runs.extend(run_cc_senarios(current, cc_to_waimak_only=cc_to_waimak_only))
 
-    # climate change + pc5 + will efficieny
-    runs.extend(run_cc_senarios(pc5_80_will_eff, cc_to_waimak_only=cc_to_waimak_only))
+        # climate change + pc5 + will efficieny
+        runs.extend(run_cc_senarios(pc5_80_will_eff, cc_to_waimak_only=cc_to_waimak_only))
 
-    if not os.path.exists(forward_run_dir):
-        os.makedirs(forward_run_dir)
+        if not os.path.exists(forward_run_dir):
+            os.makedirs(forward_run_dir)
 
     for i in runs:
         i['base_dir'] = '{}/{}'.format(forward_run_dir, i['name'])
@@ -199,6 +210,10 @@ def setup_run_args(model_id, forward_run_dir, cc_to_waimak_only=False):
 
 
 def start_process():
+    """
+    function to run at the start of each multiprocess sets the priority lower
+    :return:
+    """
     print('Starting', multiprocessing.current_process().name)
     p = psutil.Process(os.getpid())
     # set to lowest priority, this is windows only, on Unix use ps.nice(19)
@@ -206,20 +221,31 @@ def start_process():
 
 
 def run_forward_runs(runs,forward_run_dir, notes=None):
+    """
+    run the runs via multiprocessing
+    :param runs: runs to run
+    :param forward_run_dir: dir to put all runs in
+    :param notes: notes to save as a readme file
+    :return:
+    """
     with open(os.path.join(forward_run_dir,'READ_ME.txt'),'w') as f:
         f.write(str(notes) + '\n')
-
+    model_id = runs[0]['model_id']
     t = time.time()
     multiprocessing.log_to_stderr(logging.DEBUG)
     pool_size = multiprocessing.cpu_count()
     pool = multiprocessing.Pool(processes=pool_size,
                                 initializer=start_process,
                                 )
-    pool_outputs = pool.map(setup_run_forward_run_mp, runs)
+    results = pool.map_async(setup_run_forward_run_mp, runs)
+    while not results.ready():
+        print('{} runs left of {}'.format(results._number_left, len(runs)))
+        time.sleep(60*5)  # sleep 5 min between printing
+    pool_outputs = results.get()
     pool.close()  # no more tasks
     pool.join()
     now = datetime.datetime.now()
-    with open("{}/forward_run_log/forward_run_status_{}_{:02d}_{:02d}_{:02d}_{:02d}.txt".format(smt.sdp,now.year,now.month,now.day,now.hour,now.minute), 'w') as f:
+    with open("{}/forward_run_log/{}_forward_run_status_{}_{:02d}_{:02d}_{:02d}_{:02d}.txt".format(smt.sdp,model_id,now.year,now.month,now.day,now.hour,now.minute), 'w') as f:
         f.write(str(notes) + '\n')
         wr = ['{}: {}\n'.format(e[0], e[1]) for e in pool_outputs]
         f.writelines(wr)
@@ -228,12 +254,14 @@ def run_forward_runs(runs,forward_run_dir, notes=None):
 
 
 if __name__ == '__main__':
+    # tests run in the run script for forward runs
     safemode = True
+    #todo will need to re-run with new model
     #todo define the two below before each run
-    dir_path = r"D:\mh_model_runs\forward_runs_2017_09_30" # path on rdsprod03
+    dir_path = r"D:\mh_model_runs\forward_runs_2017_10_10" # path on rdsprod03
     notes = """ 
-    LSR senario changes applied to full domain, CC component of LSR changes applied to only waimakariri
-    pumping changes only applied to Waimakariri,  trying again with some runs that didn't complete [36,56,84]
+    LSR senario changes applied to full domain, CC component of LSR changes applied to whole domain, but ccmult and missing h20 is waimak only
+    pumping changes only applied to Waimakariri with the exception of the pc5 adjustment which is applied in the full domain,
     run in {}
     """.format(dir_path)
     if safemode:
@@ -242,16 +270,10 @@ if __name__ == '__main__':
                 'run all forward runs, this could overwrite item in :\n {} \n continue y/n\n'.format(dir_path)).lower()
             if cont != 'y':
                 raise ValueError('script aborted so as not to potentially overwrite {}'.format(dir_path))
-    runs = setup_run_args('opt',dir_path,cc_to_waimak_only=True)
+    runs = setup_run_args('opt',dir_path,cc_to_waimak_only=False)
     import time
     t = time.time()
-    missing_runs = [35,36,49, 56,77,78,84,233,240]
-    missing_runs = [36,56]
-    runs = [runs[e] for e in missing_runs]
-    for run in runs:
-        print run
-        setup_run_forward_run(**run)
-    #run_forward_runs(runs,dir_path,notes)
+    run_forward_runs(runs,dir_path,notes)
     print('{} runs in __ min'.format(len(runs)))
     print (time.time() - t)/60
     print('done')

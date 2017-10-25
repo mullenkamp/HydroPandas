@@ -95,6 +95,11 @@ def _get_reach_data(reach_v):
 
 
 def _reach_data_v1(recalc=False):
+    """
+    load reach version one (the only version used the extended boundary waimakariri proces as of 20/10/2017)
+    :param recalc: boolean whether to recalc (True) or load from pickle if avalible
+    :return: modflow sfr stress period data.  numpy record array
+    """
     pickle_path = '{}/sfr_reach_v1.p'.format(smt.pickle_dir)
 
     if os.path.exists(pickle_path) and not recalc:
@@ -155,6 +160,11 @@ def _reach_data_v1(recalc=False):
     return outdata
 
 def _seg_data_v1(recalc=False):
+    """
+    get segment version 1 the only version used in the extended waimakariri model as of 20/10/2017
+    :param recalc: boolean whether to recalc (True) or load from pickle if avalible
+    :return: sfr seg data (np.record array)
+    """
     pickle_path = '{}/sfr_seg_v1.p'.format(smt.pickle_dir)
 
     if os.path.exists(pickle_path) and not recalc:
@@ -331,6 +341,7 @@ def _define_reach_length(reach_data, mode='cornering'):
     return wrd
 
 if __name__ == '__main__':
+    # tests
     save = True
     seg = pd.DataFrame(_seg_data_v1(False))
     reach = pd.DataFrame(_reach_data_v1(False))

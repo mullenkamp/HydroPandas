@@ -6,19 +6,25 @@ Date Created: 8/09/2017 8:39 AM
 
 from __future__ import division
 from core import env
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools import mod_gns_model, zip_non_essential_files
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools import mod_gns_model, zip_non_essential_files, import_gns_model
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools import get_forward_wells, get_forward_rch
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import flopy
 import os
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import converged
+from traceback import format_exc
 
 def setup_run_forward_run_mp (kwargs):
+    """
+     a wrapper to allow easy multiprocessing
+    :param kwargs: kwargs to pass to setup_run_forward_model
+    :return: (model_name, (convergence('convereged'/'did not converge') or trace back to exception))
+    """
     try:
         name, success = setup_run_forward_run(**kwargs)
     except Exception as val:
         name = kwargs['name']
-        success = '{}: {}'.format(type(val),val.args)
+        success = format_exc().replace('\n', '')
     return name, success
 
 def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, wil_eff=1, naturalised=False,
@@ -49,8 +55,9 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
     :param full_allo: boolean if true use the full allocation of pumping
     :param org_efficency: not used, held to prevent cleaning up!
     :param org_pumping_wells: if True use the model peiod wells if false use the 2014-2015 usage for the waimak wells
-    :return:
+    :return: (model name, convergence('convereged'/'did not converge'))
     """
+
     # cc inputs are a dict
     if cc_inputs is None:
         cc_inputs = {'rcm':None, 'rcp':None, 'period':None, 'amag_type':None}
@@ -66,16 +73,19 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
     rch = get_forward_rch(model_id, naturalised, pc5, **cc_inputs)
 
     # I'm assuming that the stream package will not change
-    m = mod_gns_model(model_id,
-                      name,
-                      base_dir,
-                      well={0: well_data},
-                      recharge={0: rch},
-                      safe_mode=False,
-                      mt3d_link=False
-                      )
+    if name == 'mod_period':
+        m = import_gns_model(model_id, name, base_dir, safe_mode=False, mt3d_link=False)
+    else:
+        m = mod_gns_model(model_id,
+                          name,
+                          base_dir,
+                          well={0: well_data},
+                          recharge={0: rch},
+                          safe_mode=False,
+                          mt3d_link=False
+                          )
 
-    # below included for easy manipulation
+    # below included for easy manipulation if needed
     flopy.modflow.mfnwt.ModflowNwt(m,
                                    headtol=1e-5,
                                    fluxtol=500,

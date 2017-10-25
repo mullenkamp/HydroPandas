@@ -18,6 +18,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
     get_rch_multipler
 from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.lsr_support.map_rch_to_model_array import \
     map_rch_to_array
+from users.MH.Waimak_modeling.models.extended_boundry.m_packages.rch_packages import get_rch_fixer, _get_rch
 
 lsrm_rch_base_dir = env.gw_met_data('niwa_netcdf/lsrm/lsrm_results/water_year_means')
 rch_idx_shp_path = env.gw_met_data("niwa_netcdf/lsrm/lsrm_results/test/output_test2.shp")
@@ -63,11 +64,19 @@ def get_forward_rch(model_id, naturalised, pc5=False, rcm=None, rcp=None, period
     rch_array *= rch_mult
 
     if cc_to_waimak_only:
-        base_rch = get_lsrm_base_array(sen,None,None,None,'mean')
+        base_rch = _get_rch(2)
         base_rch *= rch_mult
-        idx_array = get_zone_array_index(['chch','selwyn'])
+        idx_array = get_zone_array_index(['chch', 'selwyn'])
         rch_array[idx_array] = base_rch[idx_array]
     # handle weirdness from the arrays (e.g. ibound ignore the weirdness from chch/te waihora paw)
+
+    #fix tewai and chch weirdeness
+    fixer = get_rch_fixer()
+    #chch
+    rch_array[fixer==0] = 0.0002
+    #te wai and coastal
+    rch_array[fixer==1] = 0
+
     no_flow = smt.get_no_flow(0)
     no_flow[no_flow < 0] = 0
     rch_array[~no_flow.astype(bool)] = 0
@@ -106,10 +115,15 @@ def _get_rch_hdf_path(base_dir, naturalised, pc5, rcm, rcp):
     return outpath
 
 
-def _create_all_lsrm_arrays(): #todo I should make this waimakariri IRD only  and re-run
+def _create_all_lsrm_arrays():
+    """
+    saves arrays for all of the periods and types ect as needed saves both rch and ird arrays
+    :return:
+    """
     if not os.path.exists(os.path.join(lsrm_rch_base_dir, 'arrays_for_modflow')):
         os.makedirs(os.path.join(lsrm_rch_base_dir, 'arrays_for_modflow'))
-
+    zidx = get_zone_array_index('waimak')
+    site_list = list(set(smt.shape_file_to_model_array(rch_idx_shp_path, 'site', True)[zidx]))
     periods = range(2010, 2100, 20)
     rcps = ['RCP4.5', 'RCP8.5']
     rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
@@ -135,7 +149,8 @@ def _create_all_lsrm_arrays(): #todo I should make this waimakariri IRD only  an
                                 period_center=per,
                                 mapping_shp=rch_idx_shp_path,
                                 period_length=20,
-                                return_irr_demand=True)
+                                return_irr_demand=True,
+                                site_list=site_list)
         outpath = os.path.join(lsrm_rch_base_dir,
                                'arrays_for_modflow/rch_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
         outpath_ird = os.path.join(lsrm_rch_base_dir,
@@ -205,26 +220,70 @@ def _create_all_lsrm_arrays(): #todo I should make this waimakariri IRD only  an
         np.savetxt(outpath, temp)
         np.savetxt(outpath_ird, ird)
 
+def get_lsr_base_period_inputs(sen, rcp, rcm, per, at):
+    """
+    get the LSR comparison period
+
+    :param sen: the senario, senarios = ['pc5', 'nat', 'current']
+    :param rcp: rcps = ['RCPpast', 'RCP4.5', 'RCP8.5']
+    :param rcm: rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
+    :param per: None(vcsn), 1980(RCPpast),  periods = range(2010, 2100, 20) (climate change)
+    :param at: ['period_mean', '3_lowest_con_mean', 'lowest_year'] (climate change) ['mean'] vcsn
+    :return:
+    """
+    if rcp is None and rcm is None:
+        per = None
+        at = 'mean'
+        sen = 'current'
+    elif rcp is not None and rcm is not None:
+        rcp = 'RCPpast'
+        per = 1980
+        at = 'period_mean' # setting based on the period mean for RCP past for all
+    return(sen, rcp, rcm, per, at)
+
 
 def get_lsrm_base_array(sen, rcp, rcm, per, at):
+    """
+    get the lsr array
+    :param sen: see above
+    :param rcp:
+    :param rcm:
+    :param per:
+    :param at:
+    :return:
+    """
     path = os.path.join(lsrm_rch_base_dir, 'arrays_for_modflow/rch_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
     if not os.path.exists(path):
         raise ValueError('array not implemented, why are you using {}'.format((sen, rcp, rcm, per, at)))
+    outdata = np.loadtxt(path)
+    if outdata.shape != (smt.rows,smt.cols):
+        raise ValueError('incorrect shape for rch array: {}'.format(outdata.shape))
 
-    return np.loadtxt(path)
+    return outdata
 
 def get_ird_base_array(sen, rcp, rcm, per, at):
+    """
+    get the irrigation demand array
+    :param sen: see above
+    :param rcp:
+    :param rcm:
+    :param per:
+    :param at:
+    :return:
+    """
     path = os.path.join(lsrm_rch_base_dir, 'arrays_for_modflow/ird_{}_{}_{}_{}_{}.txt'.format(sen, rcp, rcm, per, at))
     if not os.path.exists(path):
         raise ValueError('array not implemented, why are you using {}'.format((sen, rcp, rcm, per, at)))
     outdata = np.loadtxt(path)
     if outdata.shape != (smt.rows,smt.cols):
-        raise ValueError('incorrect shape for ird')
+        raise ValueError('incorrect shape for ird: {}'.format(outdata.shape))
+    if sen =='current':
+        outdata *= 1.2 # this accounts for the 20 % leakage in our current senario which is 80% efficient.  there is no difference between the two irrigation demand arrays otherwise
     return outdata
 
 
 if __name__ == '__main__':
-
+    # tests
     testtype=1
     if testtype ==1:
         _create_all_lsrm_arrays()

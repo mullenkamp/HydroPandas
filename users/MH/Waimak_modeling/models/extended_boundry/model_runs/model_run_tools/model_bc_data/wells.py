@@ -17,7 +17,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_too
 from users.MH.Waimak_modeling.models.extended_boundry.m_packages.wel_packages import _get_wel_spd_v1, _get_wel_spd_v2
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.cwms_index import get_zone_array_index
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.LSR_arrays import \
-    get_ird_base_array
+    get_ird_base_array, get_lsr_base_period_inputs
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_setup.realisation_id import \
     get_base_well, temp_pickle_dir
 from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.well_budget import get_well_budget
@@ -28,9 +28,10 @@ from users.MH.Waimak_modeling.supporting_data_path import sdp
 def get_race_data(model_id):
     """
     all influx wells in the well data (e.g. streams, races, boundary fluxes)
+    :param model_id: the NSMC realisation
     :return:
     """
-    outdata = get_base_well(model_id)
+    outdata = get_base_well(model_id,True) #use original pumping wells becasue it doesn't matter
     outdata = outdata.loc[outdata.loc[:, 'type'] != 'well']
     return outdata
 
@@ -38,7 +39,10 @@ def get_race_data(model_id):
 def get_full_consent(model_id, org_pumping_wells=False, recalc=False):
     """
     EAV/consented annual volume I need to think about this one
-    :return: # the full dataframe with just the flux converted
+    :param model_id: the NSMC realisation
+    :param org_pumping_wells: Boolean if true use the model period wells else use the 2014/2015 pumping
+    :param recalc: Boolean, if true recalculate otherwise load from a pickle
+    :return: the full dataframe with just the flux converted
     """
     if org_pumping_wells:
         new = 'mod_period'
@@ -87,8 +91,10 @@ def get_full_consent(model_id, org_pumping_wells=False, recalc=False):
 def get_max_rate(model_id, org_pumping_wells=False, recalc=False):
     """
     replaces the flux value with the full consented volumes for the wells north of the waimakariri
-    :param recalc: if true recalc the pickle
-    :return:
+    :param model_id: the NSMC realisation
+    :param org_pumping_wells: Boolean if true use the model period wells else use the 2014/2015 pumping
+    :param recalc: Boolean, if true recalculate otherwise load from a pickle
+    :return: the full dataframe with just the flux converted
     """
     if org_pumping_wells:
         new = 'mod_period'
@@ -155,13 +161,12 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
         idx = outdata.loc[(outdata.type == 'well') & (outdata.cwms == 'waimak')].index
         outdata.loc[idx, 'flux'] = get_full_consent(model_id, org_pumping_wells).loc[idx, 'flux']
     else:
-        if pc5 and not full_abstraction: #todo think about applying the reduction to selwyn
-            outdata.loc[(outdata.loc[:, 'use_type'] == 'irrigation-sw') & (outdata.cwms == 'waimak'), 'flux'] *= 3 / 4
+        if pc5 and not full_abstraction:
+            outdata.loc[(outdata.loc[:, 'use_type'] == 'irrigation-sw'), 'flux'] *= 3 / 4
             # an inital 1/4 reduction for pc5 to
             # account for the decreased irrgation demand for with more efficent irrigation this number comes from
             # prorataing the difference between 80% and 100% irrigation LSRM outputs to the percentage of irrigation
-            # from sw and gw in the waimakariri zone other zones were not considered because it was unlikly to affect
-            # the results (e.g. we don't care about selwyn).
+            # from sw and gw in the zones
 
     if full_allo:
         allo_mult = get_full_allo_multipler(org_pumping_wells)
@@ -204,10 +209,12 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
 
 
 def get_cc_pumping_muliplier(cc_inputs):
-    # return a single value for now which is senario/current model period (2008-2015)
-    #todo check/debug this
-    ird_current_period = get_ird_base_array('current', None, None, None, 'mean')
-
+    """
+    get the relative pumping multipler from the irrigation demand only calculated over the waimakariri zone
+    :param cc_inputs: the cc inputs dictionary see forward wells
+    :return: float
+    """
+    # return a single value for now which is senario/baseline for the senario see below
     amalg_dict = {None: 'mean', 'mean': 'mean', 'tym': 'period_mean', 'low_3_m': '3_lowest_con_mean',
                   'min': 'lowest_year'}
 
@@ -216,22 +223,21 @@ def get_cc_pumping_muliplier(cc_inputs):
     rcm= cc_inputs['rcm']
     per= cc_inputs['period']
     at= amalg_dict[cc_inputs['amag_type']]
+    # base period for pumping multiplier is RCPpast period mean for the same senario and rcm
+    ird_current_period = get_ird_base_array(*get_lsr_base_period_inputs(sen, rcp, rcm, per, at))
     ird_modeled_period = get_ird_base_array(sen, rcp, rcm, per, at)
     outdata = ird_modeled_period/ird_current_period
-    if cc_inputs['cc_to_waimak_only']:
-        w_idx = get_zone_array_index('waimak')
-        outdata = outdata[w_idx]
-    else:
-        all_idx = get_zone_array_index(['waimak', 'selwyn', 'chch'])
-        outdata = outdata[all_idx]
-    return outdata.mean()
+    w_idx = get_zone_array_index('waimak') # regardless where the cc input are applied only apply ccmul to waimaik so only use that zone
+    outdata = outdata[w_idx]
+    return np.nanmean(outdata)
 
 
 def get_full_allo_multipler(org_pumping_wells, recalc=False):
     """
+    get the multipliers (on a per well basis) to move to full allocation
     :param org_pumping_wells: if true use model period wells, else use 2014/15 wells
     :param recalc: usual recalc
-    :return:
+    :return: pd.Series
     """
     # return a series with index well numbers and values multiplier
     # these wells only in Waimakariri Zone
@@ -274,17 +280,43 @@ def get_full_allo_multipler(org_pumping_wells, recalc=False):
 
 
 if __name__ == '__main__':
-    cc_inputs = {'rcm': 'BCC-CSM1.1',
-                 'rcp': 'RCPpast',
-                 'period': 1980,
-                 'amag_type': 'tym'}
-    test, ccmult, new_water = get_forward_wells('opt',
-                                    full_abstraction=False,
-                                    cc_inputs=cc_inputs,
-                                    naturalised=False,
-                                    full_allo=False,
-                                    pc5=False,
-                                    org_pumping_wells=False)
-    print(get_well_budget(test)/86400)
-    print('ccmult: ' + str(ccmult))
-    print('new_water: ' + str(new_water))
+    #tests
+    test_type = 2
+    if test_type == 2:
+        max_rate = get_max_rate('opt')
+        cav = get_full_consent('opt')
+        max_rate = max_rate.loc[(max_rate.type=='well') & (max_rate.zone=='n_wai')]
+        cav = cav.loc[(cav.type=='well') & (cav.zone == 'n_wai')]
+        org_wells = _get_wel_spd_v2()
+        org_wells = org_wells.loc[(org_wells.type=='well') & (org_wells.zone =='n_wai')]
+        print('done')
+    if test_type == 0:
+        cc_inputs = {'rcm': 'BCC-CSM1.1',
+                     'rcp': 'RCP4.5',
+                     'period': 2090,
+                     'amag_type': 'tym',
+                     'cc_to_waimak_only': False}
+        test = get_cc_pumping_muliplier(cc_inputs)
+        test, ccmult, new_water = get_forward_wells('opt',
+                                        full_abstraction=False,
+                                        cc_inputs=cc_inputs,
+                                        naturalised=False,
+                                        full_allo=False,
+                                        pc5=False,
+                                        org_pumping_wells=False)
+        print(get_well_budget(test)/86400)
+        print('ccmult: ' + str(ccmult))
+        print('new_water: ' + str(new_water))
+    elif test_type == 1:
+        import itertools
+        mults = []
+        periods = range(2010, 2100, 20)
+        rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
+        rcps = ['RCP4.5', 'RCP8.5']
+        amalg_types = ['tym', 'low_3_m']  # removed min as most low_3_yr were not converging
+        # cc stuff
+        for per, rcp, rcm, at in itertools.product(periods, rcps, rcms, amalg_types):
+            cc_inputs = {'rcm': rcm, 'rcp': rcp, 'period': per, 'amag_type': at, 'cc_to_waimak_only':True}
+            temp = get_cc_pumping_muliplier(cc_inputs)
+            mults.append(temp)
+        print('done')

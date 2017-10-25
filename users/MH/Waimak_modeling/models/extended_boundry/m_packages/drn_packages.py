@@ -18,6 +18,14 @@ import pickle
 
 
 def create_drn_package(m, wel_version, reach_version,n_car_dns=True):
+    """
+    create and add the drain package
+    :param m: a flopy model instance
+    :param wel_version: the version of wells (used to create carpet drains)
+    :param reach_version: the version of the SFR reach (used to create carpet drains)
+    :param n_car_dns: boolean if True include ashley and waimiak carpet drains
+    :return:
+    """
     drn_data = _get_drn_spd(wel_version=wel_version, reach_v=reach_version,n_car_dns=n_car_dns).loc[:,
                ['k', 'i', 'j', 'elev', 'cond']].to_records(False)
     drn_data = drn_data.astype(flopy.modflow.ModflowDrn.get_default_dtype())
@@ -29,6 +37,15 @@ def create_drn_package(m, wel_version, reach_version,n_car_dns=True):
 
 
 def _get_drn_spd(reach_v, wel_version, recalc=False, n_car_dns=True):
+    """
+    create the drain package data
+    :param reach_v: sfr reach version (used to create carpet drains)
+    :param wel_version: well version (used to create carpet drains)
+    :param recalc: boolean if False load from a pickle, if True re-create
+    :param n_car_dns: boolean if False do not include the ashley and cust carpet drains
+    :return:
+    """
+
     if n_car_dns:
         pickle_path = '{}/drain_spd_with_n_car.p'.format(smt.pickle_dir)
     else:
@@ -358,6 +375,7 @@ def _get_drn_spd(reach_v, wel_version, recalc=False, n_car_dns=True):
 
 
 if __name__ == '__main__':
+    # tests
     carpet_names = [
         'ash_carpet',
         'chch_carpet',

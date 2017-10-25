@@ -10,63 +10,26 @@ from core.classes.hydro import hydro, all_mtypes
 from matplotlib.colors import from_levels_and_colors
 import statsmodels.formula.api as sm
 from scipy.stats import skewnorm
-
+from users.MH.Waimak_modeling.models.extended_boundry.m_packages.drn_packages import _get_drn_spd
+import flopy
 
 import os
+import traceback
 
-def reverse_readline(filename, buf_size=8192):
-    """a generator that returns the lines of a file in reverse order"""
-    with open(filename) as fh:
-        segment = None
-        offset = 0
-        fh.seek(0, os.SEEK_END)
-        file_size = remaining_size = fh.tell()
-        while remaining_size > 0:
-            offset = min(file_size, offset + buf_size)
-            fh.seek(file_size - offset)
-            buffer = fh.read(min(remaining_size, buf_size))
-            remaining_size -= buf_size
-            lines = buffer.split('\n')
-            # the first line of the buffer is probably not a complete line so
-            # we'll save it and append it to the last line of the next buffer
-            # we read
-            if segment is not None:
-                # if the previous chunk starts right from the beginning of line
-                # do not concact the segment to the last line of new chunk
-                # instead, yield the segment first
-                if buffer[-1] is not '\n':
-                    lines[-1] += segment
-                else:
-                    yield segment
-            segment = lines[0]
-            for index in range(len(lines) - 1, 0, -1):
-                if len(lines[index]):
-                    yield lines[index]
-        # Don't yield None if the file was empty
-        if segment is not None:
-            yield segment
+def ash_carpet_budget(path):
+    drn_data = _get_drn_spd(1,1)
+    cbb = flopy.utils.CellBudgetFile(path)
+    flux = cbb.get_data(kstpkper=cbb.get_kstpkper()[-1],text='drain',full3D=True)[0][0]
+    ncarpetj = (smt.df_to_array(drn_data.loc[drn_data.group == 'ash_carpet'],'j'))
+    ncarpeti = (smt.df_to_array(drn_data.loc[drn_data.group == 'ash_carpet'],'i'))
 
-def converged(list_path):
-    """
+    outdata = {}
+    for target_id, (imin,imax),(jmin,jmax) in zip(['ne_ash', 'nw_ash','se_ash','sw_ash'],
+                                                  [(0,0),(0,0),(0,0),(0,0)],  # i's
+                                                  [(0,0),(0,0),(0,0),(0,0)]):  # j's
+        temp = (ncarpeti <= imax) & (ncarpeti >= imin) & (ncarpetj <= jmax) & (ncarpetj >= jmin)
+        outdata[target_id] = flux[temp].sum()
 
-    :param list_path:
-    :return: True if converged, False if not, None if not realised
-    """
-    converg = None
-    end_positive = 'SOLVING FOR HEAD'.lower()
-    end_neg = 'FAILED TO MEET SOLVER'.lower()
-    temp = reverse_readline(list_path,100)
-    for i in temp:
-        if end_positive in i.lower():
-            break
-        elif end_neg in i.lower():
-            converg = False
-            break
-    return converg
-
-path = r"C:\Users\MattH\Downloads\test_list.list"
-print converged(path)
-print'done'
-
-
+    outdata = pd.DataFrame({'flux':outdata})/86400
+    print(outdata)
 

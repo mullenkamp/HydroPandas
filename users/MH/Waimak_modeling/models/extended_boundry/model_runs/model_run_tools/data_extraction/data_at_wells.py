@@ -15,13 +15,13 @@ from copy import deepcopy
 from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.all_well_layer_col_row import \
     get_all_well_row_col
 
-hds_no_data = -999  # todo check with BRIOCH this has changed
+hds_no_data = 1e30
 unc_no_data = -999.99  # todo confirm this
 
 
 def get_well_positions(well_list, missing_handeling='warn'):
     """
-
+    get the position for all of the wells
     :param well_list: list of well numbers or a well number
     :param missing_handeling: one of: 'raise' : raise an exception for any nan values with well numbers
                                   'forgive': silently remove nan values
@@ -54,6 +54,13 @@ def get_well_positions(well_list, missing_handeling='warn'):
 
 
 def get_hds_file_path(name_file_path=None, hds_path=None, m=None):
+    """
+    get the head file path from one of the paths below
+    :param name_file_path:
+    :param hds_path:
+    :param m:
+    :return:
+    """
     loc_inputs = 0
     if hds_path is not None:
         if '.hds' not in hds_path:
@@ -146,6 +153,13 @@ def get_con_at_wells(well_list, unc_file_path, kstpkpers=None, rel_kstpkpers=Non
 
 
 def _get_kstkpers(bud_file, kstpkpers=None, rel_kstpkpers=None):
+    """
+    get teh kstpkpers to use from either a list of kstpkpers or a list of relative kstpkpers
+    :param bud_file: the budget file for the model in question
+    :param kstpkpers: the kstkpers
+    :param rel_kstpkpers:  the relative kstpkpers to use
+    :return: 2d np array
+    """
     if kstpkpers is not None and rel_kstpkpers is not None:
         raise ValueError('must define only one of kstpkpers or rel_kstpkpers')
     elif kstpkpers is not None:
@@ -173,6 +187,17 @@ def _get_kstkpers(bud_file, kstpkpers=None, rel_kstpkpers=None):
 
 
 def _fill_df_with_bindata(bin_file, kstpkpers, kstpkper_names, df, nodata_value, locations):
+    """
+    fills the dataframe with hds or con data
+    :param bin_file: data file either flopy.utils.Headfile or flopy.utils.Uncfile
+    :param kstpkpers: None or list of the kstpkpers to use
+    :param kstpkper_names: names to pass to the kstpkper for the colum of the dataframe
+    :param df: dataframe to fill (retuns a copy)
+    :param nodata_value: the nodata value to use for the binfile
+    :param locations: the dataframe with i,j,k
+    :return:
+    """
+    kstpkper_names = np.atleast_1d(kstpkper_names)
     df = deepcopy(df)
     data = bin_file.get_alldata(nodata=nodata_value)
     mkstpkper = bin_file.get_kstpkper()
@@ -197,9 +222,9 @@ def _fill_df_with_bindata(bin_file, kstpkpers, kstpkper_names, df, nodata_value,
 
         return df
 
-#todo with first real use of this spot check spatially, but should be right
 
 if __name__ == '__main__':
+    #tests
     hds = (
     r"C:\Users\MattH\Desktop\Waimak_modeling\python_models\component_con_n_ss\rch_constant_con\mf_constant_concentration.hds")
     unc =r"C:\Users\MattH\Desktop\Waimak_modeling\python_models\component_con_n_ss\rch_constant_con\MT3D001.UCN"

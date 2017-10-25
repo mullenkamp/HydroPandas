@@ -262,6 +262,10 @@ def get_samp_points_df(recalc=False):
                 outdata.loc[name, itm] = vals[itm]
 
     outdata.loc['ashley_swaz'] = ['comb','swaz',-1,('drn_ashley_swaz','sfr_ashley_swaz')]
+    outdata.loc['waimakupper_swaz'] = ['comb','swaz',-1,('drn_waimakupper_swaz','sfr_waimakupper_swaz')]
+    outdata.loc['waimaklower_swaz'] = ['comb','swaz',-1,('drn_waimaklower_swaz','sfr_waimaklower_swaz')]
+    outdata.loc['waimak_swaz'] = ['comb','swaz',-1,('drn_waimaklower_swaz','sfr_waimaklower_swaz',
+                                                    'drn_waimakupper_swaz','sfr_waimakupper_swaz')]
 
     samp_dict = _get_sw_samp_pts_dict(recalc)
     for itm in outdata.index:
@@ -303,6 +307,10 @@ def _get_sw_samp_pts_dict(recalc=False):
 
 
 def _make_swaz_drn_points():
+    """
+    a function to make the swaz points from previous data
+    :return:
+    """
     # only run one set
     import geopandas as gpd
     paths = [
@@ -318,8 +326,12 @@ def _make_swaz_drn_points():
 
 
 if __name__ == '__main__':
+    # tests
+    test2 = _get_sw_samp_pts_dict()
     test = get_samp_points_df()
-    #test2 = _get_sw_samp_pts_dict()
+    test3 = _get_flux_flow_arrays('waimak_swaz',test2,test)
+    test4 = _get_flux_flow_arrays('waimakupper_swaz',test2,test)
+    test5 = _get_flux_flow_arrays('waimaklower_swaz',test2,test)
     #drn, sfr = _get_flux_flow_arrays('ashley_swaz',test2,test)
     path = r"C:\Users\MattH\Desktop\mf_aw_ex\mf_aw_ex.nam"
 

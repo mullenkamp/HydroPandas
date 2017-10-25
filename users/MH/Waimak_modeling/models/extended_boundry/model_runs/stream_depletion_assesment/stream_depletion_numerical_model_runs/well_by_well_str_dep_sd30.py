@@ -9,11 +9,14 @@ import os
 import multiprocessing
 import logging
 from stream_depletion_model_setup import setup_and_run_stream_dep, setup_and_run_stream_dep_multip
-from copy import deepcopy
+from copy import copy
 import time
-from starting_hds_ss_sy import get_ss_sy, get_starting_heads_sd30
+from starting_hds_ss_sy import get_ss_sy, get_starting_heads_sd30, get_sd_well_list
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import psutil
+import datetime
+from future.builtins import input
+from base_sd_runs import get_sd_spv
 
 
 def setup_runs_sd30(model_id, well_list, base_path, ss, sy, start_heads):
@@ -28,11 +31,7 @@ def setup_runs_sd30(model_id, well_list, base_path, ss, sy, start_heads):
     :return:
     """
 
-    spv = {'nper': 10,
-           'perlen': 3,
-           'nstp': 1,
-           'steady': [False, False, False, False, False, False, False, False, False, False],
-           'tsmult': 1.1}
+    spv = get_sd_spv('sd30')
 
     if not os.path.exists(base_path):
         os.makedirs(base_path)
@@ -44,20 +43,18 @@ def setup_runs_sd30(model_id, well_list, base_path, ss, sy, start_heads):
 
     base_kwargs = {
         'model_id': model_id,
-        'name': None,
         'base_dir': base_path,
         'stress_vals': spv,
-        'wells_to_turn_on': {0: []},
         'ss': ss,
         'sy': sy,
         'silent': True,
         'start_heads': start_heads,
-        'sd_7_150': 'sd7'}
+        'sd_7_150': 'sd30'}
 
     out_runs = []
     for well in well_list:
-        temp_kwargs = deepcopy(base_kwargs)
-        temp_kwargs['wells_to_turn_on'][1] = [well]
+        temp_kwargs = copy(base_kwargs)
+        temp_kwargs['wells_to_turn_on'] = {0:[well]}
         temp_kwargs['name'] = 'turn_on_{}_sd30'.format(well.replace('/', '_'))
         out_runs.append(temp_kwargs)
 
@@ -71,7 +68,7 @@ def start_process():
     p.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
 
 
-def well_by_well_depletion_sd30(model_id, well_list, base_path):
+def well_by_well_depletion_sd30(model_id, well_list, base_path, notes):
     """
     run the well by well depletion for the 30 day stream depletion
     :param model_id: the NSMC realisation to use
@@ -79,6 +76,10 @@ def well_by_well_depletion_sd30(model_id, well_list, base_path):
     :param base_path: the path to put all of the folders containing each well model
     :return:
     """
+    if os.path.exists(base_path):
+        cont = input("the base path already exists: \n {}\n do you want to continue y/n\n".format(base_path))
+        if cont.lower() != 'y':
+            raise KeyboardInterrupt('run  stopped to prevent overwrite of {}'.format(base_path))
 
     t = time.time()
     multiprocessing.log_to_stderr(logging.DEBUG)
@@ -89,14 +90,25 @@ def well_by_well_depletion_sd30(model_id, well_list, base_path):
     pool = multiprocessing.Pool(processes=pool_size,
                                 initializer=start_process,
                                 )
-    pool_outputs = pool.map(setup_and_run_stream_dep_multip, runs)
+    results = pool.map_async(setup_and_run_stream_dep_multip, runs)
+    while not results.ready():
+        print('{} runs left of {}'.format(results._number_left, len(runs)))
+        time.sleep(60*5)  # sleep 5 min between printing
+    pool_outputs = results.get()
     pool.close()  # no more tasks
     pool.join()
-    with open("{}/forward_run_log/SD30_run_status.txt".format(smt.sdp), 'w') as f:
+    now = datetime.datetime.now()
+    with open("{}/forward_run_log/{}_SD30_run_status_{}_{:02d}_{:02d}_{:02d}_{:02d}.txt".format(smt.sdp,model_id,now.year,now.month,now.day,now.hour,now.minute), 'w') as f:
+        f.write(str(notes) + '\n')
         wr = ['{}: {}\n'.format(e[0], e[1]) for e in pool_outputs]
         f.writelines(wr)
     print('{} runs completed in {} minutes'.format(len(well_list), ((time.time() - t) / 60)))
 
 
 if __name__ == '__main__':
-    print('done')  # todo this needs debugging
+    notes = """ """
+    model_id = 'opt'
+    well_list = get_sd_well_list(model_id)
+    base_path = r"C:\Users\MattH\Desktop\test_sd30"
+    well_by_well_depletion_sd30(model_id,well_list,base_path,notes)
+    print('done')

@@ -29,6 +29,7 @@ To install Python:
             to install pygeoprocessing a C++ compiler is need get it here (instructions on that page):
                 https://www.microsoft.com/en-us/download/details.aspx?id=44266
         pip install future # for code compatability packages such as builtins
+        pykrige - another kriging module pip install pykrige
 
     Other helpful packages to install:
         Flopy: Run and interact with modflow models (talk to matth there are some bugs in the SFR2 package)
@@ -40,7 +41,6 @@ To install Python:
      Other packages that we're playing with:
      pykriging n-dimentional kriging for python pip install pykriging
      mayavi - 3d visualisation in python (used for some pykriging functions) pip install mayavi
-     pykrige - another kriging module pip install pykrige
      pypdf2 - conda install -c conda-forge pypdf2=1.26.0  manage pdfs (useing for joining at the moment)
 
 

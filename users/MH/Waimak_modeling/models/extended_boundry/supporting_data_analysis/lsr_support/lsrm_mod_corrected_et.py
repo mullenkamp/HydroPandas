@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
 Author: matth
-Date Created: 3/10/2017 2:04 PM
+Date Created: 13/10/2017 5:17 PM
 """
 
 from __future__ import division
 from core import env
-# -*- coding: utf-8 -*-
+
 """
 Created on Fri Jun 30 10:42:42 2017
 
@@ -24,16 +24,14 @@ from os import path
 from pandas import read_hdf
 from collections import OrderedDict
 import os
-from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 start1 = time()
 
 #############################################
 #### Parameters
 
 ### Reading data
-#irr_type_dict = {'server': 'SQL2012PROD05', 'database': 'GIS',
-                # 'table': 'AQUALINC_NZTM_IRRIGATED_AREA_20160629', 'column': 'type'} # not useing the 2016 irrigation
-irr_type_dict = {'shp': "{}\m_ex_bd_inputs\shp\wai_irr_area_intersect.shp".format(smt.sdp), 'column': 'type'}  # note I have set all irrigation types to Pivot
+irr_type_dict = {'server': 'SQL2012PROD05', 'database': 'GIS',
+                 'table': 'AQUALINC_NZTM_IRRIGATED_AREA_20160629', 'column': 'type'} # useing the 2016 irrigation for the future senarios
 paw_dict = {'server': 'SQL2012PROD05', 'database': 'GIS', 'table': 'LAND_NZTM_NEWZEALANDFUNDAMENTALSOILS', 'column': 'PAW_MID'}
 
 bound_shp = r'P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\m_ex_bd_inputs\shp\model_grid_domain.shp'
@@ -67,8 +65,8 @@ irr_trig_dict = {'Drip/micro': 0.5, 'Unknown': 0.5, 'Gun': 0.5, 'Pivot': 0.5, 'K
 A = 6
 
 ### Output parameters
-output_shp = r'D:\lsrm_results_v2\test\output_test2.shp'
-output_dir = r'D:\lsrm_results_v2'
+output_shp = r'D:\lsrm_results_v3\test\output_test2.shp'
+output_dir = r'D:\lsrm_results_v3'
 
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
@@ -76,13 +74,14 @@ if not os.path.exists(os.path.dirname(output_shp)):
     os.makedirs(os.path.dirname(output_shp))
 
 with open(os.path.join(output_dir,'READ_ME.txt'),'w') as f:
-    f.write('using irrigation data {}'.format(irr_type_dict))
+    f.write('using corrected pet data, and using irrigation data {}'.format(irr_type_dict))
 
 
 ### Iteration parameters
-rcppast = r'D:\niwa_data\climate_projections\RCPpast'
-rcp4 = r'D:\niwa_data\climate_projections\RCP4.5'
-rcp8 = r'D:\niwa_data\climate_projections\RCP8.5'
+# these folders contain a smaller copy of the rain data and the waimak corrected pe data from adjust_rcm_et.py
+rcppast = env.gw_met_data(r"niwa_netcdf\rain_waimak_corrected_pe_data\RCPpast")
+rcp4 = env.gw_met_data(r"niwa_netcdf\rain_waimak_corrected_pe_data\RCP4.5")
+rcp8 = env.gw_met_data(r"niwa_netcdf\rain_waimak_corrected_pe_data\RCP8.5")
 vcsn = r'\\fileservices02\ManagedShares\Data\VirtualClimate\vcsn_precip_et_2016-06-06.nc'
 
 all_dir = []
@@ -94,19 +93,18 @@ all_dir.extend(rcp8_dir)
 all_dir.extend(rcppast_dir)
 
 base_param_dict = {'no_irr': {'irr_eff': 1, 'include_irr': False}, '80perc': {'irr_eff': 0.8, 'include_irr': True}, '100perc': {'irr_eff': 1, 'include_irr': True}}
-#vcsn_param_dict = {'50perc': {'irr_eff': 0.5, 'include_irr': True}, '65perc': {'irr_eff': 0.65, 'include_irr': True}, '80perc': {'irr_eff': 0.8, 'include_irr': True}, '100perc': {'irr_eff': 1, 'include_irr': True}, 'no_irr': {'irr_eff': 1, 'include_irr': False}}
 vcsn_param_dict = {'80perc': {'irr_eff': 0.8, 'include_irr': True}, '100perc': {'irr_eff': 1, 'include_irr': True}, 'no_irr': {'irr_eff': 1, 'include_irr': False}}
 
 param_dict = OrderedDict()
-#for f in all_dir: # this is for projectsion
-#    model = path.split(f)[1]
-#    rcp = path.split(path.split(f)[0])[1]
-#    nc_dir = f
-#    for d in base_param_dict:
-#        name = '_'.join([rcp, model, d])
-#        dict1 = base_param_dict[d].copy()
-#        dict1.update({'nc_dir': nc_dir, 'from_date': None, 'to_date': None})
-#        param_dict.update({name: dict1})
+for f in all_dir: #this is for projectsion
+    model = path.split(f)[1]
+    rcp = path.split(path.split(f)[0])[1]
+    nc_dir = f
+    for d in base_param_dict:
+        name = '_'.join([rcp, model, d])
+        dict1 = base_param_dict[d].copy()
+        dict1.update({'nc_dir': nc_dir, 'from_date': None, 'to_date': None})
+        param_dict.update({name: dict1})
 
 for v in vcsn_param_dict: # this is for VCSN
     name = '_'.join(['vcsn', v])
