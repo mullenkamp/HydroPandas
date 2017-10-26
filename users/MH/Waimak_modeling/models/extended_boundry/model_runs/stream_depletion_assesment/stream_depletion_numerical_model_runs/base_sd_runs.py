@@ -72,7 +72,7 @@ def get_sd_spv(sd_version):
     if sd_version == 'sd150':
         spv = {'nper': 5,
            'perlen': 30,
-           'nstp': 3, #todo was 2, this will cause StrOpt calculations to fail(unless models re-run) but is necissary for NsmcBaseB
+           'nstp': 5,
            'steady': [False, False, False, False, False],
            'tsmult': 1.}
     elif sd_version == 'sd7':

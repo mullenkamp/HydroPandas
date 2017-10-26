@@ -13,7 +13,7 @@ from extract_grid_sd import calc_str_dep_all_wells_grid
 from visualise_grid_sd import krig_plot_sd_grid
 import socket
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.stream_depletion_assesment.stream_depletion_numerical_model_runs.sd_metadata import save_sd_metadata
-
+from make_grid_sd_zones import make_sd_zone
 if __name__ == '__main__':
     # a convenience function to run all of the grid sd, extract, and visualise the data
     # size requirements: one run (one well) is ~ 47 MB there are one full grid run is ~85 GB
@@ -74,8 +74,18 @@ if __name__ == '__main__':
             save_sd_metadata(os.path.join(data_out_dir,'sd_grid_metadata_{}.csv'.format(os.path.basename(path))),path)
 
     # krig and plot all data
+    nc_paths = []
     for path in outpaths:
         rd_path = os.path.join(os.path.dirname(path),'{}_{}'.format(model_id,os.path.basename(path)))
-        krig_plot_sd_grid(rd_path,data_out_dir)
+        nc_path = krig_plot_sd_grid(rd_path,data_out_dir)
+        nc_paths.append(nc_path)
+
+    # make shapefiles of zones
+    for ncpath in nc_paths:
+        outpath = os.path.join(os.path.dirname(nc_path),
+                               'interpolated_zones_flux_{}.shp'.format(os.path.basename(nc_path).split('_')[-1].replace('.nc','')))
+        layers = range(10)
+        cutoffs = [20, 40, 60, 90]
+        make_sd_zone(nc_path,layers,outpath,cutoffs)
 
 

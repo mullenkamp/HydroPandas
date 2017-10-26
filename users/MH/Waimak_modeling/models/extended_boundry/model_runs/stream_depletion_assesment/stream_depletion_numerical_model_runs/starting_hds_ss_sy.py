@@ -16,6 +16,8 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
     get_race_data, get_full_consent
 import flopy
 import numpy as np
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.stream_depletion_assesment.raising_heads_no_carpet import get_drn_no_ncarpet_spd
+
 
 def get_sd_starting_hds(model_id, sd_version):
     if sd_version == 'sd7':
@@ -60,8 +62,9 @@ def _get_no_pumping_ss_hds(model_id, recalc=False):
             raise ValueError('unexpected shape for hds {}, expected {}'.format(hds.shape, (smt.layers, smt.rows, smt.cols)))
         return hds
     dirpath = "{}/forward_supporting_models/base_str_dep".format(smt.sdp)  # model Id is added in import gns model
+    drns = get_drn_no_ncarpet_spd(model_id)
     well = {0: smt.convert_well_data_to_stresspd(get_race_data(model_id))}
-    m = mod_gns_model(model_id, 'base_heads_for_str_dep', dir_path=dirpath, safe_mode=False, well=well)
+    m = mod_gns_model(model_id, 'base_heads_for_str_dep', dir_path=dirpath, safe_mode=False, well=well, drain={0:drns})
     m.write_name_file()
     m.write_input()
     suc, buff = m.run_model()

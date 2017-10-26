@@ -173,6 +173,7 @@ def krig_plot_sd_grid(data_path, outdir):
     extract_all_stream_krig(data_path, nc_path)
     plot_out_dir = os.path.join(outdir, 'plots_{}'.format(os.path.basename(nc_path).replace('.nc', '')))
     plot_all_streams_sd(nc_path, plot_out_dir)
+    return nc_path
 
 
 if __name__ == '__main__':

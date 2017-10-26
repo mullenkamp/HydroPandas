@@ -18,6 +18,8 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
 from traceback import format_exc
 import pandas as pd
 import pickle
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.stream_depletion_assesment.raising_heads_no_carpet import get_drn_no_ncarpet_spd
+
 
 
 def setup_and_run_ss_grid_stream_dep_multip(kwargs):
@@ -55,7 +57,7 @@ def setup_and_run_ss_grid_stream_dep(model_id, name, base_dir, wells_to_turn_on,
             raise ValueError('incorrect input type for {} expected dataframe'.format(input_arg))
 
     wells = {}
-
+    drns = get_drn_no_ncarpet_spd(model_id)
     base_well = get_race_data(model_id)
     full_consent = get_full_consent(model_id)
     # set up wells
@@ -68,6 +70,7 @@ def setup_and_run_ss_grid_stream_dep(model_id, name, base_dir, wells_to_turn_on,
     m = mod_gns_model(model_id, name, '{}/{}'.format(base_dir, name),
                       safe_mode=False,
                       well=wells,
+                      drain={0:drns},
                       mt3d_link=False,
                       start_heads=start_heads)
 
@@ -186,9 +189,9 @@ def grid_wells(flux, recalc=False):  # set up a grid
     return outdata
 
 
-def get_base_grid_sd_path(model_id):
+def get_base_grid_sd_path(model_id, recalc=False):
     path = os.path.join(smt.temp_pickle_dir, '{}_grid_sd_base'.format(model_id), '{}_grid_sd_base.cbc'.format(model_id))
-    if os.path.exists(path):
+    if os.path.exists(path) and not recalc:
         return path.replace('.cbc', '')
 
     name, success = setup_and_run_ss_grid_stream_dep(model_id=model_id,
