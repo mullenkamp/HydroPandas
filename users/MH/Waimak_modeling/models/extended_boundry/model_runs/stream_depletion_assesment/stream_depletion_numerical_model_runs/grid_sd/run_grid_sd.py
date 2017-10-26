@@ -23,23 +23,23 @@ if __name__ == '__main__':
     # run on GWruns02
     model_id = 'StrOpt'  # todo re-define
     if socket.gethostname() == 'RDSProd03':
-        base_dir = "D:\mh_model_runs\grid_sd_runs\{}_models_2017_10_21".format(model_id)
-        data_out_dir = "D:\mh_model_runs\grid_sd_runs\{}_data_2017_10_21".format(model_id)
-        run_models = False
-        amalg_results = False
+        base_dir = "D:\mh_model_runs\grid_sd_runs\{}_models_2017_10_26".format(model_id)
+        data_out_dir = "D:\mh_model_runs\grid_sd_runs\{}_data_2017_10_26".format(model_id)
+        run_models = True
+        amalg_results = True
 
         # below should not change
-        fluxes = [-100] # todo add -25 when run again
+        fluxes = [-100, - 25]
         fluxes = [e * 86.4 for e in fluxes]
 
     else: # runs on gw02
-        run_models = False
-        amalg_results = False
-        base_dir = "D:\mh_waimak_models\grid_sd_runs\{}_models_2017_10_21".format(model_id)
-        data_out_dir = "D:\mh_waimak_models\grid_sd_runs\{}_data_2017_10_21".format(model_id)
+        run_models = True
+        amalg_results = True
+        base_dir = "D:\mh_waimak_models\grid_sd_runs\{}_models_2017_10_26".format(model_id)
+        data_out_dir = "D:\mh_waimak_models\grid_sd_runs\{}_data_2017_10_26".format(model_id)
 
         # below should not change
-        fluxes = [-5, - 25]
+        fluxes = [-5]
         fluxes = [e * 86.4 for e in fluxes]
 
     #### run the models ####
