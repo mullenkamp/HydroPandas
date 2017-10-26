@@ -41,6 +41,7 @@ def calc_stream_dep(model_path, sd_version='sd150'):
     # define sites
     samp_points_df = get_samp_points_df()
     sites = list(samp_points_df[samp_points_df.m_type == 'swaz'].index)
+    sites.extend(['cust_carpet','ash_carpet'])
 
     str_base = get_flux_at_points(sites=sites, base_path=baseline_path, kstpkpers=kstpkpers)
     str_sd = get_flux_at_points(sites=sites, base_path=model_path, kstpkpers=kstpkpers)
