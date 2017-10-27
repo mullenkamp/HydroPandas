@@ -274,13 +274,11 @@ def allo_restr_plt(df, yaxis_mag=1000000, yaxis_lab='Million', start='2006', end
         # Legend
         handles, lbs = ax.get_legend_handles_labels()
         hand_len = len(handles)
-        order_dict1 = OrderedDict([('tot_allo', [0, 3]), ('meter_allo', [1, 4]), ('meter_usage', [2])])
+        order1 = [lbs.index(j) for j in ['tot_allo', 'tot_allo_restr', 'allo', 'allo_restr', 'usage'] if j in lbs]
         label_dict1 = OrderedDict([('tot_allo', ['Total allocation', 'Total allocation with restrictions']), ('meter_allo', ['Metered allocation', 'Metered allocation with restrictions']), ('meter_usage', ['Metered usage'])])
-        order1 = []
-        [order1.extend(order_dict1[i]) for i in cat]
         labels = []
         [labels.extend(label_dict1[i]) for i in cat]
-        leg1 = plt.legend([handles[i - (5-hand_len)] for i in order1], labels, loc='upper left')
+        leg1 = plt.legend([handles[i] for i in order1], labels, loc='upper left')
 #        leg1.legendPatch.set_path_effects(pathe.withStroke(linewidth=5, foreground="w"))
 
         xticks = ax.get_xticks()
