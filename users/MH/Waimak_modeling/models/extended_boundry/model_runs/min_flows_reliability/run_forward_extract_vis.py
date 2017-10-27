@@ -27,6 +27,7 @@ if __name__ == '__main__':
     cc_to_waimak_only = True
     notes = """ 
     LSR senario changes applied to full domain, CC component of LSR changes applied to only waimakariri, but ccmult and missing h20 is waimak only
+    these senarios are without the n carpet drains unless explecitly stated in the model name (_w_ncar)
     pumping changes only applied to Waimakariri with the exception of the pc5 adjustment which is applied in the full domain,
     run in {}
     """.format(model_dir_path)
