@@ -129,7 +129,7 @@ def get_model_name_path(model_id):
     """
     # new model check the well package, check the sfr package and run new_model_run
 
-    if model_id in ['test', 'opt', 'NsmcBase']:
+    if model_id in ['test', 'opt', 'NsmcBaseB','VertUnstabA', 'VertUnstabB']:
         warn('model {} is depreciated'.format(model_id))
     model_dict = {
         # a place holder to test the scripts
@@ -151,7 +151,7 @@ def get_model_name_path(model_id):
         'VertUnstabA': "{}/from_gns/VertUnstabA/AW20171022_i3_optver/i3/mf_aw_ex.nam".format(smt.sdp),
 
         # optimisation recieved on 24/10/2017 which is more stable and better hits the targets than either of the
-        # VertUnstab models.  if the jacobian runs fine then this will be the base for the NSMC
+        # VertUnstab models.  if the jacobian runs fine then this will be the base for the NSMC this ended up the base for the NSMC
         'NsmcBase': "{}/from_gns/NsmcBase/AW20171024_2_i2_optver/i2/mf_aw_ex.nam".format(smt.sdp),
 
         # optimisation revieved on 25/10/2017 which is the previous iteration to NsmcBase.  NsmcBase was quite unstable,
