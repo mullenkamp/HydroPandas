@@ -30,9 +30,11 @@ hts_sw = r'\\hilltop01\Hilltop\Data\WQSurfacewater.hts'
 #sites = ['SQ36287']
 
 #df1 = rd_ht_quan_data(hts)
-df5, sites_info = rd_ht_wq_data(hts_gw, output_site_data=True)
+gw_wq_data, gw_sites_info = rd_ht_wq_data(hts_gw, output_site_data=True)
+sw_wq_data, sw_sites_info = rd_ht_wq_data(hts_sw, output_site_data=True)
 
-sites_info2 = sites_info.drop('divisor', axis=1)
+gw_sites_info = gw_sites_info.drop('divisor', axis=1)
+sw_sites_info = sw_sites_info.drop('divisor', axis=1)
 
 ###############################################
 ### Dump on sql database
@@ -59,7 +61,7 @@ sites_df = sites1.copy()
 df6, sites1 = rd_ht_wq_data(hts_gw, sites=['M36/1160'], output_site_data=True)
 
 
-
+t1.to_json(r'E:\ecan\shared\projects\end_of_squalarc\wq_data.json', orient='records', date_format='iso')
 
 
 

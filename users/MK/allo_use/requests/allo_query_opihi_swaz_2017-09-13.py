@@ -41,7 +41,7 @@ agg_yr = False
 ## output parameters
 base_path = 'E:/ecan/local/Projects/requests'
 name = 'opihi'
-date = '2017-09-13'
+date = '2017-10-27'
 
 export_fig_path = path.join(base_path, name, date, 'figures')
 export_path = path.join(base_path, name, date, name + '_allo_use.csv')

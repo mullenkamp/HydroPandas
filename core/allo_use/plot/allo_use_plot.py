@@ -218,7 +218,85 @@ def allo_stacked_plt(df, yaxis_mag=1000000, yaxis_lab='Million', start='1990', e
         return(ax)
 
 
+def allo_restr_plt(df, yaxis_mag=1000000, yaxis_lab='Million', start='2006', end='2015', cat=['tot_allo', 'meter_allo', 'meter_usage'], col_pal='pastel', export_path='', export_name='tot_allo_use_restr.png'):
+    """
+    Function to plot either total allocation with restrictions or total allo, metered allo, and metered usage with restrictions over a period of years.
+    """
+    from os import path
+    from numpy import in1d
+    import seaborn as sns
+    from pandas import to_datetime, melt, Period
+    import matplotlib.pyplot as plt
+    from collections import OrderedDict
+#    import matplotlib.patheffects as pathe
+#    import matplotlib.ticker as ticker
+#    import matplotlib.dates as mdates
 
+    ### Reorganize data
+    allo1 = df.sum(axis=0, level=0)
+    allo1.index = to_datetime(allo1.index)
+    allo1.index.name = 'date'
+    allo2 = allo1[start:end] * 1 / yaxis_mag
+    dict1 = {'tot_allo': 'tot_allo', 'meter_allo': 'allo', 'meter_usage': 'usage'}
+    dict2 = {'tot_allo': 'tot_allo_restr', 'meter_allo': 'allo_restr', 'meter_usage': 'usage'}
+    lst1 = [dict1[d] for d in cat]
+    lst2 = [dict2[d] for d in cat]
+
+    if allo2.size > 1:
+#        index1 = allo2.index.astype('str').str[0:4].astype('int')
+#        allo2['index'] = index2
+
+        pw = len(str(yaxis_mag)) - 1
+
+        allo_all = melt(allo2.reset_index(), id_vars='date', value_vars=['tot_allo', 'allo', 'usage'], var_name='tot_allo')
+        allo_up_all = melt(allo2.reset_index(), id_vars='dates', value_vars=['tot_allo_restr', 'allo_restr', 'usage'], var_name='up_allo')
+        allo_up_all.loc[allo_up_all.up_allo == 'usage', 'value'] = 0
+
+        allo_all = allo_all[in1d(allo_all.tot_allo, lst1)]
+        allo_up_all = allo_up_all[in1d(allo_up_all.up_allo, lst2)]
+
+        index1 = allo_all.date.astype('str').str[0:4].astype('int')
+        index2 = [Period(d) for d in index1.tolist()]
+
+        ### Total Allo and restricted allo and usage
+        ## Set basic plot settings
+        sns.set_style("whitegrid")
+        sns.set_context('poster')
+
+        ## Plot total allo
+        fig, ax = plt.subplots(figsize=(15, 10))
+        sns.barplot(x=index2, y='value', hue='tot_allo', data=allo_all, palette=col_pal, edgecolor='0')
+        sns.barplot(x=index2, y='value', hue='up_allo', data=allo_up_all, palette=col_pal, edgecolor='0', hatch='/')
+#        plt.ylabel('Water Volume $(10^{' + str(pw) + '} m^{3}/year$)')
+        plt.ylabel('Water Volume $(' + yaxis_lab + '\; m^{3}/year$)')
+        plt.xlabel('Year')
+
+        # Legend
+        handles, lbs = ax.get_legend_handles_labels()
+        hand_len = len(handles)
+        order_dict1 = OrderedDict([('tot_allo', [0, 3]), ('meter_allo', [1, 4]), ('meter_usage', [2])])
+        label_dict1 = OrderedDict([('tot_allo', ['Total allocation', 'Total allocation with restrictions']), ('meter_allo', ['Metered allocation', 'Metered allocation with restrictions']), ('meter_usage', ['Metered usage'])])
+        order1 = []
+        [order1.extend(order_dict1[i]) for i in cat]
+        labels = []
+        [labels.extend(label_dict1[i]) for i in cat]
+        leg1 = plt.legend([handles[i - (5-hand_len)] for i in order1], labels, loc='upper left')
+#        leg1.legendPatch.set_path_effects(pathe.withStroke(linewidth=5, foreground="w"))
+
+        xticks = ax.get_xticks()
+        if len(xticks) > 15:
+            for label in ax.get_xticklabels()[::2]:
+                label.set_visible(False)
+            ax.xaxis_date()
+            fig.autofmt_xdate(ha='center')
+            plt.tight_layout()
+        plt.tight_layout()
+#      sns.despine(offset=10, trim=True)
+        plot2 = ax.get_figure()
+        plot2.savefig(path.join(export_path, export_name))
+
+        ### Return plot
+        return(ax)
 
 
 
