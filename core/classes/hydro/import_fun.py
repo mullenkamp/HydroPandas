@@ -18,14 +18,34 @@ from core.ecan_io import rd_sql
 
 def add_data(self, data, time=None, sites=None, mtypes=None, values=None, dformat=None, add=True):
     """
-    The general function to add time series data to the hydro class object.\n
-    Input data can be either in 'wide' or 'long' dformat.\n
-    The 'wide' dformat is where the columns are the sites or the mtypes (or both as a MultiIndex column). 'time' should be the index as a DateTimeIndex. 'sites' should be an integer or a string if the columns are mtypes, and similarly for 'mtypes' if the columns are sites.\n
+    The general function to add time series data to the hydro class object.
+
+    Input data can be either in 'wide' or 'long' dformat.
+
+    The 'wide' dformat is where the columns are the sites or both mtypes and sites as a MultiIndex column. 'time' should either be None if data.index is a DateTimeIndex or a DateTimeIndex. 'sites' should be None. If data has a MultiIndex column of mtypes and sites, they must be arranged in that order (top: mtypes, bottom: sites).
+
     The 'long' dformat should be a DataFrame with four columns: One column with a DatetimeIndex for 'time', one column with the site values as 'sites', one column with the mtypes values as 'mtypes', and one column with the data values as 'values'.
 
-    Arguments:\n
-    data -- A Pandas DataFrame in either long or wide format.\n
-    add -- Should new data be appended to the existing object? If False, returns a new object.
+    Parameters
+    ----------
+    data : DataFrame or type that can be coerced to a DataFrame
+        A Pandas DataFrame in either long or wide format or an object type that can be coerced to a DataFrame via DataFrame(data) (see Pandas).
+    time : DateTimeIndex, str, or None
+        The time index reference. Depends on dformat.
+    sites : str, int, or None
+        The sites reference. Depends on dformat.
+    mtypes : str, int, or None
+        The mtypes reference. Depends on dformat.
+    values : str or None
+        Only needed for dformat = 'long'. The column name for the data values.
+    dformat : 'wide' or 'long'
+        The format of the data table to import.
+    add : bool
+        Should new data be appended to the existing object? If False, returns a new object.
+
+    Returns
+    -------
+    HydroPandas
     """
     from core.classes.hydro.base import all_mtypes
 
@@ -33,16 +53,14 @@ def add_data(self, data, time=None, sites=None, mtypes=None, values=None, dforma
 
     if dformat is None:
         raise ValueError("dformat must be specified and must be either 'long' or 'wide'.")
-    if not isinstance(data, (DataFrame, Series)):
-        raise ValueError("data must be either a Pandas Series or DataFrame.")
+    if not isinstance(data, DataFrame):
+        data = DataFrame(data)
     if dformat is 'wide':
         if isinstance(data.columns, MultiIndex):
             if not isinstance(data.index, DatetimeIndex):
                 raise ValueError("A MultiIndex column DataFrame must have a DateTimeIndex as the row index.")
-            if (sites is None) | (mtypes is None):
-                raise ValueError("Must specify MultiIndex names for sites and mtypes if DataFrame has MultiIndex columns.")
             d1 = data.copy()
-            d1.columns.rename(['mtype', 'site'], level=[mtypes, sites], inplace=True)
+            d1.columns.names = ['mtype', 'site']
             d1.columns.set_levels(to_numeric(d1.columns.levels[1], errors='ignore', downcast='integer'), level='site', inplace=True)
             d1.index.name = 'time'
             d2 = d1.stack(level=['mtype', 'site'])
@@ -63,11 +81,6 @@ def add_data(self, data, time=None, sites=None, mtypes=None, values=None, dforma
                 d1.columns = to_numeric(d1.columns, errors='ignore', downcast='integer')
                 d1['mtype'] = mtypes
                 d2 = d1.set_index('mtype', append=True)
-                input1 = d2.stack().reorder_levels(['mtype', 'site', 'time'])
-            elif isinstance(sites, (str, int)):
-                d1.columns.name = 'mtype'
-                d1['site'] = to_numeric(sites, errors='ignore', downcast='integer')
-                d2 = d1.set_index('site', append=True)
                 input1 = d2.stack().reorder_levels(['mtype', 'site', 'time'])
     elif dformat is 'long':
         if not isinstance(mtypes, (str, int)) or not isinstance(sites, (str, int)) or not isinstance(time, (str, int)) or not isinstance(values, (str, int)):
@@ -305,13 +318,18 @@ def add_site_attr(self, df):
 #### File reading functions (csv and netcdf)
 
 
-def rd_csv(self, csv_path, time=None, sites=None, mtypes=None, values=None, dformat=None, header='infer', skiprows=0):
+def rd_csv(self, csv_path, time=None, sites=None, mtypes=None, values=None, dformat=None, multiindex=False, skiprows=0):
     """
     Simple function to read in time series data and make it regular if needed.
     """
     from pandas import read_csv
 
-    ts = read_csv(csv_path, parse_dates=[time], infer_datetime_format=True, dayfirst=True, skiprows=skiprows, header=header)
+    if multiindex:
+        ts = read_csv(csv_path, parse_dates=True, infer_datetime_format=True, dayfirst=True, skiprows=skiprows, header=[0, 1], index_col=0)
+        ts.columns.names = ['mtype', 'site']
+        ts.index.name = 'time'
+    else:
+        ts = read_csv(csv_path, parse_dates=[time], infer_datetime_format=True, dayfirst=True, skiprows=skiprows, header='infer')
     self.add_data(ts, time=time, sites=sites, mtypes=mtypes, values=values, dformat=dformat)
     return(self)
 

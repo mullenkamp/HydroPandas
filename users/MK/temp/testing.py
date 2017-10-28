@@ -3336,10 +3336,16 @@ param2[param2.str.contains('nitrate', case=False, na=False)].sort_values()
 param2[param2.str.contains('nitrite', case=False, na=False)].sort_values()
 
 
+#############################################
+#### Use SQLalchemy -- Not yet...
 
+from sqlalchemy import create_engine
 
+stmt = "SELECT * FROM F_WQ_SampleResults"
+server = "SQL2012PROD03"
+database = "DataWarehouse"
 
-
+eng = create_engine('mssql+pyodbc://' + server + '/' + database)
 
 
 

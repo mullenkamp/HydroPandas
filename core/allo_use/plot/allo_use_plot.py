@@ -232,6 +232,8 @@ def allo_restr_plt(df, yaxis_mag=1000000, yaxis_lab='Million', start='2006', end
 #    import matplotlib.ticker as ticker
 #    import matplotlib.dates as mdates
 
+    base_cat = ['tot_allo', 'meter_allo', 'meter_usage']
+
     ### Reorganize data
     allo1 = df.sum(axis=0, level=0)
     allo1.index = to_datetime(allo1.index)
@@ -262,11 +264,13 @@ def allo_restr_plt(df, yaxis_mag=1000000, yaxis_lab='Million', start='2006', end
         ## Set basic plot settings
         sns.set_style("whitegrid")
         sns.set_context('poster')
+        col_pal1 = sns.color_palette(col_pal)
+        col_pal2 = [col_pal1[base_cat.index(i)] for i in cat]
 
         ## Plot total allo
         fig, ax = plt.subplots(figsize=(15, 10))
-        sns.barplot(x=index2, y='value', hue='tot_allo', data=allo_all, palette=col_pal, edgecolor='0')
-        sns.barplot(x=index2, y='value', hue='up_allo', data=allo_up_all, palette=col_pal, edgecolor='0', hatch='/')
+        sns.barplot(x=index2, y='value', hue='tot_allo', data=allo_all, palette=col_pal2, edgecolor='0')
+        sns.barplot(x=index2, y='value', hue='up_allo', data=allo_up_all, palette=col_pal2, edgecolor='0', hatch='/')
 #        plt.ylabel('Water Volume $(10^{' + str(pw) + '} m^{3}/year$)')
         plt.ylabel('Water Volume $(' + yaxis_lab + '\; m^{3}/year$)')
         plt.xlabel('Year')

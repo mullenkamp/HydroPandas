@@ -5,7 +5,7 @@ Functions for exporting data from within a hydro class.
 from numpy import in1d
 from pandas import DataFrame, concat
 
-def to_csv(self, csv_path, mtypes=None, sites=None, pivot=False, resample=True, require=None):
+def to_csv(self, csv_path, mtypes=None, sites=None, pivot=False, resample=None, require=None):
     """
     Function to export data from a hydro class to a MultiIndex csv.
     """

@@ -4,27 +4,44 @@ Functions for importing mssql data.
 """
 
 
-def rd_sql(server=None, database=None, table=None, col_names=None, where_col=None, where_val=None, where_op='AND', geo_col=False, epsg=2193, from_date=None, to_date=None, date_col=None, rename_cols=None, stmt=None, export=False, path='save.csv'):
+def rd_sql(server=None, database=None, table=None, col_names=None, where_col=None, where_val=None, where_op='AND', geo_col=False, epsg=2193, from_date=None, to_date=None, date_col=None, rename_cols=None, stmt=None, export_path=None):
     """
-    Function to import data from a MSSQL database. Specific columns can be selected and specific queries within columns can be selected. Requires the pymssql package, which must be separately installed.
+    Function to import data from an MSSQL database. Specific columns can be selected and specific queries within columns can be selected. Requires the pymssql package.
 
-    Arguments:\n
-    server -- The server name (str). e.g.: 'SQL2012PROD03'\n
-    database -- The specific database within the server (str). e.g.: 'LowFlows'\n
-    table -- The specific table within the database (str). e.g.: 'LowFlowSiteRestrictionDaily'\n
-    code -- Use predefined codes from data sources csv to assign database parameters. Will overwrite server, database, table, and geo_col parameters.\n
-    col_names -- The column names that should be retrieved (list). e.g.: ['SiteID', 'BandNo', 'RecordNo']\n
-    where_col -- Must be either a string with an associated where_val list or a dictionary of strings to lists.'. e.g.: 'SnapshotType' or {'SnapshotType': ['value1', 'value2']}\n
-    where_val -- The WHERE query values for the where_col (list). e.g. ['value1', 'value2']\n
-    where_op -- If where_col is a dictionary and there are more than one key, then the operator that connects the where statements must be either 'AND' or 'OR'.\n
-    geo_col -- Is there a geometry column in the table?.\n
-    epsg -- The coordinate system (int).\n
-    from_date -- The start date as a str in the form '2010-01-01'.\n
-    to_date -- The end date as a str in the form '2010-01-01'.\n
-    date_col -- The SQL table column that contains the dates (str).\n
-    stmt -- Custom SQL statement to be directly passed to the database table. This will ignore all prior arguments except server and database.\n
-    export -- Should the data be exported?\n
-    path -- The path and csv name for the export if 'export' is True (str).
+    Parameters
+    ----------
+    server : str
+        The server name. e.g.: 'SQL2012PROD03'
+    database : str
+        The specific database within the server. e.g.: 'LowFlows'
+    table : str
+        The specific table within the database. e.g.: 'LowFlowSiteRestrictionDaily'
+    col_names : list
+        The column names that should be retrieved. e.g.: ['SiteID', 'BandNo', 'RecordNo']
+    where_col : str or dict
+        Must be either a string with an associated where_val list or a dictionary of strings to lists.'. e.g.: 'SnapshotType' or {'SnapshotType': ['value1', 'value2']}
+    where_val : list
+        The WHERE query values for the where_col. e.g. ['value1', 'value2']
+    where_op : str
+        If where_col is a dictionary and there are more than one key, then the operator that connects the where statements must be either 'AND' or 'OR'.
+    geo_col : bool
+        Is there a geometry column in the table?.
+    epsg : int
+        The coordinate system as EPSG code.
+    from_date : str
+        The start date in the form '2010-01-01'.
+    to_date : str
+        The end date in the form '2010-01-01'.
+    date_col : str
+        The SQL table column that contains the dates.
+    stmt : str
+        Custom SQL statement to be directly passed to the database table. This will ignore all prior arguments except server and database.
+    export_path : str
+        The export path for a csv file if desired. If None, then nothing is exported.
+
+    Returns
+    -------
+    DataFrame
     """
     from pymssql import connect
     from pandas import read_sql, to_datetime, Timestamp
@@ -118,8 +135,8 @@ def rd_sql(server=None, database=None, table=None, col_names=None, where_col=Non
         df = GeoDataFrame(df, geometry=geometry, crs=from_epsg_code(epsg).to_proj4())
 
     conn.close()
-    if export:
-        df.to_csv(path, index=False)
+    if export_path is not None:
+        df.to_csv(export_path, index=False)
 
     return(df)
 
@@ -291,16 +308,40 @@ def rd_squalarc(sites, mtypes=None, from_date=None, to_date=None, convert_dtl=Fa
 
 def write_sql(server, database, table, df, dtype_dict, create_table=True, drop_table=False):
     """
-    Function to write pandas dataframes to mssql server tables. Must have write permissions!
+    Function to write pandas dataframes to mssql server tables. Must have write permissions to database!
 
-    Arguments:\n
-    server -- The server name (str). e.g.: 'SQL2012PROD03'\n
-    database -- The specific database within the server (str). e.g.: 'LowFlows'\n
-    table -- The specific table within the database to be written to (str). e.g.: 'flow_data'\n
-    df -- Pandas DataFrame.\n
-    dtype_dict -- Dictionary of df columns to the associated sql data type (as a string).\n
-    create_table -- Should a new table be created or should it be appended to an existing table?.\n
-    drop_table -- If the table already exists, should it be dropped?
+    Parameters
+    ----------
+    server : str
+        The server name. e.g.: 'SQL2012PROD03'
+    database : str
+        The specific database within the server. e.g.: 'LowFlows'
+    table : str
+        The specific table within the database. e.g.: 'LowFlowSiteRestrictionDaily'
+    df : DataFrame
+        DataFrame to be saved.
+    dtype_dict : dict of str
+        Dictionary of df columns to the associated sql data type. Examples below.
+    create_table : bool
+        Should a new table be created or should it be appended to an existing table?
+    drop_table : bool
+        If the table already exists, should it be dropped?
+
+    Returns
+    -------
+    None
+
+    dtype strings for matching python data types to SQL
+    ---------------------------------------------------
+    str: 'VARCHAR(19)'
+
+    date: 'DATE'
+
+    datetime: "DATETIME'
+
+    float: 'NUMERIC(10, 1)' or 'FLOAT'
+
+    int: 'INT'
     """
     from pandas import to_datetime
     from pymssql import connect

@@ -51,6 +51,7 @@ export_path = path.join(base_path, name, date, name + '_allo_use.csv')
 
 allo_name = name + '_past_allo.png'
 use_name = name + '_allo_use.png'
+use_name2 = name + '_allo_use2.png'
 
 if not path.exists(export_fig_path):
     makedirs(export_fig_path)
@@ -73,6 +74,7 @@ lw = allo_query(grp_by=grp_by, swaz=swaz, crc=crc2, cwms_zone=cwms_zone, take_ty
 lw1 = lw.reset_index()
 lw2 = merge(lw1, agg_catch, on='catch_name').drop('catch_name', axis=1)
 lw3 = lw2.groupby(['date', 'catchment']).sum()
+lw3.to_csv(export_path)
 #index1 = otop1.index.levels[1][~in1d(otop1.index.levels[1], out1)].values
 #otop2 = otop1.loc[(slice(None), index1, slice(None)), :]
 
@@ -95,7 +97,8 @@ lw3 = lw2.groupby(['date', 'catchment']).sum()
 allo_plt(lw, start='2004', export_path=export_fig_path, export_name=use_name)
 allo_plt(lw, start='1970', cat=['tot_allo'], export_path=export_fig_path, export_name=allo_name)
 
-allo_multi_plot(lw3, export_path=export_fig_path, export_name='_' + use_name, plot_fun=allo_restr_plt, start='2004', cat=['meter_allo', 'meter_usage'])
+allo_multi_plot(lw3, export_path=export_fig_path, export_name=use_name, plot_fun=allo_restr_plt, start='2004', cat=['meter_allo', 'meter_usage'])
+allo_multi_plot(lw3, export_path=export_fig_path, export_name=use_name2, plot_fun=allo_restr_plt, start='2004', cat=['tot_allo', 'meter_allo', 'meter_usage'])
 
 allo_restr_plt(lw3, start='2004', cat=['meter_allo', 'meter_usage'], export_path=export_fig_path, export_name=use_name)
 

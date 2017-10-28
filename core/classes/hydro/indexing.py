@@ -42,70 +42,35 @@ def sel_by_geo_attr(self, attr_dict, mtypes=None):
 ### Selecting/Indexing the time series data and returning a Pandas object
 
 
-#def _time_freq(x):
-#    freq1 = x.index.get_level_values('time')[:3].inferred_freq
-#    secs = int((x.index.get_level_values('time')[1] - x.index.get_level_values('time')[0]).total_seconds())
-#    out1 = Series([freq1, secs])
-#    return(out1)
-
-
-def _pivot(df, resample, mtype=None):
+def _pivot(df, resample, mtypes):
     from core.classes.hydro.base import resample_fun
 
-    if resample:
-        if len(df.index.names) == 2:
-            grp1 = df.groupby(level='site')
-        else:
-            grp1 = df.groupby(level=['mtype', 'site'])
-        freq1 = grp1.apply(lambda x: x.index.get_level_values('time')[2:5].inferred_freq)
-        if not all(freq1.isin([None])):
-            if all(freq1.isin([freq1.iloc[0]])):
-                if len(df.index.names) == 2:
-                    out2 = df.unstack('site').resample(freq1.iloc[0]).mean()
-                else:
-                    out2 = df.unstack(['mtype', 'site']).resample(freq1.iloc[0]).mean()
-                return(out2)
-            secs1 = grp1.apply(lambda x: int((x.index.get_level_values('time')[3] - x.index.get_level_values('time')[2]).total_seconds()))
-    #        set1 = grp1.apply(_time_freq)
-            freq2 = concat([freq1, secs1], axis=1)
-            freq2.columns = ['freq', 'secs']
-            check1 = freq2[freq2.freq.notnull()]
-            res1 = check1.loc(axis=0)[check1.secs.idxmax()]
-            res2 = res1.freq
-            if len(df.index.names) == 2:
-                res_mtype = mtype
-                agg_fun = resample_fun[res_mtype]
-                grp2 = df.groupby([Grouper(level='site'), Grouper(level='time', freq=res2)])
-                if agg_fun == 'sum':
-                    out1 = grp2.sum()
-                elif agg_fun == 'mean':
-                    out1 = grp2.mean()
-                out2 = out1.unstack('site')
-            else:
-                res_mtype = res1.name[0]
-                agg_fun = resample_fun[res_mtype]
-                grp2 = df.groupby([Grouper(level='mtype'), Grouper(level='site'), Grouper(level='time', freq=res2)])
-                if agg_fun == 'sum':
-                    out1 = grp2.sum()
-                elif agg_fun == 'mean':
-                    out1 = grp2.mean()
-                out2 = out1.unstack(['mtype', 'site'])
-
-#            out2 = out1.unstack(['mtype', 'site'])
-        else:
-            if len(df.index.names) == 2:
-                out2 = df.unstack(['site'])
-            else:
-                out2 = df.unstack(['mtype', 'site'])
+    if resample is not None:
+        agg_funs = {i: resample_fun[i] for i in mtypes}
+        out1 = DataFrame()
+        if 'mean' in agg_funs.values():
+            mtypes_mean = [i for i in agg_funs if agg_funs[i] == 'mean']
+            df_mean = df.loc[mtypes_mean, :, :]
+            mean1 = df_mean.groupby([Grouper(level='mtype'), Grouper(level='site'), Grouper(level='time', freq=resample)]).mean()
+            out1 = mean1.copy()
+        if 'sum' in agg_funs.values():
+            mtypes_sum = [i for i in agg_funs if agg_funs[i] == 'sum']
+            df_sum = df.loc[mtypes_sum, :, :]
+            sum1 = df_sum.groupby([Grouper(level='mtype'), Grouper(level='site'), Grouper(level='time', freq=resample)]).sum()
+            out1 = concat([out1, sum1])
     else:
-        if len(df.index.names) == 2:
-            out2 = df.unstack(['site'])
-        else:
-            out2 = df.unstack(['mtype', 'site'])
+        out1 = df
+
+    if len(mtypes) == 1:
+        out1.index = out1.index.droplevel('mtype')
+        out2 = out1.unstack('site')
+    else:
+        out2 = out1.unstack(['mtype', 'site'])
+
     return(out2)
 
 
-def sel_ts(self, mtypes=None, sites=None, require=None, pivot=False, resample=True, start=None, end=None):
+def sel_ts(self, mtypes=None, sites=None, require=None, pivot=False, resample=None, start=None, end=None):
     if mtypes is None:
         mtypes = slice(None)
     if sites is None:
@@ -119,9 +84,7 @@ def sel_ts(self, mtypes=None, sites=None, require=None, pivot=False, resample=Tr
         sel_out1 = sel_out.loc(axis=0)[:, :, start:end]
     if pivot:
         levels1 = sel_out1.index.get_level_values(0).unique()
-        sel_out1 = _pivot(sel_out1, resample, levels1[0])
-        if len(levels1) == 1:
-            sel_out1 = sel_out1.loc[:, levels1[0]]
+        sel_out1 = _pivot(sel_out1, resample, levels1)
     return(sel_out1)
 
 
@@ -160,7 +123,7 @@ def sel_sites_by_poly(self, poly, buffer_dis=0):
     return(sites_sel)
 
 
-def sel_ts_by_poly(self, poly, buffer_dis=0, mtypes=None, require=None, pivot=False, resample=True):
+def sel_ts_by_poly(self, poly, buffer_dis=0, mtypes=None, require=None, pivot=False, resample=None):
     sites_sel = self.sel_sites_by_poly(poly, buffer_dis)
     ts_out1 = self.sel_ts(sites=sites_sel, mtypes=mtypes, require=require, pivot=pivot, resample=resample)
     return(ts_out1)
