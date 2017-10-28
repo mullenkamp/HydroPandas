@@ -14,6 +14,6 @@ def trans_readme(data_dir,out_dir):
     if os.path.exists(inpath):
         with open(inpath) as f:
             lines = f.readlines()
-        with open(outpath,'w'):
+        with open(outpath,'w') as f:
             f.writelines(lines)
 

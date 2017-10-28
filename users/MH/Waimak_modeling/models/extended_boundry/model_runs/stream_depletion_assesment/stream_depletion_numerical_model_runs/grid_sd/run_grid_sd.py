@@ -23,8 +23,8 @@ if __name__ == '__main__':
     # run on GWruns02
     model_id = 'StrOpt'  # todo re-define
     if socket.gethostname() == 'RDSProd03':
-        base_dir = "D:\mh_model_runs\grid_sd_runs\{}_models_2017_10_26".format(model_id)
-        data_out_dir = "D:\mh_model_runs\grid_sd_runs\{}_data_2017_10_26".format(model_id)
+        base_dir = "D:\mh_model_runs\grid_sd_runs\{}_models_2017_10_27".format(model_id)
+        data_out_dir = "D:\mh_model_runs\grid_sd_runs\{}_data_2017_10_27".format(model_id)
         run_models = True
         amalg_results = True
 

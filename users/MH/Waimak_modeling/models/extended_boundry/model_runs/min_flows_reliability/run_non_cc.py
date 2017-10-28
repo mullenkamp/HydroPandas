@@ -26,12 +26,12 @@ if __name__ == '__main__':
     #### todo inputs to define for each run####
     safemode = True
     run_modelses = [True]
-    model_ids = ['NsmcBaseB']  # todo update
+    model_ids = ['NsmcBase']  # todo update
 
     #### run the models ####
     for model_id, run_models in zip(model_ids, run_modelses):
-        model_dir_path = r"D:\mh_model_runs\{}_non_cc_forward_runs_2017_10_24".format(model_id)  # path on rdsprod03
-        results_dir = r"D:\mh_model_runs\{}_non_cc_forward_runs_2017_10_24_results".format(model_id)
+        model_dir_path = r"D:\mh_model_runs\{}_non_cc_forward_runs_2017_10_28".format(model_id)  # path on rdsprod03
+        results_dir = r"D:\mh_model_runs\{}_non_cc_forward_runs_2017_10_28_results".format(model_id)
         cc_to_waimak_only = False
         notes = """ 
         LSR senario changes applied to full domain, No climate change senarios run carpet drains removed if not explicit in the model name (_w_ncar)

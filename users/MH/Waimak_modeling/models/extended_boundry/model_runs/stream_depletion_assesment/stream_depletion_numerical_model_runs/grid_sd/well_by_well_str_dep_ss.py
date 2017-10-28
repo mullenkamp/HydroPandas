@@ -92,7 +92,7 @@ def well_by_well_depletion_grid(model_id, flux, base_path, notes):
     multiprocessing.log_to_stderr(logging.DEBUG)
     runs = setup_runs_grid(model_id, flux, base_path, start_heads)
     pool_size = multiprocessing.cpu_count()
-    pool = multiprocessing.Pool(processes=pool_size,
+    pool = multiprocessing.Pool(processes=14,
                                 initializer=start_process,
                                 )
     results = pool.map_async(setup_and_run_ss_grid_stream_dep_multip, runs)

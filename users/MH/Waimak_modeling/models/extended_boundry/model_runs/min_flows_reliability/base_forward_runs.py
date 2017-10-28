@@ -13,6 +13,8 @@ import flopy
 import os
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import converged
 from traceback import format_exc
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.stream_depletion_assesment.raising_heads_no_carpet import get_drn_no_ncarpet_spd
+
 
 def setup_run_forward_run_mp (kwargs):
     """
@@ -74,14 +76,25 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
     rch = get_forward_rch(model_id, naturalised, pc5, **cc_inputs)
 
     # I'm assuming that the stream package will not change
-    if name == 'mod_period':
-        m = import_gns_model(model_id, name, base_dir, safe_mode=False, mt3d_link=False)
+    if'_w_ncar' in name:
+        drn = get_drn_no_ncarpet_spd(model_id)
+    else:
+        drn = None
+    if 'mod_period' in name:
+        m = mod_gns_model(model_id,
+                          name,
+                          base_dir,
+                          drain=drn,
+                          safe_mode=False,
+                          mt3d_link=False
+                          )
     else:
         m = mod_gns_model(model_id,
                           name,
                           base_dir,
                           well={0: well_data},
                           recharge={0: rch},
+                          drain=drn,
                           safe_mode=False,
                           mt3d_link=False
                           )
