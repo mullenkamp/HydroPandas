@@ -29,7 +29,7 @@ def setup_run_forward_run_mp (kwargs):
 
 def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, wil_eff=1, naturalised=False,
                           full_abs=False, pumping_well_scale=1, full_allo=False, org_efficency=None,
-                          org_pumping_wells=False):
+                          org_pumping_wells=False, rm_ncarpet=True):
     """
     sets up and runs a forward run with a number of options
     :param model_id: which NSMC version to user (see mod_gns_model)
@@ -55,6 +55,7 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
     :param full_allo: boolean if true use the full allocation of pumping
     :param org_efficency: not used, held to prevent cleaning up!
     :param org_pumping_wells: if True use the model peiod wells if false use the 2014-2015 usage for the waimak wells
+    :param rm_ncarpet: boolean if True remove the N carpet drains
     :return: (model name, convergence('convereged'/'did not converge'))
     """
 

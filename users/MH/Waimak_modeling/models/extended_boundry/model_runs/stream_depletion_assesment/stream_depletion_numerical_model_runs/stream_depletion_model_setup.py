@@ -14,6 +14,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
     get_full_consent, get_race_data, zip_non_essential_files
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import converged
 from traceback import format_exc
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.stream_depletion_assesment.raising_heads_no_carpet import get_drn_no_ncarpet_spd
 
 def setup_and_run_stream_dep_multip(kwargs):
     """
@@ -68,6 +69,7 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
     stream = {}
 
     base_well = get_race_data(model_id)
+    drns = get_drn_no_ncarpet_spd(model_id)
     if sd_7_150 == 'sd30':
         sd_7_150 = 'sd7'  # this effectivly uses the max rate of the consent rather than the CAV for 150 day
 
@@ -98,7 +100,7 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
                       safe_mode=False,
                       stress_period_vals=stress_vals,
                       well=wells,
-                      drain=None,  # not modifying these stress period data
+                      drain={0:drns},  # not modifying these stress period data
                       recharge=rch,
                       stream=None,
                       mt3d_link=False,

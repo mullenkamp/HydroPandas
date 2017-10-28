@@ -8,6 +8,7 @@ from __future__ import division
 from core import env
 import os
 import time
+from future.builtins import input
 
 from forward_runs import setup_run_args, run_forward_runs
 from extract_data_for_forward_runs import gen_all_outdata_forward_runs, extract_and_save_all_cc_mult_missing_w
@@ -25,7 +26,7 @@ if __name__ == '__main__':
     #### todo inputs to define for each run####
     safemode = True
     run_modelses = [True]
-    model_ids = ['NsmcBase']  # todo update
+    model_ids = ['NsmcBaseB']  # todo update
 
     #### run the models ####
     for model_id, run_models in zip(model_ids, run_modelses):
@@ -33,7 +34,7 @@ if __name__ == '__main__':
         results_dir = r"D:\mh_model_runs\{}_non_cc_forward_runs_2017_10_24_results".format(model_id)
         cc_to_waimak_only = False
         notes = """ 
-        LSR senario changes applied to full domain, No climate change senarios run
+        LSR senario changes applied to full domain, No climate change senarios run carpet drains removed if not explicit in the model name (_w_ncar)
         pumping changes only applied to Waimakariri with the exception of the pc5 adjustment which is applied in the 
         full domain, run in {}
         """.format(model_dir_path)

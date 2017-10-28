@@ -59,7 +59,7 @@ def setup_run_args(model_id, forward_run_dir, cc_to_waimak_only=False, cc_runs=T
     """
     runs = []
     # base model run handled separately in base forward runs with identified by the name 'mod_period'
-    mod_per = {
+    mod_per_rm_car = {
         'model_id': model_id,
         'name': 'mod_period',
         'base_dir': None,
@@ -70,6 +70,21 @@ def setup_run_args(model_id, forward_run_dir, cc_to_waimak_only=False, cc_runs=T
         'full_abs': False,
         'pumping_well_scale': 1,
         'org_pumping_wells': True
+    }
+    runs.append(mod_per_rm_car)
+
+    mod_per = {
+        'model_id': model_id,
+        'name': 'mod_period_w_ncar',
+        'base_dir': None,
+        'cc_inputs': None,
+        'pc5': False,
+        'wil_eff': 1,
+        'naturalised': False,
+        'full_abs': False,
+        'pumping_well_scale': 1,
+        'org_pumping_wells': True,
+        'rm_ncarpet': False
     }
     runs.append(mod_per)
     # base model run with 2015-2016 pumping
@@ -85,6 +100,20 @@ def setup_run_args(model_id, forward_run_dir, cc_to_waimak_only=False, cc_runs=T
         'pumping_well_scale': 1
     }
     runs.append(current)
+
+    current_w_ncar = {
+        'model_id': model_id,
+        'name': 'current_w_ncar',
+        'base_dir': None,
+        'cc_inputs': None,
+        'pc5': False,
+        'wil_eff': 1,
+        'naturalised': False,
+        'full_abs': False,
+        'pumping_well_scale': 1,
+        'rm_ncarpet': False
+    }
+    runs.append(current_w_ncar)
 
 
     # naturalised

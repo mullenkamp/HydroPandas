@@ -19,16 +19,16 @@ if __name__ == '__main__':
 
     #### todo update below parameters ####
     # on DHI-runs02
-    model_id = 'NsmcBase'
+    model_id = 'StrOpt'
 
-    sd7_notes = """ should write all spv now"""
-    sd30_notes = """ should write all spv now """
-    sd150_notes = """ should write all spv now """
+    sd7_notes = """ without carpet drains in the north"""
+    sd30_notes = """ without carpet drains in the north"""
+    sd150_notes = """ without carpet drains in the north """
 
 
-    model_base_path = r"D:\mattH\python_wm_runs\sd_runs\{}_2017_10_24".format(model_id)
-    data_outdir = r"D:\mattH\python_wm_runs\sd_runs\data_{}_2017_10_24".format(model_id)
-    run_models = False
+    model_base_path = r"D:\mattH\python_wm_runs\sd_runs\{}_2017_10_26".format(model_id)
+    data_outdir = r"D:\mattH\python_wm_runs\sd_runs\data_{}_2017_10_26".format(model_id)
+    run_models = True
 
     # below should not change
     well_list = get_sd_well_list(model_id)

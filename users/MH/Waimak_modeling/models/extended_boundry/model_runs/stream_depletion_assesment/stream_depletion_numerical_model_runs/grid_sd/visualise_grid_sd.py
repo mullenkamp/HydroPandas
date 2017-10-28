@@ -7,6 +7,7 @@ Date Created: 17/10/2017 11:07 AM
 from __future__ import division
 from core import env
 from pykrige.ok import OrdinaryKriging
+from scipy.interpolate import griddata
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import pickle
 import numpy as np
@@ -29,12 +30,8 @@ def get_mask():
     :param recalc:
     :return:
     """
-    elv_db = smt.calc_elv_db()
     no_flow = smt.get_no_flow()
     no_flow[no_flow < 0] = 0
-    xs, ys = smt.get_model_x_y(False)
-    y, z, x = np.meshgrid(ys, depths, xs)
-    z = elv_db[0] - z
     mask = np.zeros(smt.model_array_shape)
     zidx = np.repeat(get_zone_array_index('waimak')[np.newaxis, :, :], 11, axis=0)
     mask[~zidx] = np.nan
@@ -45,31 +42,26 @@ def get_mask():
     return mask
 
 
-def krig_stream(inputdata, stream):
+def interplotate_stream(inputdata, stream):
     # 3d krigging on x,y, depth x,y resolution of 200 m ? (e.g. model grid)
     data = inputdata.loc[inputdata[stream].notnull()]
-    grid_x, grid_y = smt.get_model_x_y(False)
+    grid_x, grid_y = smt.get_model_x_y()
     # this returns a shape of z,y,x
-    k3d_temp, ss3d_temp = np.zeros((len(depths),len(grid_y),len(grid_x)))*np.nan, np.zeros((len(depths),len(grid_y),len(grid_x)))*np.nan
+    outdata = smt.get_empty_model_grid(True)*np.nan
     all_mask = get_mask()
-    for layer in range(smt.layers-1):
+    for layer in range(smt.layers - 1):
         idx = data.layer == layer
         val = data.loc[idx, stream].values
         x = data.loc[idx, 'mx'].values
         y = data.loc[idx, 'my'].values
-        ok2d = OrdinaryKriging(x=x, y=y, z=val)
         mask = all_mask[layer]
-        k, ss = ok2d.execute('masked', grid_x, grid_y,
-                                           mask=mask[:,:],
-                                           backend='vectorized')  # this may cause a memory error if so switch to 'loop'
+        xs = grid_x[~mask]
+        ys = grid_y[~mask]
+        temp = griddata(points=(x, y), values=val, xi=(xs, ys), method='cubic')
 
-        k3d_temp[layer] = k.data
-        k3d_temp[layer][k.mask] = np.nan
-        ss3d_temp[layer] = ss.data
-        ss3d_temp[layer][ss.mask] = np.nan
+        outdata[layer][~mask] = temp
 
-
-    return k3d_temp, ss3d_temp
+    return outdata[0:smt.layers-1]
 
 
 def extract_all_stream_krig(data_path, outpath):
@@ -89,35 +81,40 @@ def extract_all_stream_krig(data_path, outpath):
     # create dimensions
     outfile.createDimension('latitude', len(y))
     outfile.createDimension('longitude', len(x))
-    outfile.createDimension('layer', smt.layers-1)
+    outfile.createDimension('layer', smt.layers - 1)
 
     # create variables
     depth = outfile.createVariable('layer', 'f8', ('layer',), fill_value=np.nan)
     depth.setncatts({'units': 'none',
                      'long_name': 'layer',
                      'missing_value': np.nan})
-    depth[:] = range(smt.layers-1)
+    depth[:] = range(smt.layers - 1)
+
+    proj = outfile.createVariable('crs', 'i1') #todo check this shit
+    proj.setncatts({'grid_mapping_name': "transverse_mercator",
+                    'scale_factor_at_central_meridian': 0.9996,
+                    'longitude_of_central_meridian': 173.0,
+                    'latitude_of_projection_origin': 0.0,
+                    'false_easting': 1600000,
+                    'false_northing': 10000000,
+                    })
 
     lat = outfile.createVariable('latitude', 'f8', ('latitude',), fill_value=np.nan)
     lat.setncatts({'units': 'NZTM',
                    'long_name': 'latitude',
-                   'missing_value': np.nan})
+                   'missing_value': np.nan,
+                   'standard_name': 'projection_y_coordinate'})
     lat[:] = y
 
     lon = outfile.createVariable('longitude', 'f8', ('longitude',), fill_value=np.nan)
     lat.setncatts({'units': 'NZTM',
                    'long_name': 'longitude',
-                   'missing_value': np.nan})
+                   'missing_value': np.nan,
+                   'standard_name': 'projection_x_coordinate'})
     lon[:] = x
 
     for site in sites:
-        k3d, ss3d = krig_stream(data, site)
-        site_ss3d = outfile.createVariable('var_{}'.format(site), 'f8', ('layer', 'latitude', 'longitude'),
-                                           fill_value=np.nan)
-        site_ss3d.setncatts({'units': 'None',
-                             'long_name': 'variance of interpolated stream depletion from {}'.format(site),
-                             'missing_value': np.nan})
-        site_ss3d[:] = ss3d
+        k3d = interplotate_stream(data, site)
         site_k3d = outfile.createVariable('sd_{}'.format(site), 'f8', ('layer', 'latitude', 'longitude'),
                                           fill_value=np.nan)
         site_k3d.setncatts({'units': 'percent of pumping',
@@ -145,7 +142,7 @@ def plot_all_streams_sd(nc_path, outdir):
     data = nc.Dataset(nc_path)
     flux = data.flux
     for var in data.variables.keys():
-        if var in ['longitude', 'latitude', 'depth']:
+        if var in ['longitude', 'latitude', 'layer', 'crs']:
             continue
 
         if 'var' in var:
@@ -160,10 +157,10 @@ def plot_all_streams_sd(nc_path, outdir):
             os.makedirs(varoutdir)
 
         temp = np.array(data.variables[var])
-        for layer in range(smt.layers-1):
-            fig, ax = smt.plt_matrix(temp[layer], vmin=vmin, vmax=vmax, cmap='RdBu',
-                                     title='{} for flux: {}'.format(var, flux), base_map=True)
-            fig.savefig(os.path.join(varoutdir,'layer_{:2d}_{}_flux_{}.png'.format(layer, var, flux)))
+        for layer in range(smt.layers - 1):
+            fig, ax = smt.plt_matrix(temp[layer], vmin=vmin, vmax=vmax, cmap='RdBu', no_flow_layer=layer,
+                                     title='{} layer {} for flux: {}'.format(var, layer, flux), base_map=True)
+            fig.savefig(os.path.join(varoutdir, 'layer_{:2d}_{}_flux_{}.png'.format(layer, var, flux)))
             plt.close(fig)
 
 
@@ -174,8 +171,9 @@ def plot_relationship_3_fluxes():  # I really don't know how to visualise this m
 def krig_plot_sd_grid(data_path, outdir):
     nc_path = os.path.join(outdir, 'interpolated_{}.nc'.format(os.path.basename(data_path).replace('.csv', '')))
     extract_all_stream_krig(data_path, nc_path)
-    plot_out_dir = os.path.join(outdir, 'plots_{}'.format(os.path.basename(nc_path).replace('.nc','')))
+    plot_out_dir = os.path.join(outdir, 'plots_{}'.format(os.path.basename(nc_path).replace('.nc', '')))
     plot_all_streams_sd(nc_path, plot_out_dir)
+    return nc_path
 
 
 if __name__ == '__main__':
