@@ -76,8 +76,8 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
     rch = get_forward_rch(model_id, naturalised, pc5, **cc_inputs)
 
     # I'm assuming that the stream package will not change
-    if'_w_ncar' in name:
-        drn = get_drn_no_ncarpet_spd(model_id)
+    if rm_ncarpet:
+        drn = {0: get_drn_no_ncarpet_spd(model_id)}
     else:
         drn = None
     if 'mod_period' in name:

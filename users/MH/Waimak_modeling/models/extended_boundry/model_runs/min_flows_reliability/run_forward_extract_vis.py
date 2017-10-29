@@ -22,8 +22,8 @@ if __name__ == '__main__':
     #### todo inputs to define for each run####
     safemode = True
     model_id = 'StrOpt'  # todo update
-    model_dir_path = r"D:\mh_model_runs\{}_forward_runs_2017_10_21".format(model_id)  # path on rdsprod03
-    results_dir = r"D:\mh_model_runs\{}_forward_runs_2017_10_21_results".format(model_id)
+    model_dir_path = r"D:\mh_model_runs\{}_forward_runs_2017_10_29".format(model_id)  # path on rdsprod03
+    results_dir = r"D:\mh_model_runs\{}_forward_runs_2017_10_29_results".format(model_id)
     cc_to_waimak_only = True
     notes = """ 
     LSR senario changes applied to full domain, CC component of LSR changes applied to only waimakariri, but ccmult and missing h20 is waimak only
@@ -32,7 +32,7 @@ if __name__ == '__main__':
     run in {}
     """.format(model_dir_path)
     run_models = False # a quick way to only run part of this script if something breaks
-    amalg_results = False # a quick way to only run part of this script if someting breaks
+    amalg_results = True # a quick way to only run part of this script if someting breaks
 
     #### run the models ####
     if run_models:
@@ -55,7 +55,7 @@ if __name__ == '__main__':
         gen_all_outdata_forward_runs(
             model_dir_path,
             results_dir,
-            True)
+            False)
         extract_and_save_all_cc_mult_missing_w(model_dir_path, os.path.join(results_dir, "ccmult_extract.csv"))
         print('done')
 
