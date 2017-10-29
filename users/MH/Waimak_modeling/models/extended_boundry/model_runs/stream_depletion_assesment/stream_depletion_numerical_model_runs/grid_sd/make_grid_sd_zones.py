@@ -54,5 +54,19 @@ def make_sd_zone(nc_file, layers, outpath, cutoffs):
 
 
 if __name__ == '__main__':
-    nc_file = r"K:\mh_modeling\StrOpt_grid_sd\interpolated_StrOpt_sd_grid_data_flux_-8640.0.nc"
-    make_sd_zone(nc_file, 0, r"C:\Users\MattH\Downloads\test_sdzone4.shp", 20)
+    import os
+    nc_files = [
+        env.gw_met_data(r"mh_modeling\data_to_mark\StrOpt\grid_sd\with_ncarpet_drains\StrOpt_data_2017_10_21\interpolated_StrOpt_sd_grid_data_flux_-432.0.nc"),
+        env.gw_met_data(r"mh_modeling\data_to_mark\StrOpt\grid_sd\with_ncarpet_drains\StrOpt_data_2017_10_21\interpolated_StrOpt_sd_grid_data_flux_-2160.0.nc"),
+        env.gw_met_data(r"mh_modeling\data_to_mark\StrOpt\grid_sd\with_ncarpet_drains\StrOpt_data_2017_10_21\interpolated_StrOpt_sd_grid_data_flux_-8640.0.nc"),
+        env.gw_met_data(r"mh_modeling\data_to_mark\StrOpt\grid_sd\without_ncarpet_drains\StrOpt_data_2017_10_27\interpolated_StrOpt_sd_grid_data_flux_-8640.0.nc")
+    ]
+    cutoffs = [20, 40, 60, 90]
+    layers = range(10)
+    for nc_file in nc_files:
+        outpath = os.path.join(os.path.dirname(nc_file),
+                               'interpolated_zones_flux_{}.shp'.format(os.path.basename(nc_file).split('_')[-1].replace('.nc','')))
+        make_sd_zone(nc_file=nc_file,
+                     outpath=outpath,
+                     cutoffs=cutoffs,
+                     layers=layers)
