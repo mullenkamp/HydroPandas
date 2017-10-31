@@ -5,7 +5,7 @@ Hilltop uses a fixed base date as 1940-01-01, while the standard unix/POSIT base
 """
 
 #####################################################
-#### Fast new method
+#### New method
 
 
 def ht_sites(hts, sites=None):
@@ -54,6 +54,9 @@ def ht_sites(hts, sites=None):
 
 
 def ht_get_data(hts, sites=None, from_date=None, to_date=None, agg_method='Average', interval='1 day', alignment='00:00', output_missing_sites=False):
+    """
+
+    """
     import Hilltop
     from core.ecan_io.hilltop import ht_sites
     from pandas import to_datetime, DataFrame, concat

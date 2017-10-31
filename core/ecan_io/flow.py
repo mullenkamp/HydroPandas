@@ -517,3 +517,40 @@ def rd_nc(poly_shp, nc_path, poly_epsg=4326, poly_id='Station_ID', x_col='longit
             df4.to_csv(export_path)
 
     return(df4)
+
+
+def hydstra_site_mod_time(sites=None):
+    """
+    Function to extract modification times from Hydstra data archive files. Returns a DataFrame of sites by modification date. The modification date is in GMT.
+
+    Parameters
+    ----------
+    sites : list, array, Series, or None
+        If sites is not None, then return only the given sites.
+
+    Returns
+    -------
+    DataFrame
+    """
+    from core.misc import rd_dir, select_sites
+    from os import path
+    from pandas import to_datetime, DataFrame, DateOffset
+
+    site_files_path = r'\\fileservices02\ManagedShares\Data\Hydstra\prod\hyd\dat\hyd'
+    files1 = rd_dir(site_files_path, 'A')
+    file_sites = [path.splitext(i)[0] for i in files1]
+
+    if sites is not None:
+        sites1 = select_sites(sites).astype(str)
+        sites2 = [i.replace('/', '_') for i in sites1]
+        file_sites1 = [i for i in file_sites if i in sites2]
+    else:
+        file_sites1 = file_sites
+
+    mod_times = to_datetime([round(path.getmtime(path.join(site_files_path, i + '.A'))) for i in file_sites1], unit='s')
+
+    df = DataFrame({'site': file_sites1, 'mod_time': mod_times})
+    return(df)
+
+
+

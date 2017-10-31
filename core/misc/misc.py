@@ -43,9 +43,9 @@ def rd_dir(data_dir, ext, file_num_names=False, ignore_case=True):
     from re import search, IGNORECASE, findall
 
     if ignore_case:
-        files = array([filename for filename in listdir(data_dir) if search('.' + ext, filename, IGNORECASE)])
+        files = array([filename for filename in listdir(data_dir) if search('.' + ext + '$', filename, IGNORECASE)])
     else:
-        files = array([filename for filename in listdir(data_dir) if search('.' + ext, filename)])
+        files = array([filename for filename in listdir(data_dir) if search('.' + ext + '$', filename)])
 
     if file_num_names:
         site_names = array([int(findall("\d+", fi)[0]) for fi in files])

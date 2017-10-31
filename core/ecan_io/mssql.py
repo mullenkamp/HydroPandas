@@ -4,9 +4,9 @@ Functions for importing mssql data.
 """
 
 
-def rd_sql(server=None, database=None, table=None, col_names=None, where_col=None, where_val=None, where_op='AND', geo_col=False, epsg=2193, from_date=None, to_date=None, date_col=None, rename_cols=None, stmt=None, export_path=None):
+def rd_sql(server, database, table=None, col_names=None, where_col=None, where_val=None, where_op='AND', geo_col=False, epsg=2193, from_date=None, to_date=None, date_col=None, rename_cols=None, stmt=None, export_path=None):
     """
-    Function to import data from an MSSQL database. Specific columns can be selected and specific queries within columns can be selected. Requires the pymssql package.
+    Function to import data from an MSSQL database. Requires the pymssql package.
 
     Parameters
     ----------
@@ -48,8 +48,8 @@ def rd_sql(server=None, database=None, table=None, col_names=None, where_col=Non
 
     if stmt is None:
 
-        if (server is None) or (database is None) or (table is None):
-            raise ValueError('Must provide input for server, database, and table.')
+        if table is None:
+            raise ValueError('Must at least provide input for server, database, and table.')
 
         if col_names is not None:
             if isinstance(col_names, (str, int)):
