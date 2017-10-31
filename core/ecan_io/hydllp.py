@@ -7,19 +7,39 @@ import os
 import contextlib
 
 
-def rd_hydstra_by_var(varto, start_time=0, end_time=0, data_type='mean', interval='day', multiplier=1, min_qual=None, sites_chunk=20, return_qual=True, print_sites=False, export=False, export_path='flow_data.csv'):
+def rd_hydstra_by_var(varto, start=0, end=0, data_type='mean', interval='day', multiplier=1, min_qual=None, sites_chunk=20, return_qual=True, print_sites=False, export=False, export_path='flow_data.csv'):
     """
     Function to read in data from Hydstra's database using HYDLLP. This function extracts all sites with a specific variable code (varto).
 
-    Arguments:
-    varto -- The hydstra conversion data variable as integer (140 is flow).\n
-    start -- The start time in the format of either '2001-01-01' or 0 (for all data).\n
-    end -- The end time in the same above format.\n
-    data_type -- mean, maxmin, max, min, start, end, first, last, tot, point, partialtot, or cum.\n
-    interval -- The frequency of the output data (year, month, day, hour, minute, second, period).\n
-    multiplier -- interval frequency.\n
-    min_qual -- The minimum quality code or None (and there is no screening by quality, suggest exporting qual).
-    :param return_qual: if true returns series, qual_series
+    Parameters
+    ----------
+    start : str or int of 0
+        The start time in the format of either '2001-01-01' or 0 (for all data).
+    end : str or int of 0
+        Same formatting as start.
+    datasource : str
+        Hydstra datasource code (usually 'A').
+    data_type : str
+        mean, maxmin, max, min, start, end, first, last, tot, point, partialtot, or cum.
+    varfrom : int or float
+        The hydstra source data variable (100.00 is water level).
+    varto : int or float
+        The hydstra conversion data variable (140.00 is flow).
+    interval : str
+        The frequency of the output data (year, month, day, hour, minute, second, period). If data_type is 'point', then interval cannot be 'period' (use anything else, it doesn't matter).
+    multiplier : int
+        interval frequency.
+    min_qual : int or None
+        The minimum quality code or None (and there is no screening by quality, suggest exporting qual).
+    return_qual : bool
+        If true returns series, qual_series.
+    sites_chunk : int
+        Number of sites to request to hydllp at one time. Do not change unless you understand what it does.
+
+    Return
+    ------
+    Series
+        In long format with site and time as a MultiIndex.
     """
     from core.ecan_io import rd_sql, rd_hydstra_db
     from pandas import DataFrame, concat, to_numeric
@@ -78,7 +98,7 @@ def rd_hydstra_by_var(varto, start_time=0, end_time=0, data_type='mean', interva
 #            sites1 = to_numeric(period3[period3.varfrom == j].site, 'coerce', 'integer').dropna().values
 #        else:
         sites1 = period3[period3.varfrom == j].site.values
-        df = rd_hydstra_db(sites1, data_type=data_type, varfrom=j, varto=varto, interval=interval, multiplier=multiplier, min_qual=min_qual, return_qual=return_qual, sites_chunk=sites_chunk, print_sites=print_sites)
+        df = rd_hydstra_db(sites1, data_type=data_type, start=start, end=end, varfrom=j, varto=varto, interval=interval, multiplier=multiplier, min_qual=min_qual, return_qual=return_qual, sites_chunk=sites_chunk, print_sites=print_sites)
         data = concat([data, df])
 
     ### Make sure the data types are correct
@@ -90,24 +110,41 @@ def rd_hydstra_by_var(varto, start_time=0, end_time=0, data_type='mean', interva
     return(data)
 
 
-
-def rd_hydstra_db(sites, start_time=0, end_time=0, datasource='A', data_type='mean', varfrom=100, varto=140, interval='day', multiplier=1, min_qual=None, export=False, export_path='flow_data.csv', return_qual=False, sites_chunk=20, print_sites=False):
+def rd_hydstra_db(sites, start=0, end=0, datasource='A', data_type='mean', varfrom=100, varto=140, interval='day', multiplier=1, min_qual=None, export=False, export_path='flow_data.csv', return_qual=False, sites_chunk=20, print_sites=False):
     """
-    Function to read in data from Hydstra's database using HYDLLP.
+    Function to read in data from Hydstra's database using HYDLLP. Must be run in a 32bit python. If either start_time or end_time is not 0, then they both need a date.
 
-    Arguments:
-    sites -- Site numbers either as a list, array, one column csv file, or dataframe.\n
-    start -- The start time in the format of either '2001-01-01' or 0 (for all data).\n
-    end -- The end time in the same above format.\n
-    datasource -- Hydstra datasource code (usually 'A').\n
-    data_type -- mean, maxmin, max, min, start, end, first, last, tot, point, partialtot, or cum.\n
-    varfrom -- The hydstra source data variable (100.00 is water level).\n
-    varto -- The hydstra conversion data variable (140.00 is flow).\n
-    interval -- The frequency of the output data (year, month, day, hour, minute, second, period).\n
-    multiplier -- interval frequency.\n
-    min_qual -- The minimum quality code or None (and there is no screening by quality, suggest exporting qual).\n
-    return_qual -- if true returns series, qual_series.\n
-    sites_chunk -- Number of sites to request to hydllp at one time. Do not change unless you understand what it does.
+    Parameters
+    ----------
+    sites : list, array, one column csv file, or dataframe
+        Site numbers.
+    start : str or int of 0
+        The start time in the format of either '2001-01-01' or 0 (for all data).
+    end : str or int of 0
+        Same formatting as start.
+    datasource : str
+        Hydstra datasource code (usually 'A').
+    data_type : str
+        mean, maxmin, max, min, start, end, first, last, tot, point, partialtot, or cum.
+    varfrom : int or float
+        The hydstra source data variable (100.00 is water level).
+    varto : int or float
+        The hydstra conversion data variable (140.00 is flow).
+    interval : str
+        The frequency of the output data (year, month, day, hour, minute, second, period). If data_type is 'point', then interval cannot be 'period' (use anything else, it doesn't matter).
+    multiplier : int
+        interval frequency.
+    min_qual : int or None
+        The minimum quality code or None (and there is no screening by quality, suggest exporting qual).
+    return_qual : bool
+        If true returns series, qual_series.
+    sites_chunk : int
+        Number of sites to request to hydllp at one time. Do not change unless you understand what it does.
+
+    Return
+    ------
+    Series
+        In long format with site and time as a MultiIndex.
     """
     from core.ecan_io.hydllp import openHyDb
     from pandas import Timestamp, DataFrame, concat
@@ -120,10 +157,10 @@ def rd_hydstra_db(sites, start_time=0, end_time=0, datasource='A', data_type='me
     sites2 = array_split(sites1, n_chunks)
 
     ### Datetime conversion
-    if start_time != 0:
-        start_time = Timestamp(start_time).strftime('%Y%m%d%H%M%S')
-    if end_time != 0:
-        end_time = Timestamp(end_time).strftime('%Y%m%d%H%M%S')
+    if start != 0:
+        start = Timestamp(start).strftime('%Y%m%d%H%M%S')
+    if end != 0:
+        end = Timestamp(end).strftime('%Y%m%d%H%M%S')
 
     ### Run instance of hydllp
     data = []
@@ -133,7 +170,7 @@ def rd_hydstra_db(sites, start_time=0, end_time=0, datasource='A', data_type='me
         ### Open connection
         hyd = openHyDb()
         with hyd as h:
-            df = h.get_ts_traces(i, start_time=start_time, end_time=end_time, datasource=datasource, data_type=data_type, varfrom=varfrom, varto=varto, interval=interval, multiplier=multiplier, min_qual=min_qual, return_qual=return_qual)
+            df = h.get_ts_traces(i, start=start, end=end, datasource=datasource, data_type=data_type, varfrom=varfrom, varto=varto, interval=interval, multiplier=multiplier, min_qual=min_qual, return_qual=return_qual)
         data.append(df)
     data2 = concat(data)
 
@@ -377,7 +414,7 @@ class Hydllp(object):
 
         site_list_result = self.query_by_dict(site_list_req_dict)
 
-        return site_list_result["return"]["sites"]
+        return(site_list_result["return"]["sites"])
 
     def get_variable_list(self, site_list, data_source):
 
@@ -391,7 +428,7 @@ class Hydllp(object):
 
         var_list_result = self.query_by_dict(var_list_request)
 
-        return var_list_result["return"]["sites"]
+        return(var_list_result["return"]["sites"])
 
     def get_db_areas(self, area_classes_list):
 
@@ -401,9 +438,38 @@ class Hydllp(object):
 
         db_area_result = self.query_by_dict(db_areas_request)
 
-        return db_area_result["return"]["sites"]
+        return(db_area_result["return"]["sites"])
 
-    def get_ts_traces(self, site_list, start_time=0, end_time=0, varfrom=100, varto=140, interval='day', multiplier=1, datasource='A', data_type='mean', sigfigs=4, decimals=3, min_qual=30, return_qual = False):
+    def get_ts_blockinfo(self, site_list, datasources='A', variables=['100', '10', '110', '140', '130', '143', '450'], starttime=0, endtime=0, start_modified=0, end_modified=0, fill_gaps=0, auditinfo=0):
+        """
+
+        """
+        from pandas import to_numeric, to_datetime, Series, concat
+        from numpy import nan
+        from core.misc.misc import select_sites
+
+        # Convert the site list to a comma delimited string of sites
+        sites = select_sites(site_list).astype(str)
+        site_list_str = ','.join([str(site) for site in sites])
+
+        get_ts_blockinfo_request = {"function": "get_ts_blockinfo",
+                                    "version": 1,
+                                    "params": {'site_list': site_list,
+                                               'datasources': datasources,
+                                               'variables': variables,
+                                               'starttime': starttime,
+                                               'endtime': endtime,
+                                               'start_modified': start_modified,
+                                               'end_modified': end_modified,
+                                               'fill_gaps': fill_gaps,
+                                               'auditinfo': auditinfo}}
+
+        ts_blockinfo_result = self.query_by_dict(get_ts_blockinfo_request)
+
+        return(ts_blockinfo_result["return"]["sites"])
+
+
+    def get_ts_traces(self, site_list, start=0, end=0, varfrom=100, varto=140, interval='day', multiplier=1, datasource='A', data_type='mean', sigfigs=4, decimals=3, min_qual=30, return_qual = False):
         from pandas import to_numeric, to_datetime, Series, concat
         from numpy import nan
         from core.misc.misc import select_sites
@@ -415,8 +481,8 @@ class Hydllp(object):
         ts_traces_request = {'function':'get_ts_traces',
                              'version':1,
                              'params':{'site_list':site_list_str,
-                                       'start_time':start_time,
-                                       'end_time':end_time,
+                                       'start_time':start,
+                                       'end_time':end,
                                        'varfrom':varfrom,
                                        'varto':varto,
                                        'interval':interval,

@@ -11,10 +11,11 @@ Must be run in a 32bit python!
 
 #### Hydstra export improvement
 
-from core.ecan_io import rd_sql, rd_hydstra_by_var, write_sql
+from core.ecan_io import rd_sql, rd_hydstra_by_var, write_sql, rd_hydstra_db
 from pandas import concat
 from os.path import join
 from datetime import date, timedelta
+from time import time
 
 ### SQL Parameters
 server = 'SQL2012PROD03'
@@ -71,7 +72,7 @@ var2 = var1[var1.var_num.isin(data_vars1)]
 
 ## Precip data
 i = 'precip'
-precip = rd_hydstra_by_var(mtype_dict[i][0], end_time=end, data_type=mtype_dict[i][1], export=True, export_path=join(base_dir, mtype_dict[i][2]), sites_chunk=30)
+precip = rd_hydstra_by_var(mtype_dict[i][0], end=end, data_type=mtype_dict[i][1], export=True, export_path=join(base_dir, mtype_dict[i][2]), sites_chunk=30)
 
 # Fix quality code
 precip.loc[precip.qual_code == 18, 'qual_code'] = 50
@@ -81,7 +82,7 @@ write_sql(server1, database1, i + '_data', precip.reset_index(), dtype_dict[i], 
 
 ## swl data
 i = 'swl'
-swl = rd_hydstra_by_var(mtype_dict[i][0], end_time=end, data_type=mtype_dict[i][1], export=True, export_path=join(base_dir, mtype_dict[i][2]))
+swl = rd_hydstra_by_var(mtype_dict[i][0], end=end, data_type=mtype_dict[i][1], export=True, export_path=join(base_dir, mtype_dict[i][2]))
 
 # Fix quality code
 swl.loc[swl.qual_code == 18, 'qual_code'] = 50
@@ -91,7 +92,7 @@ write_sql(server1, database1, i + '_data', swl.reset_index(), dtype_dict[i], dro
 
 ## gwl data
 i = 'gwl'
-gwl = rd_hydstra_by_var(mtype_dict[i][0], end_time=end, data_type=mtype_dict[i][1], export=True, export_path=join(base_dir, mtype_dict[i][2]))
+gwl = rd_hydstra_by_var(mtype_dict[i][0], end=end, data_type=mtype_dict[i][1], export=True, export_path=join(base_dir, mtype_dict[i][2]))
 
 gwl2 = gwl.reset_index()
 gwl2.loc[:, 'site'] = gwl2.loc[:, 'site'].str.replace('_', '/')
@@ -106,7 +107,7 @@ write_sql(server1, database1, i + '_data', gwl2, dtype_dict[i], drop_table=True)
 
 ## lakel data
 i = 'lakel'
-lakel = rd_hydstra_by_var(mtype_dict[i][0], end_time=end, data_type=mtype_dict[i][1], export=True, export_path=join(base_dir, mtype_dict[i][2]))
+lakel = rd_hydstra_by_var(mtype_dict[i][0], end=end, data_type=mtype_dict[i][1], export=True, export_path=join(base_dir, mtype_dict[i][2]))
 
 # Fix quality code
 lakel.loc[lakel.qual_code == 18, 'qual_code'] = 50
@@ -116,7 +117,7 @@ write_sql(server1, database1, i + '_data', lakel.reset_index(), dtype_dict[i], d
 
 ## wtemp data
 i = 'wtemp'
-wtemp = rd_hydstra_by_var(mtype_dict[i][0], end_time=end, data_type=mtype_dict[i][1], export=True, export_path=join(base_dir, mtype_dict[i][2]))
+wtemp = rd_hydstra_by_var(mtype_dict[i][0], end=end, data_type=mtype_dict[i][1], export=True, export_path=join(base_dir, mtype_dict[i][2]))
 
 # Fix quality code
 wtemp.loc[wtemp.qual_code == 18, 'qual_code'] = 50
@@ -126,8 +127,8 @@ write_sql(server1, database1, i + '_data', wtemp.reset_index(), dtype_dict[i], d
 
 ## Flow data
 i = 'flow'
-flow1 = rd_hydstra_by_var(140, start_time=start, end_time=end, data_type='mean', sites_chunk=10, print_sites=True)
-flow2 = rd_hydstra_by_var(143, end_time=end, data_type='mean')
+flow1 = rd_hydstra_by_var(140, start=start, end=end, data_type='mean', sites_chunk=10, print_sites=True)
+flow2 = rd_hydstra_by_var(143, end=end, data_type='mean')
 
 flow2.loc[:, 'data'] = flow2.loc[:, 'data'] * 0.001
 
@@ -140,6 +141,28 @@ flow.loc[flow.qual_code == 18, 'qual_code'] = 50
 flow.to_csv(join(base_dir, mtype_dict[i][2]))
 
 write_sql(server1, database1, i + '_data', flow.reset_index(), dtype_dict[i], drop_table=True)
+
+
+##############################
+### Testing
+
+site = [66401]
+
+start1 = time()
+t1 = rd_hydstra_db(site, start='1998-01-01', end='2017-01-01', data_type='point', interval='day', varto=100)
+end1 = time()
+
+start2 = time()
+t2 = rd_hydstra_db(site, start='2000-01-01', end='2017-01-01', data_type='mean', interval='hour', varto=140)
+end2 = time()
+
+time1 = end1 - start1
+time2 = end2 - start2
+
+time1/time2
+
+
+
 
 
 
