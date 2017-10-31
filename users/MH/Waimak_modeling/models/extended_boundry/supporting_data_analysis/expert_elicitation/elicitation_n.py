@@ -14,40 +14,40 @@ import numpy as np
 
 
 def amalgimate_data(base_dir):
-    experts = ['OM', 'MR', 'LL', 'AM', 'LF']
-    components = ['Sheep_Beef_Deer_exhill_Upsc_Light',
-                  'Dairy_Rep_Medium',
-                  'Sheep_Beef_Deer_exhill_Trans_S',
-                  'Dairy_Struc_Medium',
-                  'Dairy_Upsc_Light',
+    experts = ['OM', 'LM', 'AM', 'LF']
+    components = ['Dairy_Inp_light',
+                  'Dairy_Inp_medium',
                   'Dairy_Inp_PD',
-                  'Dairy_Upsc_Medium',
-                  'Dairy_Upsc_PD',
-                  'Sheep_Beef_Deer_exhill_Inp_F',
-                  'Sheep_Beef_Hill_S1_S4 soils',
-                  'Sheep_Beef_Deer_exhill_Trans_F',
-                  'Sheep_Beef_Deer_exhill_Rep_Light',
-                  'Dairy_Inp_Medium',
-                  'Dairy_Trans_Light',
-                  'Dairy_Trans_Medium',
-                  'Lifestyle',
-                  'Sheep_Beef_Deer_exhill_Inp_S',
-                  'Sheep_Beef_Deer_exhill_Inp_Light',
-                  'Sheep_Beef_Deer_exhill_Rep_S',
-                  'Sheep_Beef_Deer_exhill_Trans_Light',
-                  'Sheep_Beef_Deer_exhill_Struc_Light',
-                  'Dairy_Rep_Light',
-                  'Forest_Tussock_DOC',
-                  'Sheep_Beef_Deer_exhill_Rep_F',
-                  'Dairy_Trans_PD',
-                  'Dairy_Struc_PD',
+                  'Dairy_Rep_light',
+                  'Dairy_Rep_medium',
                   'Dairy_Rep_PD',
-                  'Dairy_Struc_Light',
-                  'Sheep_Beef_Deer_exhill_Upsc_S',
-                  'Sheep_Beef_Deer_exhill_Struc_S',
-                  'Dairy_Inp_Light',
+                  'Dairy_Struc_light',
+                  'Dairy_Struc_Medium',
+                  'Dairy_Struc_PD',
+                  'Dairy_Trans_light',
+                  'Dairy_Trans_medium',
+                  'Dairy_Trans_PD',
+                  'Dairy_Upsc_light',
+                  'Dairy_Upsc_medium',
+                  'Dairy_Upsc_PD',
+                  'Forest_Tussock_DOC',
+                  'Lifestyle',
+                  'Sheep_Beef__Deer_Hill_Struc_S',
+                  'Sheep_Beef_Deer_exhill_Inp_F',
+                  'Sheep_Beef_Deer_exhill_Inp_light',
+                  'Sheep_Beef_Deer_exhill_Rep_F',
+                  'Sheep_Beef_Deer_exhill_Rep_Light',
                   'Sheep_Beef_Deer_exhill_Struc_F',
-                  'Sheep_Beef_Deer_exhill_Upsc_F']
+                  'Sheep_Beef_Deer_exhill_Struc_Light',
+                  'Sheep_Beef_Deer_exhill_Trans_F',
+                  'Sheep_Beef_Deer_exhill_Trans_Light',
+                  'Sheep_Beef_Deer_exhill_Upsc_F',
+                  'Sheep_Beef_Deer_exhill_Upsc_Light',
+                  'Sheep_Beef_Deer_Hill_Inp_S',
+                  'Sheep_Beef_Deer_Hill_Rep_S',
+                  'Sheep_Beef_Deer_Hill_Trans_S',
+                  'Sheep_Beef_Deer_Hill_Upsc_S']
+
     out_ex = []
     out_comp = []
     out_alpha = []
@@ -83,12 +83,13 @@ def amalgimate_data(base_dir):
 
     outdata = pd.DataFrame(
         {'Component': out_comp, 'Expert': out_ex, 'A': out_alpha, 'B': out_beta, 'L': out_l, 'U': out_u})
-    outdata = outdata.sort_values(['Component','Expert'])
+    outdata = outdata.sort_values(['Component', 'Expert'])
     outdata = outdata.loc[:, ['Component', 'Expert', 'A', 'B', 'L', 'U']]
-    outdata.to_excel(r"\\gisdata\projects\SCI\Groundwater\Waimakariri\Landuse\N load expert judgement workshop\Elicitation_results_import.xlsx")
+    outdata.to_excel(os.path.join(base_dir, 'amalgamated_data.xls'))
 
     print'done'
 
 
 if __name__ == '__main__':
-    amalgimate_data(r"C:\Users\MattH\Downloads")
+    amalgimate_data(
+        r'\\gisdata\projects\SCI\Groundwater\Waimakariri\Landuse\N load expert judgement workshop\Elcitation_Results\Combined')
