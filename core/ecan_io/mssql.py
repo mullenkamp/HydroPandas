@@ -16,7 +16,7 @@ def rd_sql(server, database, table=None, col_names=None, where_col=None, where_v
         The specific database within the server. e.g.: 'LowFlows'
     table : str
         The specific table within the database. e.g.: 'LowFlowSiteRestrictionDaily'
-    col_names : list
+    col_names : list of str
         The column names that should be retrieved. e.g.: ['SiteID', 'BandNo', 'RecordNo']
     where_col : str or dict
         Must be either a string with an associated where_val list or a dictionary of strings to lists.'. e.g.: 'SnapshotType' or {'SnapshotType': ['value1', 'value2']}
