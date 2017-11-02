@@ -27,7 +27,7 @@ class hydro(object):
     A class to handle environmental time series data where a site has a measurement type, a time series, and a location.
     """
     from core.classes.hydro.import_fun import add_geo_loc, missing_geo_loc_sites, add_data, _import_attr, add_geo_catch, _add_geo_data, rd_csv, rd_netcdf, _rd_hydro_mssql, combine, _rd_hydro_geo_mssql, _proc_hydro_sql
-    from core.classes.hydro.indexing import sel_ts, sel_sites, sel_sites_by_poly, sel_ts_by_poly, sel, sel_by_poly, __getitem__, _comp_by_buffer, _comp_by_catch, sel_by_geo_attr
+    from core.classes.hydro.indexing import sel_ts, sel_sites_by_poly, sel_ts_by_poly, sel, sel_by_poly, __getitem__, _comp_by_buffer, _comp_by_catch, sel_by_geo_attr
     from core.classes.hydro.misc import _check_mtypes_sites, _base_stats_fun, _mtype_check
     from core.classes.hydro.export_fun import to_csv, to_netcdf, to_shp
     from core.classes.hydro.ecan_import import get_geo_loc, _rd_hydstra, _rd_hydrotel, _rd_henry, get_data, get_site_geo_attr

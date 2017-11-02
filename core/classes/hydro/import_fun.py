@@ -344,51 +344,53 @@ def rd_netcdf(self, nc_path):
     from shapely.geometry import Point
     from geopandas import GeoDataFrame
 
-    ds1 = open_dataset(nc_path)
+    with open_dataset(nc_path) as ds1:
 
-    ### Load in the geometry data
-    if any(in1d(ds1.data_vars.keys(), 'geo_catch_wkt')):
-#        geo_catch_cols = [i for i in ds1.keys() if 'geo_catch' in i]
-        df_catch = ds1['geo_catch_wkt'].to_dataframe()
-        df_catch.columns = df_catch.columns.str.replace('geo_catch_', '')
-        geo1 = [loads(x) for x in df_catch.wkt]
-        gdf_catch = GeoDataFrame(df_catch.drop('wkt', axis=1), geometry=geo1, crs=ds1.attrs['crs'])
-        gdf_catch.index.name = 'site'
-        ds1 = ds1.drop('geo_catch_wkt')
+        ### Load in the geometry data
+        if any(in1d(ds1.data_vars.keys(), 'geo_catch_wkt')):
+    #        geo_catch_cols = [i for i in ds1.keys() if 'geo_catch' in i]
+            df_catch = ds1['geo_catch_wkt'].to_dataframe()
+            df_catch.columns = df_catch.columns.str.replace('geo_catch_', '')
+            geo1 = [loads(x) for x in df_catch.wkt]
+            gdf_catch = GeoDataFrame(df_catch.drop('wkt', axis=1), geometry=geo1, crs=dict(ds1.attrs['crs']))
+            gdf_catch.index.name = 'site'
+            ds1 = ds1.drop('geo_catch_wkt')
 
-    if any(in1d(ds1.data_vars.keys(), 'geo_loc_x')):
-        geo_loc_cols = [i for i in ds1.keys() if 'geo_loc' in i]
-        df_loc = ds1[geo_loc_cols].to_dataframe()
-        df_loc.columns = df_loc.columns.str.replace('geo_loc_', '')
-        geo2 = [Point(xy) for xy in zip(df_loc.x, df_loc.y)]
-        gdf_loc = GeoDataFrame(df_loc.drop(['x', 'y'], axis=1), geometry=geo2, crs=ds1.attrs['crs'])
-        gdf_loc.index.name = 'site'
-        ds1 = ds1.drop(geo_loc_cols)
+        if any(in1d(ds1.data_vars.keys(), 'geo_loc_x')):
+            geo_loc_cols = [i for i in ds1.keys() if 'geo_loc' in i]
+            df_loc = ds1[geo_loc_cols].to_dataframe()
+            df_loc.columns = df_loc.columns.str.replace('geo_loc_', '')
+            geo2 = [Point(xy) for xy in zip(df_loc.x, df_loc.y)]
+            crs1 = dict(ds1['geo_loc_x'].attrs.copy())
+            crs1.update({i: bool(crs1[i]) for i in crs1 if crs1[i] in ['True', 'False']})
+            gdf_loc = GeoDataFrame(df_loc.drop(['x', 'y'], axis=1), geometry=geo2, crs=crs1)
+            gdf_loc.index.name = 'site'
+            ds1 = ds1.drop(geo_loc_cols)
 
-    ### Load in the site attribute data
-    if any(in1d(ds1.data_vars.keys(), 'site_attr')):
-        site_attr_cols = [i for i in ds1.keys() if 'site_attr' in i]
-        site_attr1 = ds1[site_attr_cols].to_dataframe()
-        site_attr1.columns = site_attr1.columns.str.replace('site_attr_', '')
-        site_attr1.index.name = 'site'
-        ds1 = ds1.drop(site_attr_cols)
+        ### Load in the site attribute data
+        if any(in1d(ds1.data_vars.keys(), 'site_attr')):
+            site_attr_cols = [i for i in ds1.keys() if 'site_attr' in i]
+            site_attr1 = ds1[site_attr_cols].to_dataframe()
+            site_attr1.columns = site_attr1.columns.str.replace('site_attr_', '')
+            site_attr1.index.name = 'site'
+            ds1 = ds1.drop(site_attr_cols)
 
-    ### Load in the ts data
-    df1 = ds1[['site', 'time', 'data']].to_dataframe().reset_index()
+        ### Load in the ts data
+        df1 = ds1[['site', 'time', 'data']].to_dataframe().reset_index()
 
-    self.add_data(df1, 'time', 'site', 'mtype', 'data', 'long')
+        self.add_data(df1, 'time', 'site', 'mtype', 'data', 'long')
 
-    ### Add in the earlier attributes
-    if 'site_attr1' in locals():
-        self.add_site_attr(site_attr1)
-    if 'gdf_loc' in locals():
-        self.add_geo_loc(gdf_loc, check=False)
-    if 'gdf_catch' in locals():
-        self.add_geo_catch(gdf_catch, check=False)
+        ### Add in the earlier attributes
+        if 'site_attr1' in locals():
+            self.add_site_attr(site_attr1)
+        if 'gdf_loc' in locals():
+            self.add_geo_loc(gdf_loc, check=False)
+        if 'gdf_catch' in locals():
+            self.add_geo_catch(gdf_catch, check=False)
 
-    ### close
-    ds1.close()
-    return(self)
+        ### return
+    #    ds1.close()
+        return(self)
 
 
 ##############################################
@@ -399,21 +401,40 @@ def rd_netcdf(self, nc_path):
 
 def _rd_hydro_mssql(self, server, database, table, mtype, time_col, site_col, data_col, qual_col, sites=None, from_date=None, to_date=None, qual_codes=None, add_where=None):
     """
-    Function to import data from a MSSQL database. Specific columns can be selected and specific queries within columns can be selected. Requires the pymssql package, which must be separately installed.
+    Function to import data from a MSSQL database. Specific columns can be selected and specific queries within columns can be selected. Requires the pymssql package.
 
-    Arguments:\n
-    server -- The server name (str). e.g.: 'SQL2012PROD03'\n
-    database -- The specific database within the server (str). e.g.: 'LowFlows'\n
-    table -- The specific table within the database (str). e.g.: 'LowFlowSiteRestrictionDaily'\n
-    mtype -- The measurement type according to the Hydro mtypes (string).\n
-    time_col -- The DateTime column name (str).\n
-    site_col -- The site name column (str).\n
-    data_col -- The data column (str).\n
-    qual_col -- The quality code column (str).\n
-    sites -- List of sites.\n
-    from_date -- From date for data in the format '2000-01-01'.\n
-    to_date -- To date for the data in the above format.\n
-    qual_codes -- List of quality codes.
+    Parameters
+    ----------
+    server : str
+        The server name. e.g.: 'SQL2012PROD03'
+    database : str
+        The specific database within the server. e.g.: 'LowFlows'
+    table : str
+        The specific table within the database. e.g.: 'LowFlowSiteRestrictionDaily'
+    mtype : str
+        The measurement type according to the Hydro mtypes.
+    time_col : str
+        The DateTime column name.
+    site_col : str
+        The site name column.
+    data_col : str
+        The data column.
+    qual_col : str
+        The quality code column.
+    sites : list
+        List of sites.
+    from_date : str
+        From date for data in the format '2000-01-01'.
+    to_date : str
+        To date for the data in the above format.
+    qual_codes : list of int
+        List of quality codes.
+    add_where : str
+        An additional SQL query to be added.
+
+    Return
+    ------
+    Hydro
     """
 
     ### Make the where statement
@@ -485,7 +506,6 @@ def _rd_hydro_geo_mssql(self, server, database, table, geo_dict):
     sites1 = rd_sql(server, database, table, 'site', geo_dict)
     sites2 = sites1.site.astype(str).values.tolist()
     return(sites2)
-
 
 
 def _proc_hydro_sql(self, sites_sql_fun, db_dict, mtype, sites=None, from_date=None, to_date=None, qual_codes=None, buffer_dis=0):

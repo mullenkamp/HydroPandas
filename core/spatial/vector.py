@@ -27,18 +27,20 @@ def sel_sites_poly(pts, poly, buffer_dis=0):
     from geopandas import read_file, GeoDataFrame, GeoSeries
 
     #### Read in data
-    if isinstance(pts, GeoDataFrame):
+    if isinstance(pts, (GeoDataFrame, GeoSeries)):
         gdf_pts = pts.copy()
     elif isinstance(pts, str):
         if pts.endswith('.shp'):
             gdf_pts = read_file(pts).copy()
-            gdf_pts.set_index(gdf_pts.columns[0], inplace=True)
+            col1 = gdf_pts.columns.drop('geometry')[0]
+            gdf_pts.set_index(col1, inplace=True)
     if isinstance(poly, (GeoDataFrame, GeoSeries)):
         gdf_poly = poly.copy()
     elif isinstance(poly, str):
         if poly.endswith('.shp'):
             gdf_poly = read_file(poly).copy()
-            gdf_poly.set_index(gdf_poly.columns[0], inplace=True)
+            col2 = gdf_poly.columns.drop('geometry')[0]
+            gdf_poly.set_index(col2, inplace=True)
 
     #### Perform vector operations for initial processing
     ## Dissolve polygons by id

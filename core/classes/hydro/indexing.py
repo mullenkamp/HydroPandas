@@ -82,7 +82,7 @@ def sel_ts(self, mtypes=None, sites=None, require=None, pivot=False, resample=No
         sel_out1 = sel_out.loc(axis=0)[:, sites3, start:end]
     else:
         sel_out1 = sel_out.loc(axis=0)[:, :, start:end]
-    if pivot:
+    if pivot & (not sel_out1.empty):
         levels1 = sel_out1.index.get_level_values(0).unique()
         sel_out1 = _pivot(sel_out1, resample, levels1)
     return(sel_out1)
@@ -91,28 +91,28 @@ def sel_ts(self, mtypes=None, sites=None, require=None, pivot=False, resample=No
 ##############################################################
 ### Selecting/indexing the geo data
 
-def sel_sites(self, mtypes=None, sites=None):
-    """
-    Function to select sites based on certain criteria.
-    Output is a list of site names.
-    """
-    if (sites is None) & (mtypes is None):
-        raise ValueError('Must input at least one of sites and/or mtypes.')
-    else:
-        site_lst = []
-        if sites is not None:
-            if isinstance(sites, (int, str)):
-                site_lst.extend([sites])
-            elif isinstance(sites, list):
-                site_lst.extend(sites)
-        if mtypes is not None:
-            if isinstance(mtypes, (int, str)):
-                site_lst.extend(self.mtypes_sites[mtypes])
-            if isinstance(mtypes, list):
-                for i in mtypes:
-                    site_lst.extend(self.mtypes_sites[i])
-        site_lst2 = Series(site_lst).unique().tolist()
-        return(site_lst2)
+#def sel_sites(self, mtypes=None, sites=None):
+#    """
+#    Function to select sites based on certain criteria.
+#    Output is a list of site names.
+#    """
+#    if (sites is None) & (mtypes is None):
+#        raise ValueError('Must input at least one of sites and/or mtypes.')
+#    else:
+#        site_lst = []
+#        if sites is not None:
+#            if isinstance(sites, (int, str)):
+#                site_lst.extend([sites])
+#            elif isinstance(sites, list):
+#                site_lst.extend(sites)
+#        if mtypes is not None:
+#            if isinstance(mtypes, (int, str)):
+#                site_lst.extend(self.mtypes_sites[mtypes])
+#            if isinstance(mtypes, list):
+#                for i in mtypes:
+#                    site_lst.extend(self.mtypes_sites[i])
+#        site_lst2 = Series(site_lst).unique().tolist()
+#        return(site_lst2)
 
 
 def sel_sites_by_poly(self, poly, buffer_dis=0):

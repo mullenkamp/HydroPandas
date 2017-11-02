@@ -39,7 +39,11 @@ def to_netcdf(self, nc_path):
         geo2.columns = ['geo_loc_' + i for i in geo2.columns]
         geo2.index.name = 'geo_loc_' + geo2.index.name
         ds0 = ds0.merge(Dataset(geo2))
-        ds0.attrs['crs'] = geo2.crs
+        crs1 = geo1.crs.copy()
+        crs1.update({i: str(crs1[i]) for i in crs1 if type(crs1[i]) == bool})
+        ds0['geo_loc_x'].attrs = crs1
+        ds0['geo_loc_y'].attrs = crs1
+
 
     if hasattr(self, 'geo_catch'):
         geo1 = getattr(self, 'geo_catch').copy()

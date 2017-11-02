@@ -141,21 +141,6 @@ def rd_sql(server, database, table=None, col_names=None, where_col=None, where_v
     return(df)
 
 
-#def rd_site_geo():
-#    """
-#    Convenience function to read in all flow sites shapefile and reformat.
-#    """
-#    from core.ecan_io import rd_sql
-#    site_geo = rd_sql('SQL2012PROD05', 'GIS', 'vGAUGING_NZTM', col_names=['SiteNumber', 'RIVER', 'SITENAME'], geo_col=True)
-#    site_geo.columns = ['site', 'river', 'site_name', 'geometry']
-#    site_geo['river'] = site_geo.river.apply(lambda x: x.title())
-#    site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.title())
-#    site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.replace(' (Recorder)', ''))
-#    site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.replace('Sh', 'SH'))
-#    site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.replace('Ecs', 'ECS'))
-#    return(site_geo)
-
-
 def rd_sw_rain_geo(sites=None):
     from core.spatial import xy_to_gpd
     from pandas import to_numeric
