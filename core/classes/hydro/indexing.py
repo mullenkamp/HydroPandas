@@ -5,6 +5,7 @@ Functions to index and select data within the hydro class.
 from pandas import DataFrame, Series, DatetimeIndex, to_datetime, MultiIndex, concat, Grouper
 from numpy import array, ndarray, in1d, unique, append, nan, argmax
 from geopandas import GeoDataFrame, read_file
+from core.classes.hydro.base import resample_fun
 
 #########################################################
 ### Selecting/indexing the time series data and returing a hydro class object
@@ -42,32 +43,14 @@ def sel_by_geo_attr(self, attr_dict, mtypes=None):
 ### Selecting/Indexing the time series data and returning a Pandas object
 
 
-def _pivot(df, resample, mtypes):
-    from core.classes.hydro.base import resample_fun
-
-    if resample is not None:
-        agg_funs = {i: resample_fun[i] for i in mtypes}
-        out1 = DataFrame()
-        if 'mean' in agg_funs.values():
-            mtypes_mean = [i for i in agg_funs if agg_funs[i] == 'mean']
-            df_mean = df.loc[mtypes_mean, :, :]
-            mean1 = df_mean.groupby([Grouper(level='mtype'), Grouper(level='site'), Grouper(level='time', freq=resample)]).mean()
-            out1 = mean1.copy()
-        if 'sum' in agg_funs.values():
-            mtypes_sum = [i for i in agg_funs if agg_funs[i] == 'sum']
-            df_sum = df.loc[mtypes_sum, :, :]
-            sum1 = df_sum.groupby([Grouper(level='mtype'), Grouper(level='site'), Grouper(level='time', freq=resample)]).sum()
-            out1 = concat([out1, sum1])
-    else:
-        out1 = df
-
-    if len(mtypes) == 1:
-        out1.index = out1.index.droplevel('mtype')
-        out2 = out1.unstack('site')
-    else:
-        out2 = out1.unstack(['mtype', 'site'])
-
-    return(out2)
+#def _pivot(df, mtypes):
+#    if len(mtypes) == 1:
+#        out1.index = out1.index.droplevel('mtype')
+#        out2 = out1.unstack('site')
+#    else:
+#        out2 = out1.unstack(['mtype', 'site'])
+#
+#    return(out2)
 
 
 def sel_ts(self, mtypes=None, sites=None, require=None, pivot=False, resample=None, start=None, end=None):
@@ -75,17 +58,37 @@ def sel_ts(self, mtypes=None, sites=None, require=None, pivot=False, resample=No
         mtypes = slice(None)
     if sites is None:
         sites = slice(None)
-    sel_out = self.data.loc(axis=0)[mtypes, sites, :]
+    sel_out1 = self.data.loc(axis=0)[mtypes, sites, start:end]
     if require is not None:
-        sites2 = sel_out.index.get_level_values('site').unique()
-        sites3 = [i for i in sites2 if all(in1d(require, list(self.sites_mtypes[i])))]
-        sel_out1 = sel_out.loc(axis=0)[:, sites3, start:end]
-    else:
-        sel_out1 = sel_out.loc(axis=0)[:, :, start:end]
-    if pivot & (not sel_out1.empty):
+        mtypes2 = sel_out1.index.get_level_values('mtype').unique()
+        mtypes3 = [i for i in mtypes2 if all([j in list(self.mtypes_sites[i]) for j in require])]
+        sel_out1 = sel_out1.loc(axis=0)[mtypes3, :, :]
+    if sel_out1.empty:
+        return(sel_out1)
+    if resample is not None:
         levels1 = sel_out1.index.get_level_values(0).unique()
-        sel_out1 = _pivot(sel_out1, resample, levels1)
-    return(sel_out1)
+        agg_funs = {i: resample_fun[i] for i in levels1}
+        sel_out2 = DataFrame()
+        if 'mean' in agg_funs.values():
+            mtypes_mean = [i for i in agg_funs if agg_funs[i] == 'mean']
+            df_mean = sel_out1.loc[mtypes_mean, :, :]
+            mean1 = df_mean.groupby([Grouper(level='mtype'), Grouper(level='site'), Grouper(level='time', freq=resample)]).mean()
+            sel_out2 = mean1.copy()
+        if 'sum' in agg_funs.values():
+            mtypes_sum = [i for i in agg_funs if agg_funs[i] == 'sum']
+            df_sum = sel_out1.loc[mtypes_sum, :, :]
+            sum1 = df_sum.groupby([Grouper(level='mtype'), Grouper(level='site'), Grouper(level='time', freq=resample)]).sum()
+            sel_out2 = concat([sel_out2, sum1])
+    else:
+        sel_out2 = sel_out1
+    if pivot:
+        levels1 = sel_out2.index.get_level_values(0).unique()
+        if len(levels1) == 1:
+            sel_out2.index = sel_out2.index.droplevel('mtype')
+            sel_out2 = sel_out2.unstack('site')
+        else:
+            sel_out2 = sel_out2.unstack(['mtype', 'site'])
+    return(sel_out2)
 
 
 ##############################################################

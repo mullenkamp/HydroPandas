@@ -32,21 +32,23 @@ def test_sel_by_poly(poly_in):
     assert (len(h3._base_stats) == 4)
 
 
-#@pytest.mark.parametrize('mtypes', h1.mtypes)
-#@pytest.mark.parametrize('sites', h1.sites)
-#def test_sel_sites(mtypes, sites):
-#    s1 = h1.sel_sites(mtypes, sites)
-#    assert (type(s1) == hydro)
-
-
 @pytest.mark.parametrize('mtypes', ['flow', 'flow_m'])
 @pytest.mark.parametrize('sites', [[69607, 70105], 66])
 @pytest.mark.parametrize('require', [None, [70105]])
 @pytest.mark.parametrize('pivot', [True, False])
-@pytest.mark.parametrize('resample', [None, 'D'])
+@pytest.mark.parametrize('resample', [None, 'W'])
 def test_sel_ts(mtypes, sites, require, pivot, resample, start='2016-01-22', end='2016-03-01'):
     df1 = h1.sel_ts(mtypes, sites, require, pivot, resample, start, end)
-    assert (len(df1) >= 0)
+    if ((mtypes == 'flow') & (sites == 66)):
+        assert (len(df1) == 0)
+    elif ((mtypes == 'flow_m') & (sites == [69607, 70105])):
+        assert (len(df1) == 0)
+    elif (sites == 66) & (require == [70105]):
+        assert (len(df1) == 0)
+    elif (mtypes == 'flow') & (sites == [69607, 70105]) & (pivot == False) & (resample == 'W'):
+        assert (len(df1) > 0) & (len(h1.data) > len(df1))
+    else:
+        assert (len(df1) > 0)
 
 
 

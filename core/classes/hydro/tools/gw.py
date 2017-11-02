@@ -71,7 +71,7 @@ def gwl_reg(self, y, x=None, y_mtype='gwl_m', x_mtype='gwl', buffer_dis=None, mi
     reg = DataFrame()
     for j in comp_dict:
         x_data = hydro2.sel_ts(mtypes=x_mtype, sites=comp_dict[j], pivot=True)
-        y_data = hydro2.sel_ts(mtypes=y_mtype, sites=j, pivot=True, resample=False)
+        y_data = hydro2.sel_ts(mtypes=y_mtype, sites=j, pivot=True)
         y_data.name = j
         y_data = DataFrame(y_data)
         try:
