@@ -23,13 +23,16 @@ stats = h1._base_stats
 ## Test selection options
 poly = read_file(path.join(py_dir, poly_shp)).set_index('site')
 
-@pytest.mark.parametrize('poly_in', (path.join(py_dir, poly_shp), poly))
+
+@pytest.mark.parametrize('poly_in', [path.join(py_dir, poly_shp), poly])
 def test_sel_by_poly(poly_in):
     h2 = h1.sel_ts_by_poly(poly_in, 100, pivot=True)
     assert (len(h2.columns) == 4)
     h3 = h1.sel_by_poly(poly_in, 100)
     h3._base_stats_fun()
     assert (len(h3._base_stats) == 4)
+    h4 = h1.sel_ts_by_poly(poly_in, 100, mtypes='flow', pivot=True, resample='W')
+    assert (len(h4) == 11)
 
 
 @pytest.mark.parametrize('mtypes', ['flow', 'flow_m'])
@@ -51,7 +54,10 @@ def test_sel_ts(mtypes, sites, require, pivot, resample, start='2016-01-22', end
         assert (len(df1) > 0)
 
 
-
+def test_sel():
+    h6 = h1.sel(mtypes='flow', sites=[70105, 69607], resample='W')
+    h6._base_stats_fun()
+    assert (len(h6._base_stats) == 2) & (h6._base_stats['count'][0] == 11)
 
 
 
