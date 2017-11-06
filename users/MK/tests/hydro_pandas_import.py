@@ -24,7 +24,7 @@ sites3 = ['BT27/5020']
 sites4 = ['J38/0774', 'J38/0874', 'J38/0811', 'I39/0033']
 qual_codes = [10, 18, 20, 30, 50]
 from_date = '2016-01-01'
-to_date = '2016-03-08'
+to_date = '2017-03-08'
 poly = r'S:\Surface Water\backups\MichaelE\Projects\otop\GIS\vector\min_flow\catch1.shp'
 
 ### From the MSSQL server (the easy way) - Loads in both the time series data and the geo locations
@@ -33,10 +33,10 @@ h1 = hydro().get_data(mtypes=mtypes1, sites=sites1, from_date=from_date, to_date
 h2 = h1.get_data(mtypes=mtypes2, sites=sites2, from_date=from_date, qual_codes=qual_codes)
 h3 = h2.get_data(mtypes=mtypes3, sites=sites1, from_date=from_date, to_date=to_date,  qual_codes=qual_codes)
 
-gwl1 = hydro().get_data(mtypes=mtypes4, sites=sites3, qual_codes=qual_codes)
-gwl2 = hydro().get_data(mtypes=mtypes5, sites=sites3)
+gwl1 = hydro().get_data(mtypes=mtypes4, sites=sites3, qual_codes=qual_codes, from_date=from_date, to_date=to_date)
+gwl2 = hydro().get_data(mtypes=mtypes5, sites=sites3, from_date=from_date, to_date=to_date)
 
-use1 = hydro().get_data(mtypes=mtypes6, sites=sites4)
+use1 = hydro().get_data(mtypes=mtypes6, sites=sites4, to_date=to_date)
 
 tel1 = hydro().get_data(mtypes=mtypes7, sites=sites1, from_date=from_date, to_date=to_date)
 

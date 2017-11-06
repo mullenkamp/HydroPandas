@@ -3350,5 +3350,61 @@ eng = create_engine('mssql+pyodbc://' + server + '/' + database)
 ##############################################
 #### Hydstra list modified
 
-site_list = [63201]
+add_where = "TIDEDA_FLAG='N'"
+data_col= 'DEPTH_TO_WATER'
+database = 'Wells'
+qual_col = None
+server = 'SQL2012PROD05'
+site_col = 'WELL_NO'
+table = 'DTW_READINGS'
+time_col = 'DATE_READ'
+sites = ['BY20/0018']
+mtype = 'gwl_m'
+
+#############################################
+## New mssql time series agg
+
+from core.ecan_io.mssql import rd_sql_ts
+
+resample = 'hour'
+period = 4
+
+
+stmt1 = "SELECT Point AS site, DT AS time, SampleValue AS value FROM " + data_tab + " where " + " and ".join(where_lst)
+
+data1 = rd_sql(server, database, data_tab, stmt=stmt1).drop('site', axis=1)
+data1.set_index(['time'], inplace=True)
+
+day1 = data1.resample('D').mean().round(3)
+
+
+stmt1 = "SELECT " + "Point, DATEADD(" + resample + ", DATEDIFF(" + resample + ", 0, DT)/ " + str(period) + " * " + str(period) + ", 0) AS time, round(" + fun + "(SampleValue), 3) AS value" + " FROM " + data_tab + " where " + " and ".join(where_lst) + " GROUP BY Point, DATEADD(" + resample + ", DATEDIFF(" + resample + ", 0, DT)/ " + str(period) + " * " + str(period) + ", 0) ORDER BY Point, time"
+
+data2 = rd_sql(server, database, data_tab, stmt=stmt1).drop('site', axis=1)
+data2.set_index(['time'], inplace=True)
+
+data2
+
+server = 'SQL2012PROD05'
+database = 'Hydrotel'
+groupby_cols = 'Point'
+date_col = 'DT'
+values_cols = 'SampleValue'
+resample_code = 'D'
+period = 1
+val_round=3
+fun = 'sum'
+table = 'Samples'
+from_date = '2017-01-01'
+to_date = '2017-01-20'
+where_val=None
+where_op='AND'
+where_col = {'Point': [3333]}
+
+df1 = rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resample_code, period, fun, val_round, where_col, where_val, where_op, from_date, to_date)
+
+
+
+
+
 

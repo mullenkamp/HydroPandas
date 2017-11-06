@@ -190,21 +190,42 @@ def rd_hydstra_dir(input_path, min_filter=False, min_yrs=25, export=False, expor
     return(t1)
 
 
-def rd_hydrotel(select=None, mtype='flow_tel', from_date=None, to_date=None, use_site_name=False, resample='day', fun='avg', pivot=False, export=False, export_path='hydrotel_data.csv'):
+def rd_hydrotel(sites, mtype='flow_tel', from_date=None, to_date=None, resample_code='D', period=1, fun='mean', val_round=3, pivot=False, export_path=None):
     """
     Function to extract time series data from the hydrotel database.
 
-    Arguments:\n
-    select -- Either a list, array, dataframe, or signle column csv file of site names or numbers.\n
-    input_type -- What the values in 'select' are. Either 'number' or 'name'.\n
-    mtype -- 'flow_tel', 'gwl_tel', 'precip_tel', 'swl_tel', or 'wtemp_tel'.\n
+    Parameters
+    ----------
+    sites : list, array, dataframe, or str
+        Site list or a str path to a single column csv file of site names/numbers.
+    mtype : str
+        'flow_tel', 'gwl_tel', 'precip_tel', 'swl_tel', or 'wtemp_tel'.
+    from_date : str or None
+        The start date in the format '2000-01-01'.
+    to_date : str or None
+        The end date in the format '2000-01-01'.
+    resample_code : str
+        The Pandas time series resampling code. e.g. 'D' for day, 'W' for week, 'M' for month, etc.
+    period : int
+        The number of resampling periods. e.g. period = 2 and resample = 'D' would be to resample the values over a 2 day period.
+    fun : str
+        The resampling function. i.e. mean, sum, count, min, or max. No median yet...
+    val_round : int
+        The number of decimals to round the values.
+    pivot : bool
+        Should the output be pivotted into wide format?
+    export_path : str or None
+        The path and file name to be saved.
 
-    Resampling of the time series can be performed by the w_resample function. Any associated resampling parameters can be passed.
+    Returns
+    -------
+    Series or DataFrame
+        A MultiIndex Pandas Series if pivot is False and a DataFrame if True
     """
-    from core.ecan_io import rd_sql
+    from core.ecan_io import rd_sql, rd_sql_ts
     from pandas import to_datetime, merge, to_numeric, Series, Timestamp
     from numpy import ndarray
-    from core.misc.misc import select_sites
+    from core.misc import select_sites, save_df
 
     #### mtypes dict
     mtypes_dict = {'flow_tel': 'Flow Rate', 'gwl_tel': 'Water Level', 'precip_tel': 'Rainfall Depth', 'swl_tel': 'Water Level', 'wtemp_tel': 'Water Temperature'}
@@ -227,46 +248,36 @@ def rd_hydrotel(select=None, mtype='flow_tel', from_date=None, to_date=None, use
 
     #### Import data and select the correct sites
 
-    if select is not None:
-        sites = select_sites(select)
-        if mtype == 'precip_tel':
-            site_ob1 = rd_sql(server, database, objects_tab, ['Site', 'ExtSysId'], 'ExtSysId', sites.astype('int32').tolist())
-            site_val0 = rd_sql(server, database, sites_tab, ['Site', 'Name'], 'Site', site_ob1.Site.tolist())
-            site_val1 = merge(site_val0, site_ob1, on='Site')
-        elif mtype == 'gwl_tel':
-            site_val0 = rd_sql(server, database, sites_tab, ['Site', 'Name'])
-            site_val0.loc[:, 'Name'] = site_val0.apply(lambda x: x.Name.split(' ')[0], axis=1)
-            site_val1 = site_val0[site_val0.Name.isin(sites)]
-            site_val1.loc[:, 'ExtSysId'] = site_val1.loc[:, 'Name']
-        else:
-            site_val1 = rd_sql(server, database, sites_tab, sites_col, 'ExtSysId', sites.astype('int32').tolist())
-        site_val1.loc[:, 'ExtSysId'] = to_numeric(site_val1.loc[:,'ExtSysId'], errors='ignore')
-        site_val = site_val1.Site.astype('int32').tolist()
-        if isinstance(mtype, (list, ndarray, Series)):
-            mtypes = [mtypes_dict[i] for i in mtype]
-        elif isinstance(mtype, str):
-            mtypes = [mtypes_dict[mtype]]
-        else:
-            raise ValueError('mtype must be a str, list, ndarray, or Series.')
-        mtypes_val = rd_sql(server, database, mtypes_tab, mtypes_col, 'Name', mtypes)
-
-        where_col = {'Site': site_val, 'ObjectVariant': mtypes_val.ObjectVariant.astype('int32').tolist()}
-
-        object_val1 = rd_sql(server, database, objects_tab, objects_col, where_col)
-        if mtype == 'gwl_tel':
-            object_val1 = object_val1[object_val1.Name == 'Water Level']
-        if mtype == 'precip_tel':
-            object_val1 = object_val1[object_val1.Name == 'Rainfall']
-        object_val = object_val1.Object.values.astype(int).tolist()
+    sites = select_sites(sites)
+    if mtype == 'precip_tel':
+        site_ob1 = rd_sql(server, database, objects_tab, ['Site', 'ExtSysId'], 'ExtSysId', sites.astype('int32').tolist())
+        site_val0 = rd_sql(server, database, sites_tab, ['Site', 'Name'], 'Site', site_ob1.Site.tolist())
+        site_val1 = merge(site_val0, site_ob1, on='Site')
+    elif mtype == 'gwl_tel':
+        site_val0 = rd_sql(server, database, sites_tab, ['Site', 'Name'])
+        site_val0.loc[:, 'Name'] = site_val0.apply(lambda x: x.Name.split(' ')[0], axis=1)
+        site_val1 = site_val0[site_val0.Name.isin(sites)]
+        site_val1.loc[:, 'ExtSysId'] = site_val1.loc[:, 'Name']
     else:
-        site_val1 = rd_sql(server, database, sites_tab, sites_col)
-        site_val1.loc[:,'ExtSysId'] = to_numeric(site_val1.loc[:,'ExtSysId'], errors='ignore')
-        site_val1 = site_val1[site_val1['ExtSysId'].notnull()]
-        site_val1.loc[:,'ExtSysId'] = site_val1.loc[:,'ExtSysId'].astype('int32')
-        site_val = site_val1.Site.values.tolist()
-        where_col = {'Site': site_val, 'Name': [mtype]}
-        object_val1 = rd_sql(server, database, objects_tab, objects_col, where_col)
-        object_val = object_val1.Object.values.astype(int).tolist()
+        site_val1 = rd_sql(server, database, sites_tab, sites_col, 'ExtSysId', sites.astype('int32').tolist())
+    site_val1.loc[:, 'ExtSysId'] = to_numeric(site_val1.loc[:,'ExtSysId'], errors='ignore')
+    site_val = site_val1.Site.astype('int32').tolist()
+    if isinstance(mtype, (list, ndarray, Series)):
+        mtypes = [mtypes_dict[i] for i in mtype]
+    elif isinstance(mtype, str):
+        mtypes = [mtypes_dict[mtype]]
+    else:
+        raise ValueError('mtype must be a str, list, ndarray, or Series.')
+    mtypes_val = rd_sql(server, database, mtypes_tab, mtypes_col, 'Name', mtypes)
+
+    where_col = {'Site': site_val, 'ObjectVariant': mtypes_val.ObjectVariant.astype('int32').tolist()}
+
+    object_val1 = rd_sql(server, database, objects_tab, objects_col, where_col)
+    if mtype == 'gwl_tel':
+        object_val1 = object_val1[object_val1.Name == 'Water Level']
+    if mtype == 'precip_tel':
+        object_val1 = object_val1[object_val1.Name == 'Rainfall']
+    object_val = object_val1.Object.values.astype(int).tolist()
 
     #### Rearrange data
     point_val1 = rd_sql(server, database, points_tab, points_col, where_col='Object', where_val=object_val)
@@ -279,34 +290,10 @@ def rd_hydrotel(select=None, mtype='flow_tel', from_date=None, to_date=None, use
 
     #### Pull out the data
     ### Make SQL statement
-    where_col_stmt = 'Point IN (' + str(point_val)[1:-1] + ')'
+    data1 = rd_sql_ts(server, database, data_tab, 'Point', 'DT', 'SampleValue', resample_code, period, fun, val_round, {'Point': point_val}, from_date=from_date, to_date=to_date)['SampleValue']
 
-    if isinstance(from_date, str):
-        from_date1 = to_datetime(from_date, errors='coerce')
-        if isinstance(from_date1, Timestamp):
-            from_date2 = from_date1.strftime('%Y-%m-%d')
-            where_from_date = "DT >= " + from_date2.join(['\'', '\''])
-    else:
-        where_from_date = ''
-
-    if isinstance(to_date, str):
-        to_date1 = to_datetime(to_date, errors='coerce')
-        if isinstance(to_date1, Timestamp):
-            to_date2 = to_date1.strftime('%Y-%m-%d')
-            where_to_date = "DT <= " + to_date2.join(['\'', '\''])
-    else:
-        where_to_date = ''
-
-    where_lst = [i for i in [where_col_stmt, where_from_date, where_to_date] if len(i) > 0]
-
-    if resample is not None:
-        stmt1 = "SELECT " + "Point AS site, DATEADD(" + resample + ", DATEDIFF(" + resample + ", 0, DT), 0) AS time, round(" + fun + "(SampleValue), 3) AS value" + " FROM " + data_tab + " where " + " and ".join(where_lst) + "GROUP BY Point, DATEADD(" + resample + ", DATEDIFF(" + resample + ", 0, DT), 0) ORDER BY site, time"
-    else:
-        stmt1 = "SELECT Point AS site, DT AS time, SampleValue AS value FROM " + data_tab + " where " + " and ".join(where_lst)
-
-    data1 = rd_sql(server, database, data_tab, stmt=stmt1)
-#    data1.columns = ['site', 'time', 'value']
-    data1.set_index(['site', 'time'], inplace=True)
+    data1.index.names = ['site', 'time']
+    data1.name = 'value'
     site_numbers = [comp_tab2.loc[i, 'ExtSysId'] for i in data1.index.levels[0]]
     data1.index.set_levels(site_numbers, level='site', inplace=True)
 
@@ -316,8 +303,8 @@ def rd_hydrotel(select=None, mtype='flow_tel', from_date=None, to_date=None, use
         data3 = data1
 
     #### Export and return
-    if export:
-        data3.to_csv(export_path)
+    if export_path is not None:
+        save_df(data3, export_path)
 
     return(data3)
 

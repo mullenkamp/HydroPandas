@@ -16,19 +16,19 @@ prod_server03 = 'SQL2012PROD03'
 prod_server05 = 'SQL2012PROD05'
 dw_db = 'DataWarehouse'
 
-flow_dict = {'server': prod_server03, 'db': dw_db, 'table': 'F_HY_Flow_Data', 'site_col': 'SiteNo', 'time_col': 'DateTime', 'data_col': 'Value', 'qual_col': 'QualityCode', 'add_where': None}
+flow_dict = {'server': prod_server03, 'database': dw_db, 'table': 'F_HY_Flow_Data', 'site_col': 'SiteNo', 'time_col': 'DateTime', 'data_col': 'Value', 'qual_col': 'QualityCode', 'add_where': None}
 
-precip_dict = {'server': prod_server03, 'db': dw_db, 'table': 'F_HY_Precip_data', 'site_col': 'site', 'time_col': 'time', 'data_col': 'data', 'qual_col': 'qual_code', 'add_where': None}
+precip_dict = {'server': prod_server03, 'database': dw_db, 'table': 'F_HY_Precip_data', 'site_col': 'site', 'time_col': 'time', 'data_col': 'data', 'qual_col': 'qual_code', 'add_where': None}
 
-swl_dict = {'server': prod_server03, 'db': dw_db, 'table': 'F_HY_SWL_data', 'site_col': 'site', 'time_col': 'time', 'data_col': 'data', 'qual_col': 'qual_code', 'add_where': None}
+swl_dict = {'server': prod_server03, 'database': dw_db, 'table': 'F_HY_SWL_data', 'site_col': 'site', 'time_col': 'time', 'data_col': 'data', 'qual_col': 'qual_code', 'add_where': None}
 
-gwl_dict = {'server': prod_server03, 'db': dw_db, 'table': 'F_HY_GWL_data', 'site_col': 'site', 'time_col': 'time', 'data_col': 'data', 'qual_col': 'qual_code', 'add_where': None}
+gwl_dict = {'server': prod_server03, 'database': dw_db, 'table': 'F_HY_GWL_data', 'site_col': 'site', 'time_col': 'time', 'data_col': 'data', 'qual_col': 'qual_code', 'add_where': None}
 
-gwl_m_dict = {'server': prod_server05, 'db': 'Wells', 'table': 'DTW_READINGS', 'site_col': 'WELL_NO', 'time_col': 'DATE_READ', 'data_col': 'DEPTH_TO_WATER', 'qual_col': None, 'add_where': "TIDEDA_FLAG='N'"}
+gwl_m_dict = {'server': prod_server05, 'database': 'Wells', 'table': 'DTW_READINGS', 'site_col': 'WELL_NO', 'time_col': 'DATE_READ', 'data_col': 'DEPTH_TO_WATER', 'qual_col': None, 'add_where': "TIDEDA_FLAG='N'"}
 
-usage_dict = {'server': prod_server03, 'db': dw_db, 'table': 'F_HY_Usage_data', 'site_col': 'site', 'time_col': 'time', 'data_col': 'data', 'qual_col': None, 'add_where': None}
+usage_dict = {'server': prod_server03, 'database': dw_db, 'table': 'F_HY_Usage_data', 'site_col': 'site', 'time_col': 'time', 'data_col': 'data', 'qual_col': None, 'add_where': None}
 
-wus_usage_dict = {'server': prod_server03, 'db': 'WUS', 'table': 'vw_WUS_Fact_DailyUsageByUsageSite', 'site_col': 'UsageSite', 'time_col': 'Day', 'data_col': 'Usage', 'qual_col': None, 'add_where': None}
+wus_usage_dict = {'server': prod_server03, 'database': 'WUS', 'table': 'vw_WUS_Fact_DailyUsageByUsageSite', 'site_col': 'UsageSite', 'time_col': 'Day', 'data_col': 'Usage', 'qual_col': None, 'add_where': None}
 
 #usage_server = 'SQL2012DEV01'
 #usage_db = 'Hydro'
@@ -199,14 +199,14 @@ def _rd_hydstra(self, sites, start_time=0, end_time=0, datasource='A', data_type
     return(self)
 
 
-def _rd_hydrotel(self, sites, mtype='flow_tel', from_date=None, to_date=None, resample=False, period='day', n_periods=1, fun='mean'):
+def _rd_hydrotel(self, sites, mtype='flow_tel', from_date=None, to_date=None, resample='day', fun='avg'):
     """
     Function for the Hydro class to read Hydrotel data.
     """
     from core.ecan_io.flow import rd_hydrotel
 
     ### Load in hydrotel data
-    data = rd_hydrotel(select=sites, mtype=mtype, resample=resample, period=period, n_periods=n_periods, fun=fun, from_date=from_date, to_date=to_date)
+    data = rd_hydrotel(sites=sites, mtype=mtype, resample=resample, fun=fun, from_date=from_date, to_date=to_date)
     data2 = data.reset_index()
     data2['mtype'] = mtype
 

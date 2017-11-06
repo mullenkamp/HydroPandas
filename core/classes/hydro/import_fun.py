@@ -8,7 +8,7 @@ from numpy import array, ndarray, in1d, unique, append, nan, argmax, where, dtyp
 from geopandas import GeoDataFrame, GeoSeries, read_file
 from collections import defaultdict
 from pymssql import connect
-from core.ecan_io import rd_sql
+from core.ecan_io import rd_sql, rd_sql_ts
 
 ########################################################
 #### Time series data
@@ -55,6 +55,8 @@ def add_data(self, data, time=None, sites=None, mtypes=None, values=None, dforma
         raise ValueError("dformat must be specified and must be either 'long' or 'wide'.")
     if not isinstance(data, DataFrame):
         data = DataFrame(data)
+    if data.empty:
+        raise ValueError('DataFrame is empty, no data was passed')
     if dformat is 'wide':
         if isinstance(data.columns, MultiIndex):
             if not isinstance(data.index, DatetimeIndex):
@@ -399,7 +401,7 @@ def rd_netcdf(self, nc_path):
 ### mssql
 
 
-def _rd_hydro_mssql(self, server, database, table, mtype, time_col, site_col, data_col, qual_col, sites=None, from_date=None, to_date=None, qual_codes=None, add_where=None):
+def _rd_hydro_mssql(self, server, database, table, mtype, time_col, site_col, data_col, qual_col=None, sites=None, from_date=None, to_date=None, qual_codes=None, add_where=None):
     """
     Function to import data from a MSSQL database. Specific columns can be selected and specific queries within columns can be selected. Requires the pymssql package.
 
@@ -485,6 +487,10 @@ def _rd_hydro_mssql(self, server, database, table, mtype, time_col, site_col, da
     df = read_sql(stmt1, conn)
     conn.close()
 
+    ## Check to see if any data was found
+    if df.empty:
+        raise ValueError('No data was found in the database for the parameters given.')
+
     ## Rename columns
     df.columns = ['site', 'time', 'data']
 
@@ -526,33 +532,23 @@ def _proc_hydro_sql(self, sites_sql_fun, db_dict, mtype, sites=None, from_date=N
     h1 = self.copy()
     if isinstance(mtype_dict, (list, tuple)):
         for i in range(len(mtype_dict)):
-            server1 = mtype_dict[i]['server']
-            db1 = mtype_dict[i]['db']
-            tab1 = mtype_dict[i]['table']
-            time1 = mtype_dict[i]['time_col']
             site1 = mtype_dict[i]['site_col']
-            data1 = mtype_dict[i]['data_col']
-            qual1 = mtype_dict[i]['qual_col']
-            add_where1 = mtype_dict[i]['add_where']
 
-            sites_stmt = 'select distinct ' + site1 + ' from ' + tab1
-            sites2 = rd_sql(server1, db1, stmt=sites_stmt).astype(str)[site1]
+            sites_stmt = 'select distinct ' + site1 + ' from ' + mtype_dict[i]['table']
+            sites2 = rd_sql(mtype_dict[i]['server'], mtype_dict[i]['database'], stmt=sites_stmt).astype(str)[site1]
             sites3 = sites2[sites2.isin(sites1)].astype(str).tolist()
-            h1 = h1._rd_hydro_mssql(server=server1, database=db1, table=tab1, sites=sites3, from_date=from_date, to_date=to_date, mtype=mtype, time_col=time1, site_col=site1, data_col=data1, qual_col=qual1, qual_codes=qual_codes, add_where=add_where1)
+            if not sites3:
+                raise ValueError('No sites in database')
+            h1 = h1._rd_hydro_mssql(sites=sites3, mtype=mtype, from_date=from_date, to_date=to_date, qual_codes=qual_codes, **mtype_dict[i])
     elif isinstance(mtype_dict, dict):
-        server1 = mtype_dict['server']
-        db1 = mtype_dict['db']
-        tab1 = mtype_dict['table']
-        time1 = mtype_dict['time_col']
         site1 = mtype_dict['site_col']
-        data1 = mtype_dict['data_col']
-        qual1 = mtype_dict['qual_col']
-        add_where1 = mtype_dict['add_where']
 
-        sites_stmt = 'select distinct ' + site1 + ' from ' + tab1
-        sites2 = rd_sql(server1, db1, stmt=sites_stmt).astype(str)[site1]
+        sites_stmt = 'select distinct ' + site1 + ' from ' + mtype_dict['table']
+        sites2 = rd_sql(mtype_dict['server'], mtype_dict['database'], stmt=sites_stmt).astype(str)[site1]
         sites3 = sites2[sites2.isin(sites1)].astype(str).tolist()
-        h1 = h1._rd_hydro_mssql(server=server1, database=db1, table=tab1, sites=sites3, from_date=from_date, to_date=to_date, mtype=mtype, time_col=time1, site_col=site1, data_col=data1, qual_col=qual1, qual_codes=qual_codes, add_where=add_where1)
+        if not sites3:
+                raise ValueError('No sites in database')
+        h1 = h1._rd_hydro_mssql(sites=sites3, mtype=mtype, from_date=from_date, to_date=to_date, qual_codes=qual_codes, **mtype_dict)
     elif callable(mtype_dict):
         h1 = mtype_dict(h1, sites=sites1, mtype=mtype, from_date=from_date, to_date=to_date)
 
