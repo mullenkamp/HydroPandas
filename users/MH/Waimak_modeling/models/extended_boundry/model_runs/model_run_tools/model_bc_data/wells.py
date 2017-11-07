@@ -22,6 +22,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
     get_base_well, temp_pickle_dir
 from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.well_budget import get_well_budget
 from users.MH.Waimak_modeling.supporting_data_path import sdp
+from copy import deepcopy
 
 
 # for stream depletion things
@@ -179,9 +180,14 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
             np.in1d(outdata.loc[:, 'type'], ['boundry_flux', 'llr_boundry_flux', 'river', 'ulr_boundry_flux'])]
     cc_mult = 1
     if cc_inputs is not None:
-        if all(pd.isnull(cc_inputs.values())):
+        temp = deepcopy(cc_inputs)
+        try:
+            temp.pop('cc_to_waimak_only')
+        except KeyError:
             pass
-        elif any(pd.isnull(cc_inputs.values())):
+        if all(pd.isnull(temp.values())):
+            pass
+        elif any(pd.isnull(temp.values())):
             raise ValueError('null and non-null values returned for cc_inputs')
         else:
             if org_pumping_wells:

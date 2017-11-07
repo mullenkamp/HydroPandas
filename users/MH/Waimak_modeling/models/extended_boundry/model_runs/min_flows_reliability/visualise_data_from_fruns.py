@@ -255,7 +255,7 @@ def vis_pc5_comp(relitive_data_path):
     g.facet_axis(0, 0).set_ylabel('drawdown (m)')
     g.facet_axis(1, 0).set_ylabel('percent')
     g.fig.set_size_inches((18.5, 9.5))
-    g.fig.suptitle('reliability')
+    g.fig.suptitle('pc5_comparison')
     return g
 
 

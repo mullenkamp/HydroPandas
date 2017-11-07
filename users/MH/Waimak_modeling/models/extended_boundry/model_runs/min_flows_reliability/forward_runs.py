@@ -248,7 +248,7 @@ def setup_run_args(model_id, forward_run_dir, cc_to_waimak_only=False, cc_runs=T
         'base_dir': None,
         'cc_inputs': None,
         'pc5': True,
-        'pc5_well_reduction': True,
+        'pc5_well_reduction': False,
         'pc5_to_waimak_only': True,
         'wil_eff': 0,
         'naturalised': False,

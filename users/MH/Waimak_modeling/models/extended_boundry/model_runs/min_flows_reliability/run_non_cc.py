@@ -25,14 +25,15 @@ if __name__ == '__main__':
     # done on rdsprod03
     #### todo inputs to define for each run####
     safemode = True
-    run_modelses = [True]
+    run_modelses = [True,True]
     model_ids = ['NsmcBase', 'StrOpt']  # todo update
     date = '2017_11_07'
+    base_dir = r"D:\mh_waimak_models" # path on gw02
 
     #### run the models ####
     for model_id, run_models in zip(model_ids, run_modelses):
-        model_dir_path = r"D:\mh_model_runs\{}_non_cc_forward_runs_{}".format(model_id,date)  # path on rdsprod03
-        results_dir = r"D:\mh_model_runs\{}_non_cc_forward_runs_{}_results".format(model_id,date)
+        model_dir_path = r"{}\{}_non_cc_forward_runs_{}".format(base_dir, model_id, date)
+        results_dir = r"{}\{}_non_cc_forward_runs_{}_results".format(base_dir, model_id, date)
         cc_to_waimak_only = False
         notes = """ 
         Naturalisation changes applied to full domain, No climate change senarios run carpet drains removed 
