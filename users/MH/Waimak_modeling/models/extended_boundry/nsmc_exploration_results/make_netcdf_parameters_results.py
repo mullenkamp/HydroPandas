@@ -78,10 +78,10 @@ def _add_rch_params(param, nc_file):
                      'missing_value': np.nan})
     rch_y[:] = None  # todo
 
-    rch_group = nc_file.createVariable('rch_ppt_group', 'i4', ('rch_ppt',), fill_value=-1)
+    rch_group = nc_file.createVariable('rch_ppt_group', 'i4', ('rch_ppt',), fill_value=-9)
     rch_group.setncatts({'units': '',  # todo set groups
                          'long_name': 'recharge pilot point groups',
-                         'missing_value': -1})
+                         'missing_value': -9})
     rch_group[:] = None  # todo set this
 
     rch_mult = nc_file.createVariable('rch_mult', 'f8', ('nsmc_num', 'rch_ppt'), fill_value=np.nan)
@@ -212,6 +212,7 @@ def make_netcdf_nsmc(nc_outfile, rrffile):
 
     # set up netcdf file
     nc_file = nc.Dataset(nc_outfile, 'w')
+    nc_file.notes = 'phi lower and phi upper are -1 and -2, respectivly and where present will appear at the end of the nsmc_variable'
 
     # make dimensions
     nc_file.createDimension('nsmc_num', nsmc_dim)
@@ -220,22 +221,23 @@ def make_netcdf_nsmc(nc_outfile, rrffile):
     nc_file.createDimension('sfr_cond', sfr_dim)
     nc_file.createDimension('khv_ppt', khv_dim)
 
+
     # variables
-    nsmc_num = nc_file.createVariable('nsmc_num', 'i4', ('nsmc_num',), fill_value=-1)
+    nsmc_num = nc_file.createVariable('nsmc_num', 'i4', ('nsmc_num',), fill_value=-9)
     nsmc_num.setncatts({'units': 'none',
                         'long_name': 'Null Space Monte Carlo Realisation Number',
-                        'comments': 'this is a unique identifier for the every realisation from this set',
-                        'missing_value': -1})
-    nsmc_num[:] = range(1, nsmc_dim + 1)
+                        'comments': 'unique identifier phi lower and phi upper are -1 and -2, respectively',
+                        'missing_value': -9})
+    nsmc_num[:] = range(1, nsmc_dim + 3)
 
-    layer = nc_file.createVariable('layer', 'i4', ('layer',), fill_value=-1)
+    layer = nc_file.createVariable('layer', 'i4', ('layer',), fill_value=-9)
     layer.setncatts({'units': 'none',
                      'long_name': 'model layer',
                      'comments': '1 indexed',
-                     'missing_value': -1})
+                     'missing_value': -9})
     nsmc_num[:] = range(1, layer_dim + 1)
 
-    # parameters
+    # parameters #todo add phi low and high
     _add_simple_params(param, nc_file)
 
     _add_rch_params(param, nc_file)
