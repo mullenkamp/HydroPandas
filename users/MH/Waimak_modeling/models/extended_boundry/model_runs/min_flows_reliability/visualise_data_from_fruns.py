@@ -42,13 +42,13 @@ gw_site_groups = {
                           'M35/6295',
                           'M35/4873',
 
-                          #I added below
+                          # I added below
                           'M35/0222',
                           'M35/2679',
                           'M35/0596'],
     'coast_shallow': ['M35/0538',
 
-                      #I added below
+                      # I added below
                       'M35/0724',
                       'M35/17982'
 
@@ -112,7 +112,8 @@ def vis_cc(relative_data_path, meta_data_path):
             g = sns.FacetGrid(temp_data, row='sen', sharey=True, sharex=True,
                               row_order=['naturalised', 'current', 'pc5_80_wil_eff'])
             g.map_dataframe(sns.tsplot, time='period', unit='rcm', value='value', ci=95, condition='condition',
-                            color={'RCP4.5_tym': 'b', 'RCP4.5_low_3_m': 'c', 'RCP8.5_tym': 'r', 'RCP8.5_low_3_m': 'orange'})
+                            color={'RCP4.5_tym': 'b', 'RCP4.5_low_3_m': 'c', 'RCP8.5_tym': 'r',
+                                   'RCP8.5_low_3_m': 'orange'})
             order = ['RCP4.5_tym', 'RCP8.5_tym', 'RCP4.5_low_3_m', 'RCP8.5_low_3_m']
             temp = np.array(g.axes[0, 0].get_legend_handles_labels())
             tidx = [np.where(temp[1] == e)[0][0] for e in order]
@@ -144,7 +145,7 @@ def vis_eco_min_flows(relitive_data_path):  # todo handle dry missing wells
     data = data.loc[:, sens + ['site']]
     data = pd.melt(data, id_vars=['site'], var_name='scenario')
     idx = data.site.str.contains('/')
-    data.loc[data.value<-700,'value'] = np.nan # excluding dry wells
+    data.loc[data.value < -700, 'value'] = np.nan  # excluding dry wells
     data.loc[idx, 'type'] = 'well'
     data.loc[~idx, 'type'] = 'stream'
     data.loc[~idx, 'value'] *= 100
@@ -180,9 +181,9 @@ def vis_relibability(relitive_data_path):  # todo handle dry missing wells
     """
 
     sens = [
-            'pc5_80',
-            'pc5_80_wil_eff',
-            'wil_eff']
+        'pc5_80',
+        'pc5_80_wil_eff',
+        'wil_eff']
     data = pd.read_csv(relitive_data_path, skiprows=1)
     data = data.loc[:, sens + ['site']]
     data = pd.melt(data, id_vars=['site'], var_name='scenario')
@@ -212,6 +213,51 @@ def vis_relibability(relitive_data_path):  # todo handle dry missing wells
     g.fig.set_size_inches((18.5, 9.5))
     g.fig.suptitle('reliability')
     return g
+
+
+def vis_pc5_comp(relitive_data_path):
+    """
+    plot #  pc5, pc5 + will eff with and without pumping reduction
+    :param relitive_data_path: for relative data
+    :return:
+    """
+
+    sens = [
+        'pc5_80',
+        'pc5_80_wil_eff',
+        'pc5_no_pump_reduc',
+        'pc5_no_pump_reduc_wil_eff']
+
+    data = pd.read_csv(relitive_data_path, skiprows=1)
+    data = data.loc[:, sens + ['site']]
+    data = pd.melt(data, id_vars=['site'], var_name='scenario')
+    idx = data.site.str.contains('/')
+    data.loc[idx, 'type'] = 'well'
+    data.loc[~idx, 'type'] = 'stream'
+    data.loc[~idx, 'value'] *= 100
+    for key in groups.keys():
+        data.loc[np.in1d(data.site, groups[key]), 'group'] = key
+    g = sns.FacetGrid(data, 'type', 'scenario', sharex=False, sharey=False)
+
+    g.map(sns.boxplot, 'group', 'value')
+    for row in g.axes:
+        y_lower = []
+        y_upper = []
+        for ax in row:
+            low, up = ax.get_ylim()
+            y_lower.append(low)
+            y_upper.append(up)
+
+        for ax in row:
+            ax.set_ylim(min(y_lower), max(y_upper))
+            [e.set_rotation(-20) for e in ax.get_xticklabels()]
+    g.set_axis_labels(x_var='')
+    g.facet_axis(0, 0).set_ylabel('drawdown (m)')
+    g.facet_axis(1, 0).set_ylabel('percent')
+    g.fig.set_size_inches((18.5, 9.5))
+    g.fig.suptitle('reliability')
+    return g
+
 
 def vis_bases(relitive_data_path):  # todo handle dry missing wells
     """
@@ -253,7 +299,8 @@ def vis_bases(relitive_data_path):  # todo handle dry missing wells
     g.fig.suptitle('base model comparisons')
     return g
 
-def plot_and_save_forward_vis(outdir, relitive_data_path, meta_data_path, cc_runs=True):
+
+def plot_and_save_forward_vis(outdir, relitive_data_path, meta_data_path, cc_runs=True, pc5_comp=False):
     """
     wrapper to plot and save everything
     :param outdir: dir to save the plots in
@@ -265,19 +312,23 @@ def plot_and_save_forward_vis(outdir, relitive_data_path, meta_data_path, cc_run
     if not os.path.exists(outdir):
         os.makedirs(outdir)
     g = vis_eco_min_flows(relitive_data_path=relitive_data_path)
-    g.savefig(os.path.join(outdir,'{}.png'.format(g.fig._suptitle._text)))
+    g.savefig(os.path.join(outdir, '{}.png'.format(g.fig._suptitle._text)))
     g = vis_relibability(relitive_data_path)
-    g.savefig(os.path.join(outdir,'{}.png'.format(g.fig._suptitle._text)))
+    g.savefig(os.path.join(outdir, '{}.png'.format(g.fig._suptitle._text)))
     g = vis_bases(relitive_data_path)
-    g.savefig(os.path.join(outdir,'{}.png'.format(g.fig._suptitle._text)))
+    g.savefig(os.path.join(outdir, '{}.png'.format(g.fig._suptitle._text)))
+    if pc5_comp:
+        g = vis_pc5_comp(relitive_data_path)
+        g.savefig(os.path.join(outdir, '{}.png'.format(g.fig._suptitle._text)))
     if cc_runs:
-        gs = vis_cc(relitive_data_path,meta_data_path)
+        gs = vis_cc(relitive_data_path, meta_data_path)
         for g in gs:
-            g.savefig(os.path.join(outdir,'{}.png'.format(g.fig._suptitle._text).replace('/','_')))
+            g.savefig(os.path.join(outdir, '{}.png'.format(g.fig._suptitle._text).replace('/', '_')))
 
 
 if __name__ == '__main__':
     # test see run script for actual use
-    plot_and_save_forward_vis(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\results\cc_only_to_waimak\overview_plots",
-                              r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\results\cc_only_to_waimak\opt_relative_data.csv",
-                              r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\results\cc_only_to_waimak\opt_meta_data.csv")
+    plot_and_save_forward_vis(
+        r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\results\cc_only_to_waimak\overview_plots",
+        r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\results\cc_only_to_waimak\opt_relative_data.csv",
+        r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\forward_sw_gw\results\cc_only_to_waimak\opt_meta_data.csv")

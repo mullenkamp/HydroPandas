@@ -26,17 +26,18 @@ if __name__ == '__main__':
     #### todo inputs to define for each run####
     safemode = True
     run_modelses = [True]
-    model_ids = ['NsmcBase']  # todo update
+    model_ids = ['NsmcBase', 'StrOpt']  # todo update
+    date = '2017_11_07'
 
     #### run the models ####
     for model_id, run_models in zip(model_ids, run_modelses):
-        model_dir_path = r"D:\mh_model_runs\{}_non_cc_forward_runs_2017_10_28".format(model_id)  # path on rdsprod03
-        results_dir = r"D:\mh_model_runs\{}_non_cc_forward_runs_2017_10_28_results".format(model_id)
+        model_dir_path = r"D:\mh_model_runs\{}_non_cc_forward_runs_{}".format(model_id,date)  # path on rdsprod03
+        results_dir = r"D:\mh_model_runs\{}_non_cc_forward_runs_{}_results".format(model_id,date)
         cc_to_waimak_only = False
         notes = """ 
-        LSR senario changes applied to full domain, No climate change senarios run carpet drains removed if not explicit in the model name (_w_ncar)
-        pumping changes only applied to Waimakariri with the exception of the pc5 adjustment which is applied in the 
-        full domain, run in {}
+        Naturalisation changes applied to full domain, No climate change senarios run carpet drains removed 
+        if not explicit in the model name (_w_ncar)
+        pumping changes only applied to Waimakariri, run in {}
         """.format(model_dir_path)
         if run_models:
             if safemode:
@@ -69,5 +70,5 @@ if __name__ == '__main__':
             os.path.join(results_dir, "overview_plots"),
             os.path.join(results_dir, "{}_relative_data.csv".format(model_id)),
             os.path.join(results_dir, "{}_meta_data.csv".format(model_id)),
-            cc_runs=False
+            cc_runs=False, pc5_comp=True
         )

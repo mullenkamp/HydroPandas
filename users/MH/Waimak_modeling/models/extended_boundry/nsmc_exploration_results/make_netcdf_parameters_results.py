@@ -248,5 +248,5 @@ def make_netcdf_nsmc(nc_outfile, rrffile):
 
     # todo add observations
     # todo add convergance
-    # todo add pass filter
     # todo add phis
+    # todo add pass filter

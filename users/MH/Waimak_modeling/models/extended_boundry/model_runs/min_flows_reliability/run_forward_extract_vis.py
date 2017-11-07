@@ -26,9 +26,10 @@ if __name__ == '__main__':
     results_dir = r"D:\mh_model_runs\{}_forward_runs_2017_10_29_results".format(model_id)
     cc_to_waimak_only = True
     notes = """ 
-    LSR senario changes applied to full domain, CC component of LSR changes applied to only waimakariri, but ccmult and missing h20 is waimak only
-    these senarios are without the n carpet drains unless explecitly stated in the model name (_w_ncar)
-    pumping changes only applied to Waimakariri with the exception of the pc5 adjustment which is applied in the full domain,
+    Naturalisation applied to full domain, CC component of LSR changes and pc5 applied to only waimakariri, 
+    but ccmult and missing h20 is waimak only these senarios are without the n carpet drains unless 
+    explecitly stated in the model name (_w_ncar)
+    pumping changes only applied to Waimakariri
     run in {}
     """.format(model_dir_path)
     run_models = False # a quick way to only run part of this script if something breaks

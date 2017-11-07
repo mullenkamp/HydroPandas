@@ -132,7 +132,8 @@ def get_max_rate(model_id, org_pumping_wells=False, recalc=False):
     return outdata
 
 
-def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturalised=False, full_allo=False, pc5=False,org_pumping_wells=False):
+def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturalised=False, full_allo=False,
+                      pc5=False,org_pumping_wells=False):
     """
     gets the pumping data for the forward runs
     :param model_id: which NSMC realisation to use
@@ -162,7 +163,7 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
         outdata.loc[idx, 'flux'] = get_full_consent(model_id, org_pumping_wells).loc[idx, 'flux']
     else:
         if pc5 and not full_abstraction:
-            outdata.loc[(outdata.loc[:, 'use_type'] == 'irrigation-sw'), 'flux'] *= 3 / 4
+            outdata.loc[(outdata.loc[:, 'use_type'] == 'irrigation-sw') & (outdata.cwms == 'waimak'), 'flux'] *= 3 / 4
             # an inital 1/4 reduction for pc5 to
             # account for the decreased irrgation demand for with more efficent irrigation this number comes from
             # prorataing the difference between 80% and 100% irrigation LSRM outputs to the percentage of irrigation

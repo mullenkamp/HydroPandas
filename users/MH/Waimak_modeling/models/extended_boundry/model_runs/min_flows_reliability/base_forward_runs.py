@@ -6,17 +6,20 @@ Date Created: 8/09/2017 8:39 AM
 
 from __future__ import division
 from core import env
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools import mod_gns_model, zip_non_essential_files, import_gns_model
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools import get_forward_wells, get_forward_rch
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools import mod_gns_model, \
+    zip_non_essential_files, import_gns_model
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools import get_forward_wells, \
+    get_forward_rch
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import flopy
 import os
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import converged
 from traceback import format_exc
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.stream_depletion_assesment.raising_heads_no_carpet import get_drn_no_ncarpet_spd
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.stream_depletion_assesment.raising_heads_no_carpet import \
+    get_drn_no_ncarpet_spd
 
 
-def setup_run_forward_run_mp (kwargs):
+def setup_run_forward_run_mp(kwargs):
     """
      a wrapper to allow easy multiprocessing
     :param kwargs: kwargs to pass to setup_run_forward_model
@@ -29,7 +32,9 @@ def setup_run_forward_run_mp (kwargs):
         success = format_exc().replace('\n', '')
     return name, success
 
-def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, wil_eff=1, naturalised=False,
+
+def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, pc5_well_reduction=False,
+                          pc5_to_waimak_only=False, wil_eff=1, naturalised=False,
                           full_abs=False, pumping_well_scale=1, full_allo=False, org_efficency=None,
                           org_pumping_wells=False, rm_ncarpet=True):
     """
@@ -47,6 +52,8 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
                                         cc_to_waimak_only: if True only apply the cc changes to waimak zone
                                                            (still apply senarios e.g. pc5)
     :param pc5: boolean if true use assumed PC5 efficency
+    :param pc5_well_reduction: boolean if True, pumping wells in waimakariri will be reduced by 25%
+    :param pc5_to_waimak_only: boolean if True, pc5 is only applied to the waimakariri zone
     :param wil_eff: a factor (>0) which will be applied to the WIL scheme losses (e.g. .2 = 20% of optimised model value)
     :param naturalised: boolean if true run with a naturalised system no pumping, irrigation LSR impacts, WIL losses etc.
     :param full_abs: boolean, if true include full abstration for the wells
@@ -63,14 +70,22 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
 
     # cc inputs are a dict
     if cc_inputs is None:
-        cc_inputs = {'rcm':None, 'rcp':None, 'period':None, 'amag_type':None}
-    if not isinstance(cc_inputs,dict):
+        cc_inputs = {'rcm': None, 'rcp': None, 'period': None, 'amag_type': None}
+    if not isinstance(cc_inputs, dict):
         raise ValueError('incorrect type for cc_inputs {} expected dict or None'.format(type(cc_inputs)))
 
-    well_data, cc_mult, new_water = get_forward_wells(model_id=model_id,full_abstraction=full_abs,
-                                  cc_inputs=cc_inputs, naturalised=naturalised, full_allo=full_allo, pc5=pc5,org_pumping_wells=org_pumping_wells)
-    well_data.loc[well_data.type=='well','flux'] *= pumping_well_scale
-    well_data.loc[(well_data.type=='race') & (well_data.zone == 'n_wai'),'flux'] *= wil_eff
+    if pc5_to_waimak_only and not pc5:
+        raise ValueError('pc5 must be True if pc5 to waimak only is True')
+    if pc5_well_reduction and not pc5:
+        raise ValueError('pc5 must be True if pc5_well_reduction is True')
+
+    if pc5_to_waimak_only:
+        cc_inputs['cc_to_waimak_only'] = True
+    well_data, cc_mult, new_water = get_forward_wells(model_id=model_id, full_abstraction=full_abs,
+                                                      cc_inputs=cc_inputs, naturalised=naturalised, full_allo=full_allo,
+                                                      pc5=pc5_well_reduction, org_pumping_wells=org_pumping_wells)
+    well_data.loc[well_data.type == 'well', 'flux'] *= pumping_well_scale
+    well_data.loc[(well_data.type == 'race') & (well_data.zone == 'n_wai'), 'flux'] *= wil_eff
     well_data = smt.convert_well_data_to_stresspd(well_data)
 
     rch = get_forward_rch(model_id, naturalised, pc5, **cc_inputs)
@@ -106,24 +121,24 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
                                    maxiterout=100,
                                    thickfact=1e-05,
                                    linmeth=1,
-                                   iprnwt=0, #could change
+                                   iprnwt=0,  # could change
                                    ibotav=0,
                                    options='COMPLEX',
-                                   Continue=False, #could change
+                                   Continue=False,  # could change
                                    dbdtheta=0.4,  # only when options is specified
                                    dbdkappa=1e-05,  # only when options is specified
                                    dbdgamma=0.0,  # only when options is specified
                                    momfact=0.1,  # only when options is specified
                                    backflag=1,  # only when options is specified
                                    maxbackiter=50,  # only when options is specified
-                                   backtol=1.1,   # only when options is specified
-                                   backreduce=0.7,   # only when options is specified
-                                   maxitinner=50,   # only when options is specified
-                                   ilumethod=2,   # only when options is specified
-                                   levfill=5,   # only when options is specified
-                                   stoptol=1e-10,   # only when options is specified
-                                   msdr=15,   # only when options is specified
-                                   iacl=2,   # only when options is specified
+                                   backtol=1.1,  # only when options is specified
+                                   backreduce=0.7,  # only when options is specified
+                                   maxitinner=50,  # only when options is specified
+                                   ilumethod=2,  # only when options is specified
+                                   levfill=5,  # only when options is specified
+                                   stoptol=1e-10,  # only when options is specified
+                                   msdr=15,  # only when options is specified
+                                   iacl=2,  # only when options is specified
                                    norder=1,  # only when options is specified
                                    level=5,  # only when options is specified
                                    north=7,  # only when options is specified
@@ -135,16 +150,16 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
                                    mxiterxmd=50,  # only when options is specified
                                    unitnumber=714)
 
-    with open(os.path.join(m.model_ws,'cc_mult_info.txt'),'w') as f:
+    with open(os.path.join(m.model_ws, 'cc_mult_info.txt'), 'w') as f:
         f.write('cc_mult (unitless): ' + str(cc_mult) + '\n')
         f.write('missing_water (m3/day): ' + str(new_water) + '\n')
 
     m.write_name_file()
     m.write_input()
     success, buff = m.run_model(report=True)
-    con=False
+    con = False
     if success:
-        con = converged(os.path.join(m.model_ws,m.namefile.replace('.nam', '.list')))
+        con = converged(os.path.join(m.model_ws, m.namefile.replace('.nam', '.list')))
         zip_non_essential_files(m.model_ws, include_list=True)
     if con is None:
         success = 'convergence unknown'
@@ -153,4 +168,3 @@ def setup_run_forward_run(model_id, name, base_dir, cc_inputs=None, pc5=False, w
     else:
         success = 'did not converge'
     return name, success
-
