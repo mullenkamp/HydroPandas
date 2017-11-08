@@ -114,7 +114,7 @@ def add_data(self, data, time=None, sites=None, mtypes=None, values=None, dforma
 
     ## Check mtypes
     new_mtypes = input1.index.levels[0]
-    mtypes_bool = in1d(new_mtypes, all_mtypes.keys())
+    mtypes_bool = in1d(new_mtypes, all_mtypes)
     if any(~mtypes_bool):
         sel_mtypes = new_mtypes[mtypes_bool]
         input1 = input1.loc(axis=0)[sel_mtypes, :, :]
@@ -514,12 +514,13 @@ def _rd_hydro_geo_mssql(self, server, database, table, geo_dict):
     return(sites2)
 
 
-def _proc_hydro_sql(self, sites_sql_fun, db_dict, mtype, sites=None, from_date=None, to_date=None, qual_codes=None, buffer_dis=0):
+def _proc_hydro_sql(self, sites_sql_fun, db_dict, mtype, sites=None, from_date=None, to_date=None, qual_codes=None, buffer_dis=0, resample=None):
     """
     Convenience function for reading in mssql data from standardized hydro tables.
     """
     from core.spatial import sel_sites_poly
     from geopandas import GeoDataFrame
+    from core.ecan_io.mssql import rd_sql_ts
 
     if isinstance(sites, GeoDataFrame):
         loc1 = sites_sql_fun()
@@ -539,6 +540,8 @@ def _proc_hydro_sql(self, sites_sql_fun, db_dict, mtype, sites=None, from_date=N
             sites3 = sites2[sites2.isin(sites1)].astype(str).tolist()
             if not sites3:
                 raise ValueError('No sites in database')
+            if mtype_dict[i]['qual_col'] is None:
+                qual_codes = None
             h1 = h1._rd_hydro_mssql(sites=sites3, mtype=mtype, from_date=from_date, to_date=to_date, qual_codes=qual_codes, **mtype_dict[i])
     elif isinstance(mtype_dict, dict):
         site1 = mtype_dict['site_col']
@@ -548,6 +551,8 @@ def _proc_hydro_sql(self, sites_sql_fun, db_dict, mtype, sites=None, from_date=N
         sites3 = sites2[sites2.isin(sites1)].astype(str).tolist()
         if not sites3:
                 raise ValueError('No sites in database')
+        if mtype_dict['qual_col'] is None:
+            qual_codes = None
         h1 = h1._rd_hydro_mssql(sites=sites3, mtype=mtype, from_date=from_date, to_date=to_date, qual_codes=qual_codes, **mtype_dict)
     elif callable(mtype_dict):
         h1 = mtype_dict(h1, sites=sites1, mtype=mtype, from_date=from_date, to_date=to_date)

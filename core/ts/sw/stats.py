@@ -8,9 +8,18 @@ def flow_stats(x, below_median=False, export_path=None):
     """
     Function to run summary stats on time series flow data.
 
-    Arguments:\n
-    below_median -- Should the average number of days below the median be added?\n
-    export_path -- Path where the results will be exported.
+    Parameters
+    ----------
+    x : DataFrame or Series
+        Pandas DataFrame or Series with a daily DateTimeIndex.
+    below_median : bool
+        Should the average number of days below the median be added?
+    export_path : str
+        Path where the results will be exported.
+
+    Returns
+    -------
+    DataFrame
     """
 
     from pandas import DataFrame, concat
@@ -72,17 +81,29 @@ def flow_stats(x, below_median=False, export_path=None):
 def malf7d(x, w_month='JUN', max_missing=90, malf_min=0.9, intervals=[10, 20, 30, 40], return_alfs=False, num_years=False, export_path=None, export_name_malf='malf.csv', export_name_alf='alf.csv', export_name_mis='alf_missing_data.csv'):
     """
     Function to create a 7 day mean annual low flow estimate from flow time
-    series. When return_alfs is False, then the output is only a dataframe of the MALFs by intervals. When return_alfs is True, then the output will include the MALFs, the annual ALFs, the number of missing days per year, the number of days (out of 20) that have data surrounding the minimum flow value for that year, and the dates of the minimum flow per year.
+    series.
 
-    Arguments:\n
-    x -- Pandas DataFrame or Series with a daily DateTimeIndex.\n
-    w_month -- The month to start the water year in three upper case letters.\n
-    max_missing -- The allowed missing data in a year for the
-    alf7d calc.\n
-    malf_min -- The minimum ratio of ALF data years to total years to calculate the MALF.\n
-    intervals -- The intervals to calculate MALF over.\n
-    return_alf -- Should the ALFs and the number of missing days per year be returned in addition to the MALF?\n
-    export_path -- The base path for the export files that will be saved.
+    Parameters
+    ----------
+    x : DataFrame or Series
+        Pandas DataFrame or Series with a daily DateTimeIndex.
+    w_month : str
+        The month to start the water year in three upper case letters.
+    max_missing : int
+        The allowed missing data in a year for the alf7d calc.
+    malf_min : float
+        The minimum ratio of ALF data years to total years to calculate the MALF.
+    intervals : list of int
+        The intervals to calculate MALF over.
+    return_alf : bool
+        Should the ALFs and the number of missing days per year be returned in addition to the MALF?
+    export_path : str
+        The base path for the export files that will be saved.
+
+    Returns
+    -------
+    DataFrame(s)
+        When return_alfs is False, then the output is only a dataframe of the MALFs by intervals. When return_alfs is True, then the output will include the MALFs, the annual ALFs, the number of missing days per year, the number of days (out of 20) that have data surrounding the minimum flow value for that year, and the dates of the minimum flow per year.
     """
     from pandas import DataFrame, Series, to_datetime
     from core.ts import tsreg

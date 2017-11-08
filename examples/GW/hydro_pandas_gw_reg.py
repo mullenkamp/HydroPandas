@@ -23,7 +23,7 @@ poly = r'P:\examples\regression_tests\ashburton.shp'
 
 ### From the MSSQL server (the easy way) - Loads in both the time series data and the geo locations
 
-h1 = hydro().get_data(mtypes=mtypes1, sites=sites1)
+h1 = hydro().get_data(mtypes=mtypes1, sites=sites2)
 h2 = h1.get_data(mtypes=mtypes2, sites=sites2, qual_codes=qual_codes)
 
 
@@ -109,7 +109,7 @@ gwstats
 ## Two gauging sites with a 40 km buffer distance to determine recorder sites
 ## Only uses gaugings with the regressions...so far
 
-new1, reg = h4.gwl_reg(y=['K37/3556'], buffer_dis=40000, min_yrs=10)
+new1, reg = h4.gwl_reg(y=sites2, buffer_dis=40000, min_yrs=10)
 new1
 reg
 

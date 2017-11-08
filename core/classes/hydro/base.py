@@ -4,23 +4,41 @@ Created on Thu Feb 16 15:41:08 2017
 
 @author: michaelek
 """
+from collections import OrderedDict
+from itertools import product
 
-#mtypes_units = {'flow': 'm3/s', 'flow_m': 'm3/s', 'swl': 'masl', 'swl_m': 'masl', 'gwl': 'masl', 'gwl_m': 'masl', 'precip': 'mm', 'R_n': 'MJ/m2', 'R_s': 'MJ/m2', 'G': 'MJ/m2', 'T_min': 'deg C', 'T_max': 'deg C', 'T_mean': 'deg C', 'T_dew': 'deg C', 'RH_min': '%', 'RH_max': '%', 'RH_mean': '%', 'n_sun': 'hours/day', 'U_z': 'm/s', 'P_atmos': 'kPa', 'nitrate': 'mg/l', 'ammonium': 'mg/l', 'chloride': 'mg/l', 'usage': 'm3', 'lakel': 'masl'}
-resample_fun = {'flow': 'mean', 'flow_m': 'mean', 'swl': 'mean', 'swl_m': 'mean', 'gwl': 'mean', 'gwl_m': 'mean', 'precip': 'sum', 'R_n': 'sum', 'R_s': 'sum', 'G': 'sum', 'T_min': 'mean', 'T_max': 'mean', 'T_mean': 'mean', 'T_dew': 'mean', 'RH_min': 'mean', 'RH_max': 'mean', 'RH_mean': 'mean', 'n_sun': 'sum', 'U_z': 'mean', 'P_atmos': 'mean', 'nitrate': 'mean', 'ammonium': 'mean', 'chloride': 'mean', 'usage': 'sum', 'lakel': 'mean'}
+key_fields = OrderedDict((('feature', ('river', 'aq', 'atmos', 'soil', 'lake')), ('mtype', ('wl', 'flow', 'T', 'precip', 'abstr', 'R_n', 'R_s', 'T_min', 'T_max', 'RH_min', 'RH_max', 'U_z', 'P', 'ET')), ('freq', ('cont', 'disc')), ('qual_state', ('raw', 'qc'))))
 
-flow_dict = {'units': 'm3/s', 'resample': 'mean', 'long_name': 'recorder flow', 'description': 'flow rate derrived from corrected surface water level recorders'}
-flow_m_dict = {'units': 'm3/s', 'resample': 'mean', 'long_name': 'manually gauged flow', 'description': 'flow rate manually measured during gaugings'}
-flow_tel_dict = {'units': 'm3/s', 'resample': 'mean', 'long_name': 'Telemetered flow', 'description': 'flow rate derrived from telemetered surface water level'}
-swl_dict = {'units': 'masl', 'resample': 'mean', 'long_name': 'recorder surface water level', 'description': 'surface water level measured via a recording device'}
-swl_m_dict = {'units': 'masl', 'resample': 'mean', 'long_name': 'manually gauged surface water level', 'description': 'surface water level manually measured during gaugings'}
-gwl_dict = {'units': 'masl', 'resample': 'mean', 'long_name': 'recorder groundwater level', 'description': 'groundwater level measured via a recording device'}
-gwl_m_dict = {'units': 'masl', 'resample': 'mean', 'long_name': 'manually gauged groundwater level', 'description': 'groundwater level manually measured during gaugings'}
-precip_dict = {'units': 'mm', 'resample': 'sum', 'long_name': 'ECan precipitation', 'description': 'precipitation data from ECan stations'}
-precip_tel_dict = {'units': 'mm', 'resample': 'sum', 'long_name': 'ECan precipitation', 'description': 'telemetered precipitation data from ECan stations'}
-lakel_dict = {'units': 'masl', 'resample': 'mean', 'long_name': 'recorder lake level', 'description': 'lake level measured via a recording device'}
-usage_dict = {'units': 'm', 'resample': 'mean', 'long_name': 'water meter usage', 'description': 'water meter usage data from consent holders'}
+list_combo = list(product(*key_fields.values()))
 
-all_mtypes = {'flow': flow_dict, 'flow_m': flow_m_dict, 'swl': swl_dict, 'swl_m': swl_m_dict, 'gwl': gwl_dict, 'gwl_m': gwl_m_dict, 'precip': precip_dict, 'usage': usage_dict, 'lakel': lakel_dict, 'flow_tel': flow_tel_dict, 'precip_tel': precip_tel_dict}
+feature_mtype = OrderedDict((('river', ('wl', 'flow', 'abstr', 'T')), ('aq', ('wl', 'abstr', 'T')), ('atmos', ('precip', 'R_n', 'R_s', 'T_min', 'T_max', 'RH_min', 'RH_max', 'U_z', 'P', 'T')), ('soil', ('T', 'ET')), ('lake', ('wl', 'T'))))
+
+list_feature_mtype = [list(product([i], feature_mtype[i])) for i in feature_mtype]
+
+fields_lst = [i for i in list_combo if i[1] in feature_mtype[i[0]]]
+
+resample_mtype_fun = {'flow': 'mean', 'wl': 'mean', 'precip': 'sum', 'R_n': 'sum', 'R_s': 'sum', 'T_min': 'mean', 'T_max': 'mean', 'T': 'mean', 'RH_min': 'mean', 'RH_max': 'mean', 'U_z': 'mean', 'P': 'mean', 'abstr': 'sum', 'ET': 'sum'}
+
+resample_fun = OrderedDict(('_'.join(i), resample_mtype_fun[i[1]]) for i in fields_lst)
+
+legacy_mtypes = {'usage': 'sum'}
+
+resample_fun.update(legacy_mtypes)
+
+#river_flow_cont_qc_dict = {'units': 'm3/s', 'resample': 'mean', 'long_name': 'recorder flow', 'description': 'flow rate derrived from corrected surface water level recorders'}
+#river_flow_dis_qc_dict = {'units': 'm3/s', 'resample': 'mean', 'long_name': 'manually gauged flow', 'description': 'flow rate manually measured during gaugings'}
+#flow_tel_dict = {'units': 'm3/s', 'resample': 'mean', 'long_name': 'Telemetered flow', 'description': 'flow rate derrived from telemetered surface water level'}
+#swl_dict = {'units': 'masl', 'resample': 'mean', 'long_name': 'recorder surface water level', 'description': 'surface water level measured via a recording device'}
+#swl_m_dict = {'units': 'masl', 'resample': 'mean', 'long_name': 'manually gauged surface water level', 'description': 'surface water level manually measured during gaugings'}
+#gwl_dict = {'units': 'masl', 'resample': 'mean', 'long_name': 'recorder groundwater level', 'description': 'groundwater level measured via a recording device'}
+#gwl_m_dict = {'units': 'masl', 'resample': 'mean', 'long_name': 'manually gauged groundwater level', 'description': 'groundwater level manually measured during gaugings'}
+#precip_dict = {'units': 'mm', 'resample': 'sum', 'long_name': 'ECan precipitation', 'description': 'precipitation data from ECan stations'}
+#precip_tel_dict = {'units': 'mm', 'resample': 'sum', 'long_name': 'ECan precipitation', 'description': 'telemetered precipitation data from ECan stations'}
+#lakel_dict = {'units': 'masl', 'resample': 'mean', 'long_name': 'recorder lake level', 'description': 'lake level measured via a recording device'}
+#usage_dict = {'units': 'm', 'resample': 'mean', 'long_name': 'water meter usage', 'description': 'water meter usage data from consent holders'}
+
+all_mtypes = resample_fun.keys()
+#all_mtypes = {'flow': flow_dict, 'flow_m': flow_m_dict, 'swl': swl_dict, 'swl_m': swl_m_dict, 'gwl': gwl_dict, 'gwl_m': gwl_m_dict, 'precip': precip_dict, 'usage': usage_dict, 'lakel': lakel_dict, 'flow_tel': flow_tel_dict, 'precip_tel': precip_tel_dict}
 
 class hydro(object):
     """
@@ -62,31 +80,6 @@ class hydro(object):
             return(repr(self._base_stats))
         else:
             print("There's no data here. Add some in.")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -199,14 +199,14 @@ def _rd_hydstra(self, sites, start_time=0, end_time=0, datasource='A', data_type
     return(self)
 
 
-def _rd_hydrotel(self, sites, mtype='flow_tel', from_date=None, to_date=None, resample='day', fun='avg'):
+def _rd_hydrotel(self, sites, mtype, from_date=None, to_date=None, resample_code='D', fun='mean'):
     """
     Function for the Hydro class to read Hydrotel data.
     """
     from core.ecan_io.flow import rd_hydrotel
 
     ### Load in hydrotel data
-    data = rd_hydrotel(sites=sites, mtype=mtype, resample=resample, fun=fun, from_date=from_date, to_date=to_date)
+    data = rd_hydrotel(sites=sites, mtype=mtype, resample_code=resample_code, fun=fun, from_date=from_date, to_date=to_date)
     data2 = data.reset_index()
     data2['mtype'] = mtype
 
@@ -215,7 +215,7 @@ def _rd_hydrotel(self, sites, mtype='flow_tel', from_date=None, to_date=None, re
     return(self)
 
 
-def _rd_henry(self, sites, mtype='flow_m', from_date=None, to_date=None, agg_day=True, min_filter=4):
+def _rd_henry(self, sites, mtype='river_flow_disc_qc', from_date=None, to_date=None, agg_day=True, min_filter=4):
     from core.ecan_io.flow import rd_henry
 
     ### Load in gaugings data
@@ -231,9 +231,20 @@ def _rd_henry(self, sites, mtype='flow_m', from_date=None, to_date=None, agg_day
 #### The two big GETS!
 
 #mtypes_sql_dict = {'flow': flow_dict, 'flow_tel': _rd_hydrotel, 'flow_m': _rd_henry, 'swl_tel': _rd_hydrotel, 'swl': swl_dict, 'gwl_tel': _rd_hydrotel, 'gwl': gwl_dict, 'gwl_m': gwl_m_dict, 'usage': (wus_usage_dict, usage_dict)}
-mtypes_sql_dict = {'flow': flow_dict, 'flow_m': _rd_henry, 'swl': swl_dict, 'gwl': gwl_dict, 'gwl_m': gwl_m_dict, 'usage': (wus_usage_dict, usage_dict), 'precip': precip_dict, 'flow_tel': _rd_hydrotel, 'precip_tel': _rd_hydrotel}
 
-geo_loc_dict = {'flow': rd_sw_rain_geo, 'flow_m': rd_sw_rain_geo, 'swl': rd_sw_rain_geo, 'gwl': rd_waps_geo, 'gwl_m': rd_waps_geo, 'usage': rd_waps_geo, 'precip': rd_sw_rain_geo, 'flow_tel': rd_sw_rain_geo, 'precip_tel': rd_sw_rain_geo,}
+old_mtypes_sql_dict = {'usage': (wus_usage_dict, usage_dict)}
+
+mtypes_sql_dict = {'river_flow_cont_qc': flow_dict, 'river_flow_disc_qc': _rd_henry, 'river_wl_cont_qc': swl_dict, 'aq_wl_cont_qc': gwl_dict, 'aq_wl_disc_qc': gwl_m_dict, 'atmos_precip_cont_qc': precip_dict, 'river_flow_cont_raw': _rd_hydrotel, 'atmos_precip_cont_raw': _rd_hydrotel, 'river_wl_cont_raw': _rd_hydrotel, 'aq_wl_cont_raw': _rd_hydrotel}
+
+mtypes_sql_dict.update(old_mtypes_sql_dict)
+
+old_to_new_mapping = {'flow': 'river_flow_cont_qc', 'flow_m': 'river_flow_disc_qc', 'swl': 'river_wl_cont_qc', 'gwl': 'aq_wl_cont_qc', 'gwl_m': 'aq_wl_disc_qc', 'precip': 'atmos_precip_cont_qc'}
+
+old_geo_loc_dict = {'usage': rd_waps_geo}
+
+geo_loc_dict = {'river_flow_cont_qc': rd_sw_rain_geo, 'river_flow_disc_qc': rd_sw_rain_geo, 'river_wl_cont_qc': rd_sw_rain_geo, 'aq_wl_cont_qc': rd_waps_geo, 'aq_wl_disc_qc': rd_waps_geo, 'atmos_precip_cont_qc': rd_sw_rain_geo, 'river_flow_cont_raw': rd_sw_rain_geo, 'atmos_precip_cont_raw': rd_sw_rain_geo, 'river_wl_cont_raw': rd_sw_rain_geo, 'aq_wl_cont_raw': rd_waps_geo}
+
+geo_loc_dict.update(old_geo_loc_dict)
 
 
 def get_geo_loc(self):
@@ -280,13 +291,15 @@ def get_data(self, mtypes, sites=None, qual_codes=None, from_date=None, to_date=
     min_filter -- If mtypes includes 'flow_m', then extract sites with at least the number of gauges (int).
     """
     from pandas import Series
-    from numpy import ndarray
 
     if not isinstance(mtypes, list):
         if isinstance(mtypes, str):
             mtypes = [str(mtypes)]
         else:
             raise ValueError('mtypes must be a list or a string!')
+
+    if any(in1d(mtypes, old_to_new_mapping.keys())):
+        mtypes = [old_to_new_mapping[i] if i in old_to_new_mapping.keys() else i for i in mtypes]
 
     if isinstance(sites, str):
         if sites.endswith('.shp'):
@@ -298,9 +311,11 @@ def get_data(self, mtypes, sites=None, qual_codes=None, from_date=None, to_date=
     else:
         raise ValueError('Must pass a str, list, Series, or array to sites.')
 
+    mtypes1 = [i for i in mtypes_sql_dict.keys() if any([j in i for j in mtypes])]
+
     ## Get the time series data
     h1 = self.copy()
-    for i in mtypes:
+    for i in mtypes1:
         if i in mtypes_sql_dict:
             h1 = h1._proc_hydro_sql(geo_loc_dict[i], mtypes_sql_dict, i, sites=sites, from_date=from_date, to_date=to_date, qual_codes=qual_codes, buffer_dis=buffer_dis)
 

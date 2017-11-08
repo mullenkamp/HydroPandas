@@ -1,4 +1,4 @@
-mtype,flow,flow,flow,flow,flow,flow_m,flow_m,swl,swl,swl,swl,swl
+mtype,river_flow_cont_qc,river_flow_cont_qc,river_flow_cont_qc,river_flow_cont_qc,river_flow_cont_qc,river_flow_disc_qc,river_flow_disc_qc,river_wl_cont_qc,river_wl_cont_qc,river_wl_cont_qc,river_wl_cont_qc,river_wl_cont_qc
 site,65101,69505,69602,69607,70105,66,137,65101,69505,69602,69607,70105
 time,,,,,,,,,,,,
 2016-01-01,20.696,2.3,0.569,2.383,1.318,,,0.28,1.185,0.973,0.836,1.196

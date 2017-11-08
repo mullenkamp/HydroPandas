@@ -12,11 +12,11 @@ from geopandas import read_file
 
 py_dir = path.realpath(path.join(getcwd(), path.dirname(__file__)))
 csv_files = ['test_long1.csv', 'test_wide1.csv', 'test_wide2.csv']
-param = {'test_long1.csv': {'dformat': 'long', 'time': 'time', 'mtypes': 'mtype', 'sites': 'site', 'values': 'data'}, 'test_wide1.csv': {'dformat': 'wide', 'multiindex': True}, 'test_wide2.csv': {'time': 'time', 'mtypes': 'flow', 'dformat': 'wide'}}
+param = {'test_long1.csv': {'dformat': 'long', 'time': 'time', 'mtypes': 'mtype', 'sites': 'site', 'values': 'data'}, 'test_wide1.csv': {'dformat': 'wide', 'multiindex': True}, 'test_wide2.csv': {'time': 'time', 'mtypes': 'river_flow_cont_qc', 'dformat': 'wide'}}
 extra_csv = 'test_combine.csv'
 geo_shp = 'sites_geo.shp'
 export_keys = ['mtypes', 'sites']
-netcdf1 = 'test_netcdf.nc'
+netcdf1 = 'test_netcdf1.nc'
 
 
 @pytest.mark.parametrize('csv', csv_files)

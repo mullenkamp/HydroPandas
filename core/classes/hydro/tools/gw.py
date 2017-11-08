@@ -10,7 +10,7 @@ from core.ts.sw.stats import flow_reg as flow_reg_fun
 from numpy import in1d
 
 
-def gwl_reg(self, y, x=None, y_mtype='gwl_m', x_mtype='gwl', buffer_dis=None, min_yrs=10, min_obs=10, logs=False, p_val=0.05, below_median=False):
+def gwl_reg(self, y, x=None, y_mtype='aq_wl_disc_qc', x_mtype='aq_wl_cont_qc', buffer_dis=None, min_yrs=10, min_obs=10, logs=False, p_val=0.05, below_median=False):
     """
     Function to do a simple linear regression between manual GW sites and gwl recorder sites.
     The output is a hydro class object and the regression info.
@@ -21,32 +21,32 @@ def gwl_reg(self, y, x=None, y_mtype='gwl_m', x_mtype='gwl', buffer_dis=None, mi
 
     #### Remove data based on restriction parameters
 
-    if x_mtype == 'gwl':
+    if x_mtype == 'aq_wl_cont_qc':
         ### recorder gwl removal
-        if 'gwl' in self.mtypes:
-            fstats = self.stats(mtypes='gwl')
+        if 'aq_wl_cont_qc' in self.mtypes:
+            fstats = self.stats(mtypes='aq_wl_cont_qc')
             x_sites = fstats[fstats['Tot data yrs'] >= min_yrs].index.tolist()
         else:
             raise ValueError('Load some gwl data in!')
-    elif x_mtype == 'gwl_m':
+    elif x_mtype == 'aq_wl_disc_qc':
         ### gauging gwl removal
-        if 'gwl_m' in self.mtypes:
-            x_count = self.sel_ts('gwl_m', x).groupby(level='site').count()
+        if 'aq_wl_disc_qc' in self.mtypes:
+            x_count = self.sel_ts('aq_wl_disc_qc', x).groupby(level='site').count()
             x_sites = x_count[x_count >= min_obs].index.tolist()
         else:
             raise ValueError('Load some gwl data in!')
 
-    if y_mtype == 'gwl':
+    if y_mtype == 'aq_wl_cont_qc':
         ### recorder gwl removal
-        if 'gwl' in self.mtypes:
-            sites1 = list(self.mtypes_sites['gwl'])
+        if 'aq_wl_cont_qc' in self.mtypes:
+            sites1 = list(self.mtypes_sites['aq_wl_cont_qc'])
             y_sites = Series(y)[Series(y).isin(sites1)].tolist()
         else:
             raise ValueError('Load some gwl data in!')
-    elif y_mtype == 'gwl_m':
+    elif y_mtype == 'aq_wl_disc_qc':
         ### gauging gwl removal
-        if 'gwl_m' in self.mtypes:
-            y_count = self.sel_ts('gwl_m', y).groupby(level='site').count()
+        if 'aq_wl_disc_qc' in self.mtypes:
+            y_count = self.sel_ts('aq_wl_disc_qc', y).groupby(level='site').count()
             y_sites = y_count[y_count >= min_obs].index.tolist()
         else:
             raise ValueError('Load some gwl data in!')
@@ -82,5 +82,5 @@ def gwl_reg(self, y, x=None, y_mtype='gwl_m', x_mtype='gwl', buffer_dis=None, mi
         except:
             print('Site ' + str(j) + ' did not work with the regression.')
             pass
-    new1 = self.add_data(new_ts, mtypes='gwl', dformat='wide', add=False)
+    new1 = self.add_data(new_ts, mtypes='aq_wl_cont_qc', dformat='wide', add=False)
     return(new1, reg)

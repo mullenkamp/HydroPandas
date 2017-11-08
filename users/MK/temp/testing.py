@@ -3404,6 +3404,103 @@ where_col = {'Point': [3333]}
 df1 = rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resample_code, period, fun, val_round, where_col, where_val, where_op, from_date, to_date)
 
 
+#################################################
+##
+from core.ecan_io import rd_hydrotel
+
+py_dir = r'E:\ecan\git\Ecan.Science.Python.Base\tests\classes\hydro'
+
+sites = ['L36/0633']
+sites = ['K38/1081']
+mtype = 'aq_wl_cont_raw'
+from_date=None
+to_date=None
+resample_code='D'
+period=1
+fun='mean'
+val_round=3
+
+t1 = rd_hydrotel(sites, 'aq_wl_cont_raw')
+
+map1 = {'flow': 'river_flow_cont_qc', 'swl': 'river_wl_cont_qc', 'flow_m': 'river_flow_disc_qc'}
+
+m2 = [map1[i] for i in m1]
+
+qual_codes = [10, 18, 20, 30, 50]
+from_date = '2015-07-01'
+to_date = '2016-06-30'
+
+h2 = hydro().get_data(mtypes='river_flow_cont_qc', sites=[65101, 69505, 69602, 69607, 70105], qual_codes=qual_codes, from_date=from_date, to_date=to_date)
+h2 = h2.get_data(mtypes='river_flow_disc_qc', sites=[66, 137], from_date=from_date, to_date=to_date)
+h2 = h2.get_data(mtypes='river_wl_cont_qc', sites=[65101, 69505, 69602, 69607, 70105], qual_codes=qual_codes, from_date=from_date, to_date=to_date)
+h2.to_netcdf(path.join(py_dir, netcdf1))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

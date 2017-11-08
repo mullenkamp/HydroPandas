@@ -73,7 +73,7 @@ def sel_ts(self, mtypes=None, sites=None, require=None, pivot=False, resample=No
     Parameters
     ----------
     mtypes : str or a list or ndarray of str
-        The mtypes that should be returned.
+        The mtypes that should be returned. Can also be a str or list of str of one of the four key mtype attributes (i.e. hydro feature, mtype, freq type, qual state). For example, inputting 'river_flow' will get you 'river_flow_cont_raw', 'river_flow_cont_qc', 'river_flow_disc_raw', and 'river_flow_disc_qc' if these exist in the hydro object.
     sites : int, str, list, or ndarray
         The sites that should be returned.
     require : list or ndarray
@@ -92,8 +92,14 @@ def sel_ts(self, mtypes=None, sites=None, require=None, pivot=False, resample=No
     Series
         With a MultiIndex of mtype, site, and time
     """
+    if isinstance(mtypes, str):
+        mtypes = [mtypes]
     if mtypes is None:
         mtypes = slice(None)
+    elif isinstance(mtypes, (list, ndarray)):
+        mtypes = [i for i in self.mtypes if any([j in i for j in mtypes])]
+    else:
+        raise TypeError('mtypes must be a str, list, or ndarray')
     if sites is None:
         sites = slice(None)
     sel_out1 = self.data.loc(axis=0)[mtypes, sites, start:end]

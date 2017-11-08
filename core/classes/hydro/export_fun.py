@@ -4,6 +4,8 @@ Functions for exporting data from within a hydro class.
 """
 from numpy import in1d
 from pandas import DataFrame, concat
+from xarray import Dataset, DataArray
+from core.spatial.vector import convert_crs
 
 def to_csv(self, csv_path, mtypes=None, sites=None, pivot=False, resample=None, require=None):
     """
@@ -18,8 +20,6 @@ def to_netcdf(self, nc_path):
     """
     Function to export a copy of a hydro class object to a netcdf file.
     """
-    from xarray import Dataset, DataArray
-
     ### package ts data
     ds0 = Dataset(self.data.reset_index(['site', 'time']))
 
@@ -39,10 +39,14 @@ def to_netcdf(self, nc_path):
         geo2.columns = ['geo_loc_' + i for i in geo2.columns]
         geo2.index.name = 'geo_loc_' + geo2.index.name
         ds0 = ds0.merge(Dataset(geo2))
-        crs1 = geo1.crs.copy()
-        crs1.update({i: str(crs1[i]) for i in crs1 if type(crs1[i]) == bool})
-        ds0['geo_loc_x'].attrs = crs1
-        ds0['geo_loc_y'].attrs = crs1
+        crs1 = geo1.crs
+        if isinstance(crs1, str):
+            crs2 = convert_crs(crs1, 'proj4_dict')
+        elif isinstance(crs1, dict):
+            crs2 = crs1.copy()
+        crs2.update({i: str(crs2[i]) for i in crs2 if type(crs2[i]) == bool})
+        ds0['geo_loc_x'].attrs = crs2
+        ds0['geo_loc_y'].attrs = crs2
 
 
     if hasattr(self, 'geo_catch'):

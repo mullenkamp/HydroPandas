@@ -190,7 +190,7 @@ def rd_hydstra_dir(input_path, min_filter=False, min_yrs=25, export=False, expor
     return(t1)
 
 
-def rd_hydrotel(sites, mtype='flow_tel', from_date=None, to_date=None, resample_code='D', period=1, fun='mean', val_round=3, pivot=False, export_path=None):
+def rd_hydrotel(sites, mtype='river_flow_cont_raw', from_date=None, to_date=None, resample_code='D', period=1, fun='mean', val_round=3, pivot=False, export_path=None):
     """
     Function to extract time series data from the hydrotel database.
 
@@ -228,7 +228,7 @@ def rd_hydrotel(sites, mtype='flow_tel', from_date=None, to_date=None, resample_
     from core.misc import select_sites, save_df
 
     #### mtypes dict
-    mtypes_dict = {'flow_tel': 'Flow Rate', 'gwl_tel': 'Water Level', 'precip_tel': 'Rainfall Depth', 'swl_tel': 'Water Level', 'wtemp_tel': 'Water Temperature'}
+    mtypes_dict = {'river_flow_cont_raw': 'Flow Rate', 'aq_wl_cont_raw': 'Water Level', 'atmos_precip_cont_raw': 'Rainfall Depth', 'river_wl_cont_raw': 'Water Level', 'river_wtemp_cont_raw': 'Water Temperature'}
 
     #### Database parameters
     server = 'SQL2012PROD05'
@@ -249,17 +249,21 @@ def rd_hydrotel(sites, mtype='flow_tel', from_date=None, to_date=None, resample_
     #### Import data and select the correct sites
 
     sites = select_sites(sites)
-    if mtype == 'precip_tel':
+    if mtype == 'atmos_precip_cont_raw':
         site_ob1 = rd_sql(server, database, objects_tab, ['Site', 'ExtSysId'], 'ExtSysId', sites.astype('int32').tolist())
         site_val0 = rd_sql(server, database, sites_tab, ['Site', 'Name'], 'Site', site_ob1.Site.tolist())
         site_val1 = merge(site_val0, site_ob1, on='Site')
-    elif mtype == 'gwl_tel':
+    elif mtype == 'aq_wl_cont_raw':
         site_val0 = rd_sql(server, database, sites_tab, ['Site', 'Name'])
         site_val0.loc[:, 'Name'] = site_val0.apply(lambda x: x.Name.split(' ')[0], axis=1)
         site_val1 = site_val0[site_val0.Name.isin(sites)]
         site_val1.loc[:, 'ExtSysId'] = site_val1.loc[:, 'Name']
     else:
         site_val1 = rd_sql(server, database, sites_tab, sites_col, 'ExtSysId', sites.astype('int32').tolist())
+
+    if site_val1.empty:
+        raise ValueError('No site(s) in database')
+
     site_val1.loc[:, 'ExtSysId'] = to_numeric(site_val1.loc[:,'ExtSysId'], errors='ignore')
     site_val = site_val1.Site.astype('int32').tolist()
     if isinstance(mtype, (list, ndarray, Series)):
