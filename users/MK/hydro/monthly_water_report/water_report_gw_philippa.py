@@ -14,7 +14,7 @@ from os.path import join
 from core.spatial.vector import multipoly_to_poly
 from core.ts import grp_ts_agg
 from datetime import date
-from scipy.stats import percentileofscore
+from scipy.stats import percentileofscore, rankdata
 from numpy import nan
 from core.classes.hydro import hydro
 from core.ts import tsreg
@@ -37,10 +37,11 @@ Tk().withdraw()
 ###################################################
 #### Parameters
 
+### Input
 base_dir = r'\\gisdata\projects\SCI\Surface Water Quantity\Projects\Freshwater Report\GW'
 gw_poly_shp = 'cwms_zones_simple.shp'
-gw_sites_shp = 'gw_sites.shp'
 well_depth_csv = 'well_depths.csv'
+upper_waitaki_shp = 'upper_waitaki_zone.shp'
 
 interp = True
 
@@ -49,7 +50,9 @@ n_previous_months = 6
 ### Output
 
 output_dir = askdirectory(initialdir=base_dir, title='Select the output directory', mustexist=True)
+gw_sites_shp = 'gw_sites_' + date_str + '.shp'
 gw_sites_ts_shp = 'gw_sites_perc_' + date_str + '.shp'
+gw_sites_ts_csv = 'gw_sites_perc_' + date_str + '.csv'
 
 ## plots
 test2_html = 'fresh_gw_map_' + date_str + '.html'
@@ -60,7 +63,7 @@ test2_html = 'fresh_gw_map_' + date_str + '.html'
 print('Reading in the data')
 
 ### gw
-gw_sites = read_file(join(base_dir, gw_sites_shp))
+#gw_sites = read_file(join(base_dir, gw_sites_shp))
 gw_zones = read_file(join(base_dir, gw_poly_shp))[['ZONE_NAME', 'geometry']]
 
 gw_zones = gw_zones.rename(columns={'ZONE_NAME': 'zone'})
@@ -68,26 +71,58 @@ gw_zones = gw_zones.rename(columns={'ZONE_NAME': 'zone'})
 
 well_depths = read_csv(join(base_dir, well_depth_csv)).set_index('site')
 
-### Combine the sites with the polygons
-gw_site_zone0 = sjoin(gw_sites, gw_zones).drop(['index_right'], axis=1)
-gw_site_zone = gw_site_zone0.drop(['geometry'], axis=1)
-
 #################################################
 #### Select sites
 
 ### GW
-gw1 = hydro().get_data(mtypes='gwl_m', sites=gw_sites.site.unique())
+#gw1 = hydro().get_data(mtypes='aq_wl_disc_qc', sites=gw_sites.site.unique())
+gw1 = hydro().get_data(mtypes='aq_wl_disc_qc', sites=join(base_dir, gw_poly_shp))
 
 #################################################
 #### Run monthly summary stats
 
 print('Processing past data')
 
-### gw
-gw2 = gw1.sel_ts(mtypes='gwl_m')
-gw2.index = gw2.index.droplevel('mtype')
-gw3 = gw2.reset_index()
+### Filter sites
+gw1._base_stats_fun()
+stats = gw1._base_stats
+stats.index = stats.index.droplevel('mtype')
 
+now1 = to_datetime(date1)
+start_date1 = now1 - DateOffset(months=121) - DateOffset(days=now1.day - 1)
+start_date2 = now1 - DateOffset(months=1) - DateOffset(days=now1.day - 1)
+
+stats1 = stats[(stats['count'] >= 120) & (stats['end_time'] >= start_date2) & (stats['start_time'] <= start_date1)]
+
+gw2 = gw1.sel(sites=stats1.index)
+
+## upper waitaki special
+uw1 = gw1.sel_by_poly(join(base_dir, upper_waitaki_shp))
+uw1._base_stats_fun()
+uw_stats = uw1._base_stats
+uw_stats.index = uw_stats.index.droplevel('mtype')
+
+start_date0 = now1 - DateOffset(months=61) - DateOffset(days=now1.day - 1)
+
+uw_stats1 = uw_stats[(uw_stats['count'] >= 60) & (stats['end_time'] >= start_date2) & (stats['start_time'] <= start_date0)]
+
+uw2 = uw1.sel(sites=uw_stats1.index)
+
+## Combine
+gw2a = gw2.combine(uw2)
+gw3 = gw2a.data.copy()
+gw3.index = gw3.index.droplevel('mtype')
+gw3 = gw3.reset_index()
+
+### Extract Site locations
+gw_sites = gw2a.geo_loc.copy().reset_index()
+gw_sites.to_file(join(base_dir, gw_sites_shp))
+
+### Combine the sites with the polygons
+gw_site_zone0 = sjoin(gw_sites, gw_zones).drop(['index_right'], axis=1)
+gw_site_zone = gw_site_zone0.drop(['geometry'], axis=1)
+
+### Monthly interpolations
 if interp:
     ## Estimate monthly means through interpolation
     day1 = grp_ts_agg(gw3, 'site', 'time', 'D').mean().unstack('site')
@@ -97,19 +132,9 @@ if interp:
 else:
     mon_gw1 = grp_ts_agg(gw3, 'site', 'time', 'M').mean().reset_index()
 
-## Resample to month
+## Assign month
 mon_gw1['mon'] = mon_gw1.time.dt.month
 mon_gw1['mtype'] = 'gw'
-
-###############################################
-#### Pull out recent monthly data
-
-now1 = to_datetime(date1)
-start_date = now1 - DateOffset(months=n_previous_months) - DateOffset(days=now1.day - 1)
-end_date = now1 - DateOffset(days=now1.day - 1)
-
-### GW
-hy_gw0 = mon_gw1[(mon_gw1.time >= start_date) & (mon_gw1.time < end_date)]
 
 
 ##############################################
@@ -117,15 +142,21 @@ hy_gw0 = mon_gw1[(mon_gw1.time >= start_date) & (mon_gw1.time < end_date)]
 
 print('Calculating the percentiles')
 
-def row_perc(x, mon_summ):
-    mon1 = x.time.month
-    mon_val = mon_summ[(mon_summ.site == x.site) & (mon_summ.mon == mon1) & (mon_summ.mtype == x.mtype)].data.values
-    perc1 = percentileofscore(mon_val, x.data)
-    return(perc1)
+hy_gw0 = mon_gw1.copy()
+hy_gw0['perc'] = (hy_gw0.groupby(['site', 'mon'])['data'].transform(lambda x: rankdata(x)/len(x)) * 100).round(2)
 
-hy_gw = hy_gw0.copy()
-hy_gw['perc'] = hy_gw.apply(row_perc, mon_summ=mon_gw1, axis=1)
-hy_gw.loc[:, 'time'] = hy_gw.loc[:, 'time'].dt.strftime('%Y-%m')
+
+###############################################
+#### Pull out recent monthly data
+
+start_date = now1 - DateOffset(months=n_previous_months) - DateOffset(days=now1.day - 1)
+end_date = now1 - DateOffset(days=now1.day - 1)
+
+### selection
+hy_gw = hy_gw0[(hy_gw0.time >= start_date) & (hy_gw0.time < end_date)]
+
+### Convert datetime to year-month str
+hy_gw['time'] = hy_gw.time.dt.strftime('%Y-%m')
 
 ##############################################
 #### Calc zone stats and apply categories
@@ -163,6 +194,12 @@ ts_out4 = concat([ts_out3, well_depths1], axis=1).reset_index()
 gw_sites_ts = gw_site_zone0.merge(ts_out4, on='site')
 gw_sites_ts.crs = gw_sites.crs
 gw_sites_ts.to_file(join(output_dir, gw_sites_ts_shp))
+
+ts_out10 = hy_gw0.loc[:, ['site', 'time', 'perc']].copy()
+ts_out10['time'] = ts_out10['time'].dt.date.astype(str)
+ts_out10['perc'] = ts_out10['perc'].round(2)
+ts_out10.to_csv(join(output_dir, gw_sites_ts_csv), header=True, index=False)
+
 
 #################################################
 #### Plotting
@@ -256,6 +293,7 @@ show(layout3)
 
 print('########################')
 
-print('Results were saved here: ' + join(output_dir, gw_sites_ts_shp))
+print('shapefile results were saved here: ' + join(output_dir, gw_sites_ts_shp))
+print('csv results were saved here: ' + join(output_dir, gw_sites_ts_csv))
 print('The plot was saved here: ' + join(output_dir, test2_html))
 
