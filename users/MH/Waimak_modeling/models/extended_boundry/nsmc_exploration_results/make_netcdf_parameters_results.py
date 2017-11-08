@@ -7,11 +7,11 @@ Date Created: 27/10/2017 10:25 AM
 from __future__ import division
 from core import env
 import netCDF4 as nc
-from rrfextract import extractrrf
+from rrfextract import extractrrf, extractphisummary
 import numpy as np
 
 # rap up the NSMC parameters adn observations into a netcdf file
-nsmc_dim = 7890
+nsmc_dim = 7890 + 2
 rch_dim = 46
 layer_dim = 11
 sfr_dim = 47
@@ -204,8 +204,40 @@ def _add_kv_kh(param, nc_file):
                 pass
     kh[:] = temp_data
 
+def _add_well_obs(obs_file, nc_file): #todo
+    # obs
+    # names
+    # target values
+    # x
+    # y
+    # depth
+    # midscreen_elv
+    raise NotImplementedError
 
-def make_netcdf_nsmc(nc_outfile, rrffile):
+def _add_other_obs(obs_file, nc_file): #todo
+    # verts add as a variable each
+    # sfr flux add as a variable each
+    # sfr flow add as a variable each
+    # drn flux add as a variable each
+    # chb add as a variable each
+    # add target value as an attribute
+
+    raise NotImplementedError
+
+def _add_convergence(obs_file, nc_file): #todo
+    # one variable boolean 0,1
+
+    raise NotImplementedError
+
+def _add_phis(rec_file,nc_file):
+    phis = extractphisummary(rec_file)
+    basenames = ['head', 'vert', 'sfx', 'coast', 'sfo', 'drn', 'total']
+    for bn in basenames:
+        nc_file.createVariable('')
+    #Index([u'head', u'vert', u'sfx', u'coast', u'sfo', u'drn', u'total'], dtype='object')
+
+
+def make_netcdf_nsmc(nc_outfile, rrffile, rec_file):
     # get the data
 
     obs, param = extractrrf(rrffile=rrffile)
@@ -228,7 +260,7 @@ def make_netcdf_nsmc(nc_outfile, rrffile):
                         'long_name': 'Null Space Monte Carlo Realisation Number',
                         'comments': 'unique identifier phi lower and phi upper are -1 and -2, respectively',
                         'missing_value': -9})
-    nsmc_num[:] = range(1, nsmc_dim + 3)
+    nsmc_num[:] = range(1, nsmc_dim + -1) + [-1, -2]
 
     layer = nc_file.createVariable('layer', 'i4', ('layer',), fill_value=-9)
     layer.setncatts({'units': 'none',
@@ -248,7 +280,21 @@ def make_netcdf_nsmc(nc_outfile, rrffile):
 
     _add_kv_kh(param, nc_file)
 
-    # todo add observations
-    # todo add convergance
-    # todo add phis
+    # add observations convergence and phis
+    _add_well_obs(obs, nc_file)
+    _add_other_obs(obs, nc_file)
+
+    _add_convergence(obs, nc_file)
+
+    # todo add convergance and phis
+
+    # one variable boolean 0,1
+    # total phi
+    # each group phi
+
     # todo add pass filter
+    # filter 1 (phi filter) 0,1,-1
+    # filter 2 (vert filter) 0,1,-1
+    # filter 3 (piezo filter) 0,1,-1
+    # filter 4 (endmember_mixing) 0,1,-1
+
