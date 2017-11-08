@@ -63,7 +63,7 @@ class AGWQL_survey(object):
             self.trend_wells[well] = WellQual(well, startdate="{}/06/01".format(year - 9), enddate="{}/02/01".format(year + 1))
 
     def load_data(self, df_yearly=None, df_trend=None):
-        #todo replace with mike's read from squalarc
+        # replace with mike's read from squalarc
         print('loading annual quality data')
         all_base_data = get_base_well_data_df(self.well_list)
         for well in self.yearly_wells.values():

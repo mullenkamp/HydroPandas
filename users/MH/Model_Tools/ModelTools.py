@@ -88,7 +88,7 @@ class ModelTools(object):
         :param grid: if True return the grid, else return the 1d arrays
         :return:
         """
-        pixelWidth = pixelHeight = self.grid_space  # todo add grid spacing
+        pixelWidth = pixelHeight = self.grid_space
 
         x_min, y_min = self.ulx, self.uly - self.grid_space * self.rows
 
@@ -238,8 +238,8 @@ class ModelTools(object):
         row = np.abs(model_ys[:, 0] - lat).argmin()
 
         if return_AE:
-            x0 = (100 - (model_xs[0, :] - lon)[col]) / 200
-            y0 = (100 - (model_ys[:, 0] - lat)[row]) / 200  # todo impilment grid spacing here
+            x0 = (self.grid_space/2 - (model_xs[0, :] - lon)[col]) / self.grid_space
+            y0 = (self.grid_space/2 - (model_ys[:, 0] - lat)[row]) / self.grid_space
 
         if elv is None:
             if return_AE:
@@ -411,7 +411,7 @@ class ModelTools(object):
         model_xs, model_ys = self.get_model_x_y()
         if base_map:
             if 'alpha' not in kwargs:
-                alpha = 0.5 #todo play with value
+                alpha = 0.5
             if self.base_map_path is None:
                 raise ValueError('in order to use base_map self.base_map_path must be defined')
             from osgeo.gdal import Open
