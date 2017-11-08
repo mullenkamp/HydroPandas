@@ -22,6 +22,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
     get_base_well, temp_pickle_dir
 from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.well_budget import get_well_budget
 from users.MH.Waimak_modeling.supporting_data_path import sdp
+from copy import deepcopy
 
 
 # for stream depletion things
@@ -132,7 +133,8 @@ def get_max_rate(model_id, org_pumping_wells=False, recalc=False):
     return outdata
 
 
-def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturalised=False, full_allo=False, pc5=False,org_pumping_wells=False):
+def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturalised=False, full_allo=False,
+                      pc5=False,org_pumping_wells=False):
     """
     gets the pumping data for the forward runs
     :param model_id: which NSMC realisation to use
@@ -162,7 +164,7 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
         outdata.loc[idx, 'flux'] = get_full_consent(model_id, org_pumping_wells).loc[idx, 'flux']
     else:
         if pc5 and not full_abstraction:
-            outdata.loc[(outdata.loc[:, 'use_type'] == 'irrigation-sw'), 'flux'] *= 3 / 4
+            outdata.loc[(outdata.loc[:, 'use_type'] == 'irrigation-sw') & (outdata.cwms == 'waimak'), 'flux'] *= 3 / 4
             # an inital 1/4 reduction for pc5 to
             # account for the decreased irrgation demand for with more efficent irrigation this number comes from
             # prorataing the difference between 80% and 100% irrigation LSRM outputs to the percentage of irrigation
@@ -178,9 +180,14 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
             np.in1d(outdata.loc[:, 'type'], ['boundry_flux', 'llr_boundry_flux', 'river', 'ulr_boundry_flux'])]
     cc_mult = 1
     if cc_inputs is not None:
-        if all(pd.isnull(cc_inputs.values())):
+        temp = deepcopy(cc_inputs)
+        try:
+            temp.pop('cc_to_waimak_only')
+        except KeyError:
             pass
-        elif any(pd.isnull(cc_inputs.values())):
+        if all(pd.isnull(temp.values())):
+            pass
+        elif any(pd.isnull(temp.values())):
             raise ValueError('null and non-null values returned for cc_inputs')
         else:
             if org_pumping_wells:

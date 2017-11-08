@@ -376,6 +376,7 @@ def boxplot(df,logy=True,obsdata=None,optdata=None,ylabel=None,box_per_plot=5.0)
     return fig,ax
     
 if __name__ == '__main__':
+    test = extractphisummary(r"C:\Users\MattH\Desktop\nsmc_stuffs\aw_ex_mc\aw_ex_mc.rec")
     test = extractrrf(r"C:\Users\MattH\Desktop\nsmc_stuffs\aw_ex_mc\aw_ex_mc.rrf")
     test[0].to_csv(r"C:\Users\MattH\Desktop\nsmc_stuffs\playing\obs.csv")
     test[1].to_csv(r"C:\Users\MattH\Desktop\nsmc_stuffs\playing\param.csv")
