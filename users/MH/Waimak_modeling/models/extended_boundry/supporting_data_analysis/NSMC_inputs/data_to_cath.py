@@ -26,6 +26,7 @@ def data_to_cath(base_dir):
 
     #  rch_points white delim
     points = gpd.read_file("{}/m_ex_bd_inputs/shp/rch_pilot_points_option2.shp".format(smt.sdp))
+    # groups: 1: dryland, 2: confined, 3: selwyn_irr, 4: waimak_irr
     points.loc[:,'name'] = ['rch_ppt_{:02d}'.format(e) for e in range(len(points.index))]
     points.loc[:, 'x'] = [e.x for e in points.geometry]
     points.loc[:, 'y'] = [e.y for e in points.geometry]

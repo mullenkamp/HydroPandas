@@ -181,7 +181,7 @@ def extractobs(pstfile, NOBS=None):
     obs[[1,2]]=obs[[1,2]].astype('float64')
     obs.index=obs.index.str.lower()
     obs.index.name='index'
-    obs.columns=['obs','wgt','group']
+    obs.columns=['obs', 'wgt', 'group']
     return obs
 
 
@@ -376,8 +376,5 @@ def boxplot(df,logy=True,obsdata=None,optdata=None,ylabel=None,box_per_plot=5.0)
     return fig,ax
     
 if __name__ == '__main__':
-    test = extractphisummary(r"C:\Users\MattH\Desktop\nsmc_stuffs\aw_ex_mc\aw_ex_mc.rec")
-    test = extractrrf(r"C:\Users\MattH\Desktop\nsmc_stuffs\aw_ex_mc\aw_ex_mc.rrf")
-    test[0].to_csv(r"C:\Users\MattH\Desktop\nsmc_stuffs\playing\obs.csv")
-    test[1].to_csv(r"C:\Users\MattH\Desktop\nsmc_stuffs\playing\param.csv")
+    obs, param = extractrrf(r"C:\Users\MattH\Desktop\nsmc_stuffs\nsmc\aw_ex_mc\aw_ex_mc.rrf")
     print 'done'
