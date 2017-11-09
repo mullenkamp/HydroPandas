@@ -3435,10 +3435,20 @@ h2 = h2.get_data(mtypes='river_flow_disc_qc', sites=[66, 137], from_date=from_da
 h2 = h2.get_data(mtypes='river_wl_cont_qc', sites=[65101, 69505, 69602, 69607, 70105], qual_codes=qual_codes, from_date=from_date, to_date=to_date)
 h2.to_netcdf(path.join(py_dir, netcdf1))
 
+site = 'O31/0372'
+time1 = '2005-02-17'
 
 
 
+#####################################################
+### All lowflows sites
 
+from core.allo_use import crc_band_flow
+
+csv = r'E:\ecan\local\Projects\requests\jeanine\2017-11-09\LF_sites.csv'
+
+site_lf = crc_band_flow()
+site_lf.to_csv(csv, index=False)
 
 
 

@@ -15,7 +15,7 @@ from core.spatial.vector import multipoly_to_poly
 from core.ts import grp_ts_agg
 from datetime import date
 from scipy.stats import percentileofscore, rankdata
-from numpy import nan
+from numpy import nan, percentile
 from core.classes.hydro import hydro
 from core.ts import tsreg
 from warnings import filterwarnings
@@ -51,6 +51,7 @@ n_previous_months = 6
 
 output_dir = askdirectory(initialdir=base_dir, title='Select the output directory', mustexist=True)
 gw_sites_shp = 'gw_sites_' + date_str + '.shp'
+all_gw_sites_shp = 'all_discrete_gw_sites_' + date_str + '.shp'
 gw_sites_ts_shp = 'gw_sites_perc_' + date_str + '.shp'
 gw_sites_ts_csv = 'gw_sites_perc_' + date_str + '.csv'
 
@@ -77,6 +78,7 @@ well_depths = read_csv(join(base_dir, well_depth_csv)).set_index('site')
 ### GW
 #gw1 = hydro().get_data(mtypes='aq_wl_disc_qc', sites=gw_sites.site.unique())
 gw1 = hydro().get_data(mtypes='aq_wl_disc_qc', sites=join(base_dir, gw_poly_shp))
+gw1.to_shp(join(output_dir, all_gw_sites_shp))
 
 #################################################
 #### Run monthly summary stats
@@ -84,8 +86,7 @@ gw1 = hydro().get_data(mtypes='aq_wl_disc_qc', sites=join(base_dir, gw_poly_shp)
 print('Processing past data')
 
 ### Filter sites
-gw1._base_stats_fun()
-stats = gw1._base_stats
+stats = gw1._base_stats.copy()
 stats.index = stats.index.droplevel('mtype')
 
 now1 = to_datetime(date1)
@@ -99,7 +100,7 @@ gw2 = gw1.sel(sites=stats1.index)
 ## upper waitaki special
 uw1 = gw1.sel_by_poly(join(base_dir, upper_waitaki_shp))
 uw1._base_stats_fun()
-uw_stats = uw1._base_stats
+uw_stats = uw1._base_stats.copy()
 uw_stats.index = uw_stats.index.droplevel('mtype')
 
 start_date0 = now1 - DateOffset(months=61) - DateOffset(days=now1.day - 1)
@@ -127,14 +128,18 @@ if interp:
     ## Estimate monthly means through interpolation
     day1 = grp_ts_agg(gw3, 'site', 'time', 'D').mean().unstack('site')
     day2 = tsreg(day1, 'D', False)
-    day3 = day2.interpolate(method='time', limit=40, limit_direction='both')
+    day3 = day2.interpolate(method='time', limit=40)
     mon_gw1 = day3.resample('M').median().stack().reset_index()
 else:
     mon_gw1 = grp_ts_agg(gw3, 'site', 'time', 'M').mean().reset_index()
 
+## End the dataset to the lastest month
+end_date = now1 - DateOffset(days=now1.day - 1)
+mon_gw1 = mon_gw1[mon_gw1.time < end_date]
+
 ## Assign month
 mon_gw1['mon'] = mon_gw1.time.dt.month
-mon_gw1['mtype'] = 'gw'
+#mon_gw1['mtype'] = 'gw'
 
 
 ##############################################
@@ -143,17 +148,17 @@ mon_gw1['mtype'] = 'gw'
 print('Calculating the percentiles')
 
 hy_gw0 = mon_gw1.copy()
-hy_gw0['perc'] = (hy_gw0.groupby(['site', 'mon'])['data'].transform(lambda x: rankdata(x)/len(x)) * 100).round(2)
+hy_gw0['perc'] = (hy_gw0.groupby(['site', 'mon'])['data'].transform(lambda x: (rankdata(x)-1)/(len(x)-1)) * 100).round(2)
 
 
 ###############################################
 #### Pull out recent monthly data
 
 start_date = now1 - DateOffset(months=n_previous_months) - DateOffset(days=now1.day - 1)
-end_date = now1 - DateOffset(days=now1.day - 1)
 
 ### selection
-hy_gw = hy_gw0[(hy_gw0.time >= start_date) & (hy_gw0.time < end_date)]
+
+hy_gw = hy_gw0[(hy_gw0.time >= start_date)]
 
 ### Convert datetime to year-month str
 hy_gw['time'] = hy_gw.time.dt.strftime('%Y-%m')
