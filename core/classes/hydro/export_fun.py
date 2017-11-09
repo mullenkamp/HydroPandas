@@ -65,23 +65,38 @@ def to_netcdf(self, nc_path):
 def to_shp(self, shp_path):
     """
     Function to export a shapefile of the site locations.
+
+    Parameters
+    ----------
+    shp_path : str
+        The shapefile path.
+
+    Returns
+    -------
+    None
     """
 
     if not hasattr(self, 'geo_loc'):
         raise ValueError('Object has no geo locations!')
 
     ### Prepare output
-    geo1 = self.geo_loc
+    geo1 = self.geo_loc.copy()
     sites = self.sites
-    mtypes_sites = self.mtypes_sites
+    mtypes_sites = self.mtypes_sites.copy()
 
-    if len(sites) != len(geo1):
-        geo1.to_file(shp_path)
-    else:
+    if len(mtypes_sites.keys()) > 1:
         t1 = {i: in1d(sites, list(mtypes_sites[i])).astype(str).tolist() for i in mtypes_sites}
         df1 = DataFrame(t1, index=sites)
-        geo2 = concat([geo1, df1], axis=1)
-        geo2.reset_index().to_file(shp_path)
+        geo2 = concat([geo1, df1], axis=1).reset_index()
+        geo2.to_file(shp_path)
+    else:
+        self._base_stats_fun()
+        stats = self._base_stats.copy()
+        stats.index = stats.index.droplevel('mtype')
+        stats['start_time'] = stats['start_time'].astype(str)
+        stats['end_time'] = stats['end_time'].astype(str)
+        geo2 = concat([geo1, stats], axis=1).reset_index()
+        geo2.to_file(shp_path)
 
 
 
