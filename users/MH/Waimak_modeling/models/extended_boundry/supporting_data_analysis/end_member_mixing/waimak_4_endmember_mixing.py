@@ -19,19 +19,18 @@ def mc_calc_end_members(outdir, sites, o18_u, o18_s, cl_u, cl_s, n=10000):
     percentages = np.array(list(itertools.product(range(101), range(101), range(101), range(101))))
     percentages = percentages[percentages.sum(axis=1) == 100] / 100
 
-    o18_inland = np.random.normal(o18_u['inland'], o18_s['inland'], n)[np.newaxis, np.newaxis, :]
-    o18_coastal = np.random.normal(o18_u['coastal'], o18_s['coastal'], n)[np.newaxis, np.newaxis, :]
-    o18_river = np.random.normal(o18_u['river'], o18_s['river'], n)[np.newaxis, np.newaxis, :]
-    o18_eyre = np.random.normal(o18_u['eyre'], o18_s['eyre'], n)[np.newaxis, np.newaxis, :]
-    o18 = np.concatenate((o18_coastal, o18_inland, o18_river, o18_eyre), axis=1) * percentages[:, :, np.newaxis]
-    o18 = o18.sum(axis=1)
+    o18 = np.random.normal(o18_u['inland'], o18_s['inland'], n)[np.newaxis, np.newaxis, :]* percentages[:,0, np.newaxis]
+    o18 += np.random.normal(o18_u['coastal'], o18_s['coastal'], n)[np.newaxis, np.newaxis, :] * percentages[:,1, np.newaxis]
+    o18 += np.random.normal(o18_u['river'], o18_s['river'], n)[np.newaxis, np.newaxis, :] * percentages[:,2, np.newaxis]
+    o18 += np.random.normal(o18_u['eyre'], o18_s['eyre'], n)[np.newaxis, np.newaxis, :] * percentages[:,3, np.newaxis]
+    o18 = o18[0]
 
-    cl_inland = np.random.normal(cl_u['inland'], cl_s['inland'], n)[np.newaxis, np.newaxis, :]
-    cl_coastal = np.random.normal(cl_u['coastal'], cl_s['coastal'], n)[np.newaxis, np.newaxis, :]
-    cl_river = np.random.normal(cl_u['river'], cl_s['river'], n)[np.newaxis, np.newaxis, :]
-    cl_eyre = np.random.normal(cl_u['eyre'], cl_s['eyre'], n)[np.newaxis, np.newaxis, :]
-    cl = np.concatenate((cl_coastal, cl_inland, cl_river, cl_eyre), axis=1) * percentages[:, :, np.newaxis]
-    cl = cl.sum(axis=1)
+    cl = np.random.normal(cl_u['inland'], cl_s['inland'], n)[np.newaxis, np.newaxis, :] * percentages[:, 0, np.newaxis]
+    cl += np.random.normal(cl_u['coastal'], cl_s['coastal'], n)[np.newaxis, np.newaxis, :] * percentages[:, 1, np.newaxis]
+    cl += np.random.normal(cl_u['river'], cl_s['river'], n)[np.newaxis, np.newaxis, :] * percentages[:, 2, np.newaxis]
+    cl += np.random.normal(cl_u['eyre'], cl_s['eyre'], n)[np.newaxis, np.newaxis, :] * percentages[:, 3, np.newaxis]
+    cl = cl[0]
+
     # shape will be (percentages,component(coastal,inland,river), itterations)
     outdata_median = pd.DataFrame(index=sites.keys(), columns=['coastal', 'inland', 'river', 'eyre'])
     outdata_5th = pd.DataFrame(index=sites.keys(), columns=['coastal', 'inland', 'river', 'eyre'])
@@ -69,7 +68,7 @@ def mc_calc_end_members(outdir, sites, o18_u, o18_s, cl_u, cl_s, n=10000):
         ax.hist(temp_out[:, 0], bins=101, color='orange', label='coastal', alpha=0.5)
         ax.hist(temp_out[:, 1], bins=101, color='r', label='inland', alpha=0.5)
         ax.hist(temp_out[:, 2], bins=101, color='b', label='river', alpha=0.5)
-        ax.hist(temp_out[:, 2], bins=101, color='g', label='eyre', alpha=0.5)
+        ax.hist(temp_out[:, 3], bins=101, color='g', label='eyre', alpha=0.5)
         ax.set_title(site)
         ax.legend()
         fig.savefig(os.path.join(plot_dir, '{}.png'.format(site.replace('/', '_'))))
@@ -100,5 +99,5 @@ if __name__ == '__main__':
                        'cl_upper': targets.loc[site, 'cl_mean'] + targets.loc[site, 'cl_stdev']}
     mc_calc_end_members(  # todo change path
         r"\\gisdata\projects\SCI\Groundwater\Waimakariri\Groundwater\Groundwater Quality\End member mixing model\Additional target wells\4_members",
-        sites, end_mean_o18, end_sd_o18, end_mean_cl, end_sd_cl)
+        sites, end_mean_o18, end_sd_o18, end_mean_cl, end_sd_cl,n=5000)
     print'done'
