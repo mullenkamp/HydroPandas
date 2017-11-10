@@ -71,7 +71,7 @@ def mc_calc_end_members(outdir, sites, means, sds, tracers, end_members, a_error
                 ax.hist(temp_out[:, i], bins=101, label=end, alpha=0.5)
             ax.set_title(site)
             ax.legend()
-            #fig.savefig(os.path.join(plot_dir, '{}.png'.format(site.replace('/', '_'))))
+            fig.savefig(os.path.join(plot_dir, '{}.png'.format(site.replace('/', '_'))))
             plt.close(fig)
 
     outdata_5th.to_csv(os.path.join(outdir, '5th.csv'))
@@ -84,13 +84,14 @@ def mc_calc_end_members(outdir, sites, means, sds, tracers, end_members, a_error
 if __name__ == '__main__':
     tracers = [
         'cl',
-        'o18'
+        'o18',
+        'k'
     ]
     endmembers = [
         'inland',
         'coastal',
         'river',
-        # 'eyre'
+        'eyre'
     ]
 
     means = {
@@ -105,6 +106,12 @@ if __name__ == '__main__':
             'coastal': -8.00,
             'river': -9.25,
             'eyre': -8.90
+        },
+        'k': {
+            'inland': 1.23,
+            'coastal': 1.67,
+            'river': 0.57,
+            'eyre': 1.17
         }
     }
 
@@ -120,31 +127,40 @@ if __name__ == '__main__':
             'coastal': 0.64,
             'river': 0.22,
             'eyre': 0.54
+        },
+        'k': {
+            'inland': 0.31,
+            'coastal': 0.30,
+            'river': 0.15,
+            'eyre': 0.12
         }
     }
 
     a_errors = {
         'cl': 0.5,
-        'o18': 0.2
+        'o18': 0.2,
+        'k': 0.15
     }
-    targets = pd.read_csv(  # todo change path
-        r"\\gisdata\projects\SCI\Groundwater\Waimakariri\Groundwater\Groundwater Quality\End member mixing model\Additional target wells\AdditionalTargets.csv",
+    targets = pd.read_csv(
+        r"\\gisdata\projects\SCI\Groundwater\Waimakariri\Groundwater\Groundwater Quality\End member mixing model\Additional target wells\AdditionalTargets_5Tracers_Python.csv",
         index_col=0)
     sites = {}
-    for site in targets.index:  # todo add new tracers
-        sites[site] = {'o18_lower': targets.loc[site, 'o18_mean'] - targets.loc[site, 'o18_stdev'],
-                       'o18_upper': targets.loc[site, 'o18_mean'] + targets.loc[site, 'o18_stdev'],
-                       'cl_lower': targets.loc[site, 'cl_mean'] - targets.loc[site, 'cl_stdev'],
-                       'cl_upper': targets.loc[site, 'cl_mean'] + targets.loc[site, 'cl_stdev']}
-    mc_calc_end_members(  # todo change path
-        outdir=r"\\gisdata\projects\SCI\Groundwater\Waimakariri\Groundwater\Groundwater Quality\End member mixing model\Additional target wells\4_members",
+    for site in targets.index:
+        target = {}
+        for trace in tracers:
+            target['{}_lower'.format(trace)] = targets.loc[site, '{}_mean'.format(trace)] - targets.loc[site, '{}_stdev'.format(trace)]
+            target['{}_upper'.format(trace)] = targets.loc[site, '{}_mean'.format(trace)] + targets.loc[site, '{}_stdev'.format(trace)]
+        sites[site] = target
+
+    mc_calc_end_members(
+        outdir=r"\\gisdata\projects\SCI\Groundwater\Waimakariri\Groundwater\Groundwater Quality\End member mixing model\Additional target wells\4_members_tracers_k_18o_cl",
         sites=sites,
         means=means,
         sds=sds,
         tracers=tracers,
         end_members=endmembers,
         a_errors=a_errors,
-        plot=True,  # todo DADB
-        n=10  # todo DADB
+        plot=True,
+        n=5000
     )
     print'done'

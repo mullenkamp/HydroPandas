@@ -64,7 +64,7 @@ def calculate_endmember_mixing(nc_path, sites, outdir=None):
                 if well_fraction.shape != (nsmc_size, len(layers)):
                     raise ValueError('weird shape {} expected {}'.format(well_fraction.shape, (nsmc_size, len(layers))))
 
-            str_drns = sites[site]['str_drn']
+            str_drns = sites[site]['str_drn'] #todo this needs to be mass balanced!!!!
             if len(str_drns) != 0:
                 drn_idx = smt.get_empty_model_grid().astype(bool)
                 for str_drn in sites[site]['str_drn']:
