@@ -21,7 +21,7 @@ def extract_peizo_filter_raw_data(outpath):
     outdata.rename({'Sept17PiezoElev': 'obs'},inplace=True)
     outdata.to_csv(outpath)
 
-
+# this was done by brioch, this file is depreciated
 
 if __name__ == '__main__':
     extract_peizo_filter_raw_data(r"C:\Users\MattH\Desktop\piezo_data_for_filter.csv")
