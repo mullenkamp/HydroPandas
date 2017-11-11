@@ -13,14 +13,17 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
     _get_kstkpers, hds_no_data
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 from warnings import warn
+import datetime
+import sys
 
 
-def make_hds_netcdf(nsmc_nums, hds_paths, nc_path):
+def make_hds_netcdf(nsmc_nums, hds_paths, description, nc_path):
     """
     make a cell budget file netcdf for easy use
     :param nsmc_nums: list the unique identifiers for the netcdfs
     :param hds_paths: list the paths for the hds files of a given netcdf number (same order as nsmc_nums)
     :param nc_path: the path to the outfile
+    :param description: a description (str) to set as a netcdf attribute
     :return:
     """
     nc_file = nc.Dataset(nc_path, 'w')
@@ -30,6 +33,11 @@ def make_hds_netcdf(nsmc_nums, hds_paths, nc_path):
     nc_file.createDimension('layer', smt.layers)
     nc_file.createDimension('row', smt.rows)
     nc_file.createDimension('col', smt.cols)
+
+    # general attributes
+    nc_file.description = description
+    nc_file.history = 'created {}'.format(datetime.datetime.now().isoformat())
+    nc_file.source = 'script: {}'.format(sys.argv[0])
 
     # set up layer col and row
     layer = nc_file.createVariable('layer', 'i1', ('layer',), fill_value=-9)
@@ -77,7 +85,7 @@ def make_hds_netcdf(nsmc_nums, hds_paths, nc_path):
     for (i, nsmc_num), hd_path, in zip(enumerate(nsmc_nums), hds_paths):
         hds = flopy.utils.HeadFile(hd_path)
         temp_data = hds.get_data(kstpkper=kstpkper)
-        temp_data[np.isclose(temp_data, hds_no_data)] = np.nan  # todo check no data is still the same
+        temp_data[np.isclose(temp_data, hds_no_data)] = np.nan
         all_hds[i] = temp_data
 
 # todo debug

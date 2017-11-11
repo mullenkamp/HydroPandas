@@ -13,14 +13,17 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
     _get_kstkpers, hds_no_data
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 from warnings import warn
+import sys
+import datetime
 
 
-def make_ucn_netcd(nsmc_nums, ucn_paths, units, nc_path, ucn_no_value=-1):
+def make_ucn_netcd(nsmc_nums, ucn_paths, units, description, nc_path, ucn_no_value=-1):
     """
     creates as netcdf file for all of the ucn data
     :param nsmc_nums: list of nsmc numbers
     :param ucn_paths: dictionary {variable name:[ucn paths]} ucn paths same order as nsmc_nums
-    :param units: either string or dictionary variable name: units) to be passed to the netcdf variable attribute
+    :param units: either string or dictionary variable name: units) to be passed to the netcdf variable attribute\
+    :param description: a description (str) to pass to the netcdf attribute
     :param nc_path: the path to save the netcdf files
     :param ucn_no_value: the no data value for the ucn file (will be convereted to np.nan)
     :return:
@@ -35,6 +38,11 @@ def make_ucn_netcd(nsmc_nums, ucn_paths, units, nc_path, ucn_no_value=-1):
     nc_file.createDimension('layer', smt.layers)
     nc_file.createDimension('row', smt.rows)
     nc_file.createDimension('col', smt.cols)
+
+    # general attributes
+    nc_file.description = description
+    nc_file.history = 'created {}'.format(datetime.datetime.now().isoformat())
+    nc_file.source = 'script: {}'.format(sys.argv[0])
 
     # set up layer col and row
     layer = nc_file.createVariable('layer', 'i1', ('layer',), fill_value=-9)

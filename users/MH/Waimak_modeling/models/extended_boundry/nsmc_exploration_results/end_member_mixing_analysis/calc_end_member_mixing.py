@@ -41,8 +41,11 @@ def calculate_endmember_mixing(ucn_nc_path, cbc_nc_path, sites, outdir=None):
     ucn_nc_file = nc.Dataset(ucn_nc_path)
     cbc_nc_file = nc.Dataset(cbc_nc_path)
 
-    if (np.array(cbc_nc_file.variables['nsmc_num']) != np.array(ucn_nc_file.variables['nsmc_num'])).all():
-        raise ValueError('expected both netcdfs to have the same nc_nums in the same order')
+    emma_nums =np.array(ucn_nc_file.variables['nsmc_num'])
+    filter_nums = np.array(cbc_nc_file.variables['nsmc_num'])
+    nsmc_filter_idx = np.in1d(filter_nums, emma_nums)
+    if not(emma_nums == filter_nums[nsmc_filter_idx]).all():
+        raise ValueError('expected Ucn netcdf to be a super set and inte her same order re nc_nums as cbb')
 
     missing = set(runtypes) - set(ucn_nc_file.variables.keys())
     if len(missing) > 1:
@@ -86,14 +89,13 @@ def calculate_endmember_mixing(ucn_nc_path, cbc_nc_path, sites, outdir=None):
                         sfr_idx = sfr_idx | sfr_array
 
                 if sfr_idx.any():
-                    #todo may not be that hard use sfr_fraction and it's implmented just need to see the sft? file
-                    raise NotImplementedError('sfr sites not implemented as they are hard...')
+                    raise NotImplementedError('sfr sites not implemented as the data was not captured')
 
                 if drn_idx.any():
                     # get drain concentration and flow
                     drn_con = np.concatenate([ucn_nc_file.variables[runtype][:, 0, r, c][:, np.newaxis]
                                                        for r, c in zip(np.where(drn_idx))], axis=1)
-                    drn_flow = np.concatenate([cbc_nc_file.variables['drain'][:, 0, r, c][:, np.newaxis]
+                    drn_flow = np.concatenate([cbc_nc_file.variables['drain'][nsmc_filter_idx, 0, r, c][:, np.newaxis]
                                                        for r, c in zip(np.where(drn_idx))], axis=1)
                     # some checks
                     if drn_con.shape != (nsmc_size, len(np.where(drn_idx)[0])):

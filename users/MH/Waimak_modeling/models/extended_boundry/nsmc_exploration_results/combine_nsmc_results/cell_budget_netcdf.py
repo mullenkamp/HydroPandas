@@ -13,14 +13,17 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
     _get_kstkpers
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 from warnings import warn
+import datetime
+import sys
 
 
-def make_cellbud_netcdf(nsmc_nums, sfo_paths, cbc_paths, nc_path):
+def make_cellbud_netcdf(nsmc_nums, sfo_paths, cbc_paths, description, nc_path):
     """
     make a cell budget file netcdf for easy use
     :param nsmc_nums: list the unique identifiers for the netcdfs
     :param sfo_paths: list the paths for the sfo of a given netcdf number (same order as nsmc_nums)
     :param cbc_paths: list the paths for the cbc file (same order as nsmc_nums)
+    :param description: a description (str) to write to the netcdf
     :param nc_path: the path to the outfile
     :return:
     """
@@ -31,6 +34,11 @@ def make_cellbud_netcdf(nsmc_nums, sfo_paths, cbc_paths, nc_path):
     nc_file.createDimension('layer', smt.layers)
     nc_file.createDimension('row', smt.rows)
     nc_file.createDimension('col', smt.cols)
+
+    # general attributes
+    nc_file.description = description
+    nc_file.history = 'created {}'.format(datetime.datetime.now().isoformat())
+    nc_file.source = 'script: {}'.format(sys.argv[0])
 
     # set up layer col and row
     layer = nc_file.createVariable('layer', 'i1', ('layer',), fill_value=-9)

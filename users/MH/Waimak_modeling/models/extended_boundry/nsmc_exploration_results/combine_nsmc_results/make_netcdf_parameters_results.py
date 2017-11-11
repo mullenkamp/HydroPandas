@@ -685,13 +685,11 @@ def _add_filter_2(f2txt, nc_file):
     with open(f2txt) as f:
         pass_nums = [int(e.strip()) for e in f.readlines()] + [-1, -2]
     passed = np.in1d(nsmc_nums, pass_nums).astype(int)
-    passed[nsmc_nums > 4000] = -1
     passed[filter1 < 1] = -1
 
     modfilter = nc_file.createVariable('filter2', 'i1', ('nsmc_num',), fill_value=-1, zlib=True)
     modfilter.setncatts({'units': 'boolean',
                          'long_name': 'filter 2 vert filter',
-                         'comments': 'not run on models with number above 4000 (denoted -1)',
                          'missing_value': -1,
                          'vtype': 'filter'})
     modfilter[:] = passed
@@ -703,13 +701,11 @@ def _add_filter_3(f3txt, nc_file):
     with open(f3txt) as f:
         pass_nums = [int(e.strip()) for e in f.readlines()] + [-1, -2]
     passed = np.in1d(nsmc_nums, pass_nums).astype(int)
-    passed[nsmc_nums > 4000] = -1
     passed[filter1 < 1] = -1
 
     modfilter = nc_file.createVariable('filter3', 'i1', ('nsmc_num',), fill_value=-1, zlib=True)
     modfilter.setncatts({'units': 'boolean',
                          'long_name': 'filter 3 piezo filter',
-                         'comments': 'not run on models with number above 4000 (denoted -1)',
                          'missing_value': -1,
                          'vtype': 'filter'})
     modfilter[:] = passed
@@ -721,13 +717,11 @@ def _add_filter_4(f4txt, nc_file):
     with open(f4txt) as f:
         pass_nums = [int(e.strip()) for e in f.readlines()] + [-1, -2]
     passed = np.in1d(nsmc_nums, pass_nums).astype(int)
-    passed[nsmc_nums > 4000] = -1
     passed[filter1 < 1] = -1
 
     modfilter = nc_file.createVariable('filter4', 'i1', ('nsmc_num',), fill_value=-1, zlib=True)
     modfilter.setncatts({'units': 'boolean',
                          'long_name': 'filter 4 intersect of piezo and vert filter',
-                         'comments': 'not run on models with number above 4000 (denoted -1)',
                          'missing_value': -1,
                          'vtype': 'filter'})
     modfilter[:] = passed
@@ -740,6 +734,7 @@ def _add_filter_5(f5txt, nc_file):
     #    pass_nums = [int(e.strip()) for e in f.readlines()] + [-1, -2]
     # passed = np.in1d(nsmc_nums, pass_nums).astype(int)
     # passed[filter4 < 1] = -1
+    # passed[nsmc_nums > 4000] = -1
 
     modfilter = nc_file.createVariable('filter5', 'i1', ('nsmc_num',), fill_value=-1, zlib=True)
     modfilter.setncatts({'units': 'boolean',
@@ -897,7 +892,7 @@ def make_netcdf_nsmc(nc_outfile, rrffile, rec_file, opt_lower_rec, opt_upper_rec
 if __name__ == '__main__':
     # todo spotcheck
     data_dir = "{}/from_gns/nsmc".format(smt.sdp)
-    make_netcdf_nsmc(nc_outfile=r"C:\Users\MattH\Desktop\test_param_obs_nc.nc",  # todo update
+    make_netcdf_nsmc(nc_outfile=env.gw_met_data("mh_modeling/netcdfs_of_key_modeling_data/nsmc_params_obs_metadata.nc"),
                      rrffile="{}/aw_ex_mc/aw_ex_mc.rrf".format(data_dir),
                      rec_file="{}/aw_ex_mc/aw_ex_mc.rec".format(data_dir),
                      opt_lower_rec="{}/AW_PHILOW_PIEZO/AW_PHILOW_PIEZO/aw_ex_philow_piez.rec".format(data_dir),
