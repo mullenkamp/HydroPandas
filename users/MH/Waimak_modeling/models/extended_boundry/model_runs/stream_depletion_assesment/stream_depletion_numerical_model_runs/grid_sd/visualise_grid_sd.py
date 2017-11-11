@@ -107,7 +107,7 @@ def extract_all_stream_krig(data_path, outpath):
     lat[:] = y
 
     lon = outfile.createVariable('longitude', 'f8', ('longitude',), fill_value=np.nan)
-    lat.setncatts({'units': 'NZTM',
+    lon.setncatts({'units': 'NZTM',
                    'long_name': 'longitude',
                    'missing_value': np.nan,
                    'standard_name': 'projection_x_coordinate'})

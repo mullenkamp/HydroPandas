@@ -70,6 +70,31 @@ def make_ucn_netcd(nsmc_nums, ucn_paths, units, description, nc_path, ucn_no_val
                         'missing_value': -9})
     nsmc_num[:] = nsmc_nums
 
+    x, y = smt.get_model_x_y(False)
+
+    proj = nc_file.createVariable('crs', 'i1') #this works really well...
+    proj.setncatts({'grid_mapping_name': "transverse_mercator",
+                    'scale_factor_at_central_meridian': 0.9996,
+                    'longitude_of_central_meridian': 173.0,
+                    'latitude_of_projection_origin': 0.0,
+                    'false_easting': 1600000,
+                    'false_northing': 10000000,
+                    })
+
+    lat = nc_file.createVariable('latitude', 'f8', ('row',), fill_value=np.nan)
+    lat.setncatts({'units': 'NZTM',
+                   'long_name': 'latitude',
+                   'missing_value': np.nan,
+                   'standard_name': 'projection_y_coordinate'})
+    lat[:] = y
+
+    lon = nc_file.createVariable('longitude', 'f8', ('col',), fill_value=np.nan)
+    lon.setncatts({'units': 'NZTM',
+                   'long_name': 'longitude',
+                   'missing_value': np.nan,
+                   'standard_name': 'projection_x_coordinate'})
+    lon[:] = x
+
     # some checks
     for var, paths in ucn_paths.items:
         if isinstance(units, str):
