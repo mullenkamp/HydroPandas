@@ -245,6 +245,27 @@ def pytime_to_datetime(pytime):
     return(dt1)
 
 
+def logging(log_file_path, text):
+    """
+    Simple function to save/append to a log file.
+
+    Parameters
+    ----------
+    log_file_path : str
+        Path to the log file.
+    text : str
+        Text str to be added to the log file.
+
+    Returns
+    -------
+    None
+    """
+    from datetime import datetime
+
+    now1 = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    with open(log_file_path, 'a+') as file1:
+        file1.write(now1 + ' - ' + text + '\n')
+
 
 
 

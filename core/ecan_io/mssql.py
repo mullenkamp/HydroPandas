@@ -239,7 +239,7 @@ def write_sql(server, database, table, df, dtype_dict, create_table=True, drop_t
     from pymssql import connect
 
     #### Parameters and functions
-    py_sql = {'NUMERIC': float, 'DATE': str, 'DATETIME': str, 'INT': 'int32', 'VARCHAR': str, 'FLOAT': float}
+    py_sql = {'NUMERIC': float, 'DATE': str, 'DATETIME': str, 'INT': 'int32', 'VARCHAR': str, 'FLOAT': float, 'smalldatetime': str, 'decimal': float}
 
     def chunker(seq, size):
         return([seq[pos:pos + size] for pos in xrange(0, len(seq), size)])
@@ -258,6 +258,8 @@ def write_sql(server, database, table, df, dtype_dict, create_table=True, drop_t
         elif 'VARCHAR' in dtype1:
             df.loc[:, i] = df.loc[:, i].astype(str)
         elif 'NUMERIC' in dtype1:
+            df.loc[:, i] = df.loc[:, i].astype(float)
+        elif 'decimal' in dtype1:
             df.loc[:, i] = df.loc[:, i].astype(float)
         elif not dtype1 in py_sql.keys():
             raise ValueError('dtype must be one of ' + str(py_sql.keys()))

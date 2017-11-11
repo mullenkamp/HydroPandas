@@ -6,16 +6,14 @@ General time series tools.
 #from pandas.core.groupby import GroupBy
 
 
-def resample(self, resample='A-JUN', fun='mean'):
+def resample(self, resample_code='A-JUN', fun='mean'):
     """
     Time series resampling function. Returns a Hydro class object with resampled data.
 
     Parameters
     ----------
-    resample : str
+    resample_code : str
         The Pandas resampling code for the resampling process (e.g. 'A' for annual, 'A-JUN' for annual ending in June (water year), 'D' for day, 'W' for week, 'M' for month')
-    n_periods : int
-        The number of periods.
     fun : str
         The function that should be applied. Any function that Pandas can handle in a groupby object.
     """
@@ -33,7 +31,7 @@ def resample(self, resample='A-JUN', fun='mean'):
     ### Run resampling
     data = self.data
 
-    df1 = data.groupby([Grouper(level='mtype'), Grouper(level='site'), Grouper(level='time', freq=resample)])
+    df1 = data.groupby([Grouper(level='mtype'), Grouper(level='site'), Grouper(level='time', freq=resample_code)])
     df2 = fun1(df1)
 
     ### Recreate hydro class object
