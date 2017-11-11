@@ -15,9 +15,9 @@ import itertools
 import os
 
 sw_site_groups = {
-    'cust': ['cust_oxford',  # todo cust at oxford often goes dry, check in new set of simlulations
+    'cust': ['cust_oxford',  # cust at oxford often goes dry, check in new set of simlulations
              'cust_threlkelds'],
-    # todo also some wells going dry, need to handle but wait to see if it's actually a problem
+    # also some wells going dry, need to handle but wait to see if it's actually a problem
     'north_cust': ['cam_youngs',
                    'northbrook_marsh',
                    'saltwater_toppings',
@@ -102,7 +102,7 @@ def vis_cc(relative_data_path, meta_data_path):
     for site in list(itertools.chain(*groups.values())):
         try:
             print(site)
-            if site == 'cust_oxford':  # todo just to test, see if it is still going dry and if so handle this
+            if site == 'cust_oxford':  # just to test, see if it is still going dry and if so handle this
                 continue
             if '/' in site:
                 ylab = 'draw down'
@@ -130,7 +130,7 @@ def vis_cc(relative_data_path, meta_data_path):
     return out_plots
 
 
-def vis_eco_min_flows(relitive_data_path):  # todo handle dry missing wells
+def vis_eco_min_flows(relitive_data_path):  # handle dry missing wells
     """
     plot nat, full abs, full allo, full_alo_abs on a box and whisker
     :param relitive_data_path: for the forward runs
@@ -173,7 +173,7 @@ def vis_eco_min_flows(relitive_data_path):  # todo handle dry missing wells
     return g
 
 
-def vis_relibability(relitive_data_path):  # todo handle dry missing wells
+def vis_relibability(relitive_data_path):  # handle dry missing wells
     """
     plot # mod_period, pc5, will eff, pc5 + will eff
     :param relitive_data_path: for relative data
@@ -259,7 +259,7 @@ def vis_pc5_comp(relitive_data_path):
     return g
 
 
-def vis_bases(relitive_data_path):  # todo handle dry missing wells
+def vis_bases(relitive_data_path):  # handle dry missing wells
     """
     plot # mod_period, pc5, will eff, pc5 + will eff
     :param relitive_data_path: for relative data

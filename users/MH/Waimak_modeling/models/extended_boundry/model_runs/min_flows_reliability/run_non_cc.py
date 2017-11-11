@@ -23,10 +23,10 @@ if __name__ == '__main__':
     # this is meant to easily run the forward runs for the non cc senarios
 
     # done on rdsprod03
-    #### todo inputs to define for each run####
+    #### inputs to define for each run####
     safemode = True
     run_modelses = [True,True]
-    model_ids = ['NsmcBase', 'StrOpt']  # todo update
+    model_ids = ['NsmcBase', 'StrOpt']
     date = '2017_11_07'
     base_dir = r"D:\mh_waimak_models" # path on gw02
 

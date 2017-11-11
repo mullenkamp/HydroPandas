@@ -17,7 +17,7 @@ from sd_metadata import save_sd_metadata
 if __name__ == '__main__':
     # a conveninance function to run all of the non-well stream depletion assesments and data extraction
 
-    #### todo update below parameters ####
+    #### update below parameters ####
     # on DHI-runs02
     model_id = 'NsmcBase'
 

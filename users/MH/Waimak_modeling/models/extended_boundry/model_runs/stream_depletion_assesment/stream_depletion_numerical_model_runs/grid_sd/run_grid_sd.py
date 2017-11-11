@@ -19,9 +19,9 @@ if __name__ == '__main__':
     # size requirements: one run (one well) is ~ 47 MB there are one full grid run is ~85 GB
     # run time requirments:
 
-    #### todo update the below parameters ####
+    #### update the below parameters ####
     # run on GWruns02
-    model_id = 'NsmcBase'  # todo re-define
+    model_id = 'NsmcBase'  # re-define
     if socket.gethostname() == 'RDSProd03':
         base_dir = "D:\mh_model_runs\grid_sd_runs\{}_models_2017_10_27".format(model_id)
         data_out_dir = "D:\mh_model_runs\grid_sd_runs\{}_data_2017_10_27".format(model_id)
