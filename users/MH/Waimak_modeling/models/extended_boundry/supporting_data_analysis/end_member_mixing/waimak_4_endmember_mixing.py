@@ -88,7 +88,7 @@ if __name__ == '__main__':
     end_mean_cl = {'inland': 10.38, 'coastal': 25.43, 'river': 1.05, 'eyre': 3.67}
     end_sd_cl = {'inland': 4.21, 'coastal': 9.49, 'river': 0.15, 'eyre': 0.29}
 
-    targets = pd.read_csv(  # todo change path
+    targets = pd.read_csv(
         r"\\gisdata\projects\SCI\Groundwater\Waimakariri\Groundwater\Groundwater Quality\End member mixing model\Additional target wells\AdditionalTargets.csv",
         index_col=0)
     sites = {}
@@ -97,7 +97,7 @@ if __name__ == '__main__':
                        'o18_upper': targets.loc[site, 'o18_mean'] + targets.loc[site, 'o18_stdev'],
                        'cl_lower': targets.loc[site, 'cl_mean'] - targets.loc[site, 'cl_stdev'],
                        'cl_upper': targets.loc[site, 'cl_mean'] + targets.loc[site, 'cl_stdev']}
-    mc_calc_end_members(  # todo change path
+    mc_calc_end_members(
         r"\\gisdata\projects\SCI\Groundwater\Waimakariri\Groundwater\Groundwater Quality\End member mixing model\Additional target wells\4_members",
         sites, end_mean_o18, end_sd_o18, end_mean_cl, end_sd_cl,n=5000)
     print'done'

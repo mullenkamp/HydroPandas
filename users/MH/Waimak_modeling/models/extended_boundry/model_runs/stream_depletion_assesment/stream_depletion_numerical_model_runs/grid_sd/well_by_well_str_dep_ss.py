@@ -116,12 +116,12 @@ def well_by_well_depletion_grid(model_id, flux, base_path, notes):
 
 if __name__ == '__main__':
     setup_runs_grid('StrOpt',-10,'test',-999)
-    base_dir = None  # todo define prior to running
+    base_dir = None  # define prior to running
     # size requirements: one run (one well) is ~ 47 MB there are one full grid run is ~85 GB
     # run time requirments:
     fluxes = [-5, -25, -100]
-    fluxes = [e * 86.4 for e in fluxes]  # todo define 3 fluxes to run todo check the size requirments make sure all are negative
-    model_id = 'opt'  # todo re-define
+    fluxes = [e * 86.4 for e in fluxes]  #  define 3 fluxes to run
+    model_id = 'opt'  # old re-define
     for flux in fluxes:
         path = os.path.join(base_dir, 'flux_{}'.format(flux))
         well_by_well_depletion_grid(model_id, flux, path, 'one flux of 3, using flux of {} m3/d'.format(flux))

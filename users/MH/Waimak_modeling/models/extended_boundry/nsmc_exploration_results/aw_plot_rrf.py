@@ -17,7 +17,20 @@ import os
 import matplotlib.pyplot as plt
 import pandas as pd
 #import reiextract as reiex
-import rrfextract as rrf
+from users.MH.Waimak_modeling.models.extended_boundry.nsmc_exploration_results.combine_nsmc_results import \
+    rrfextract as rrf
+# %%
+# import mf
+import os
+
+# import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# import reiextract as reiex
+from users.MH.Waimak_modeling.models.extended_boundry.nsmc_exploration_results.combine_nsmc_results import \
+    rrfextract as rrf
+
 #from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 plt.close('all')

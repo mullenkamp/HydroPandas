@@ -23,7 +23,7 @@ import itertools
 org_data_dir = "{}/from_GNS".format(sdp)
 
 
-# todo as part of this make another function which gets the name file (or copies the files across)
+# as part of this make another function which gets the name file (or copies the files across)
 
 
 def import_gns_model(model_id, name, dir_path, safe_mode=True, mt3d_link=False, exe_path=None):
@@ -353,7 +353,7 @@ def change_stress_period_settings(m, spv):
     dis.steady = flopy.utils.Util2d(m, (nper,), bool, spv['steady'], 'steady')
     dis.tsmult = flopy.utils.Util2d(m, (nper,), np.float32, spv['tsmult'], 'tsmult')
     dis.check()
-    if oc_stress_per_data is None: #todo I dont' think this works with nwt
+    if oc_stress_per_data is None: # I dont' think this works with nwt
         oc_stress_per_data = {}
         for per in range(nper):
             for step in range(nstp[per]):

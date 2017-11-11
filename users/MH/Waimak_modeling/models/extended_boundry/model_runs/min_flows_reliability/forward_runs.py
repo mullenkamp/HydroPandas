@@ -327,8 +327,7 @@ def run_forward_runs(runs, forward_run_dir, notes=None):
 if __name__ == '__main__':
     # tests run in the run script for forward runs
     safemode = True
-    # todo will need to re-run with new model
-    # todo define the two below before each run
+    # define the two below before each run
     dir_path = r"D:\mh_model_runs\forward_runs_2017_10_10"  # path on rdsprod03
     notes = """ 
     LSR senario changes applied to full domain, CC component of LSR changes applied to whole domain, but ccmult and missing h20 is waimak only

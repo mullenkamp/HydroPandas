@@ -90,7 +90,7 @@ def extract_all_stream_krig(data_path, outpath):
                      'missing_value': np.nan})
     depth[:] = range(smt.layers - 1)
 
-    proj = outfile.createVariable('crs', 'i1') #todo check this shit
+    proj = outfile.createVariable('crs', 'i1') #this works really well... #todo add to core
     proj.setncatts({'grid_mapping_name': "transverse_mercator",
                     'scale_factor_at_central_meridian': 0.9996,
                     'longitude_of_central_meridian': 173.0,
@@ -107,7 +107,7 @@ def extract_all_stream_krig(data_path, outpath):
     lat[:] = y
 
     lon = outfile.createVariable('longitude', 'f8', ('longitude',), fill_value=np.nan)
-    lat.setncatts({'units': 'NZTM',
+    lon.setncatts({'units': 'NZTM',
                    'long_name': 'longitude',
                    'missing_value': np.nan,
                    'standard_name': 'projection_x_coordinate'})
@@ -148,7 +148,7 @@ def plot_all_streams_sd(nc_path, outdir):
         if 'var' in var:
             vmin, vmax = None, None
         elif 'sd' in var:
-            vmin, vmax = 1, 100  # todo vmin and vmax?
+            vmin, vmax = 1, 100
         else:
             raise ValueError('shouldnt get here')
 

@@ -55,11 +55,20 @@ def param_from_rec(rec_file,series_name):
                          index_col=0)
     out = data.loc[:, 'initial']
     out.name = series_name
-    return
+    return out
 
+def extract_obs_opt_rei(rei_file, name, exclude_piezo=True):
+    data = pd.read_table(rei_file,skiprows=2,delim_whitespace=True,index_col=0)
+    if exclude_piezo:
+        data = data.loc[data.Group!='piez']
+    out = data.loc[:,'Modelled']
+    out.name = name
+    return out
 
 
 if __name__ == '__main__':
+    rei_file = r"C:\Users\MattH\Desktop\from_brioch_9_11_2017\AW_PHILOW_PIEZO\AW_PHILOW_PIEZO\aw_ex_philow_piez.rei"
+    test = extract_obs_opt_rei(rei_file,-1)
     test = param_from_rec(r'C:\Users\MattH\Desktop\from_brioch_9_11_2017\AW_PHILOW_PIEZO\AW_PHILOW_PIEZO\aw_ex_philow_piez.rec')
     print('done')
 

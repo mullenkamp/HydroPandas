@@ -16,7 +16,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.a
     get_all_well_row_col
 
 hds_no_data = 1e30
-unc_no_data = -999.99  # todo confirm this
+unc_no_data = -1
 
 
 def get_well_positions(well_list, missing_handeling='warn'):
