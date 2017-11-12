@@ -61,4 +61,4 @@ def make_netcd_endmember_mixing(nc_path):
 
 if __name__ == '__main__':
     #todo debug
-    make_netcd_endmember_mixing(env.gw_met_data("mh_modeling/netcdfs_of_key_modeling_data/emma_ucn.nc"))
+    make_netcd_endmember_mixing("C:/Users/MattH/Desktop/emma_ucn2.nc")
