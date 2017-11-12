@@ -8,7 +8,7 @@ Functions for processing MetService data.
 """
 
 
-def proc_metservice_nc(nc, lat_coord='south_north', lon_coord='west_east', time_coord='Time', time_var='Times'):
+def proc_metservice_nc(nc, lat_coord='south_north', lon_coord='west_east', time_coord='Time', time_var='Times', export_dir=None):
     """
     Function to process MetService netcdf files so that it is actually complete. The function adds in the appropriate coordinate arrays for the data and resaves the file with '_corr" added to the end of the name.
 
@@ -82,7 +82,12 @@ def proc_metservice_nc(nc, lat_coord='south_north', lon_coord='west_east', time_
     x5.attrs['spatial_ref'] =  proj1
 
     ### Save the new file and close them
-    new_path = path.splitext(nc)[0] + '_corr.nc'
+    if export_dir is None:
+        new_path = path.splitext(nc)[0] + '_corr.nc'
+    elif isinstance(export_dir, (str, unicode)):
+        nc_file = path.splitext(path.split(nc)[1])[0] + '_corr.nc'
+        new_path = path.join(export_dir, nc_file)
+
     x5.to_netcdf(new_path)
     x1.close()
     x5.close()
@@ -127,8 +132,8 @@ def MetS_nc_to_df(nc, lat_coord='y', lon_coord='x', time_coord='time', precip_va
     from geopandas import GeoDataFrame
 
     ### Extract all data to dataframes
-    ds = open_dataset(nc)
-    precip = ds[precip_var].to_dataframe().reset_index()
+    with open_dataset(nc) as ds:
+        precip = ds[precip_var].to_dataframe().reset_index()
     proj1 = str(ds.attrs[proj4])
 
     ### Create geodataframe
@@ -145,6 +150,88 @@ def MetS_nc_to_df(nc, lat_coord='y', lon_coord='x', time_coord='time', precip_va
     ### Return
     ds.close()
     return(precip, sites, start_date)
+
+
+def metconnect_id_loc(hydrotel_pt_number=None):
+    """
+    Function to extract the metconnect id table with geometry location.
+
+    Parameters
+    ----------
+    hydrotel_pt_number : list of int or None
+        The hydrotel point numbers to extract from the table, or None for all.
+
+    Returns
+    -------
+    GeoDataFrame
+    """
+    from core.ecan_io import rd_sql
+    from core.spatial.vector import xy_to_gpd
+    from pandas import merge, to_numeric
+
+    ### Input parameters
+    mc_server = 'SQL2012PROD03'
+    mc_db = 'MetConnect'
+    mc_site_table = 'RainFallPredictionSites'
+
+    mc_cols = ['MetConnectID', 'SiteString', 'HydroTelPointNo']
+
+    hy_server = 'SQL2012PROD05'
+    hy_db = 'Hydrotel'
+    pts_table = 'Points'
+    objs_table = 'Objects'
+    sites_table = 'Sites'
+
+    pts_cols = ['Point', 'Object']
+    objs_cols = ['Object', 'Site']
+    sites_cols = ['Site', 'ExtSysId']
+
+    loc_db = 'Bgauging'
+    loc_table = 'RSITES'
+
+    loc_cols = ['SiteNumber', 'NZTMX', 'NZTMY']
+
+    ## Import tables
+    mc1 = rd_sql(mc_server, mc_db, mc_site_table, mc_cols)
+    mc2 = mc1[~mc1.SiteString.str.startswith('M')]
+    mc2.columns = ['MetConnectID', 'site_name', 'Point']
+    mc2 = mc2[mc2.MetConnectID != 7]
+
+    hy_pts = rd_sql(hy_server, hy_db, pts_table, pts_cols, 'Point', mc2.Point.tolist())
+    hy_objs = rd_sql(hy_server, hy_db, objs_table, objs_cols, 'Object', hy_pts.Object.tolist())
+    hy_sites = rd_sql(hy_server, hy_db, sites_table, sites_cols, 'Site', hy_objs.Site.tolist())
+    hy_sites['ExtSysId'] = to_numeric(hy_sites['ExtSysId'])
+    hy_loc = rd_sql(hy_server, loc_db, loc_table, loc_cols, 'SiteNumber', hy_sites.ExtSysId.tolist())
+    hy_loc.columns = ['ExtSysId', 'x', 'y']
+
+    t1 = merge(mc2, hy_pts, on='Point')
+    t2 = merge(t1, hy_objs, on='Object')
+    t3 = merge(t2, hy_sites, on='Site')
+    t4 = merge(t3, hy_loc, on='ExtSysId')
+
+    hy_xy = xy_to_gpd('MetConnectID', 'x', 'y', t4)
+
+    return(hy_xy)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
