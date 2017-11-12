@@ -72,7 +72,7 @@ def make_ucn_netcd(nsmc_nums, ucn_paths, units, description, nc_path, ucn_no_val
 
     x, y = smt.get_model_x_y(False)
 
-    proj = nc_file.createVariable('crs', 'i1') #this works really well...
+    proj = nc_file.createVariable('crs', 'i1')  # this works really well...
     proj.setncatts({'grid_mapping_name': "transverse_mercator",
                     'scale_factor_at_central_meridian': 0.9996,
                     'longitude_of_central_meridian': 173.0,
@@ -96,7 +96,8 @@ def make_ucn_netcd(nsmc_nums, ucn_paths, units, description, nc_path, ucn_no_val
     lon[:] = x
 
     # some checks
-    for var, paths in ucn_paths.items:
+    for var, paths in ucn_paths.items():
+        print('extracting data for {}'.format(var))
         if isinstance(units, str):
             addu = units
         elif isinstance(units, dict):
@@ -110,11 +111,13 @@ def make_ucn_netcd(nsmc_nums, ucn_paths, units, description, nc_path, ucn_no_val
                         'long_name': var,
                         'missing_value': np.nan})
 
-        temp_ucn_file = flopy.utils.UcnFile(paths)
+        temp_ucn_file = flopy.utils.UcnFile(paths[0])
         kstpkper = _get_kstkpers(temp_ucn_file, rel_kstpkpers=-1)[0]  # get the last kstpkper
         if len(temp_ucn_file.get_kstpkper()) > 1:
             warn('more than one kstpkper for {}, using the last kstpkper which is {}'.format(var, kstpkper))
         for i, path in enumerate(paths):
+            if i % 10 == 0:
+                print('starting set {} to {} of {} for {}'.format(i, i + 10, len(paths), var))
             ucn_file = flopy.utils.UcnFile(path)
             temp_out = ucn_file.get_data(kstpkper=kstpkper)
             temp_out[np.isclose(temp_out, ucn_no_value)] = np.nan

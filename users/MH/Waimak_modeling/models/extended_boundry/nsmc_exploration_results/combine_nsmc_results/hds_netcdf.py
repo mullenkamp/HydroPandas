@@ -26,6 +26,7 @@ def make_hds_netcdf(nsmc_nums, hds_paths, description, nc_path):
     :param description: a description (str) to set as a netcdf attribute
     :return:
     """
+    print('starting to make a netcdf of heads, this will take a long time')
     nc_file = nc.Dataset(nc_path, 'w')
 
     # make dimensions
@@ -70,7 +71,7 @@ def make_hds_netcdf(nsmc_nums, hds_paths, description, nc_path):
 
     x, y = smt.get_model_x_y(False)
 
-    proj = nc_file.createVariable('crs', 'i1') #this works really well...
+    proj = nc_file.createVariable('crs', 'i1')  # this works really well...
     proj.setncatts({'grid_mapping_name': "transverse_mercator",
                     'scale_factor_at_central_meridian': 0.9996,
                     'longitude_of_central_meridian': 173.0,
@@ -94,7 +95,7 @@ def make_hds_netcdf(nsmc_nums, hds_paths, description, nc_path):
     lon[:] = x
 
     # get the last kstpkper
-    temp = flopy.utils.CellBudgetFile(hds_paths[0])
+    temp = flopy.utils.HeadFile(hds_paths[0])
     kstpkper = _get_kstkpers(temp, rel_kstpkpers=-1)[0]
     if len(temp.get_kstpkper()) > 1:
         warn('more than one kstpkper, using the last kstpkper which is {}'.format(kstpkper))
@@ -108,6 +109,8 @@ def make_hds_netcdf(nsmc_nums, hds_paths, description, nc_path):
 
     # add data
     for (i, nsmc_num), hd_path, in zip(enumerate(nsmc_nums), hds_paths):
+        if i % 10 == 0:
+            print('starting set {} to {} of {}'.format(i, i + 10, len(nsmc_nums)))
         hds = flopy.utils.HeadFile(hd_path)
         temp_data = hds.get_data(kstpkper=kstpkper)
         temp_data[np.isclose(temp_data, hds_no_data)] = np.nan
