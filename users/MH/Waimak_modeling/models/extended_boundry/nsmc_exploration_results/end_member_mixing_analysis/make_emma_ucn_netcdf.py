@@ -42,6 +42,7 @@ def make_netcd_endmember_mixing(nc_path):
                 temp_paths.append(os.path.join(bp, 'mt_aw_ex_{}_phiupper.ucn'.format(var)))
             else:
                 raise ValueError('unexpected number in emma_nsmc_nums')
+        ucn_paths[var] = temp_paths
 
     description = """ endmember mixing analysis results for inland and coastal endmembers.  
     initial concentrations for each endmember was 1.  
