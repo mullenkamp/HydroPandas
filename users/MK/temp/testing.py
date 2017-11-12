@@ -3396,7 +3396,7 @@ val_round=3
 fun = 'sum'
 table = 'Samples'
 from_date = '2017-01-01'
-to_date = '2017-01-20'
+to_date = '2017-09-01'
 where_val=None
 where_op='AND'
 where_col = {'Point': [3333]}
@@ -3459,32 +3459,79 @@ sites = [1688218, 70105]
 server = 'SQL2012PROD03'
 database = 'DataWarehouse'
 table = 'F_HY_SWL_data'
-mtype = 'river_flow_cont_qc'
-time_col = 'time'
+mtype = 'river_wl_cont_qc'
+date_col = 'time'
 site_col = 'site'
 data_col = 'data'
 qual_col='qual_code'
 from_date='2016-01-01'
 to_date='2017-01-01'
-qual_codes=None
+qual_codes=[10, 18, 20, 30, 50]
 add_where=None
+min_count=20
+resample_code='W'
+period=1
+fun='mean'
+val_round=3
+where_col = {'qual_code': [10, 18, 20, 30, 50], 'site': [1688218, 70105]}
 
-t1 = rd_hydrotel(sites, from_date=from_date, to_date=to_date, min_count=700)
+t1 = rd_hydrotel(sites, from_date=from_date, to_date=to_date, min_count=368)
 
+rd_sql_ts(server, database, table, site_col, date_col, data_col, resample_code, period, fun, val_round, where_col, from_date, to_date, min_count)
 
-
-
-
-
-
-
-
-
-
-
+i = 'atmos_precip_cont_qc'
 
 
+sites_sql_fun=geo_loc_dict[i]
+mtype_dict=mtypes_sql_dict[i]
+mtype='atmos_precip_cont_qc'
+sites=[313710]
+from_date = '2017-02-01'
+to_date = '2017-04-01'
+qual_codes = [10, 18, 20, 30, 50, 11, 21]
+min_count=20
+buffer_dis=0
+resample_code=None
+period=1
+fun='mean'
 
+h1 = hydro()
+
+sites=sites3
+mtype=mtype
+from_date=from_date
+to_date=to_date
+qual_codes=qual_codes
+min_count=min_count
+resample_code=resample_code
+period=period
+fun=fun
+
+**mtype_dict
+
+add_where =  None
+data_col =  'data'
+database =  'DataWarehouse'
+date_col =  'time'
+qual_col =  'qual_code'
+server =  'SQL2012PROD03'
+site_col =  'site'
+table =  'F_HY_Precip_data'
+
+database= 'DataWarehouse'
+date_col ='time'
+from_date ='2017-02-01'
+fun ='mean'
+groupby_cols= 'site'
+min_count =20
+period =1
+resample_code= None
+server= 'SQL2012PROD03'
+table ='F_HY_Precip_data'
+to_date= '2017-04-01'
+val_round= 3
+values_cols= 'data'
+where_col ={'qual_code': [10, 18, 20, 30, 50, 11, 21], 'site': ['313710']}
 
 
 

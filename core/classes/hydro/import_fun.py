@@ -401,7 +401,7 @@ def rd_netcdf(self, nc_path):
 ### mssql
 
 
-def _rd_hydro_mssql(self, server, database, table, mtype, time_col, site_col, data_col, qual_col=None, sites=None, from_date=None, to_date=None, qual_codes=None, add_where=None, min_count=None):
+def _rd_hydro_mssql(self, server, database, table, mtype, date_col, site_col, data_col, qual_col=None, sites=None, from_date=None, to_date=None, qual_codes=None, add_where=None, min_count=None, resample_code=None, period=1, fun='mean', val_round=3):
     """
     Function to import data from a MSSQL database. Specific columns can be selected and specific queries within columns can be selected. Requires the pymssql package.
 
@@ -415,7 +415,7 @@ def _rd_hydro_mssql(self, server, database, table, mtype, time_col, site_col, da
         The specific table within the database. e.g.: 'LowFlowSiteRestrictionDaily'
     mtype : str
         The measurement type according to the Hydro mtypes.
-    time_col : str
+    date_col : str
         The DateTime column name.
     site_col : str
         The site name column.
@@ -435,17 +435,22 @@ def _rd_hydro_mssql(self, server, database, table, mtype, time_col, site_col, da
         An additional SQL query to be added.
     min_count : int
         The minimum number of data values per site for data extraction.
+    resample_code : str or None
+        The Pandas time series resampling code. e.g. 'D' for day, 'W' for week, 'M' for month, etc.
+    period : int
+        The number of resampling periods. e.g. period = 2 and resample = 'D' would be to resample the values over a 2 day period.
+    fun : str
+        The resampling function. i.e. mean, sum, count, min, or max. No median yet...
+    val_round : int
+        The number of decimals to round the values.
 
     Return
     ------
     Hydro
     """
-    from core.ecan_io.mssql import sql_ts_agg_stmt, sql_where_stmts
+    from core.ecan_io.mssql import rd_sql_ts
 
-    ### Make the where statements
-    cols = [site_col, time_col, data_col]
-    cols_str = ', '.join(cols)
-
+    ## Prepare sql_dict for sites and qual_cdes
     site_qual_dict = {}
 
     if isinstance(qual_codes, list):
@@ -455,41 +460,9 @@ def _rd_hydro_mssql(self, server, database, table, mtype, time_col, site_col, da
         sites = [str(i) for i in sites]
         site_qual_dict.update({site_col: sites})
 
-    if site_qual_dict:
-        where_lst = sql_where_stmts(site_qual_dict, from_date=from_date, to_date=to_date, date_col=time_col)
-    else:
-        where_lst = sql_where_stmts(from_date=from_date, to_date=to_date, date_col=time_col)
+    sql_dict = {'server': server, 'database': database, 'table': table, 'groupby_cols': site_col, 'date_col': date_col, 'values_cols': data_col, 'resample_code': resample_code, 'period': period, 'fun': fun, 'val_round': val_round, 'where_col': site_qual_dict, 'from_date': from_date, 'to_date': to_date, 'min_count': min_count}
 
-    ### Make the SQL connection
-    conn = connect(server, database=database)
-
-    ### Make minimum count selection
-    if (min_count is not None) & isinstance(min_count, int):
-        cols_count_str = ', '.join([site_col, 'count(' + data_col + ') as count'])
-        if isinstance(where_lst, list):
-            stmt1 = "SELECT " + cols_count_str + " FROM " + table + " where " + " and ".join(where_lst) + " GROUP BY " + site_col + " HAVING count(" + data_col + ") > " + str(min_count)
-        else:
-            stmt1 = "SELECT " + cols_count_str + " FROM " + table + " GROUP BY " + site_col + " HAVING count(" + data_col + ") > " + str(min_count)
-
-        up_sites = read_sql(stmt1, conn)[site_col].tolist()
-        up_sites = [str(i) for i in up_sites]
-
-        site_qual_dict.update({site_col: up_sites})
-        where_lst = sql_where_stmts(site_qual_dict, from_date=from_date, to_date=to_date, date_col=time_col)
-
-    ### Make final SQL stmt
-    if isinstance(where_lst, list):
-        stmt2 = "SELECT " + cols_str + " FROM " + table + " where " + " and ".join(where_lst)
-    else:
-        stmt2 = "SELECT " + cols_str + " FROM " + table
-
-    ## Pull out the data from SQL
-    df = read_sql(stmt2, conn)
-    conn.close()
-
-    ## Check to see if any data was found
-    if df.empty:
-        raise ValueError('No data was found in the database for the parameters given.')
+    df = rd_sql_ts(**sql_dict).reset_index()
 
     ## Rename columns
     df.columns = ['site', 'time', 'data']
@@ -514,21 +487,18 @@ def _rd_hydro_geo_mssql(self, server, database, table, geo_dict):
     return(sites2)
 
 
-def _proc_hydro_sql(self, sites_sql_fun, db_dict, mtype, sites=None, from_date=None, to_date=None, qual_codes=None, min_count=None, buffer_dis=0, resample=None):
+def _proc_hydro_sql(self, sites_sql_fun, mtype_dict, mtype, sites=None, from_date=None, to_date=None, qual_codes=None, min_count=None, buffer_dis=0, resample_code=None, period=1, fun='mean'):
     """
     Convenience function for reading in mssql data from standardized hydro tables.
     """
     from core.spatial import sel_sites_poly
     from geopandas import GeoDataFrame
-    from core.ecan_io.mssql import rd_sql_ts
 
     if isinstance(sites, GeoDataFrame):
         loc1 = sites_sql_fun()
         sites1 = sel_sites_poly(loc1, sites, buffer_dis).index.astype(str)
     else:
         sites1 = Series(sites).astype(str)
-
-    mtype_dict = db_dict[mtype]
 
     h1 = self.copy()
     if isinstance(mtype_dict, (list, tuple)):
@@ -542,7 +512,7 @@ def _proc_hydro_sql(self, sites_sql_fun, db_dict, mtype, sites=None, from_date=N
                 raise ValueError('No sites in database')
             if mtype_dict[i]['qual_col'] is None:
                 qual_codes = None
-            h1 = h1._rd_hydro_mssql(sites=sites3, mtype=mtype, from_date=from_date, to_date=to_date, qual_codes=qual_codes, min_count=min_count, **mtype_dict[i])
+            h1 = h1._rd_hydro_mssql(sites=sites3, mtype=mtype, from_date=from_date, to_date=to_date, qual_codes=qual_codes, min_count=min_count, resample_code=resample_code, period=period, fun=fun, **mtype_dict[i])
     elif isinstance(mtype_dict, dict):
         site1 = mtype_dict['site_col']
 
@@ -553,7 +523,7 @@ def _proc_hydro_sql(self, sites_sql_fun, db_dict, mtype, sites=None, from_date=N
                 raise ValueError('No sites in database')
         if mtype_dict['qual_col'] is None:
             qual_codes = None
-        h1 = h1._rd_hydro_mssql(sites=sites3, mtype=mtype, from_date=from_date, to_date=to_date, qual_codes=qual_codes, min_count=min_count, **mtype_dict)
+        h1 = h1._rd_hydro_mssql(sites=sites3, mtype=mtype, from_date=from_date, to_date=to_date, qual_codes=qual_codes, min_count=min_count, resample_code=resample_code, period=period, fun=fun, **mtype_dict)
     elif callable(mtype_dict):
         h1 = mtype_dict(h1, sites=sites1, mtype=mtype, from_date=from_date, to_date=to_date, min_count=min_count)
 

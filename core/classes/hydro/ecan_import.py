@@ -16,19 +16,19 @@ prod_server03 = 'SQL2012PROD03'
 prod_server05 = 'SQL2012PROD05'
 dw_db = 'DataWarehouse'
 
-flow_dict = {'server': prod_server03, 'database': dw_db, 'table': 'F_HY_Flow_Data', 'site_col': 'SiteNo', 'time_col': 'DateTime', 'data_col': 'Value', 'qual_col': 'QualityCode', 'add_where': None}
+flow_dict = {'server': prod_server03, 'database': dw_db, 'table': 'F_HY_Flow_Data', 'site_col': 'SiteNo', 'date_col': 'DateTime', 'data_col': 'Value', 'qual_col': 'QualityCode', 'add_where': None}
 
-precip_dict = {'server': prod_server03, 'database': dw_db, 'table': 'F_HY_Precip_data', 'site_col': 'site', 'time_col': 'time', 'data_col': 'data', 'qual_col': 'qual_code', 'add_where': None}
+precip_dict = {'server': prod_server03, 'database': dw_db, 'table': 'F_HY_Precip_data', 'site_col': 'site', 'date_col': 'time', 'data_col': 'data', 'qual_col': 'qual_code', 'add_where': None}
 
-swl_dict = {'server': prod_server03, 'database': dw_db, 'table': 'F_HY_SWL_data', 'site_col': 'site', 'time_col': 'time', 'data_col': 'data', 'qual_col': 'qual_code', 'add_where': None}
+swl_dict = {'server': prod_server03, 'database': dw_db, 'table': 'F_HY_SWL_data', 'site_col': 'site', 'date_col': 'time', 'data_col': 'data', 'qual_col': 'qual_code', 'add_where': None}
 
-gwl_dict = {'server': prod_server03, 'database': dw_db, 'table': 'F_HY_GWL_data', 'site_col': 'site', 'time_col': 'time', 'data_col': 'data', 'qual_col': 'qual_code', 'add_where': None}
+gwl_dict = {'server': prod_server03, 'database': dw_db, 'table': 'F_HY_GWL_data', 'site_col': 'site', 'date_col': 'time', 'data_col': 'data', 'qual_col': 'qual_code', 'add_where': None}
 
-gwl_m_dict = {'server': prod_server05, 'database': 'Wells', 'table': 'DTW_READINGS', 'site_col': 'WELL_NO', 'time_col': 'DATE_READ', 'data_col': 'DEPTH_TO_WATER', 'qual_col': None, 'add_where': "TIDEDA_FLAG='N'"}
+gwl_m_dict = {'server': prod_server05, 'database': 'Wells', 'table': 'DTW_READINGS', 'site_col': 'WELL_NO', 'date_col': 'DATE_READ', 'data_col': 'DEPTH_TO_WATER', 'qual_col': None, 'add_where': "TIDEDA_FLAG='N'"}
 
-usage_dict = {'server': prod_server03, 'database': dw_db, 'table': 'F_HY_Usage_data', 'site_col': 'site', 'time_col': 'time', 'data_col': 'data', 'qual_col': None, 'add_where': None}
+usage_dict = {'server': prod_server03, 'database': dw_db, 'table': 'F_HY_Usage_data', 'site_col': 'site', 'date_col': 'time', 'data_col': 'data', 'qual_col': None, 'add_where': None}
 
-wus_usage_dict = {'server': prod_server03, 'database': 'WUS', 'table': 'vw_WUS_Fact_DailyUsageByUsageSite', 'site_col': 'UsageSite', 'time_col': 'Day', 'data_col': 'Usage', 'qual_col': None, 'add_where': None}
+wus_usage_dict = {'server': prod_server03, 'database': 'WUS', 'table': 'vw_WUS_Fact_DailyUsageByUsageSite', 'site_col': 'UsageSite', 'date_col': 'Day', 'data_col': 'Usage', 'qual_col': None, 'add_where': None}
 
 #usage_server = 'SQL2012DEV01'
 #usage_db = 'Hydro'
@@ -199,7 +199,7 @@ def _rd_hydstra(self, sites, start_time=0, end_time=0, datasource='A', data_type
     return(self)
 
 
-def _rd_hydrotel(self, sites, mtype, from_date=None, to_date=None, resample_code='D', fun='mean', min_count=None):
+def _rd_hydrotel(self, sites, mtype, from_date=None, to_date=None, resample_code='D', period=1, fun='mean', min_count=None):
     """
     Function for the Hydro class to read Hydrotel data.
     """
@@ -215,11 +215,11 @@ def _rd_hydrotel(self, sites, mtype, from_date=None, to_date=None, resample_code
     return(self)
 
 
-def _rd_henry(self, sites, mtype='river_flow_disc_qc', from_date=None, to_date=None, agg_day=True, min_count=4):
+def _rd_henry(self, sites, mtype='river_flow_disc_qc', from_date=None, to_date=None, resample_code='D', period=1, fun='mean', min_count=4):
     from core.ecan_io.flow import rd_henry
 
     ### Load in gaugings data
-    data = rd_henry(sites, from_date=from_date, to_date=to_date, agg_day=agg_day, min_filter=min_count)
+    data = rd_henry(sites, from_date=from_date, to_date=to_date, agg_day=True, min_filter=min_count)
     data['mtype'] = mtype
 
     ### Load into hydro class
@@ -324,7 +324,7 @@ def get_data(self, mtypes, sites=None, qual_codes=None, from_date=None, to_date=
     h1 = self.copy()
     for i in mtypes1:
         if i in mtypes_sql_dict:
-            h1 = h1._proc_hydro_sql(geo_loc_dict[i], mtypes_sql_dict, i, sites=sites, from_date=from_date, to_date=to_date, qual_codes=qual_codes, min_count=min_count, buffer_dis=buffer_dis)
+            h1 = h1._proc_hydro_sql(geo_loc_dict[i], mtypes_sql_dict[i], i, sites=sites, from_date=from_date, to_date=to_date, qual_codes=qual_codes, min_count=min_count, buffer_dis=buffer_dis)
 
     ## Find all of the locations
     h1.get_geo_loc()

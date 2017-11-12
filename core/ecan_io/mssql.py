@@ -129,6 +129,8 @@ def rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resa
         The start date in the form '2010-01-01'.
     to_date : str
         The end date in the form '2010-01-01'.
+    min_count : int
+        The minimum number of values required to return groupby_cols. Only works when groupby_cols and vlue_cols are str.
     export_path : str
         The export path for a csv file if desired. If None, then nothing is exported.
 
@@ -151,6 +153,9 @@ def rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resa
     col_names1 = ['[' + i.encode('ascii', 'ignore') + ']' for i in groupby_cols]
     col_stmt = ', '.join(col_names1)
 
+    ## Create sql stmt
+    sql_stmt1 = sql_ts_agg_stmt(table, groupby_cols=groupby_cols, date_col=date_col, values_cols=values_cols, resample_code=resample_code, period=period, fun=fun, val_round=val_round, where_lst=where_lst)
+
     ## Create connection to database
     conn = connect(server, database=database)
 
@@ -158,12 +163,15 @@ def rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resa
     if (min_count is not None) & isinstance(min_count, int) & (len(groupby_cols) == 1):
         cols_count_str = ', '.join([groupby_cols[0], 'count(' + values_cols + ') as count'])
         if isinstance(where_lst, list):
-            stmt1 = "SELECT " + cols_count_str + " FROM " + table + " where " + " and ".join(where_lst) + " GROUP BY " + col_stmt + " HAVING count(" + values_cols + ") > " + str(min_count)
+            stmt1 = "SELECT " + cols_count_str + " FROM " + "(" + sql_stmt1 + ") as agg" + " GROUP BY " + col_stmt + " HAVING count(" + values_cols + ") >= " + str(min_count)
         else:
-            stmt1 = "SELECT " + cols_count_str + " FROM " + table + " GROUP BY " + col_stmt + " HAVING count(" + values_cols + ") > " + str(min_count)
+            stmt1 = "SELECT " + cols_count_str + " FROM " + table + " GROUP BY " + col_stmt + " HAVING count(" + values_cols + ") >= " + str(min_count)
 
         up_sites = read_sql(stmt1, conn)[groupby_cols[0]].tolist()
         up_sites = [str(i) for i in up_sites]
+
+        if not up_sites:
+            raise ValueError('min_count filtered out all sites.')
 
         if isinstance(where_col, str):
             where_col = {where_col: where_val}
@@ -171,17 +179,19 @@ def rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resa
         where_col.update({groupby_cols[0]: up_sites})
         where_lst = sql_where_stmts(where_col, where_op=where_op, from_date=from_date, to_date=to_date, date_col=date_col)
 
-    ## Create sql stmt
-    sql_stmt1 = sql_ts_agg_stmt(table, groupby_cols=groupby_cols, date_col=date_col, values_cols=values_cols, resample_code=resample_code, period=period, fun=fun, val_round=val_round, where_lst=where_lst)
+        ## Create sql stmt
+        sql_stmt1 = sql_ts_agg_stmt(table, groupby_cols=groupby_cols, date_col=date_col, values_cols=values_cols, resample_code=resample_code, period=period, fun=fun, val_round=val_round, where_lst=where_lst)
 
     ## Create connection to database and execute sql statement
     df = read_sql(sql_stmt1, conn)
     conn.close()
 
+    ## Check to see if any data was found
+    if df.empty:
+        raise ValueError('No data was found in the database for the parameters given.')
+
     ## set the index
-    if isinstance(groupby_cols, str):
-        groupby_cols = [groupby_cols]
-    groupby_cols.append('time')
+    groupby_cols.append(date_col)
     df1 = df.set_index(groupby_cols)
 
     ## Save and return
@@ -348,24 +358,13 @@ def sql_where_stmts(where_col=None, where_val=None, where_op='AND', from_date=No
             if len(where_val) > 10000:
                 raise ValueError('The number of values in where_val cannot be over 10000 (or so). MSSQL limitation. Break them into smaller chunks.')
             where_val = [str(i) for i in where_val]
-            where_stmt = str(where_col) + ' IN (' + str(where_val)[1:-1] + ')'
+            where_stmt = [str(where_col) + ' IN (' + str(where_val)[1:-1] + ')']
         elif isinstance(where_col, dict):
-            where_stmt1 = []
-            for i in where_col:
-                if not isinstance(where_col[i], list):
-                    if isinstance(where_col[i], str):
-                        where1 = [where_col[i].encode('ascii', 'ignore')]
-                    else:
-                        where1 = [where_col[i]]
-                else:
-                    where1 = [str(j) for j in where_col[i]]
-                s1 = i + ' IN (' + str(where1)[1:-1] + ')'
-                where_stmt1.append(s1)
-            where_stmt = (' ' + where_op + ' ').join(where_stmt1)
+            where_stmt = [i + " IN (" + str([str(j) for j in where_col[i]])[1:-1] + ")" for i in where_col]
         else:
             raise ValueError('where_col must be either a string with an associated where_val list or a dictionary of string keys to list values.')
     else:
-        where_stmt = ''
+        where_stmt = []
 
     if isinstance(from_date, str):
         from_date1 = to_datetime(from_date, errors='coerce')
@@ -383,7 +382,8 @@ def sql_where_stmts(where_col=None, where_val=None, where_op='AND', from_date=No
     else:
         where_to_date = ''
 
-    where_lst = [i for i in [where_stmt, where_from_date, where_to_date] if len(i) > 0]
+    where_stmt.extend([where_from_date, where_to_date])
+    where_lst = [i for i in where_stmt if len(i) > 0]
     if len(where_lst) == 0:
         where_lst = None
     return(where_lst)
@@ -419,8 +419,9 @@ def sql_ts_agg_stmt(table, groupby_cols, date_col, values_cols, resample_code, p
     str
         A full SQL statement that can be passed directly to an SQL connection driver like pymssql through pandas read_sql function.
     """
-    if isinstance(groupby_cols, str):
-        groupby_cols = [groupby_cols]
+
+    if isinstance(groupby_cols, (str, list)):
+        groupby_cols_lst = list(groupby_cols)
     elif not isinstance(groupby_cols, list):
         raise TypeError('groupby must be either a str or list of str.')
     if isinstance(values_cols, str):
@@ -431,7 +432,7 @@ def sql_ts_agg_stmt(table, groupby_cols, date_col, values_cols, resample_code, p
     pandas_dict = {'D': 'day', 'W': 'week', 'H': 'hour', 'M': 'month', 'Q': 'quarter', 'T': 'minute', 'A': 'year'}
     fun_dict = {'mean': 'avg', 'sum': 'sum', 'count': 'count', 'min': 'min', 'max': 'max'}
 
-    groupby_str = ", ".join(groupby_cols)
+    groupby_str = ", ".join(groupby_cols_lst)
     values_lst = ["round(" + fun_dict[fun] + "(" + i + "), " + str(val_round) + ") AS " + i for i in values_cols]
     values_str = ", ".join(values_lst)
 
@@ -441,11 +442,11 @@ def sql_ts_agg_stmt(table, groupby_cols, date_col, values_cols, resample_code, p
         where_stmt = ""
 
     if isinstance(resample_code, str):
-        stmt1 = "SELECT " + groupby_str + ", DATEADD(" + pandas_dict[resample_code] + ", DATEDIFF(" + pandas_dict[resample_code] + ", 0, " + date_col + ")/ " + str(period) + " * " + str(period) + ", 0) AS time, " + values_str + " FROM " + table + where_stmt + " GROUP BY " + groupby_str + ", DATEADD(" + pandas_dict[resample_code] + ", DATEDIFF(" + pandas_dict[resample_code] + ", 0, " + date_col + ")/ " + str(period) + " * " + str(period) + ", 0) ORDER BY " + groupby_str + ", time"
+        stmt1 = "SELECT " + groupby_str + ", DATEADD(" + pandas_dict[resample_code] + ", DATEDIFF(" + pandas_dict[resample_code] + ", 0, " + date_col + ")/ " + str(period) + " * " + str(period) + ", 0) AS " + date_col + ", " + values_str + " FROM " + table + where_stmt + " GROUP BY " + groupby_str + ", DATEADD(" + pandas_dict[resample_code] + ", DATEDIFF(" + pandas_dict[resample_code] + ", 0, " + date_col + ")/ " + str(period) + " * " + str(period) + ", 0)"
     else:
-        groupby_cols.extend([date_col])
-        groupby_cols.extend(values_cols)
-        stmt1 = "SELECT " + ", ".join(groupby_cols) + " FROM " + table + where_stmt
+        groupby_cols_lst.extend([date_col])
+        groupby_cols_lst.extend(values_cols)
+        stmt1 = "SELECT " + ", ".join(groupby_cols_lst) + " FROM " + table + where_stmt
 
     return(stmt1)
 
