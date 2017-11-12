@@ -15,6 +15,10 @@ from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_too
 from warnings import warn
 import datetime
 import sys
+import psutil
+import gc
+import pandas as pd
+from itertools import izip_longest
 
 
 def make_cellbud_netcdf(nsmc_nums, sfo_paths, cbc_paths, description, nc_path):
@@ -95,9 +99,14 @@ def make_cellbud_netcdf(nsmc_nums, sfo_paths, cbc_paths, description, nc_path):
                    'standard_name': 'projection_x_coordinate'})
     lon[:] = x
 
-    # create variables # i've slimmed these down for now...
+    av_mem = psutil.virtual_memory().total - 4e9
+    file_size = smt.get_empty_model_grid(True)[np.newaxis, :, :, :].nbytes
+    num_files = int(av_mem // file_size)
+
+    # create variables
     variables = [e.lower() for e in
-                 ['CONSTANT HEAD', 'FLOW LOWER FACE', 'DRAINS', 'STREAM LEAKAGE', 'STREAMFLOW OUT']]
+                 ['CONSTANT HEAD', 'FLOW RIGHT FACE', 'FLOW FRONT FACE', 'FLOW LOWER FACE', 'WELLS', 'DRAINS',
+                  'RECHARGE', 'STREAM LEAKAGE']]
 
     # create stream flow variable
     nc_vars = {}
@@ -118,25 +127,58 @@ def make_cellbud_netcdf(nsmc_nums, sfo_paths, cbc_paths, description, nc_path):
         warn('more than one kstpkper, using the last kstpkper which is {}'.format(kstpkper))
 
     # add data
-    for (i, nsmc_num), cbc_path, sfo_path in zip(enumerate(nsmc_nums), cbc_paths, sfo_paths):
-        if i % 1 == 0:
-            print('starting set {} to {} of {}'.format(i, i, len(nsmc_nums)))
-        sfo = flopy.utils.CellBudgetFile(sfo_path)
-        cbc = flopy.utils.CellBudgetFile(cbc_path)
-        for var in variables:
-            print(var)
-            if var == 'streamflow out':
-                # below returns a list of masked array(s) this give the array filled with np.nan
-                temp_data = sfo.get_data(kstpkper=kstpkper, text=var, full3D=True)[0].filled(np.nan)
+    # iterate through variables
+    for var in variables:
+        print(var)
+
+        # iterate through groups
+        for i, (cbc_group, sfo_group) in enumerate(zip(grouper(num_files, cbc_paths), grouper(num_files, sfo_paths))):
+            print('starting set {} to {} of {} for {}'.format(i * 3, i * 3 + num_files, len(cbc_paths), var))
+
+            # initialise data arrays
+            num_not_nan = pd.notnull(list(cbc_group)).sum()
+            if var in ['constant head', 'drains', 'recharge', 'stream leakage',
+                       'streamflow out']:  # only need top layer
+                outdata = np.zeros((num_not_nan, smt.rows, smt.cols), dtype=np.float32) * np.nan
             else:
-                temp_data = cbc.get_data(kstpkper=kstpkper, text=var, full3D=True)[0]
-                if isinstance(temp_data,np.ma.MaskedArray):
-                    temp_data = temp_data.filled(np.nan)
+                outdata = np.zeros((num_not_nan, smt.layers, smt.rows, smt.cols), dtype=np.float32) * np.nan
 
-            if var in ['constant head', 'drains', 'recharge', 'stream leakage', 'streamflow out']:
-                temp_data = temp_data[0]  # only the first layer has data
+            # iterate through paths
+            for j, (cbc_path, sfo_path) in enumerate(zip(cbc_group, sfo_group)):
+                if j % 100 == 0:
+                    print('starting set {} to {} of {}'.format(j, j + 100, len(num_files)))
+                if cbc_path is None:
+                    continue
 
-            # set the values
-            nc_vars[var][i] = temp_data
+                # open files
+                sfo = flopy.utils.CellBudgetFile(sfo_path)
+                cbc = flopy.utils.CellBudgetFile(cbc_path)
+
+                # get data from files
+                if var == 'streamflow out':
+                    # below returns a list of masked array(s) this give the array filled with np.nan
+                    temp_data = sfo.get_data(kstpkper=kstpkper, text=var, full3D=True)[0].filled(np.nan)
+                else:
+                    temp_data = cbc.get_data(kstpkper=kstpkper, text=var, full3D=True)[0]
+                    if isinstance(temp_data, np.ma.MaskedArray):
+                        temp_data = temp_data.filled(np.nan)
+
+                if var in ['constant head', 'drains', 'recharge', 'stream leakage', 'streamflow out']:
+                    temp_data = temp_data[0]  # only the first layer has data
+
+                # set values
+                outdata[j] = temp_data
+
+            # write the group values to nc
+            nc_vars[var][i * num_files:i * num_files + num_not_nan] = outdata
+
+            # do some garbage collection
+            gc.collect()
+
+
+def grouper(n, iterable, fillvalue=None):
+    "grouper(3, 'ABCDEFG', 'x') --> ABC DEF Gxx"
+    args = [iter(iterable)] * n
+    return izip_longest(fillvalue=fillvalue, *args)
 
 # todo debug

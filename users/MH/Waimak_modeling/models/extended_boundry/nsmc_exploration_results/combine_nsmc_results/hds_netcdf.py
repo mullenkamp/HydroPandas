@@ -15,7 +15,10 @@ from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_too
 from warnings import warn
 import datetime
 import sys
-
+import psutil
+import pandas as pd
+import gc
+from itertools import izip_longest
 
 def make_hds_netcdf(nsmc_nums, hds_paths, description, nc_path):
     """
@@ -94,6 +97,10 @@ def make_hds_netcdf(nsmc_nums, hds_paths, description, nc_path):
                    'standard_name': 'projection_x_coordinate'})
     lon[:] = x
 
+    av_mem = psutil.virtual_memory().total -4e9
+    file_size = smt.get_empty_model_grid(True)[np.newaxis,:,:,:].nbytes
+    num_files = int(av_mem//file_size)
+
     # get the last kstpkper
     temp = flopy.utils.HeadFile(hds_paths[0])
     kstpkper = _get_kstkpers(temp, rel_kstpkpers=-1)[0]
@@ -108,12 +115,24 @@ def make_hds_netcdf(nsmc_nums, hds_paths, description, nc_path):
                        'missing_value': np.nan})
 
     # add data
-    for (i, nsmc_num), hd_path, in zip(enumerate(nsmc_nums), hds_paths):
-        if i % 10 == 0:
-            print('starting set {} to {} of {}'.format(i, i + 10, len(nsmc_nums)))
-        hds = flopy.utils.HeadFile(hd_path)
-        temp_data = hds.get_data(kstpkper=kstpkper)
-        temp_data[np.isclose(temp_data, hds_no_data)] = np.nan
-        all_hds[i] = temp_data
+    for i, group in enumerate(grouper(num_files, hds_paths)):
+        print('starting set {} to {} of {}'.format(i * num_files, i+1 * num_files, len(hds_paths)))
+        num_not_nan = pd.notnull(list(group)).sum()
+        outdata = np.zeros((num_not_nan, smt.layers, smt.rows, smt.cols), dtype=np.float32) * np.nan
+        for j, path in enumerate(group):
+            if j % 100 == 0:
+                print('reading {} of {}'.format(j, j + 100, num_files))
+            if path is None:
+                continue
+            hds = flopy.utils.HeadFile(path)
+            temp_out = hds.get_data(kstpkper=kstpkper).astype(np.float32)
+            temp_out[np.isclose(temp_out, hds_no_data)] = np.nan
+            outdata[j] = temp_out
+        all_hds[i * num_files:i * num_files + num_not_nan] = outdata
+        gc.collect()
 
 # todo debug
+def grouper(n, iterable, fillvalue=None):
+    "grouper(3, 'ABCDEFG', 'x') --> ABC DEF Gxx"
+    args = [iter(iterable)] * n
+    return izip_longest(fillvalue=fillvalue, *args)

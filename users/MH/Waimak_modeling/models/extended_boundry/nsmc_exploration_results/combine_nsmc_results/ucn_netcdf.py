@@ -20,7 +20,6 @@ import time
 from itertools import izip_longest
 import psutil
 import gc
-
 def make_ucn_netcd(nsmc_nums, ucn_paths, units, description, nc_path, ucn_no_value=-1):
     """
     creates as netcdf file for all of the ucn data
@@ -98,7 +97,7 @@ def make_ucn_netcd(nsmc_nums, ucn_paths, units, description, nc_path, ucn_no_val
                    'missing_value': np.nan,
                    'standard_name': 'projection_x_coordinate'})
     lon[:] = x
-    av_mem = psutil.virtual_memory().total -6e9
+    av_mem = psutil.virtual_memory().total -4e9
     file_size = smt.get_empty_model_grid(True)[np.newaxis,:,:,:].nbytes
     num_files = int(av_mem//file_size)
     # some checks
@@ -137,7 +136,6 @@ def make_ucn_netcd(nsmc_nums, ucn_paths, units, description, nc_path, ucn_no_val
             temp[i*num_files:i*num_files+num_not_nan] = outdata
             gc.collect()
 
-            # todo debug
 
 def grouper(n, iterable, fillvalue=None):
     "grouper(3, 'ABCDEFG', 'x') --> ABC DEF Gxx"
