@@ -401,7 +401,7 @@ def rd_netcdf(self, nc_path):
 ### mssql
 
 
-def _rd_hydro_mssql(self, server, database, table, mtype, time_col, site_col, data_col, qual_col=None, sites=None, from_date=None, to_date=None, qual_codes=None, add_where=None):
+def _rd_hydro_mssql(self, server, database, table, mtype, time_col, site_col, data_col, qual_col=None, sites=None, from_date=None, to_date=None, qual_codes=None, add_where=None, min_count=None):
     """
     Function to import data from a MSSQL database. Specific columns can be selected and specific queries within columns can be selected. Requires the pymssql package.
 
@@ -433,58 +433,58 @@ def _rd_hydro_mssql(self, server, database, table, mtype, time_col, site_col, da
         List of quality codes.
     add_where : str
         An additional SQL query to be added.
+    min_count : int
+        The minimum number of data values per site for data extraction.
 
     Return
     ------
     Hydro
     """
+    from core.ecan_io.mssql import sql_ts_agg_stmt, sql_where_stmts
 
-    ### Make the where statement
+    ### Make the where statements
     cols = [site_col, time_col, data_col]
     cols_str = ', '.join(cols)
 
+    site_qual_dict = {}
+
     if isinstance(qual_codes, list):
-        where_qual = qual_col + " IN (" + str(qual_codes)[1:-1] + ")"
-    else:
-        where_qual = ''
+        site_qual_dict.update({qual_col: qual_codes})
 
     if isinstance(sites, list):
         sites = [str(i) for i in sites]
-        where_sites = site_col + " IN (" + str(sites)[1:-1] + ")"
+        site_qual_dict.update({site_col: sites})
+
+    if site_qual_dict:
+        where_lst = sql_where_stmts(site_qual_dict, from_date=from_date, to_date=to_date, date_col=time_col)
     else:
-        where_sites = ''
+        where_lst = sql_where_stmts(from_date=from_date, to_date=to_date, date_col=time_col)
 
-    if isinstance(from_date, str):
-        from_date1 = to_datetime(from_date, errors='coerce')
-        if isinstance(from_date1, Timestamp):
-            from_date2 = from_date1.strftime('%Y-%m-%d')
-            where_from_date = time_col + " >= " + from_date2.join(['\'', '\''])
+    ### Make the SQL connection
+    conn = connect(server, database=database)
+
+    ### Make minimum count selection
+    if (min_count is not None) & isinstance(min_count, int):
+        cols_count_str = ', '.join([site_col, 'count(' + data_col + ') as count'])
+        if isinstance(where_lst, list):
+            stmt1 = "SELECT " + cols_count_str + " FROM " + table + " where " + " and ".join(where_lst) + " GROUP BY " + site_col + " HAVING count(" + data_col + ") > " + str(min_count)
+        else:
+            stmt1 = "SELECT " + cols_count_str + " FROM " + table + " GROUP BY " + site_col + " HAVING count(" + data_col + ") > " + str(min_count)
+
+        up_sites = read_sql(stmt1, conn)[site_col].tolist()
+        up_sites = [str(i) for i in up_sites]
+
+        site_qual_dict.update({site_col: up_sites})
+        where_lst = sql_where_stmts(site_qual_dict, from_date=from_date, to_date=to_date, date_col=time_col)
+
+    ### Make final SQL stmt
+    if isinstance(where_lst, list):
+        stmt2 = "SELECT " + cols_str + " FROM " + table + " where " + " and ".join(where_lst)
     else:
-        where_from_date = ''
-
-    if isinstance(to_date, str):
-        to_date1 = to_datetime(to_date, errors='coerce')
-        if isinstance(to_date1, Timestamp):
-            to_date2 = to_date1.strftime('%Y-%m-%d')
-            where_to_date = time_col + " <= " + to_date2.join(['\'', '\''])
-    else:
-        where_to_date = ''
-
-    if not isinstance(add_where, str):
-        add_where = ''
-
-    ## join where stmts
-    where_list = [where_qual, where_sites, where_from_date, where_to_date, add_where]
-    where_list2 = [i for i in where_list if len(i) > 0]
-
-    if len(where_list2) > 0:
-        stmt1 = "SELECT " + cols_str + " FROM " + table + " where " + " and ".join(where_list2)
-    else:
-        stmt1 = "SELECT " + cols_str + " FROM " + table
+        stmt2 = "SELECT " + cols_str + " FROM " + table
 
     ## Pull out the data from SQL
-    conn = connect(server, database=database)
-    df = read_sql(stmt1, conn)
+    df = read_sql(stmt2, conn)
     conn.close()
 
     ## Check to see if any data was found
@@ -514,7 +514,7 @@ def _rd_hydro_geo_mssql(self, server, database, table, geo_dict):
     return(sites2)
 
 
-def _proc_hydro_sql(self, sites_sql_fun, db_dict, mtype, sites=None, from_date=None, to_date=None, qual_codes=None, buffer_dis=0, resample=None):
+def _proc_hydro_sql(self, sites_sql_fun, db_dict, mtype, sites=None, from_date=None, to_date=None, qual_codes=None, min_count=None, buffer_dis=0, resample=None):
     """
     Convenience function for reading in mssql data from standardized hydro tables.
     """
@@ -542,7 +542,7 @@ def _proc_hydro_sql(self, sites_sql_fun, db_dict, mtype, sites=None, from_date=N
                 raise ValueError('No sites in database')
             if mtype_dict[i]['qual_col'] is None:
                 qual_codes = None
-            h1 = h1._rd_hydro_mssql(sites=sites3, mtype=mtype, from_date=from_date, to_date=to_date, qual_codes=qual_codes, **mtype_dict[i])
+            h1 = h1._rd_hydro_mssql(sites=sites3, mtype=mtype, from_date=from_date, to_date=to_date, qual_codes=qual_codes, min_count=min_count, **mtype_dict[i])
     elif isinstance(mtype_dict, dict):
         site1 = mtype_dict['site_col']
 
@@ -553,9 +553,9 @@ def _proc_hydro_sql(self, sites_sql_fun, db_dict, mtype, sites=None, from_date=N
                 raise ValueError('No sites in database')
         if mtype_dict['qual_col'] is None:
             qual_codes = None
-        h1 = h1._rd_hydro_mssql(sites=sites3, mtype=mtype, from_date=from_date, to_date=to_date, qual_codes=qual_codes, **mtype_dict)
+        h1 = h1._rd_hydro_mssql(sites=sites3, mtype=mtype, from_date=from_date, to_date=to_date, qual_codes=qual_codes, min_count=min_count, **mtype_dict)
     elif callable(mtype_dict):
-        h1 = mtype_dict(h1, sites=sites1, mtype=mtype, from_date=from_date, to_date=to_date)
+        h1 = mtype_dict(h1, sites=sites1, mtype=mtype, from_date=from_date, to_date=to_date, min_count=min_count)
 
     return(h1)
 

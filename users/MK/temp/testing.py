@@ -3454,10 +3454,22 @@ site_lf.to_csv(csv, index=False)
 ####################################################
 ### MetService extract joy
 
+sites = [1688218, 70105]
 
+server = 'SQL2012PROD03'
+database = 'DataWarehouse'
+table = 'F_HY_SWL_data'
+mtype = 'river_flow_cont_qc'
+time_col = 'time'
+site_col = 'site'
+data_col = 'data'
+qual_col='qual_code'
+from_date='2016-01-01'
+to_date='2017-01-01'
+qual_codes=None
+add_where=None
 
-
-
+t1 = rd_hydrotel(sites, from_date=from_date, to_date=to_date, min_count=700)
 
 
 

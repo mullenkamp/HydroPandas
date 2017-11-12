@@ -93,7 +93,7 @@ def rd_sql(server, database, table=None, col_names=None, where_col=None, where_v
     return(df)
 
 
-def rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resample_code, period=1, fun='mean', val_round=3, where_col=None, where_val=None, where_op='AND', from_date=None, to_date=None, export_path=None):
+def rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resample_code=None, period=1, fun='mean', val_round=3, where_col=None, where_val=None, where_op='AND', from_date=None, to_date=None, min_count=None, export_path=None):
     """
     Function to specifically read and possibly aggregate time series data stored in MSSQL tables. Returns a MultiIndex DataFrame.
 
@@ -111,7 +111,7 @@ def rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resa
         The date column in the table.
     values_cols : str or list of str
         The column(s) of the value(s) that should be resampled.
-    resample_code : str
+    resample_code : str or None
         The Pandas time series resampling code. e.g. 'D' for day, 'W' for week, 'M' for month, etc.
     period : int
         The number of resampling periods. e.g. period = 2 and resample = 'D' would be to resample the values over a 2 day period.
@@ -146,21 +146,35 @@ def rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resa
     where_lst = sql_where_stmts(where_col=where_col, where_val=where_val, where_op=where_op, from_date=from_date, to_date=to_date, date_col=date_col)
 
     ## Create ts statement and append earlier where statement
-    if isinstance(resample_code, str):
-        sql_stmt1 = sql_ts_agg_stmt(table, groupby_cols=groupby_cols, date_col=date_col, values_cols=values_cols, resample_code=resample_code, period=period, fun=fun, val_round=val_round, where_lst=where_lst)
-    elif resample_code is None:
-        if isinstance(groupby_cols, str):
-            groupby_cols = [groupby_cols]
-        col_names1 = ['[' + i.encode('ascii', 'ignore') + ']' for i in groupby_cols]
-        col_stmt = ', '.join(col_names1)
+    if isinstance(groupby_cols, str):
+        groupby_cols = [groupby_cols]
+    col_names1 = ['[' + i.encode('ascii', 'ignore') + ']' for i in groupby_cols]
+    col_stmt = ', '.join(col_names1)
 
+    ## Create connection to database
+    conn = connect(server, database=database)
+
+    ## Make minimum count selection
+    if (min_count is not None) & isinstance(min_count, int) & (len(groupby_cols) == 1):
+        cols_count_str = ', '.join([groupby_cols[0], 'count(' + values_cols + ') as count'])
         if isinstance(where_lst, list):
-            sql_stmt1 = "SELECT " + col_stmt + " FROM " + table + " where " + " and ".join(where_lst)
+            stmt1 = "SELECT " + cols_count_str + " FROM " + table + " where " + " and ".join(where_lst) + " GROUP BY " + col_stmt + " HAVING count(" + values_cols + ") > " + str(min_count)
         else:
-            sql_stmt1 = "SELECT " + col_stmt + " FROM " + table
+            stmt1 = "SELECT " + cols_count_str + " FROM " + table + " GROUP BY " + col_stmt + " HAVING count(" + values_cols + ") > " + str(min_count)
+
+        up_sites = read_sql(stmt1, conn)[groupby_cols[0]].tolist()
+        up_sites = [str(i) for i in up_sites]
+
+        if isinstance(where_col, str):
+            where_col = {where_col: where_val}
+
+        where_col.update({groupby_cols[0]: up_sites})
+        where_lst = sql_where_stmts(where_col, where_op=where_op, from_date=from_date, to_date=to_date, date_col=date_col)
+
+    ## Create sql stmt
+    sql_stmt1 = sql_ts_agg_stmt(table, groupby_cols=groupby_cols, date_col=date_col, values_cols=values_cols, resample_code=resample_code, period=period, fun=fun, val_round=val_round, where_lst=where_lst)
 
     ## Create connection to database and execute sql statement
-    conn = connect(server, database=database)
     df = read_sql(sql_stmt1, conn)
     conn.close()
 
@@ -426,7 +440,12 @@ def sql_ts_agg_stmt(table, groupby_cols, date_col, values_cols, resample_code, p
     else:
         where_stmt = ""
 
-    stmt1 = "SELECT " + groupby_str + ", DATEADD(" + pandas_dict[resample_code] + ", DATEDIFF(" + pandas_dict[resample_code] + ", 0, " + date_col + ")/ " + str(period) + " * " + str(period) + ", 0) AS time, " + values_str + " FROM " + table + where_stmt + " GROUP BY " + groupby_str + ", DATEADD(" + pandas_dict[resample_code] + ", DATEDIFF(" + pandas_dict[resample_code] + ", 0, " + date_col + ")/ " + str(period) + " * " + str(period) + ", 0) ORDER BY " + groupby_str + ", time"
+    if isinstance(resample_code, str):
+        stmt1 = "SELECT " + groupby_str + ", DATEADD(" + pandas_dict[resample_code] + ", DATEDIFF(" + pandas_dict[resample_code] + ", 0, " + date_col + ")/ " + str(period) + " * " + str(period) + ", 0) AS time, " + values_str + " FROM " + table + where_stmt + " GROUP BY " + groupby_str + ", DATEADD(" + pandas_dict[resample_code] + ", DATEDIFF(" + pandas_dict[resample_code] + ", 0, " + date_col + ")/ " + str(period) + " * " + str(period) + ", 0) ORDER BY " + groupby_str + ", time"
+    else:
+        groupby_cols.extend([date_col])
+        groupby_cols.extend(values_cols)
+        stmt1 = "SELECT " + ", ".join(groupby_cols) + " FROM " + table + where_stmt
 
     return(stmt1)
 

@@ -190,7 +190,7 @@ def rd_hydstra_dir(input_path, min_filter=False, min_yrs=25, export=False, expor
     return(t1)
 
 
-def rd_hydrotel(sites, mtype='river_flow_cont_raw', from_date=None, to_date=None, resample_code='D', period=1, fun='mean', val_round=3, pivot=False, export_path=None):
+def rd_hydrotel(sites, mtype='river_flow_cont_raw', from_date=None, to_date=None, resample_code='D', period=1, fun='mean', val_round=3, min_count=None, pivot=False, export_path=None):
     """
     Function to extract time series data from the hydrotel database.
 
@@ -294,7 +294,7 @@ def rd_hydrotel(sites, mtype='river_flow_cont_raw', from_date=None, to_date=None
 
     #### Pull out the data
     ### Make SQL statement
-    data1 = rd_sql_ts(server, database, data_tab, 'Point', 'DT', 'SampleValue', resample_code, period, fun, val_round, {'Point': point_val}, from_date=from_date, to_date=to_date)['SampleValue']
+    data1 = rd_sql_ts(server, database, data_tab, 'Point', 'DT', 'SampleValue', resample_code, period, fun, val_round, {'Point': point_val}, from_date=from_date, to_date=to_date, min_count=min_count)['SampleValue']
 
     data1.index.names = ['site', 'time']
     data1.name = 'value'

@@ -12,11 +12,23 @@ def proc_metservice_nc(nc, lat_coord='south_north', lon_coord='west_east', time_
     """
     Function to process MetService netcdf files so that it is actually complete. The function adds in the appropriate coordinate arrays for the data and resaves the file with '_corr" added to the end of the name.
 
-    nc -- Full path to the MetService nc file (str).\n
-    lat_coord -- The name of the lat coordinate that should be added (str).\n
-    lon_coord -- Same as lat_coord except for the lon.\n
-    time_coord -- Ditto for the time.\n
-    time_var -- The existing name of the time variable (that should be converted and removed).
+    nc : str
+        Full path to the MetService nc file (str).
+    lat_coord : str
+        The name of the lat coordinate that should be added (str).
+    lon_coord : str
+        Same as lat_coord except for the lon.
+    time_coord : str
+        Ditto for the time.
+    time_var : str
+        The existing name of the time variable (that should be converted and removed).
+    export_dir : str or None
+        The export directory for the processed netcdf file. If None, then the new file is put into the same directory as the original file.
+
+    Returns
+    -------
+    str
+        The new path to the processed netcdf file.
     """
     from xarray import open_dataset
     from os import path
@@ -57,8 +69,8 @@ def proc_metservice_nc(nc, lat_coord='south_north', lon_coord='west_east', time_
 
     ### Remove the first time step (as there is no data for it)
     x4 = x3.sel(time=precip.time.unique())
-#
-#    ### Put in the hourly rate
+
+    ### Put in the hourly rate
     precip_ds = precip.set_index(['time', 'y', 'x']).to_xarray()
     x5 = x4.merge(precip_ds)
 
@@ -98,10 +110,19 @@ def ACPR_to_rate(df, lat_coord='y', lon_coord='x', time_coord='time'):
     """
     Function to convert cummulative precip to hourly rate.
 
-    df -- DataFrame of the cummulative precip.\n
-    lat_coord -- The name of the lat coordinate that should be added (str).\n
-    lon_coord -- Same as lat_coord except for the lon.\n
-    time_coord -- Ditto for the time.
+    df : DataFrame
+        DataFrame of the cummulative precip.
+    lat_coord : str
+        The name of the lat coordinate that should be added (str).
+    lon_coord : str
+        Same as lat_coord except for the lon.
+    time_coord : str
+        Ditto for the time.
+
+    Returns
+    -------
+    DataFrame
+        Three dimensions with hourly precip rate.
     """
     from pandas import merge
 
@@ -119,17 +140,33 @@ def MetS_nc_to_df(nc, lat_coord='y', lon_coord='x', time_coord='time', precip_va
     """
     Function to convert a MetService nc file to the components of precip and sites with x y locations.
 
-    nc -- The path to the corrected MetService netcdf file.\n
-    lat_coord -- The name of the lat coordinate that should be added (str).\n
-    lon_coord -- Same as lat_coord except for the lon.\n
-    time_coord -- Ditto for the time.\n
-    precip_var -- The precip variable name.\n
-    proj4 -- The proj4 coordinate system attribute name.
+    nc : str
+        The path to the corrected MetService netcdf file.
+    lat_coord : str
+        The name of the lat coordinate that should be added (str).
+    lon_coord : str
+        Same as lat_coord except for the lon.
+    time_coord : str
+        Ditto for the time.
+    precip_var : str
+        The precip variable name.
+    proj4 : str
+        The proj4 coordinate system attribute name.
+
+    Returns
+    -------
+    DataFrame
+        Precip rate by time, x, and y (with site)
+    GeoDataFrame
+        Site locations dataframe
+    Timestamp
+        The model date start time
     """
     from xarray import open_dataset
     from numpy import tile
     from shapely.geometry import Point
     from geopandas import GeoDataFrame
+    from pandas import to_datetime
 
     ### Extract all data to dataframes
     with open_dataset(nc) as ds:
@@ -145,7 +182,7 @@ def MetS_nc_to_df(nc, lat_coord='y', lon_coord='x', time_coord='time', precip_va
     geometry = [Point(xy) for xy in zip(sites0[lon_coord], sites0[lat_coord])]
     sites = GeoDataFrame(sites0.index, geometry=geometry, crs=proj1)
 
-    start_date = ds.attrs['START_DATE']
+    start_date = to_datetime(ds.attrs['START_DATE'], format='%Y-%m-%d_%H:%M:%S')
 
     ### Return
     ds.close()

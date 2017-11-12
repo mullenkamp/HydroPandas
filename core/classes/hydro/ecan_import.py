@@ -199,14 +199,14 @@ def _rd_hydstra(self, sites, start_time=0, end_time=0, datasource='A', data_type
     return(self)
 
 
-def _rd_hydrotel(self, sites, mtype, from_date=None, to_date=None, resample_code='D', fun='mean'):
+def _rd_hydrotel(self, sites, mtype, from_date=None, to_date=None, resample_code='D', fun='mean', min_count=None):
     """
     Function for the Hydro class to read Hydrotel data.
     """
     from core.ecan_io.flow import rd_hydrotel
 
     ### Load in hydrotel data
-    data = rd_hydrotel(sites=sites, mtype=mtype, resample_code=resample_code, fun=fun, from_date=from_date, to_date=to_date)
+    data = rd_hydrotel(sites=sites, mtype=mtype, resample_code=resample_code, fun=fun, from_date=from_date, to_date=to_date, min_count=None)
     data2 = data.reset_index()
     data2['mtype'] = mtype
 
@@ -215,11 +215,11 @@ def _rd_hydrotel(self, sites, mtype, from_date=None, to_date=None, resample_code
     return(self)
 
 
-def _rd_henry(self, sites, mtype='river_flow_disc_qc', from_date=None, to_date=None, agg_day=True, min_filter=4):
+def _rd_henry(self, sites, mtype='river_flow_disc_qc', from_date=None, to_date=None, agg_day=True, min_count=4):
     from core.ecan_io.flow import rd_henry
 
     ### Load in gaugings data
-    data = rd_henry(sites, from_date=from_date, to_date=to_date, agg_day=agg_day, min_filter=min_filter)
+    data = rd_henry(sites, from_date=from_date, to_date=to_date, agg_day=agg_day, min_filter=min_count)
     data['mtype'] = mtype
 
     ### Load into hydro class
@@ -278,17 +278,24 @@ def get_geo_loc(self):
         print('Found all of the sites!')
 
 
-def get_data(self, mtypes, sites=None, qual_codes=None, from_date=None, to_date=None, buffer_dis=0):
+def get_data(self, mtypes, sites=None, qual_codes=None, from_date=None, to_date=None, min_count=None, buffer_dis=0):
     """
     Primary function to import ecan data into a hydro class.
 
-    mtypes -- str or list of mtypes to be extracted.\n
-    sites -- str/list/array of sites to be extracted or a shapefile polygon path to extract all sites within a polygon.\n
-    qual_codes -- list of quality codes of the data that should be extracted.\n
-    from_date -- str of start date. Examples: '2000-01-01' or '2000-01-01 12:30'.\n
-    to_date -- str of end date.\n
-    buffer_dis -- If sites is a shapefile str, then a buffer distance in meters (str) can be passed.\n
-    min_filter -- If mtypes includes 'flow_m', then extract sites with at least the number of gauges (int).
+    mtypes : list or str
+        str or list of mtypes to be extracted.
+    sites : str, list, or ndarray
+        str/list/array of sites to be extracted or a shapefile polygon path to extract all sites within a polygon.
+    qual_codes : list
+        list of quality codes of the data that should be extracted.\n
+    from_date str
+        str of start date. Examples: '2000-01-01' or '2000-01-01 12:30'.\n
+    to_date : str
+        str of end date.\n
+    buffer_dis : int
+        If sites is a shapefile str, then a buffer distance in meters (str) can be passed.\n
+    min_count : int
+        The minimum number of values per site for data extraction.
     """
     from pandas import Series
 
@@ -317,7 +324,7 @@ def get_data(self, mtypes, sites=None, qual_codes=None, from_date=None, to_date=
     h1 = self.copy()
     for i in mtypes1:
         if i in mtypes_sql_dict:
-            h1 = h1._proc_hydro_sql(geo_loc_dict[i], mtypes_sql_dict, i, sites=sites, from_date=from_date, to_date=to_date, qual_codes=qual_codes, buffer_dis=buffer_dis)
+            h1 = h1._proc_hydro_sql(geo_loc_dict[i], mtypes_sql_dict, i, sites=sites, from_date=from_date, to_date=to_date, qual_codes=qual_codes, min_count=min_count, buffer_dis=buffer_dis)
 
     ## Find all of the locations
     h1.get_geo_loc()

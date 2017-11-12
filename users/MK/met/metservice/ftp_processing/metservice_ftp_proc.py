@@ -88,8 +88,6 @@ new_nc = proc_metservice_nc(path.join(nc_dir, nc_model), export_dir=nc_out_dir)
 ## Extract the data from the new nc file
 precip, sites, start_date = MetS_nc_to_df(new_nc)
 
-start_date1 = to_datetime(start_date, format='%Y-%m-%d_%H:%M:%S')
-
 ## Select the precip data within the buffer area of the points shp
 #points = read_file(point_shp)
 points_poly1 = points.to_crs(sites.crs).buffer(buffer_dis)
@@ -105,7 +103,7 @@ data = point_interp_ts(precip2, time_col, x_col, y_col, data_col, points, point_
 print('Saving data')
 
 ## Reformat
-data.loc[:, 'model_date'] = start_date1
+data.loc[:, 'model_date'] = start_date
 data1 = data[['site', 'model_date', 'time', 'precip']].copy()
 data2 = data1.rename(columns=rename_dict)
 
