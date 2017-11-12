@@ -116,12 +116,12 @@ def make_hds_netcdf(nsmc_nums, hds_paths, description, nc_path):
 
     # add data
     for i, group in enumerate(grouper(num_files, hds_paths)):
-        print('starting set {} to {} of {}'.format(i * num_files, i+1 * num_files, len(hds_paths)))
+        print('starting set {} to {} of {}'.format(i * num_files, (i+1) * num_files, len(hds_paths)))
         num_not_nan = pd.notnull(list(group)).sum()
         outdata = np.zeros((num_not_nan, smt.layers, smt.rows, smt.cols), dtype=np.float32) * np.nan
         for j, path in enumerate(group):
             if j % 100 == 0:
-                print('reading {} of {}'.format(j, j + 100, num_files))
+                print('reading {} to {} of {}'.format(j, j + 100, num_files))
             if path is None:
                 continue
             hds = flopy.utils.HeadFile(path)
