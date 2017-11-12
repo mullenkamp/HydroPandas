@@ -278,7 +278,7 @@ def get_geo_loc(self):
         print('Found all of the sites!')
 
 
-def get_data(self, mtypes, sites=None, qual_codes=None, from_date=None, to_date=None, min_count=None, buffer_dis=0):
+def get_data(self, mtypes, sites=None, qual_codes=None, from_date=None, to_date=None, min_count=None, buffer_dis=0, resample_code=None, period=1, fun='mean'):
     """
     Primary function to import ecan data into a hydro class.
 
@@ -324,7 +324,7 @@ def get_data(self, mtypes, sites=None, qual_codes=None, from_date=None, to_date=
     h1 = self.copy()
     for i in mtypes1:
         if i in mtypes_sql_dict:
-            h1 = h1._proc_hydro_sql(geo_loc_dict[i], mtypes_sql_dict[i], i, sites=sites, from_date=from_date, to_date=to_date, qual_codes=qual_codes, min_count=min_count, buffer_dis=buffer_dis)
+            h1 = h1._proc_hydro_sql(geo_loc_dict[i], mtypes_sql_dict[i], i, sites=sites, from_date=from_date, to_date=to_date, qual_codes=qual_codes, min_count=min_count, buffer_dis=buffer_dis, resample_code=resample_code, period=period, fun=fun)
 
     ## Find all of the locations
     h1.get_geo_loc()

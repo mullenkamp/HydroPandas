@@ -3452,7 +3452,10 @@ site_lf.to_csv(csv, index=False)
 
 
 ####################################################
-### MetService extract joy
+### hydr import issues
+
+from core.classes.hydro import hydro
+
 
 sites = [1688218, 70105]
 
@@ -3534,7 +3537,7 @@ values_cols= 'data'
 where_col ={'qual_code': [10, 18, 20, 30, 50, 11, 21], 'site': ['313710']}
 
 
-
+h1 = hydro().get_data(mtypes='river_wl_cont_qc', sites=sites, qual_codes=[10, 18, 20, 30, 50, 11, 21], from_date = '2016-02-01', to_date = '2017-04-01', min_count=52, resample_code='W')
 
 
 
