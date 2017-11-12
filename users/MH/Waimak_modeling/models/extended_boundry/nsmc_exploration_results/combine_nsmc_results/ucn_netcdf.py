@@ -15,8 +15,11 @@ from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_too
 from warnings import warn
 import sys
 import datetime
-
-
+import pandas as pd
+import time
+from itertools import izip_longest
+import psutil
+import gc
 def make_ucn_netcd(nsmc_nums, ucn_paths, units, description, nc_path, ucn_no_value=-1):
     """
     creates as netcdf file for all of the ucn data
@@ -94,7 +97,9 @@ def make_ucn_netcd(nsmc_nums, ucn_paths, units, description, nc_path, ucn_no_val
                    'missing_value': np.nan,
                    'standard_name': 'projection_x_coordinate'})
     lon[:] = x
-
+    av_mem = psutil.virtual_memory().total -4e9
+    file_size = smt.get_empty_model_grid(True)[np.newaxis,:,:,:].nbytes
+    num_files = int(av_mem//file_size)
     # some checks
     for var, paths in ucn_paths.items():
         print('extracting data for {}'.format(var))
@@ -105,8 +110,8 @@ def make_ucn_netcd(nsmc_nums, ucn_paths, units, description, nc_path, ucn_no_val
         else:
             raise ValueError('units must be either dict or string, see doc')
 
-        temp = nc_file.createVariable(var, 'f8', ('nsmc_num', 'layer', 'row', 'col'), fill_value=np.nan,
-                                      zlib=True, )
+        temp = nc_file.createVariable(var, 'f4', ('nsmc_num', 'layer', 'row', 'col'), fill_value=np.nan,
+                                      zlib=True)
         temp.setncatts({'units': addu,
                         'long_name': var,
                         'missing_value': np.nan})
@@ -115,12 +120,24 @@ def make_ucn_netcd(nsmc_nums, ucn_paths, units, description, nc_path, ucn_no_val
         kstpkper = _get_kstkpers(temp_ucn_file, rel_kstpkpers=-1)[0]  # get the last kstpkper
         if len(temp_ucn_file.get_kstpkper()) > 1:
             warn('more than one kstpkper for {}, using the last kstpkper which is {}'.format(var, kstpkper))
-        for i, path in enumerate(paths):
-            if i % 10 == 0:
-                print('starting set {} to {} of {} for {}'.format(i, i + 10, len(paths), var))
-            ucn_file = flopy.utils.UcnFile(path)
-            temp_out = ucn_file.get_data(kstpkper=kstpkper)
-            temp_out[np.isclose(temp_out, ucn_no_value)] = np.nan
-            temp[i] = temp_out
+        for i,group in enumerate(grouper(num_files,paths)):
+            print('starting set {} to {} of {} for {}'.format(i*3, i*3+num_files, len(paths), var))
+            num_not_nan = pd.notnull(list(group)).sum()
+            outdata = np.zeros((num_not_nan,smt.layers,smt.rows,smt.cols),dtype=np.float32) * np.nan
+            for j,path in enumerate(group):
+                if j% 100 == 0:
+                    print('reading {} of {}'.format(j,j+100,num_files))
+                if path is None:
+                    continue
+                ucn_file = flopy.utils.UcnFile(path)
+                temp_out = ucn_file.get_data(kstpkper=kstpkper).astype(np.float32)
+                temp_out[np.isclose(temp_out, ucn_no_value)] = np.nan
+                outdata[j] = temp_out
+            temp[i*num_files:i*num_files+num_not_nan] = outdata
+            gc.collect()
 
-            # todo debug
+
+def grouper(n, iterable, fillvalue=None):
+    "grouper(3, 'ABCDEFG', 'x') --> ABC DEF Gxx"
+    args = [iter(iterable)] * n
+    return izip_longest(fillvalue=fillvalue, *args)

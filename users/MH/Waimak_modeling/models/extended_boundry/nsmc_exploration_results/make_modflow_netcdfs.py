@@ -11,8 +11,6 @@ from users.MH.Waimak_modeling.models.extended_boundry.nsmc_exploration_results.c
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_setup.realisation_id import \
     get_model_name_path
 
-#the commenting out is two run it in two parallel tasks, not really sure why it takes so long
-
 def make_modflow_netcdfs(hds_nc_path, bud_nc_path):
     # chekc the postition of phi lower and upper
     if filter2_3_4_num[-2] != -1:
@@ -27,10 +25,8 @@ def make_modflow_netcdfs(hds_nc_path, bud_nc_path):
 
     # directory paths
     hds_base_path = env.gw_met_data("mh_modeling/data_from_gns/hdsrepo")
-    #sfo_base_path = env.gw_met_data("mh_modeling/data_from_gns/sforepo")
-    #cbc_base_path = env.gw_met_data("mh_modeling/data_from_gns/cbcrepo")
-    sfo_base_path = (r"D:\temp_data\sforepo") #todo running on a separate drive to speed things up
-    cbc_base_path = (r"D:\temp_data\cbcrepo")
+    sfo_base_path = env.gw_met_data("mh_modeling/data_from_gns/sforepo")
+    cbc_base_path = env.gw_met_data("mh_modeling/data_from_gns/cbcrepo")
 
     # phi lower and phi upper hds or pull from get model path
     phi_lower = get_model_name_path('NsmcBase').replace('.nam', '')
@@ -49,14 +45,13 @@ def make_modflow_netcdfs(hds_nc_path, bud_nc_path):
     for filters 2-4
     """
 
-    make_hds_netcdf(nsmc_nums=filter2_3_4_num, hds_paths=hds_paths, description=description, nc_path=hds_nc_path) #uncomment (just doing the cbc on a separate drive)
-    #make_cellbud_netcdf(nsmc_nums=filter2_3_4_num, sfo_paths=sfo_paths, cbc_paths=cbc_paths,
-    #                    description=description,nc_path=bud_nc_path)
+    #make_hds_netcdf(nsmc_nums=filter2_3_4_num, hds_paths=hds_paths, description=description, nc_path=hds_nc_path)
+    make_cellbud_netcdf(nsmc_nums=filter2_3_4_num, sfo_paths=sfo_paths, cbc_paths=cbc_paths,
+                        description=description,nc_path=bud_nc_path)
 
 
 if __name__ == '__main__':
     # todo debug/run
     make_modflow_netcdfs(hds_nc_path=env.gw_met_data("mh_modeling/netcdfs_of_key_modeling_data/post_filter1_hds.nc"),
-                         #bud_nc_path=env.gw_met_data("mh_modeling/netcdfs_of_key_modeling_data/post_filter1_cell_budgets.nc")
-                        bud_nc_path=r"D:\post_filter1_cell_budgets_light.nc"
+                         bud_nc_path=env.gw_met_data("mh_modeling/netcdfs_of_key_modeling_data/post_filter1_cell_budgets.nc")
                          )
