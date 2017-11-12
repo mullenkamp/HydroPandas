@@ -37,8 +37,8 @@ def make_modflow_netcdfs(hds_nc_path, bud_nc_path):
                                                                                             phi_upper + '.hds']
     sfo_paths = [os.path.join(sfo_base_path,'{}.sfo'.format(e)) for e in path_basenames] + [phi_lower + '.sfo',
                                                                                             phi_upper + '.sfo']
-    cbc_paths = [os.path.join(cbc_base_path,'{}.cbc'.format(e)) for e in path_basenames] + [phi_lower + '.sfo',
-                                                                                            phi_upper + '.sfo']
+    cbc_paths = [os.path.join(cbc_base_path,'{}.cbc'.format(e)) for e in path_basenames] + [phi_lower + '.cbc',
+                                                                                            phi_upper + '.cbc']
 
     description = """
     The heads, or cell budget file values for all models which passed filter one (phi filter).  These were recalculated
