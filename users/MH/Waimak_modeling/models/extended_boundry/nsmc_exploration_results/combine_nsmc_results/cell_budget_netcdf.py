@@ -27,6 +27,7 @@ def make_cellbud_netcdf(nsmc_nums, sfo_paths, cbc_paths, description, nc_path):
     :param nc_path: the path to the outfile
     :return:
     """
+    print('starting to create netcdf for cell budget file, this will take a really long time')
     nc_file = nc.Dataset(nc_path, 'w')
 
     # make dimensions
@@ -71,7 +72,7 @@ def make_cellbud_netcdf(nsmc_nums, sfo_paths, cbc_paths, description, nc_path):
 
     x, y = smt.get_model_x_y(False)
 
-    proj = nc_file.createVariable('crs', 'i1') #this works really well...
+    proj = nc_file.createVariable('crs', 'i1')  # this works really well...
     proj.setncatts({'grid_mapping_name': "transverse_mercator",
                     'scale_factor_at_central_meridian': 0.9996,
                     'longitude_of_central_meridian': 173.0,
@@ -94,10 +95,9 @@ def make_cellbud_netcdf(nsmc_nums, sfo_paths, cbc_paths, description, nc_path):
                    'standard_name': 'projection_x_coordinate'})
     lon[:] = x
 
-    # create variables
+    # create variables # i've slimmed these down for now...
     variables = [e.lower() for e in
-                 ['CONSTANT HEAD', 'FLOW RIGHT FACE', 'FLOW FRONT FACE', 'FLOW LOWER FACE', 'WELLS', 'DRAINS',
-                  'RECHARGE', 'STREAM LEAKAGE', 'STREAMFLOW OUT']]
+                 ['CONSTANT HEAD', 'FLOW LOWER FACE', 'DRAINS', 'STREAM LEAKAGE', 'STREAMFLOW OUT']]
 
     # create stream flow variable
     nc_vars = {}
@@ -119,14 +119,19 @@ def make_cellbud_netcdf(nsmc_nums, sfo_paths, cbc_paths, description, nc_path):
 
     # add data
     for (i, nsmc_num), cbc_path, sfo_path in zip(enumerate(nsmc_nums), cbc_paths, sfo_paths):
+        if i % 1 == 0:
+            print('starting set {} to {} of {}'.format(i, i, len(nsmc_nums)))
         sfo = flopy.utils.CellBudgetFile(sfo_path)
         cbc = flopy.utils.CellBudgetFile(cbc_path)
         for var in variables:
+            print(var)
             if var == 'streamflow out':
                 # below returns a list of masked array(s) this give the array filled with np.nan
                 temp_data = sfo.get_data(kstpkper=kstpkper, text=var, full3D=True)[0].filled(np.nan)
             else:
-                temp_data = cbc.get_data(kstpkper=kstpkper, text=var, full3D=True)[0].filled(np.nan)
+                temp_data = cbc.get_data(kstpkper=kstpkper, text=var, full3D=True)[0]
+                if isinstance(temp_data,np.ma.MaskedArray):
+                    temp_data = temp_data.filled(np.nan)
 
             if var in ['constant head', 'drains', 'recharge', 'stream leakage', 'streamflow out']:
                 temp_data = temp_data[0]  # only the first layer has data
