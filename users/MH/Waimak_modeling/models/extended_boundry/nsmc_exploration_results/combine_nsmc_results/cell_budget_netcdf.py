@@ -133,7 +133,7 @@ def make_cellbud_netcdf(nsmc_nums, sfo_paths, cbc_paths, description, nc_path):
 
         # iterate through groups
         for i, (cbc_group, sfo_group) in enumerate(zip(grouper(num_files, cbc_paths), grouper(num_files, sfo_paths))):
-            print('starting set {} to {} of {} for {}'.format(i * 3, i * 3 + num_files, len(cbc_paths), var))
+            print('starting set {} to {} of {} for {}'.format(i * num_files, (i+1) * num_files, len(cbc_paths), var))
 
             # initialise data arrays
             num_not_nan = pd.notnull(list(cbc_group)).sum()
@@ -146,7 +146,7 @@ def make_cellbud_netcdf(nsmc_nums, sfo_paths, cbc_paths, description, nc_path):
             # iterate through paths
             for j, (cbc_path, sfo_path) in enumerate(zip(cbc_group, sfo_group)):
                 if j % 100 == 0:
-                    print('starting set {} to {} of {}'.format(j, j + 100, len(num_files)))
+                    print('starting set {} to {} of {}'.format(j, j + 100, num_files))
                 if cbc_path is None:
                     continue
 
@@ -157,9 +157,15 @@ def make_cellbud_netcdf(nsmc_nums, sfo_paths, cbc_paths, description, nc_path):
                 # get data from files
                 if var == 'streamflow out':
                     # below returns a list of masked array(s) this give the array filled with np.nan
-                    temp_data = sfo.get_data(kstpkper=kstpkper, text=var, full3D=True)[0].filled(np.nan)
+                    try:
+                        temp_data = sfo.get_data(kstpkper=kstpkper, text=var, full3D=True)[0].filled(np.nan)
+                    except: # flopy's exceptions suck ass
+                        continue
                 else:
-                    temp_data = cbc.get_data(kstpkper=kstpkper, text=var, full3D=True)[0]
+                    try:
+                        temp_data = cbc.get_data(kstpkper=kstpkper, text=var, full3D=True)[0]
+                    except: # flopy's exceptions suck
+                        continue
                     if isinstance(temp_data, np.ma.MaskedArray):
                         temp_data = temp_data.filled(np.nan)
 

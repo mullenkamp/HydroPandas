@@ -45,9 +45,9 @@ def make_modflow_netcdfs(hds_nc_path, bud_nc_path):
     for filters 2-4
     """
 
-    make_hds_netcdf(nsmc_nums=filter2_3_4_num, hds_paths=hds_paths, description=description, nc_path=hds_nc_path)
-    #make_cellbud_netcdf(nsmc_nums=filter2_3_4_num, sfo_paths=sfo_paths, cbc_paths=cbc_paths,
-    #                    description=description,nc_path=bud_nc_path)
+    #make_hds_netcdf(nsmc_nums=filter2_3_4_num, hds_paths=hds_paths, description=description, nc_path=hds_nc_path)
+    make_cellbud_netcdf(nsmc_nums=filter2_3_4_num, sfo_paths=sfo_paths, cbc_paths=cbc_paths,
+                        description=description,nc_path=bud_nc_path)
 
 
 if __name__ == '__main__':
