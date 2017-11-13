@@ -106,7 +106,7 @@ def make_cellbud_netcdf(nsmc_nums, sfo_paths, cbc_paths, description, nc_path):
     # create variables
     variables = [e.lower() for e in
                  ['CONSTANT HEAD', 'FLOW RIGHT FACE', 'FLOW FRONT FACE', 'FLOW LOWER FACE', 'WELLS', 'DRAINS',
-                  'RECHARGE', 'STREAM LEAKAGE']]
+                  'RECHARGE', 'STREAM LEAKAGE', 'streamflow out']]
 
     # create stream flow variable
     nc_vars = {}
@@ -157,15 +157,9 @@ def make_cellbud_netcdf(nsmc_nums, sfo_paths, cbc_paths, description, nc_path):
                 # get data from files
                 if var == 'streamflow out':
                     # below returns a list of masked array(s) this give the array filled with np.nan
-                    try:
-                        temp_data = sfo.get_data(kstpkper=kstpkper, text=var, full3D=True)[0].filled(np.nan)
-                    except: # flopy's exceptions suck ass
-                        continue
+                    temp_data = sfo.get_data(kstpkper=kstpkper, text=var, full3D=True)[0].filled(np.nan)
                 else:
-                    try:
-                        temp_data = cbc.get_data(kstpkper=kstpkper, text=var, full3D=True)[0]
-                    except: # flopy's exceptions suck
-                        continue
+                    temp_data = cbc.get_data(kstpkper=kstpkper, text=var, full3D=True)[0]
                     if isinstance(temp_data, np.ma.MaskedArray):
                         temp_data = temp_data.filled(np.nan)
 
