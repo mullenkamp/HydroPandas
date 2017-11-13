@@ -45,7 +45,7 @@ def calculate_endmember_mixing(ucn_nc_path, cbc_nc_path, sites, outdir=None):
     filter_nums = np.array(cbc_nc_file.variables['nsmc_num'])
     nsmc_filter_idx = np.in1d(filter_nums, emma_nums)
     if not (emma_nums == filter_nums[nsmc_filter_idx]).all():
-        raise ValueError('expected Ucn netcdf to be a super set and inte her same order re nc_nums as cbb')
+        raise ValueError('expected Ucn netcdf to be a sub set and in the same order re nc_nums as cbb')
 
     missing = set(runtypes) - set(ucn_nc_file.variables.keys())
     if len(missing) > 1:
@@ -181,8 +181,8 @@ def end_member_mixing_filter(data_dict, site_limits, method='all_pass', weights=
 
 
 if __name__ == '__main__':
-    ucn_path = None  # todo
-    cbc_path = None  # todo
+    ucn_path = env.gw_met_data("mh_modeling/netcdfs_of_key_modeling_data/emma_unc.nc")
+    cbc_path = env.gw_met_data("mh_modeling/netcdfs_of_key_modeling_data/post_filter1_cell_budgets.nc")
     # set up well sites
     site_info = pd.read_excel(env.sci(
         r"Groundwater\Waimakariri\Groundwater\Groundwater Quality\End member mixing model\Sites_GroupList.xlsx"))
@@ -202,10 +202,10 @@ if __name__ == '__main__':
                                outdir=base_dir)
 
     #todo set up site limits waiting on zeb
-    site_limits = None
+    #site_limits = None
 
-    # run filters
-    all_pass = end_member_mixing_filter(data_dict=data_dict, site_limits=site_limits,method='all_pass')
-    all_pass.to_csv(os.path.join(base_dir,'filter_all_pass_method.csv'))
-    river = end_member_mixing_filter(data_dict=data_dict, site_limits=site_limits,method='river')
-    river.to_csv(os.path.join(base_dir,'filter_river_method.csv'))
+    ## run filters
+    #all_pass = end_member_mixing_filter(data_dict=data_dict, site_limits=site_limits,method='all_pass')
+    #all_pass.to_csv(os.path.join(base_dir,'filter_all_pass_method.csv'))
+    #river = end_member_mixing_filter(data_dict=data_dict, site_limits=site_limits,method='river')
+    #river.to_csv(os.path.join(base_dir,'filter_river_method.csv'))

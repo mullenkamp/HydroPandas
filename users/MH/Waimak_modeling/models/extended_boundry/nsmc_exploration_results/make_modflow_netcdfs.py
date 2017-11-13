@@ -10,6 +10,7 @@ import os
 from users.MH.Waimak_modeling.models.extended_boundry.nsmc_exploration_results.combine_nsmc_results import *
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_setup.realisation_id import \
     get_model_name_path
+from future.builtins import input
 
 def make_modflow_netcdfs(hds_nc_path, bud_nc_path):
     # chekc the postition of phi lower and upper
@@ -52,6 +53,10 @@ def make_modflow_netcdfs(hds_nc_path, bud_nc_path):
 
 if __name__ == '__main__':
     # todo debug/run
+    cont = input('are you sure you want to re-run make modflow netcdfs it will overwrite and takes some time y/n')
+    if cont != 'y':
+        raise ValueError('user interuppted process to prevent overwrite')
+
     make_modflow_netcdfs(hds_nc_path=env.gw_met_data("mh_modeling/netcdfs_of_key_modeling_data/post_filter1_hds.nc"),
                          bud_nc_path=env.gw_met_data("mh_modeling/netcdfs_of_key_modeling_data/post_filter1_cell_budgets.nc")
                          )

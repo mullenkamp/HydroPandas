@@ -32,6 +32,7 @@ def write_to_nc(layers):
         var[:] = data[:]
     else:
         var[0:layers] = data[0:layers]
+        smt.plt_matrix()
 
 if __name__ == '__main__':
     write_to_nc('all')
