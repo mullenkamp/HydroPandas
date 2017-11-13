@@ -18,21 +18,6 @@ import traceback
 from scipy.interpolate import griddata
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.stream_depletion_assesment.stream_depletion_numerical_model_runs.grid_sd.visualise_grid_sd import get_mask
 
-data = np.repeat(flopy.utils.UcnFile(r"K:\mh_modeling\data_from_gns\EM_coast_ucnrepo\mt_aw_ex_coastal_1.ucn").get_data(kstpkper=(0,0))[np.newaxis,:,:,:],11,axis=0)
-def write_to_nc(layers):
-    np.random.seed()
-    path = r"C:\Users\Public\Desktop\test_speed\test_speed{}{}.nc".format(layers,np.random.randint(20000))
-    nc_file = nc.Dataset(path, 'w')
-    nc_file.createDimension('nsmc', 100)
-    nc_file.createDimension('layer', smt.layers)
-    nc_file.createDimension('row', smt.rows)
-    nc_file.createDimension('col', smt.cols)
-    var = nc_file.createVariable('test','f4',('nsmc','layer','row','col'),zlib=True)
-    if layers == 'all':
-        var[:] = data[:]
-    else:
-        var[0:layers] = data[0:layers]
-        smt.plt_matrix()
-
-if __name__ == '__main__':
-    write_to_nc('all')
+data = nc.Dataset(r"K:\mh_modeling\netcdfs_of_key_modeling_data\emma_unc.nc")
+def read_netcdf(n=1):
+    temp = data.variables['coastal'][:,0:n,1,1]
