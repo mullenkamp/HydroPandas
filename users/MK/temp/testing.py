@@ -3539,7 +3539,10 @@ where_col ={'qual_code': [10, 18, 20, 30, 50, 11, 21], 'site': ['313710']}
 
 h1 = hydro().get_data(mtypes='river_wl_cont_qc', sites=sites, qual_codes=[10, 18, 20, 30, 50, 11, 21], from_date = '2016-02-01', to_date = '2017-04-01', min_count=52, resample_code='W')
 
+##################################################
+### Hydrotel
 
+t1 = rd_hydrotel([66204], mtype='river_flow_cont_raw', from_date=start_date.strftime('%Y-%m-%d'), to_date=end_date.strftime('%Y-%m-%d'))
 
 
 

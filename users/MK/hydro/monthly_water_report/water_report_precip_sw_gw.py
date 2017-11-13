@@ -8,7 +8,7 @@ Created on Mon Jul 17 16:27:09 2017
 import sys
 sys.path.append(r'C:\git\Ecan.Science.Python.Base')
 
-from geopandas import read_file, sjoin
+from geopandas import read_file, sjoin, GeoDataFrame
 from pandas import DateOffset, to_datetime, concat, merge, cut, DataFrame, MultiIndex, Series, read_csv
 from core.spatial.vector import multipoly_to_poly, spatial_overlays
 from core.ts import grp_ts_agg
@@ -46,7 +46,7 @@ precip_poly_shp = 'precip_boundary_v01.shp'
 #gw_poly_shp = 'precip_boundary_v01.shp'
 rec_catch_shp = 'catch_delin_recorders.shp'
 #gw_sites_shp = 'gw_sites1.shp'
-veiw_bound_shp = 'boundary_v02.shp'
+view_bound_shp = 'boundary_v02.shp'
 precip_site_shp = 'precip_sites.shp'
 pot_sw_site_list_csv = 'potential_sw_site_list.csv'
 
@@ -65,6 +65,7 @@ ts_out_csv = 'ts_out_perc_' + date_str + '.csv'
 ## plots
 #precip_sw_gw1_html = 'precip_sw_gw_' + date_str + '.html'
 precip_sw1_html = 'precip_sw_' + date_str + '.html'
+sw1_html = 'sw_catch_' + date_str + '.html'
 
 ##################################################
 #### Read in data
@@ -72,10 +73,10 @@ precip_sw1_html = 'precip_sw_' + date_str + '.html'
 print('Reading in the data')
 
 ### Overall veiw
-veiw_zones = read_file(path.join(base_dir, veiw_bound_shp))
-veiw_zones = veiw_zones.replace({'lon_zone': lon_zone_names})
-veiw_zones['zone'] = veiw_zones['lat_zone'] + ' - ' + veiw_zones['lon_zone']
-veiw_zones = veiw_zones.drop(['lon_zone', 'lat_zone'], axis=1)
+view_zones = read_file(path.join(base_dir, view_bound_shp))
+view_zones = view_zones.replace({'lon_zone': lon_zone_names})
+view_zones['zone'] = view_zones['lat_zone'] + ' - ' + view_zones['lon_zone']
+view_zones = view_zones.drop(['lon_zone', 'lat_zone'], axis=1)
 
 ### SW
 sw_poly = read_file(path.join(base_dir, sw_poly_shp))[['lat_zone', 'lon_zone', 'geometry']]
@@ -85,6 +86,7 @@ site_list = read_csv(path.join(base_dir, pot_sw_site_list_csv))
 sw_list = site_list.replace({'lon_zone': lon_zone_names})
 sw_list['zone'] = sw_list['lat_zone'] + ' - ' + sw_list['lon_zone']
 sw_list = sw_list.drop(['lon_zone', 'lat_zone'], axis=1)
+sw_list.loc[19:20, 'Notes'] = nan
 
 sw_zones = sw_poly.replace({'lon_zone': lon_zone_names})
 sw_zones['zone'] = sw_zones['lat_zone'] + ' - ' + sw_zones['lon_zone']
@@ -125,11 +127,11 @@ zones = concat([sw_zones, precip_zones]).reset_index(drop=True)
 ### SW
 sites1 = sw_list[sw_list.Notes.isnull()].drop('Notes', axis=1)
 
-flow1 = hydro().get_data('flow', sites1.site, qual_codes)
-stats_flow = flow1.stats('flow')
+flow1 = hydro().get_data('river_flow_cont_qc', sites1.site, qual_codes)
+stats_flow = flow1.stats('river_flow_cont_qc')
 
 ### precip
-precip1 = hydro().get_data(mtypes='precip', sites=precip_sites.site, qual_codes=qual_codes)
+precip1 = hydro().get_data(mtypes='atmos_precip_cont_qc', sites=precip_sites.site, qual_codes=qual_codes)
 
 ### GW
 #gw1 = hydro().get_data(mtypes='gwl', sites=gw_sites.site, qual_codes=qual_codes)
@@ -140,16 +142,17 @@ precip1 = hydro().get_data(mtypes='precip', sites=precip_sites.site, qual_codes=
 print('Processing past data')
 
 ### SW
-flow2 = flow1.sel_ts(mtypes='flow')
+flow2 = flow1.sel_ts(mtypes='river_flow_cont_qc')
 flow2.index = flow2.index.droplevel('mtype')
 flow3 = flow2.reset_index()
+flow3 = flow3.replace({'site': {66403: 66442}})
 
 mon_flow1 = grp_ts_agg(flow3, 'site', 'time', 'M').median().reset_index()
 mon_flow1['mon'] = mon_flow1.time.dt.month
 mon_flow1['mtype'] = 'flow'
 
 ### precip
-precip2 = precip1.sel_ts(mtypes='precip')
+precip2 = precip1.sel_ts(mtypes='atmos_precip_cont_qc')
 precip2.index = precip2.index.droplevel('mtype')
 precip3 = precip2.reset_index()
 
@@ -195,6 +198,7 @@ if not all(last_index):
     print(str(sum(~last_index)) + " sites have less than a full months record")
     hy2 = hy2[hy2.site.isin(last_index.index[last_index])]
 hy2 = hy2[hy2.time != end_date]
+hy2 = hy2.replace({'site': {66403: 66442}})
 hy3 = grp_ts_agg(hy2, 'site', 'time', 'M').median().reset_index()
 #hy3.columns = ['site', 'mon_median_flow']
 
@@ -266,6 +270,10 @@ sw_area_weight.name = 'sw_area_weight'
 
 sw_site_zone = overlay3[['zone']].copy()
 
+## Simplify catchment polygons for eventual plotting
+site_catch2 = site_catch1.drop('NZREACH', axis=1).copy()
+site_catch2['geometry'] = site_catch1.simplify(100)
+
 ### precip
 precip_sites1 = precip_sites[precip_sites.site.isin(hy_summ.site[hy_summ.mtype == 'precip'].unique())]
 precip_site_zone = sjoin(precip_sites1, precip_zones)
@@ -305,7 +313,6 @@ def row_perc(x, mon_summ):
 
 hy_summ['perc_temp'] = hy_summ.apply(row_perc, mon_summ=mon_summ, axis=1)
 
-
 ##############################################
 #### Calc zone stats and apply categories
 
@@ -313,10 +320,10 @@ hy_summ['perc_temp'] = hy_summ.apply(row_perc, mon_summ=mon_summ, axis=1)
 hy_summ1 = merge(hy_summ, area_weights.reset_index(), on='site', how='left')
 if sum(hy_summ1.area_weights.isnull()) > 0:
     raise ValueError('Missing some site area weights!')
-hy_summ1['perc'] = hy_summ1['perc_temp'] * hy_summ1['area_weights']
+hy_summ1['perc'] = (hy_summ1['perc_temp'] * hy_summ1['area_weights']).round(2)
+hy_summ1.loc[:, 'time'] = hy_summ1.loc[:, 'time'].dt.strftime('%Y-%m')
 
 hy_summ2 = merge(hy_summ1[['mtype', 'site', 'time', 'perc']], site_zones.reset_index(), on='site', how='left')
-hy_summ2.loc[:, 'time'] = hy_summ2.loc[:, 'time'].dt.strftime('%Y-%m')
 
 prod1 = [sw_zones.zone.values, hy_summ2.mtype.unique(), hy_summ2.time.unique()]
 mindex = MultiIndex.from_product(prod1, names=[u'zone', u'mtype', u'time'])
@@ -332,6 +339,13 @@ cat1 = cut(zone_stats2, cat_val_lst, labels=cat_name_lst).astype('str')
 cat1.name = 'category'
 cat2 = concat([zone_stats2, cat1], axis=1)
 cat3 = cat2.sort_values('perc', ascending=False).category
+
+## Cat for catchemnts
+catch_stats1 = hy_summ1.groupby(['site', 'mtype', 'time'])['perc_temp'].sum().round(1)
+catch_cat1 = cut(catch_stats1, cat_val_lst, labels=cat_name_lst).astype('str')
+catch_cat1.name = 'category'
+catch_cat2 = concat([catch_stats1, catch_cat1], axis=1)
+
 
 ################################################
 #### Output stats
@@ -363,27 +377,49 @@ def getPolyCoords(row, coord_type, geom='geometry'):
         # Get the y coordinates of the exterior
         return list(exterior.coords.xy[1])
 
-zones1 = multipoly_to_poly(veiw_zones)
+zones1 = multipoly_to_poly(view_zones)
 
 zones1['x'] = zones1.apply(getPolyCoords, coord_type='x', axis=1)
 zones1['y'] = zones1.apply(getPolyCoords, coord_type='y', axis=1)
 
 zones2 = zones1.drop('geometry', axis=1)
 
+cant1 = GeoDataFrame(['Canterbury'], geometry=[zones1.unary_union])
+cant1.columns = ['site', 'geometry']
+cant1['x'] = cant1.apply(getPolyCoords, coord_type='x', axis=1)
+cant1['y'] = cant1.apply(getPolyCoords, coord_type='y', axis=1)
+
+cant2 = cant1.drop('geometry', axis=1)
+
+## Catchments
+catch1 = multipoly_to_poly(site_catch2)
+catch1['x'] = catch1.apply(getPolyCoords, coord_type='x', axis=1)
+catch1['y'] = catch1.apply(getPolyCoords, coord_type='y', axis=1)
+catch2 = catch1.drop('geometry', axis=1)
+
 ### Combine with time series data
 data1 = merge(cat1.unstack('time').reset_index(), zones2, on=['zone'])
 time_index = hy_summ2.time.unique().tolist()
 data1['cat'] = data1[time_index[-1]]
+
+catch_data1 = merge(catch_cat1.unstack('time').reset_index(), catch2, on=['site'])
+catch_data1['cat'] = catch_data1[time_index[-1]]
 
 ### Extract the mtype dataframes
 flow_b = data1.loc[data1.mtype == 'flow']
 precip_b = data1.loc[data1.mtype == 'precip']
 #gw_b = data1.loc[data1.mtype == 'gw']
 
+flow_b_catch = catch_data1.loc[catch_data1.mtype == 'flow']
+
 flow_source = ColumnDataSource(flow_b)
 precip_source = ColumnDataSource(precip_b)
 #gw_source = ColumnDataSource(gw_b)
 time_source = ColumnDataSource(DataFrame({'index': time_index}))
+
+flow_catch_source = ColumnDataSource(flow_b_catch)
+
+cant_source = ColumnDataSource(cant2)
 
 ### Set up plotting parameters
 c1 = brewer['RdBu'][5]
@@ -501,6 +537,44 @@ tab2 = Panel(child=layout2, title='SW Flow')
 tabs_alt = Tabs(tabs=[tab1, tab2])
 
 show(tabs_alt)
+
+
+### Plots for catchments
+
+output_file(path.join(output_dir, sw1_html))
+
+## Base figure for Canterbury
+
+
+## Figure 1 - flow
+p3 = figure(title='Surface Water Flow Index by catchment', tools=TOOLS, logo=None, active_scroll='wheel_zoom', plot_height=h, plot_width=w)
+p3.patches('x', 'y', source=cant_source, fill_color='white', line_color="black", line_width=1)
+p3.patches('x', 'y', source=flow_catch_source, fill_color={'field': 'cat', 'transform': color_map}, line_color="black", line_width=1, legend='cat')
+p3.renderers.extend(p0.renderers)
+p3.legend.location = 'top_left'
+
+hover3 = p3.select_one(HoverTool)
+hover3.point_policy = "follow_mouse"
+hover3.tooltips = [("Category", "@cat"), ("Site", "@site")]
+
+callback3 = CustomJS(args=dict(source=flow_catch_source), code="""
+    var data = source.data;
+    var f = cb_obj.value;
+    source.data.cat = data[f];
+    source.change.emit();
+""")
+
+select3 = Select(title='Month', value=time_index[-1], options=time_index)
+select3.js_on_change('value', callback3)
+#slider = Slider(start=0, end=len(time_index)-1, value=0, step=1)
+#slider.js_on_change('value', callback)
+
+layout3 = column(p3, select3)
+
+show(layout3)
+
+
+
 
 #############################################
 #### Print where results are saved

@@ -192,7 +192,7 @@ def rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resa
 
     ## set the index
     groupby_cols.append(date_col)
-    df1 = df.set_index(groupby_cols)
+    df1 = df.set_index(groupby_cols).sort_index()
 
     ## Save and return
     if export_path is not None:
