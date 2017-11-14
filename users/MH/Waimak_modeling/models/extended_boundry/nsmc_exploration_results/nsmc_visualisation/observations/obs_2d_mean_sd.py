@@ -8,8 +8,11 @@ from __future__ import division
 from core import env
 
 #todo
-# put the mean and sd side by side
+# include the filter thing as cols
+# should I contour the data
+# put the mean and sd side top bottom
 #hds by layer
 #drn flux
-#concentrations of median N/ endmember mixing
-#layer one bottom flux
+#layer one bottom flux (as 1 0 -1)
+# where the model is dry
+# could set up where you pass the data id, layer, and a transform function I like this

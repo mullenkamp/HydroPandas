@@ -25,6 +25,9 @@ def obs_boxplots(param_netcdf_file, sites, title, yax, filter_strs):
     :param title: title to use
     :param yax: label for the y axis
     :param filter_strs: list of which filter should I use 'str' where multiple filter they appear as column subplots
+                        possible prefixes: ~0_ where the filter failed
+                                           ~1_ where the filter was not run
+                                           ~10_ where the filter was not run or failed
     :return: fig, ax
     """
     filter_strs = np.atleast_1d(filter_strs)
@@ -34,8 +37,35 @@ def obs_boxplots(param_netcdf_file, sites, title, yax, filter_strs):
     fig, axs = plt.subplots(ncols=len(filter_strs), figsize=(18.5, 9.5))
     axs = np.atleast_1d(axs)
 
-    for filter_str, ax in zip(filter_strs, axs.flatten()):
-        real_filter = np.array(param_netcdf_file.variables[filter_str]) > 0
+    for filter_str_raw, ax in zip(filter_strs, axs.flatten()):
+        ftype = 0
+        filter_str = filter_str_raw
+        textadd = ''
+        if '~0_' in filter_str_raw:
+            filter_str = filter_str_raw.replace('~0_', '')
+            ftype = 1
+            textadd = 'failed '
+        elif '~-1_' in filter_str_raw:
+            filter_str = filter_str_raw.replace('~-1', '')
+            ftype = 2
+            textadd = 'not run '
+        elif '~-10_' in filter_str_raw:
+            filter_str = filter_str_raw.replace('~-10', '')
+            ftype = 3
+            textadd = 'not run or failed '
+
+        temp_filter = np.array(param_netcdf_file.variables[filter_str])
+        if ftype == 0:
+            real_filter = temp_filter == 1
+        elif ftype == 1:
+            real_filter = temp_filter == 0
+        elif ftype == 2:
+            real_filter = temp_filter == -1
+        elif ftype == 3:
+            real_filter = temp_filter < 1
+        else:
+            raise ValueError('shouldnt get here')
+
         nsmc_nums = np.array(param_netcdf_file.variables['nsmc_num'][real_filter])
         all_model_data = []
         all_tar_data = []
@@ -54,7 +84,7 @@ def obs_boxplots(param_netcdf_file, sites, title, yax, filter_strs):
             if yax == 'm3/s':  # then convert to m3/s from m3/day
                 model_data *= 1 / 86400
                 tar_data *= 1 / 86400
-            all_model_data.append(model_data)
+            all_model_data.append(model_data[np.isfinite(model_data)])
             all_tar_data.append(tar_data)
             # todo set y limts constant
 
@@ -66,7 +96,7 @@ def obs_boxplots(param_netcdf_file, sites, title, yax, filter_strs):
         t = ax.boxplot(x=all_model_data, positions=positions, labels=sites.keys())
         [[e.set_linewidth(2) for e in j[1]] for j in t.items()]
         ax.set_ylabel(yax)
-        ax.set_title(filter_str)
+        ax.set_title('{}{}'.format(textadd, filter_str))
     ymax = max([e.get_ylim()[1] for e in axs.flatten()])
     ymin = min([e.get_ylim()[0] for e in axs.flatten()])
     [e.set_ylim(ymin, ymax) for e in axs.flatten()]
@@ -188,8 +218,35 @@ def plot_hds_boxplots(nc_path, outdir, filter_strs):
         axs = np.atleast_1d(axs)
         plot_sites = list(plt_data.loc[plt_data['Group_'] == group, 'Well'].values)
         well_names = np.array(nc_data.variables['well_name'])
-        for filter_str, ax in zip(filter_strs, axs):
-            real_filter = np.array(nc_data.variables[filter_str]) > 0
+        for filter_str_raw, ax in zip(filter_strs, axs):
+            ftype = 0
+            filter_str = filter_str_raw
+            textadd = ''
+            if '~0_' in filter_str_raw:
+                filter_str = filter_str_raw.replace('~0_', '')
+                ftype = 1
+                textadd = 'failed '
+            elif '~-1_' in filter_str_raw:
+                filter_str = filter_str_raw.replace('~-1', '')
+                ftype = 2
+                textadd = 'not run '
+            elif '~-10_' in filter_str_raw:
+                filter_str = filter_str_raw.replace('~-10', '')
+                ftype = 3
+                textadd = 'not run or failed '
+
+            temp_filter = np.array(nc_data.variables[filter_str])
+            if ftype == 0:
+                real_filter = temp_filter == 1
+            elif ftype == 1:
+                real_filter = temp_filter == 0
+            elif ftype == 2:
+                real_filter = temp_filter == -1
+            elif ftype == 3:
+                real_filter = temp_filter < 1
+            else:
+                raise ValueError('shouldnt get here')
+
             nsmc_nums = np.array(nc_data.variables['nsmc_num'][real_filter])
             all_model_data = []
             all_target_data = []
@@ -214,7 +271,7 @@ def plot_hds_boxplots(nc_path, outdir, filter_strs):
                 wt = nc_data['well_weight'][well_idx]
                 if wt != 0:
                     tar_data += np.random.normal(loc=u, scale=1 / wt, size=len(tar_data))
-                all_model_data.append(model_data)
+                all_model_data.append(model_data[np.isfinite(model_data)])
                 all_target_data.append(tar_data)
 
             # plot it up
@@ -224,7 +281,7 @@ def plot_hds_boxplots(nc_path, outdir, filter_strs):
             t = ax.boxplot(x=all_model_data, positions=positions, labels=labels)
             [[e.set_linewidth(2) for e in j[1]] for j in t.items()]
             ax.set_ylabel('m')
-            ax.set_title(filter_str)
+            ax.set_title('{}{}'.format(textadd, filter_str))
         ymax = max([e.get_ylim()[1] for e in axs.flatten()])
         ymin = min([e.get_ylim()[0] for e in axs.flatten()])
         [e.set_ylim(ymin, ymax) for e in axs.flatten()]
@@ -241,6 +298,6 @@ def plot_hds_boxplots(nc_path, outdir, filter_strs):
 if __name__ == '__main__':
     nc_path = r"K:\mh_modeling\netcdfs_of_key_modeling_data\nsmc_params_obs_metadata.nc"
     base_dir = r"C:\Users\MattH\Downloads"
-    filters = ['filter1', 'filter2']
-    #plot_all_obs_boxplots(nc_path, os.path.join(base_dir, 'obs_boxplots_non_head'), filters)
+    filters = ['filter1', '~0_filter1']
+    plot_all_obs_boxplots(nc_path, os.path.join(base_dir, 'obs_boxplots_non_head'), filters)
     plot_hds_boxplots(nc_path, os.path.join(base_dir, 'obs_boxplots_hds'), filters)
