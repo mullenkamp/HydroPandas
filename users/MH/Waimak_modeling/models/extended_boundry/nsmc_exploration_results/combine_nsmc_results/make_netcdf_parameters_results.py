@@ -31,46 +31,61 @@ drn_dim = 37
 def _add_simple_params(param, pst_param, prior_sd_data, postopt_sd_data, nc_file):
     simple_parameters = {'pump_c': {'units': 'none',
                                     'long_name': 'christchurch west melton pumping multiplier',
-                                    'sd_type': 'lin'},
+                                    'sd_type': 'lin',
+                                    'opt_p': 1},
                          'pump_s': {'units': 'none',
                                     'long_name': 'selwyn pumping multiplier',
-                                    'sd_type': 'lin'},
+                                    'sd_type': 'lin',
+                                    'opt_p': 1},
                          'pump_w': {'units': 'none',
                                     'long_name': 'waimakariri pumping multiplier',
-                                    'sd_type': 'lin'},
+                                    'sd_type': 'lin',
+                                    'opt_p': 1},
                          'sriv': {'units': 'none',
                                   'long_name': 'selwyn river influx multiplier',
-                                  'sd_type': 'lin'},
+                                  'sd_type': 'lin',
+                                  'opt_p': 1},
                          'n_race': {'units': 'none',
                                     'long_name': 'waimakariri race multiplier',
-                                    'sd_type': 'lin'},
+                                    'sd_type': 'lin',
+                                    'opt_p': 1},
                          's_race': {'units': 'none',
                                     'long_name': 'selwyn race multiplier',
-                                    'sd_type': 'lin'},
+                                    'sd_type': 'lin',
+                                    'opt_p': 1},
                          'nbndf': {'units': 'none',
                                    'long_name': 'northern boundary flux multiplier',
-                                   'sd_type': 'lin'},
+                                   'sd_type': 'lin',
+                                   'opt_p': 1},
                          'top_e_flo': {'units': 'm3/day',
                                        'long_name': 'top of the eyre flow',
-                                       'sd_type': 'log'},
+                                       'sd_type': 'log',
+                                       'opt_p':171936},
                          'mid_c_flo': {'units': 'm3/day',
                                        'long_name': 'mid cust (biwash) flow',
-                                       'sd_type': 'log'},
+                                       'sd_type': 'log',
+                                       'opt_p': 3456},
                          'top_c_flo': {'units': 'm3/day',
                                        'long_name': 'top of the cust flow',
-                                       'sd_type': 'log'},
+                                       'sd_type': 'log',
+                                       'opt_p': 14688},
                          'ulrzf': {'units': 'm3/day',
                                    'long_name': 'inland southwestern boundary flux',
-                                   'sd_type': 'log'},
+                                   'sd_type': 'log',
+                                   'opt_p': 259201.1
+                                   },
                          'llrzf': {'units': 'm3/day',
                                    'long_name': 'coastal southwestern boundary flux',
-                                   'sd_type': 'log'},
+                                   'sd_type': 'log',
+                                   'opt_p': 181440.8},
                          'fkh_mult': {'units': 'none',
                                       'long_name': 'fault kh multiplier',
-                                      'sd_type': 'log'},
+                                      'sd_type': 'log',
+                                      'opt_p': 1},
                          'fkv_mult': {'units': 'none',
                                       'long_name': 'fault kv multiplier',
-                                      'sd_type': 'log'}}
+                                      'sd_type': 'log',
+                                      'opt_p': 1}}
 
     for key in simple_parameters.keys():
         temp = nc_file.createVariable(key, 'f8', ('nsmc_num',), fill_value=np.nan, zlib=True)
@@ -113,6 +128,13 @@ def _add_rch_params(param, rch_ppt_tpl, pst_param, prior_sd_data, postopt_sd_dat
                      'missing_value': np.nan,
                      'vtype': 'meta'})
     rch_y[:] = rch_meta.loc[:, 'y'].values
+
+    rch_opt_p = nc_file.createVariable('rch_ppt_opt_p', 'f8', ('rch_ppt',), fill_value=np.nan, zlib=True)
+    rch_opt_p.setncatts({'units': 'nztmy',
+                     'long_name': 'recharge pilot point optimisation prior',
+                     'missing_value': np.nan,
+                     'vtype': 'meta'})
+    rch_opt_p[:] = np.ones((len(rch_ppt_ids)))
 
     # initials uppers lowers
     rch_lower = nc_file.createVariable('rch_ppt_lower', 'f8', ('rch_ppt',), fill_value=np.nan, zlib=True)
@@ -221,6 +243,15 @@ def _add_sfr_cond(param, pst_param, prior_sd_data, postopt_sd_data, nc_file):
                             })
     sfr_prior_sd[:] = prior_sd_data.loc[hcond_sites, 'sd'].values
 
+    sfr_opt_p = nc_file.createVariable('sfr_opt_p', 'f8', ('sfr_cond',), fill_value=np.nan, zlib=True)
+    sfr_opt_p.setncatts({'units': 'none',
+                            'long_name': 'sfr cond optimisation prior ',
+                            'missing_value': np.nan,
+                            'vtype': 'meta',
+                            'sd_type': 'log'
+                            })
+    sfr_opt_p[:] = np.ones(len(hcond_sites)).fill(10)
+
     sfr_post_sd = nc_file.createVariable('sfr_j_sd', 'f8', ('sfr_cond',), fill_value=np.nan, zlib=True)
     sfr_post_sd.setncatts({'units': 'none',
                            'long_name': 'sfr cond post sensitivity matrix standard deviation',
@@ -282,6 +313,14 @@ def _add_drain_cond(param, pst_param, prior_sd_data, postopt_sd_data, nc_file):
                             'vtype': 'meta',
                             'sd_type': 'log'})
     drn_prior_sd[:] = prior_sd_data.loc[drns, 'sd'].values
+
+    drn_opt_p = nc_file.createVariable('drn_opt_p', 'f8', ('drns',), fill_value=np.nan, zlib=True)
+    drn_opt_p.setncatts({'units': 'none',
+                            'long_name': 'drain cond optimisation prior',
+                            'missing_value': np.nan,
+                            'vtype': 'meta',
+                            'sd_type': 'log'})
+    drn_opt_p[:] = np.ones(len(drns)).fill(1680)
 
     drn_post_sd = nc_file.createVariable('drn_j_sd', 'f8', ('drns',), fill_value=np.nan, zlib=True)
     drn_post_sd.setncatts({'units': 'none',
@@ -824,6 +863,8 @@ def make_netcdf_nsmc(nc_outfile, rrffile, rec_file, opt_lower_rec, opt_upper_rec
                     the k priors were reduced to 70% for kv and 50% for kh from the true coveriance matrix
                     note that these distributions are not truly bayesian as the distribution is centered by the initial 
                     value and truncated at the bounds
+                    
+                    'opt_p' is the optimisation prior (e.g. the prior for the optimisation process)
                     """
 
     # make dimensions
@@ -890,7 +931,7 @@ def make_netcdf_nsmc(nc_outfile, rrffile, rec_file, opt_lower_rec, opt_upper_rec
 
 
 if __name__ == '__main__':
-    # todo spotcheck
+    # todo spotcheck add opt priors
     data_dir = "{}/from_gns/nsmc".format(smt.sdp)
     make_netcdf_nsmc(nc_outfile=env.gw_met_data("mh_modeling/netcdfs_of_key_modeling_data/nsmc_params_obs_metadata.nc"),
                      rrffile="{}/aw_ex_mc/aw_ex_mc.rrf".format(data_dir),

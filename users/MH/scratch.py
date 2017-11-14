@@ -20,4 +20,4 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.stream_depletio
 
 data = nc.Dataset(r"K:\mh_modeling\netcdfs_of_key_modeling_data\emma_unc.nc")
 def read_netcdf(n=1):
-    temp = data.variables['coastal'][:,0:n,1,1]
+    temp = data.variables['coastal'][5,0]

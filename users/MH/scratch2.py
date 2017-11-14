@@ -9,9 +9,6 @@ import timeit
 
 
 print('one read')
-print timeit.timeit('read_netcdf()',setup='from users.MH.scratch import read_netcdf',number=1000)/1000
+print timeit.timeit('read_netcdf()',setup='from users.MH.scratch import read_netcdf',number=100)
 
-print '5read'
-print timeit.timeit('read_netcdf(5)',setup='from users.MH.scratch import read_netcdf',number=1000)/1000
-print('done')
 
