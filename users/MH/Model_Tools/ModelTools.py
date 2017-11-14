@@ -377,7 +377,7 @@ class ModelTools(object):
         band.SetNoDataValue(-99)
 
     def plt_matrix(self, array, vmin=None, vmax=None, title=None, no_flow_layer=0, ax=None, color_bar=True,
-                   base_map=False, plt_background=True, cbar_lab=None **kwargs):
+                   base_map=False, plt_background=True, cbar_lab=None, **kwargs):
         """
 
         :param array: they array to plot (of i,j)

@@ -327,7 +327,8 @@ def _make_swaz_drn_points():
 
 if __name__ == '__main__':
     # tests
-    test = get_samp_points_df(False)
+    test = get_samp_points_df(True)
+    raise
     test2 = _get_sw_samp_pts_dict()
     test3 = _get_flux_flow_arrays('waimak_swaz',test2,test)
     test4 = _get_flux_flow_arrays('waimakupper_swaz',test2,test)

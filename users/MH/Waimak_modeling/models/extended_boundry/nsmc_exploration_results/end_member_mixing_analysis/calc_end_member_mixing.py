@@ -96,8 +96,9 @@ def calculate_endmember_mixing(ucn_nc_path, cbc_nc_path, sites, outdir=None):
                     # get drain concentration and flow
                     drn_con = np.concatenate([np.array(ucn_nc_file.variables[runtype][:, 0, r, c])[:, np.newaxis]
                                               for r, c in smt.model_where(drn_idx)], axis=1)
-                    drn_flow = np.concatenate([np.array(cbc_nc_file.variables['drains'][nsmc_filter_idx, r, c])[:, np.newaxis]
-                                               for r, c in smt.model_where(drn_idx)], axis=1)
+                    drn_flow = np.concatenate(
+                        [np.array(cbc_nc_file.variables['drains'][nsmc_filter_idx, r, c])[:, np.newaxis]
+                         for r, c in smt.model_where(drn_idx)], axis=1)
                     # some checks
                     if drn_con.shape != (nsmc_size, len(smt.model_where(drn_idx))):
                         raise ValueError('weird shape for drn con {} expected {}'.format(well_fraction.shape,
@@ -183,7 +184,8 @@ def end_member_mixing_filter(data_dict, site_limits, method='all_pass', weights=
 
 if __name__ == '__main__':
     ucn_path = env.gw_met_data("mh_modeling/netcdfs_of_key_modeling_data/emma_unc.nc")
-    cbc_path = env.gw_met_data("mh_modeling/netcdfs_of_key_modeling_data/post_filter1_cell_budgets_temp.nc") #todo update later
+    cbc_path = env.gw_met_data(
+        "mh_modeling/netcdfs_of_key_modeling_data/post_filter1_cell_budgets_temp.nc")  # todo update later
     # set up well sites
     site_info = pd.read_excel(env.sci(
         r"Groundwater\Waimakariri\Groundwater\Groundwater Quality\End member mixing model\Sites_GroupList.xlsx"))
@@ -195,16 +197,17 @@ if __name__ == '__main__':
         sites[g] = {'wells': list(site_info.loc[site_info.well_group == g, 'Well list']), 'str_drn': []}
 
     # set up sw sites
-    sw_site_names = ['kaiapoi_island', 'ohoka_island', 'courtenay_swaz']
+    sw_site_names = ['ohoka_island', 'kaiapoi_island', 'courtenay_swaz', 'ohoka_offbutch', 'kaiapoi_neeves',
+                     'ohoka_jeffs', 'kaiapoi_heywards', 'kaiapoi_dixons']
     for sw in sw_site_names:
         sites[sw] = {'wells': [], 'str_drn': [sw]}
     base_dir = env.sci(r"Groundwater\Waimakariri\Groundwater\Numerical GW model\nsmc_results\emma_filter")
-    data_dict = calculate_endmember_mixing(ucn_nc_path=ucn_path,cbc_nc_path=cbc_path,sites=sites,
-                               outdir=base_dir)
+    data_dict = calculate_endmember_mixing(ucn_nc_path=ucn_path, cbc_nc_path=cbc_path, sites=sites,
+                                           outdir=base_dir)
 
-    #todo set up site limits waiting on zeb, will probably end up on a phi option
-    #site_limits = None
+    # todo set up site limits waiting on zeb, will probably end up on a phi option
+    # site_limits = None
 
     ## run filters
-    #river = end_member_mixing_filter(data_dict=data_dict, site_limits=site_limits,method='river')
-    #river.to_csv(os.path.join(base_dir,'filter_river_method.csv'))
+    # river = end_member_mixing_filter(data_dict=data_dict, site_limits=site_limits,method='river')
+    # river.to_csv(os.path.join(base_dir,'filter_river_method.csv'))

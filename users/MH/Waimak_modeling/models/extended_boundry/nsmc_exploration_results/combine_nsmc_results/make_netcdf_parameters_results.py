@@ -877,7 +877,7 @@ def make_netcdf_nsmc(nc_outfile, rrffile, rec_file, opt_lower_rec, opt_upper_rec
     _add_filter_2(f2txt, nc_file)  # vert filter
     _add_filter_3(f3txt, nc_file)  # piezo filter
     _add_filter_4(f4txt, nc_file)  # intersect of vert and piezo filter
-    _add_filter_5(f4txt, nc_file)  # end member mixing filter
+    _add_filter_5(f4txt, nc_file)  # end member mixing filter #todo potentially add filters for ran, didn't run ect
 
     # add general comments
     nc_file.description = (
