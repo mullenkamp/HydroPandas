@@ -17,8 +17,9 @@ from future.builtins import input
 
 
 def get_all_well_row_col(recalc=False):
-    if os.path.exists('{}/all_wells_row_col_layer.csv'.format(smt.sdp)) and not recalc:
-        out_data = pd.read_csv('{}/all_wells_row_col_layer.csv'.format(smt.sdp),index_col=0)
+    save_path = '{}/all_wells_row_col_layer2.csv'.format(smt.sdp)
+    if os.path.exists(save_path) and not recalc:
+        out_data = pd.read_csv(save_path,index_col=0)
         return out_data
 
     cont = input('are you sure you want to calculate all wells layer, row, col this takes several hours:\n {} \n continue y/n\n').lower()
@@ -28,9 +29,7 @@ def get_all_well_row_col(recalc=False):
     elv_sheet = pd.read_excel(env.sci('Groundwater/Waimakariri/Groundwater/Numerical GW model/Model build and optimisation/targets/xyz.xlsx'),
                                                                                                                              index_Col=0)
     elv_sheet = elv_sheet.set_index('well')
-    elv_sheet.loc[:,'accuracy_use'] = elv_sheet.accuracy_use.str.replace('m','')
-    elv_sheet.loc[:,'accuracy_use'] = elv_sheet.accuracy_use.str.replace('<','')
-    elv_sheet.loc[:,'accuracy_use'] = elv_sheet.accuracy_use.astype(float)
+    elv_sheet.loc[:,'accuracy_use'] = elv_sheet['ACCURACY (m)']
 
     well_details_org = rd_sql(**sql_db.wells_db.well_details)
     well_details = well_details_org[(well_details_org['WMCRZone'] == 4) | (well_details_org['WMCRZone'] == 7) |
@@ -63,7 +62,7 @@ def get_all_well_row_col(recalc=False):
             ground_ref_level = 0
         if pd.isnull(ref_level):  # if there is no reference level assume it is at the ground from DEM
             if well in np.array(elv_sheet.index):
-                ref_level = elv_sheet.loc[well,'Elevation_use']
+                ref_level = elv_sheet.loc[well, 'VALUE FOR USE']
                 out_data.loc[well, 'ref_ac'] = elv_sheet.loc[well, 'accuracy_use']
             else:
                 out_data.loc[well, 'ref_ac'] = 10
@@ -139,7 +138,7 @@ def get_all_well_row_col(recalc=False):
         out_data.loc[i, 'my'] = my
         out_data.loc[i, 'mz'] = mz
 
-    out_data.to_csv('{}/all_wells_row_col_layer.csv'.format(smt.sdp))
+    out_data.to_csv(save_path)
     return out_data
 
 if __name__ == '__main__':
