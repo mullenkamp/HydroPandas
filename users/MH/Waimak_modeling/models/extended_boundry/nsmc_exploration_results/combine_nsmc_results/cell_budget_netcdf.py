@@ -105,8 +105,8 @@ def make_cellbud_netcdf(nsmc_nums, sfo_paths, cbc_paths, description, nc_path):
 
     # create variables
     variables = [e.lower() for e in
-                 ['CONSTANT HEAD', 'FLOW RIGHT FACE', 'FLOW FRONT FACE', 'FLOW LOWER FACE', 'WELLS', 'DRAINS',
-                  'RECHARGE', 'STREAM LEAKAGE', 'streamflow out']]
+                 ['streamflow out', 'CONSTANT HEAD', 'FLOW RIGHT FACE', 'FLOW FRONT FACE', 'FLOW LOWER FACE', 'WELLS', 'DRAINS',
+                  'RECHARGE', 'STREAM LEAKAGE']]
 
     # create stream flow variable
     nc_vars = {}
