@@ -141,10 +141,11 @@ if __name__ == '__main__':
         'o18': 0.2,
         'k': 0.15
     }
-    targets = pd.read_csv(
-        r"\\gisdata\projects\SCI\Groundwater\Waimakariri\Groundwater\Groundwater Quality\End member mixing model\Additional target wells\AdditionalTargets_5Tracers_Python.csv",
-        index_col=0)
-    sites = {}
+    # these are for most sites
+    #targets = pd.read_csv(r"\\gisdata\projects\SCI\Groundwater\Waimakariri\Groundwater\Groundwater Quality\End member mixing model\Additional target wells\AdditionalTargets_5Tracers_Python.csv", index_col=0)
+    # these are for a few more streams
+    targets = pd.read_excel(r"\\gisdata\projects\SCI\Groundwater\Waimakariri\Groundwater\Groundwater Quality\End member mixing model\OkokaKaiapoi_3Tracers_EMMAInputs.xlsx", index_col=0)
+    sites = {} # todo add group names
     for site in targets.index:
         target = {}
         for trace in tracers:
@@ -153,7 +154,7 @@ if __name__ == '__main__':
         sites[site] = target
 
     mc_calc_end_members(
-        outdir=r"\\gisdata\projects\SCI\Groundwater\Waimakariri\Groundwater\Groundwater Quality\End member mixing model\Additional target wells\4_members_tracers_k_18o_cl",
+        outdir=r"\\gisdata\projects\SCI\Groundwater\Waimakariri\Groundwater\Groundwater Quality\End member mixing model\Additional target wells\4_members_tracers_k_18o_cl_new_streams",
         sites=sites,
         means=means,
         sds=sds,

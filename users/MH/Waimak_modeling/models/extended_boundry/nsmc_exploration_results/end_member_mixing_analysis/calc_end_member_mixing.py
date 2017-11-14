@@ -61,7 +61,7 @@ def calculate_endmember_mixing(ucn_nc_path, cbc_nc_path, sites, outdir=None):
     sw_samp_dict = _get_sw_samp_pts_dict()
     sw_samp_df = get_samp_points_df()
     for runtype in (set(runtypes) - missing):
-        for site in sites.keys:
+        for site in sites.keys():
             # set up temp variables
             wells = sites[site]['wells']
             str_drns = sites[site]['str_drn']
@@ -71,8 +71,9 @@ def calculate_endmember_mixing(ucn_nc_path, cbc_nc_path, sites, outdir=None):
 
             if len(wells) != 0:
                 # get the well concentrations
-                layers, rows, cols = all_wells.loc[wells, ['layer', 'row', 'col']]  # todo check broadcasting
-                well_fraction = np.concatenate([ucn_nc_file.variables[runtype][:, l, r, c][:, np.newaxis]
+                layers, rows, cols = all_wells.loc[wells, ['layer', 'row', 'col']].values.transpose()
+
+                well_fraction = np.concatenate([np.array(ucn_nc_file.variables[runtype][:, l, r, c])[:, np.newaxis]
                                                 for l, r, c in zip(layers, rows, cols)], axis=1)
                 if well_fraction.shape != (nsmc_size, len(layers)):
                     raise ValueError('weird shape {} expected {}'.format(well_fraction.shape, (nsmc_size, len(layers))))
@@ -93,23 +94,23 @@ def calculate_endmember_mixing(ucn_nc_path, cbc_nc_path, sites, outdir=None):
 
                 if drn_idx.any():
                     # get drain concentration and flow
-                    drn_con = np.concatenate([ucn_nc_file.variables[runtype][:, 0, r, c][:, np.newaxis]
-                                              for r, c in zip(np.where(drn_idx))], axis=1)
-                    drn_flow = np.concatenate([cbc_nc_file.variables['drain'][nsmc_filter_idx, 0, r, c][:, np.newaxis]
-                                               for r, c in zip(np.where(drn_idx))], axis=1)
+                    drn_con = np.concatenate([np.array(ucn_nc_file.variables[runtype][:, 0, r, c])[:, np.newaxis]
+                                              for r, c in smt.model_where(drn_idx)], axis=1)
+                    drn_flow = np.concatenate([np.array(cbc_nc_file.variables['drains'][nsmc_filter_idx, r, c])[:, np.newaxis]
+                                               for r, c in smt.model_where(drn_idx)], axis=1)
                     # some checks
-                    if drn_con.shape != (nsmc_size, len(np.where(drn_idx)[0])):
+                    if drn_con.shape != (nsmc_size, len(smt.model_where(drn_idx))):
                         raise ValueError('weird shape for drn con {} expected {}'.format(well_fraction.shape,
                                                                                          (nsmc_size,
                                                                                           len(np.where(drn_idx)[0]))))
-                    if drn_con.shape != (nsmc_size, len(np.where(drn_idx)[0])):
+                    if drn_flow.shape != (nsmc_size, len(smt.model_where(drn_idx))):
                         raise ValueError('weird shape for drn_flow {} expected {}'.format(well_fraction.shape,
                                                                                           (nsmc_size,
                                                                                            len(np.where(drn_idx)[0]))))
-                    # convert to drain concentration across all drain cells #todo check
+                    # convert to drain concentration across all drain cells
                     drn_fraction = ((drn_con * drn_flow).sum(axis=1) / drn_flow.sum(axis=1))[:, np.newaxis]
 
-            temp_data = np.concatenate((well_fraction, drn_fraction, sfr_fraction), axis=1)
+            temp_data = np.concatenate([e for e in (well_fraction, drn_fraction, sfr_fraction) if len(e) != 0], axis=1)
             outdict[runtype].loc[:, site] = temp_data.mean(axis=1)
 
     if len(missing) == 1:
@@ -118,6 +119,7 @@ def calculate_endmember_mixing(ucn_nc_path, cbc_nc_path, sites, outdir=None):
         missing_data.loc[:] = 1
         for runtype in (set(runtypes) - missing):
             missing_data = missing_data - outdict[runtype]
+        outdict[list(missing)[0]] = missing_data
 
     if outdir is not None:
         # save the files
@@ -142,7 +144,6 @@ def end_member_mixing_filter(data_dict, site_limits, method='all_pass', weights=
     :param phi_threshold: not used as for weighted
     :return:
     """
-    # todo figure out how to handle the models which are all NAN
     sites = data_dict.values[0].keys()
     nsmc_nums = data_dict.values[0].index
     # input data checks
@@ -182,7 +183,7 @@ def end_member_mixing_filter(data_dict, site_limits, method='all_pass', weights=
 
 if __name__ == '__main__':
     ucn_path = env.gw_met_data("mh_modeling/netcdfs_of_key_modeling_data/emma_unc.nc")
-    cbc_path = env.gw_met_data("mh_modeling/netcdfs_of_key_modeling_data/post_filter1_cell_budgets.nc")
+    cbc_path = env.gw_met_data("mh_modeling/netcdfs_of_key_modeling_data/post_filter1_cell_budgets_temp.nc") #todo update later
     # set up well sites
     site_info = pd.read_excel(env.sci(
         r"Groundwater\Waimakariri\Groundwater\Groundwater Quality\End member mixing model\Sites_GroupList.xlsx"))
@@ -201,11 +202,9 @@ if __name__ == '__main__':
     data_dict = calculate_endmember_mixing(ucn_nc_path=ucn_path,cbc_nc_path=cbc_path,sites=sites,
                                outdir=base_dir)
 
-    #todo set up site limits waiting on zeb
+    #todo set up site limits waiting on zeb, will probably end up on a phi option
     #site_limits = None
 
     ## run filters
-    #all_pass = end_member_mixing_filter(data_dict=data_dict, site_limits=site_limits,method='all_pass')
-    #all_pass.to_csv(os.path.join(base_dir,'filter_all_pass_method.csv'))
     #river = end_member_mixing_filter(data_dict=data_dict, site_limits=site_limits,method='river')
     #river.to_csv(os.path.join(base_dir,'filter_river_method.csv'))
