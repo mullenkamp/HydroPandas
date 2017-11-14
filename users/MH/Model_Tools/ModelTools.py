@@ -377,7 +377,7 @@ class ModelTools(object):
         band.SetNoDataValue(-99)
 
     def plt_matrix(self, array, vmin=None, vmax=None, title=None, no_flow_layer=0, ax=None, color_bar=True,
-                   base_map=False, plt_background=True, **kwargs):
+                   base_map=False, plt_background=True, cbar_lab=None **kwargs):
         """
 
         :param array: they array to plot (of i,j)
@@ -390,6 +390,7 @@ class ModelTools(object):
         :param base_map: Boolean if True underlie the plot with greyscale basemap of the region the map is defined by
                          self.base_map_pathsets default alpha to 0.5
         :param plt_background: Boolean if True plot the noflow boundary as black
+        :param cbar_lab: string to lable the cbar
         :param kwargs: other kwargs passed to matplotlib.pcolor alpha is the only kwarg that is also passed to the background
         :return: fig, ax
         """
@@ -463,8 +464,11 @@ class ModelTools(object):
                             cmap=cmap, vmin=vmin, vmax=vmax, alpha=alpha, edgecolors=edgecolors, linewidth=linewidth, **kwargs)
         if color_bar:
             cbar = fig.colorbar(pcm, ax=ax, extend='max')
+            if cbar_lab is not None:
+                cbar.ax.set_ylabel(cbar_lab, rotation=270)
             cbar.set_alpha(1)
             cbar.draw_all()
+
 
         return fig, ax
 
