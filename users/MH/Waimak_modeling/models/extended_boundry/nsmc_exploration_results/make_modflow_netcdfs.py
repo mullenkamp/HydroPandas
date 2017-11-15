@@ -45,7 +45,7 @@ def make_modflow_netcdfs(hds_nc_path, bud_nc_path, zlib):
     The heads, or cell budget file values for all models which passed filter one (phi filter).  These were recalculated
     for filters 2-4
     """
-
+    # may be commented out as I needed ot re-run one
     #make_hds_netcdf(nsmc_nums=filter2_3_4_num, hds_paths=hds_paths, description=description, nc_path=hds_nc_path, zlib=zlib)
     make_cellbud_netcdf(nsmc_nums=filter2_3_4_num, sfo_paths=sfo_paths, cbc_paths=cbc_paths,
                         description=description,nc_path=bud_nc_path, zlib=zlib)
