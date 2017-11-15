@@ -34,7 +34,7 @@ def make_ucn_netcd(nsmc_nums, ucn_paths, units, description, nc_path, ucn_no_val
     """
     if not isinstance(ucn_paths, dict):
         raise ValueError('expected dictionary for unc_paths, see doc')
-    if sobs is not None or not isinstance(sobs,dict):
+    if sobs is not None and not isinstance(sobs,dict):
         raise ValueError('expected dicionary for sobs')
 
     if isinstance(sobs,dict):

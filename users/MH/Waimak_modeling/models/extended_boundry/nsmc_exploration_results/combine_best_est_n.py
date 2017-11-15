@@ -8,7 +8,7 @@ from __future__ import division
 from core import env
 from users.MH.Waimak_modeling.models.extended_boundry.nsmc_exploration_results.combine_nsmc_results import make_ucn_netcd, emma_nsmc_numbers
 import os
-
+from future.builtins import input
 
 def netcdf_best_est_n(nc_path):
     """
@@ -20,7 +20,7 @@ def netcdf_best_est_n(nc_path):
     vars_base_paths = [
         env.gw_met_data("mh_modeling/data_from_gns/median_n/MedNload_ucnrepo"),
     ]
-    stobs_base_paths = [env.gw_met_data("mh_modeling\data_from_gns\median_n\MedNload_sobsrepo\mt_aw_ex_mednload_1.sobs")]
+    stobs_base_paths = [env.gw_met_data("mh_modeling\data_from_gns\median_n\MedNload_sobsrepo")]
     stobs_paths = {}
     ucn_paths = {}
     for var, bp, sfobp in zip(vars, vars_base_paths, stobs_base_paths):
@@ -49,7 +49,7 @@ def netcdf_best_est_n(nc_path):
 
 if __name__ == '__main__':
     # todo debug
-    cont = input('are you sure you want to re-run make EMMA UcN netcdfs it will overwrite and takes some time y/n')
+    cont = input('are you sure you want to re-run make mednload UcN netcdfs it will overwrite and takes some time y/n')
     if cont != 'y':
         raise ValueError('user interuppted process to prevent overwrite')
 
