@@ -65,8 +65,36 @@ def extract_obs_opt_rei(rei_file, name, exclude_piezo=True):
     out.name = name
     return out
 
+def extract_opt_priors(pst_file):
+    skiplines_top = 0
+    nrows=-1 #to account for the extra that gets generated
+    start = False
+    stop=False
+    with open(pst_file) as f:
+        while not stop:
+            if start:
+                line = f.readline()
+                if '* regularisation' in line:
+                    stop = True
+                if line =='\n':
+                    continue
+                nrows +=1
+            else:
+                skiplines_top +=1
+                if '* prior information' in f.readline():
+                    start=True
+    data = pd.read_table(pst_file,skiprows=skiplines_top,nrows=nrows,delim_whitespace=True,
+                         names=['mult','invaid1','ftype','invalid2','prior','dontcare','dontcare2'],
+                         index_col=0)
+
+    idx = data.ftype.str.contains('log')
+    data.loc[:,'prior'] = 10**data.loc[idx,'prior']
+    out = data.loc[:, 'prior']
+    return out
+
 
 if __name__ == '__main__':
+    extract_opt_priors(r'P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\from_gns\NsmcBase\AW20171024_2_i2_optver\i2\aw_ex_reg_wtadj_manwtadj_midcal.pst')
     rei_file = r"C:\Users\MattH\Desktop\from_brioch_9_11_2017\AW_PHILOW_PIEZO\AW_PHILOW_PIEZO\aw_ex_philow_piez.rei"
     test = extract_obs_opt_rei(rei_file,-1)
     test = param_from_rec(r'C:\Users\MattH\Desktop\from_brioch_9_11_2017\AW_PHILOW_PIEZO\AW_PHILOW_PIEZO\aw_ex_philow_piez.rec')

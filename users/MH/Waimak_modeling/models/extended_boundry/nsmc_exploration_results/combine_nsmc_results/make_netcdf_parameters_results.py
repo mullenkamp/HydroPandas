@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import sys
 import datetime
-from read_pst import rd_pst_parameters, param_from_rec, extract_obs_opt_rei
+from read_pst import rd_pst_parameters, param_from_rec, extract_obs_opt_rei, extract_opt_priors
 from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.all_well_layer_col_row import \
     get_all_well_row_col
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
@@ -338,7 +338,9 @@ def _add_drain_cond(param, pst_param, prior_sd_data, postopt_sd_data, nc_file):
     drn_cond[:] = param.loc[drns].transpose().values
 
 
-def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data, nc_file):
+def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data, opt_pst, nc_file):
+    opt_priors = extract_opt_priors(opt_pst)
+
     # kh kv pilot points dimensions (nsmc_num, ppt, layer)
     ppt_ids = ['pp005602', 'pp005630', 'pp005798', 'pp010726', 'pp010754', 'pp010810', 'pp010894', 'pp010922',
                'pp015738', 'pp015794', 'pp015822', 'pp015850', 'pp015878', 'pp015906', 'pp015934', 'pp015962',
@@ -394,6 +396,7 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
     temp_initial = np.zeros((layer_dim, khv_dim)) * np.nan
     temp_prior_sd = np.zeros((layer_dim, khv_dim)) * np.nan
     temp_post_sd = np.zeros((layer_dim, khv_dim)) * np.nan
+    temp_opt_p = np.zeros((layer_dim, khv_dim)) * np.nan
     for i in range(0, layer_dim):
         prior_ksd = pd.read_table(os.path.join(prior_ksds_dir, '{:02}_cov_v_07.txt'.format(i + 1)),
                                   skiprows=1, index_col=0, names=['sd'], delim_whitespace=True)
@@ -404,6 +407,7 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
                 temp_initial[i, k] = pst_param.loc['{}_v{}'.format(key, i + 1), 'initial']
                 temp_prior_sd[i, k] = prior_ksd.loc['{}_v{}'.format(key, i + 1), 'sd']
                 temp_post_sd[i, k] = postopt_sd_data.loc['{}_v{}'.format(key, i + 1), 'sd']
+                temp_opt_p[i,k] = opt_priors.loc['{}_v{}'.format(key, i + 1)]
             except KeyError:
                 pass
 
@@ -436,6 +440,15 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
                            'sd_type': 'log'})
     pptprior_sd[:] = temp_prior_sd
 
+    pptoptp = nc_file.createVariable('kv_opt_p', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=True)
+    pptoptp.setncatts({'units': 'm/day',
+                           'long_name': 'kv pilot point optimisation prior',
+                           'missing_value': np.nan,
+                           'vtype': 'meta',
+                           'sd_type': 'log'})
+
+    pptoptp[:] = temp_opt_p
+
     pptpost_sd = nc_file.createVariable('kv_j_sd', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=True)
     pptpost_sd.setncatts({'units': 'm/day',
                           'long_name': 'kv pilot point post sensitivity matrix standard deviation',
@@ -450,6 +463,7 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
     temp_initial = np.zeros((layer_dim, khv_dim)) * np.nan
     temp_prior_sd = np.zeros((layer_dim, khv_dim)) * np.nan
     temp_post_sd = np.zeros((layer_dim, khv_dim)) * np.nan
+    temp_opt_p = np.zeros((layer_dim, khv_dim)) * np.nan
     for i in range(0, layer_dim):
         prior_ksd = pd.read_table(os.path.join(prior_ksds_dir, '{:02}_cov_05.txt'.format(i + 1)),
                                   skiprows=1, index_col=0, names=['sd'], delim_whitespace=True)
@@ -461,6 +475,7 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
                 temp_initial[i, k] = pst_param.loc['{}_h{}'.format(key, i + 1), 'initial']
                 temp_prior_sd[i, k] = prior_ksd.loc['{}_h{}'.format(key, i + 1), 'sd']
                 temp_post_sd[i, k] = postopt_sd_data.loc['{}_h{}'.format(key, i + 1), 'sd']
+                temp_opt_p[i,k] = opt_priors.loc['{}_h{}'.format(key, i + 1)]
 
             except KeyError:
                 pass
@@ -485,6 +500,15 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
                           'missing_value': np.nan,
                           'vtype': 'meta'})
     pptinitial[:] = temp_initial
+
+    pptoptp = nc_file.createVariable('kh_opt_p', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=True)
+    pptoptp.setncatts({'units': 'm/day',
+                       'long_name': 'kh pilot point optimisation prior',
+                       'missing_value': np.nan,
+                       'vtype': 'meta',
+                       'sd_type': 'log'})
+
+    pptoptp[:] = temp_opt_p
 
     pptprior_sd = nc_file.createVariable('kh_p_sd', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=True)
     pptprior_sd.setncatts({'units': 'm/day',
@@ -534,6 +558,8 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
 
 
 def _add_well_obs(obs_file, rei_file, nc_file):
+
+
     other_obs = ['brnthl_4_1', 'eyrftn_2_1', 'eyrftn_6_2', 'eyrftn_6_1', 'wdnd_4_2', 'wdnd_8_4', 'wdnd_8_2', 'peg_8_7',
                  'peg_9_8', 'peg_10_9', 'peg_10_7', 'eyrftm_2_1', 'eyrftl_7_2', 'oxfds_6_2', 'oxfdnr_3_1', 'oxfdnr_4_3',
                  'oxfdnr_4_1', 'chch_4_2', 'chb_ash', 'chb_chch', 'chb_chchz', 'chb_cust', 'chb_sely', 'sel_off',
@@ -786,6 +812,7 @@ def _add_filter_5(f5txt, nc_file):
 
 def make_netcdf_nsmc(nc_outfile, rrffile, rec_file, opt_lower_rec, opt_upper_rec, rch_ppt_tpl, kh_kv_ppt_file,
                      rei_file, opt_lower_rei, opt_upper_rei, pst_file, prior_sds, prior_ksds_dir, postopt_sds,
+                     opt_pst_file,
                      f1txt, f2txt, f3txt, f4txt, f5txt, recalc=False):
     """
 
@@ -803,6 +830,7 @@ def make_netcdf_nsmc(nc_outfile, rrffile, rec_file, opt_lower_rec, opt_upper_rec
     :param prior_sds: text file with the prior sds for all non khv
     :param prior_ksds_dir: directory with all of the Kh and Kv sds
     :param postopt_sds: textfile with the sds after sensitivity matrix
+    :param opt_pst_file: the pest file for the original optimisation to pull kvh priors
     :param f1txt: the text file with a list that passed filter 1 phi
     :param f2txt: the text file with a list that passed filter 2 vert
     :param f3txt: the text file with a list that passed filter 3 piezo
@@ -902,7 +930,7 @@ def make_netcdf_nsmc(nc_outfile, rrffile, rec_file, opt_lower_rec, opt_upper_rec
 
     _add_drain_cond(param, pst_param, prior_sd_data, postopt_sd_data, nc_file)
 
-    _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data, nc_file)
+    _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data, opt_pst_file, nc_file)
 
     # add observations convergence and phis
     _add_well_obs(obs, rei_file, nc_file)
@@ -947,6 +975,7 @@ if __name__ == '__main__':
                      prior_sds="{}/sds/PriorSDs.txt".format(data_dir),
                      prior_ksds_dir="{}/sds/ppk_priorSD".format(data_dir),
                      postopt_sds="{}/sds/aw_ex_postopt_sd.txt".format(data_dir),
+                     opt_pst_file='{}/from_gns/NsmcBase/AW20171024_2_i2_optver/i2/aw_ex_reg_wtadj_manwtadj_midcal.pst'.format(smt.sdp),
                      f1txt="{}/F1_filtered_parsets.txt".format(data_dir),
                      f2txt="{}/F2_vert_filtered_parsets.txt".format(data_dir),
                      f3txt="{}/F2_piez_filtered_parsets.txt".format(data_dir),
