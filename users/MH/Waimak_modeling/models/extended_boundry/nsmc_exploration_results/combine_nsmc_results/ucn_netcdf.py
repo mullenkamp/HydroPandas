@@ -146,7 +146,7 @@ def make_ucn_netcd(nsmc_nums, ucn_paths, units, description, nc_path, zlib, ucn_
             gc.collect()
 
     if sobs is None:
-        return
+        return nc_file
     av_mem = psutil.virtual_memory().total -4e9
     file_size = smt.get_empty_model_grid(False).nbytes
     num_files = int(av_mem//file_size)
