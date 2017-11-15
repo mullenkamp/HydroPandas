@@ -10,7 +10,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.nsmc_exploration_results.c
 import os
 from future.builtins import input
 
-def netcdf_best_est_n(nc_path):
+def netcdf_best_est_n(nc_path,zlib):
     """
     make the netcdf for the End member mixing analysis
     :param nc_path: path to save the netcdf
@@ -44,7 +44,7 @@ def netcdf_best_est_n(nc_path):
     description = """ best estimate nitrate loads at steady state"""
 
     make_ucn_netcd(nsmc_nums=emma_nsmc_numbers, ucn_paths=ucn_paths, units='g/m3',
-                   description=description, nc_path=nc_path, sobs=stobs_paths)
+                   description=description, nc_path=nc_path, sobs=stobs_paths,zlib=zlib)
 
 
 if __name__ == '__main__':
@@ -53,4 +53,5 @@ if __name__ == '__main__':
     if cont != 'y':
         raise ValueError('user interuppted process to prevent overwrite')
 
-    netcdf_best_est_n(env.gw_met_data(r"mh_modeling\netcdfs_of_key_modeling_data\mednload_unc.nc"))
+    #netcdf_best_est_n(env.gw_met_data(r"mh_modeling\netcdfs_of_key_modeling_data\mednload_unc.nc"),zlib=False)
+    netcdf_best_est_n(r"C:\mh_waimak_model_data\mednload_ucn.nc",zlib=True) #todo run on gw02

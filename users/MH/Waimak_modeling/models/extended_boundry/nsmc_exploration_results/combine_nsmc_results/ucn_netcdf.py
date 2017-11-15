@@ -20,7 +20,7 @@ import time
 from itertools import izip_longest
 import psutil
 import gc
-def make_ucn_netcd(nsmc_nums, ucn_paths, units, description, nc_path, ucn_no_value=-1, sobs=None):
+def make_ucn_netcd(nsmc_nums, ucn_paths, units, description, nc_path, zlib, ucn_no_value=-1, sobs=None):
     """
     creates as netcdf file for all of the ucn data
     :param nsmc_nums: list of nsmc numbers
@@ -120,7 +120,7 @@ def make_ucn_netcd(nsmc_nums, ucn_paths, units, description, nc_path, ucn_no_val
             raise ValueError('units must be either dict or string, see doc')
 
         temp = nc_file.createVariable(var, 'f4', ('nsmc_num', 'layer', 'row', 'col'), fill_value=np.nan,
-                                      zlib=True)
+                                      zlib=zlib)
         temp.setncatts({'units': addu,
                         'long_name': var,
                         'missing_value': np.nan})
@@ -160,7 +160,7 @@ def make_ucn_netcd(nsmc_nums, ucn_paths, units, description, nc_path, ucn_no_val
             raise ValueError('units must be either dict or string, see doc')
 
         temp = nc_file.createVariable('sobs_{}'.format(var), 'f4', ('nsmc_num', 'row', 'col'), fill_value=np.nan,
-                                      zlib=True)
+                                      zlib=zlib)
         temp.setncatts({'units': addu,
                         'long_name': 'SFR concentarations for {}'.format(var),
                         'missing_value': np.nan})

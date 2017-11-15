@@ -88,9 +88,18 @@ def plot_sd_mean_multid(filter_strs, layer, nc_param_data, nc_obs_data, data_id,
             raise ValueError('shouldnt get here')
         use_filter_strs.append(filter_str)
 
+        real_filters = np.where(real_filters)[0]
         # pull the data out
         if nc_obs_data.variables[data_id].ndim == 4:
+            print 'starting to pull data'
+            import time
+            t= time.time()
+            temp = nc_obs_data.variables[data_id][real_filters, layer, :, :]
+            print 'pull_masked {}'.format((time.time()-t)/60)
             temp = function_adjust(np.array(nc_obs_data.variables[data_id][real_filters, layer]), layer=layer)
+            print 'pull_unmasked {}'.format((time.time()-t)/60)
+            print 'data pulled'
+            raise
         elif nc_obs_data.variables[data_id].ndim == 3:
             temp = function_adjust(np.array(nc_obs_data.variables[data_id][real_filters]), layer=0)
         else:
@@ -185,7 +194,7 @@ def plot_all_2d_obs(outdir):
         os.makedirs(outdir)
 
     # hds by layer
-    filter_strs = ['filter1', '~0_filter1']
+    filter_strs = ['filter2', 'filter3']
     for l in range(smt.layers):
         title = 'heads for layer: {:02d}'.format(l)
         fig, axs = plot_sd_mean_multid(filter_strs=filter_strs, layer=l,
@@ -195,8 +204,8 @@ def plot_all_2d_obs(outdir):
                                        basemap=True, contour={'sd': True, 'mean': True, 'sum': True},
                                        method='mean_sd', contour_color='g')
 
-        plt.show()
         fig.savefig(os.path.join(outdir, title))
+        plt.close()
 
     # drn flux
     title = 'drain flux'
@@ -208,6 +217,7 @@ def plot_all_2d_obs(outdir):
                                    method='mean_sd', contour_color='g')
 
     fig.savefig(os.path.join(outdir, title))
+    plt.close()
 
     # layer one bottom flux (as 1 0 -1)
     title = 'layer 1 up vs downflow'
@@ -219,6 +229,7 @@ def plot_all_2d_obs(outdir):
                                    method='mean_sd', contour_color='g')
 
     fig.savefig(os.path.join(outdir, title))
+    plt.close()
 
     # where the model is dry
     for l in range(smt.layers):
@@ -231,8 +242,9 @@ def plot_all_2d_obs(outdir):
                                        method='mean_sd', contour_color='g')
 
         fig.savefig(os.path.join(outdir, title))
+        plt.close()
 
 
 # todo implement and check
 if __name__ == '__main__':
-    plot_all_2d_obs('test')
+    plot_all_2d_obs(r"T:\Temp\temp_gw_files\test2dplots")

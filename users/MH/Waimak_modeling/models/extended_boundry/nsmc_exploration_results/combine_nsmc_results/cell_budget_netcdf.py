@@ -21,7 +21,7 @@ import pandas as pd
 from itertools import izip_longest
 
 
-def make_cellbud_netcdf(nsmc_nums, sfo_paths, cbc_paths, description, nc_path):
+def make_cellbud_netcdf(nsmc_nums, sfo_paths, cbc_paths, description, nc_path, zlib):
     """
     make a cell budget file netcdf for easy use
     :param nsmc_nums: list the unique identifiers for the netcdfs
@@ -114,7 +114,7 @@ def make_cellbud_netcdf(nsmc_nums, sfo_paths, cbc_paths, description, nc_path):
         dim = ('nsmc_num', 'layer', 'row', 'col')
         if var in ['constant head', 'drains', 'recharge', 'stream leakage', 'streamflow out']:
             dim = ('nsmc_num', 'row', 'col')
-        temp = nc_file.createVariable(var, 'f8', dim, fill_value=np.nan, zlib=True)
+        temp = nc_file.createVariable(var, 'f8', dim, fill_value=np.nan, zlib=zlib)
         temp.setncatts({'units': 'm3/day',
                         'long_name': 'cell by cell flow {}'.format(var),
                         'missing_value': np.nan})

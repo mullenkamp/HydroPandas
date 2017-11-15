@@ -18,6 +18,10 @@ import traceback
 from scipy.interpolate import griddata
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.stream_depletion_assesment.stream_depletion_numerical_model_runs.grid_sd.visualise_grid_sd import get_mask
 
-data = nc.Dataset(r"K:\mh_modeling\netcdfs_of_key_modeling_data\emma_unc.nc")
-def read_netcdf(n=1):
-    temp = data.variables['coastal'][5,0]
+data = nc.Dataset(r"C:\mh_waimak_model_data\post_filter1_hds_comp.nc") # todo both on the server please
+data2 = nc.Dataset(r"C:\mh_waimak_model_data\post_filter1_hds.nc") #todo try the uncompressed file
+def read_netcdf_comp(n=1):
+    temp = data.variables['heads'][0,0]
+
+def read_netcdf_uncomp(n=1):
+    temp = data2.variables['heads'][0,0]
