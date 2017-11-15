@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import netCDF4 as nc
 import os
+import socket
 
 # todo add and and or to the filter options
 def no_change(x, **kwargs):
@@ -185,16 +186,18 @@ def plot_sd_mean_multid(filter_strs, layer, nc_param_data, nc_obs_data, data_id,
     return fig, axs
 
 
-def plot_all_2d_obs(outdir):
+def plot_all_2d_obs(outdir,filter_strs):
+    if socket.gethostname() != 'GWATER02':
+        raise ValueError('this must be run on GWATER02 as that is where the uncompressed data is stored')
+
     nc_param_data = nc.Dataset(r"K:\mh_modeling\netcdfs_of_key_modeling_data\nsmc_params_obs_metadata.nc")
-    nc_hds_data = nc.Dataset(r"K:\mh_modeling\netcdfs_of_key_modeling_data\post_filter1_hds.nc")
-    nc_bud_data = nc.Dataset(r"K:\mh_modeling\netcdfs_of_key_modeling_data\post_filter1_cell_budgets.nc")
+    nc_hds_data = nc.Dataset(r"C:\mh_waimak_model_data\post_filter1_hds.nc")
+    nc_bud_data = nc.Dataset(r"C:\mh_waimak_model_data\post_filter1_budget.nc")
 
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
     # hds by layer
-    filter_strs = ['filter2', 'filter3']
     for l in range(smt.layers):
         title = 'heads for layer: {:02d}'.format(l)
         fig, axs = plot_sd_mean_multid(filter_strs=filter_strs, layer=l,
@@ -247,4 +250,4 @@ def plot_all_2d_obs(outdir):
 
 # todo implement and check
 if __name__ == '__main__':
-    plot_all_2d_obs(r"T:\Temp\temp_gw_files\test2dplots")
+    plot_all_2d_obs(r"T:\Temp\temp_gw_files\test2dplots",    filter_strs = ['filter2', 'filter3'])

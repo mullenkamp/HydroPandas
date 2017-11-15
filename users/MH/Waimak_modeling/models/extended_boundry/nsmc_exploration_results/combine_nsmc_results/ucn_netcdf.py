@@ -179,6 +179,8 @@ def make_ucn_netcd(nsmc_nums, ucn_paths, units, description, nc_path, zlib, ucn_
             temp[i*num_files:i*num_files+num_not_nan] = outdata
             gc.collect()
 
+    return nc_file
+
 
 def grouper(n, iterable, fillvalue=None):
     "grouper(3, 'ABCDEFG', 'x') --> ABC DEF Gxx"

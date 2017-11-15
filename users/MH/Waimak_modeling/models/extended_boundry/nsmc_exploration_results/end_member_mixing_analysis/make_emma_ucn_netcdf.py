@@ -55,8 +55,17 @@ def make_netcd_endmember_mixing(nc_path,zlib):
      we envisage a third endmember (i.e. alpine river water), but due to time constraints we are assuming that the sum 
      of all of these endmembers is 1 for each observation point and did not run the alpine river endmember"""
 
-    make_ucn_netcd(nsmc_nums=emma_nsmc_numbers, ucn_paths=ucn_paths, units='fraction',
-                   description=description, nc_path=nc_path,zlib=zlib,sobs=None)
+    nc_file = make_ucn_netcd(nsmc_nums=emma_nsmc_numbers, ucn_paths=ucn_paths, units='fraction',
+                             description=description, nc_path=nc_path, zlib=zlib, sobs=None)
+
+    river = nc_file.createVariable('river', 'f4', ('nsmc_num', 'layer', 'row', 'col'), zlib=zlib)
+    river.setncatts({'units': 'fraction',
+                        'long_name': 'river',
+                        'missing_value': np.nan})
+
+    for l in range(smt.layers):
+        river[:, l] = 1 - np.array(nc_file.variables['coast'][:, l]) - np.array(nc_file.variables['inland'][:, l])
+
 
 
 if __name__ == '__main__':
