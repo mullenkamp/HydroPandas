@@ -86,7 +86,6 @@ def obs_boxplots(param_netcdf_file, sites, title, yax, filter_strs):
                 tar_data *= 1 / 86400
             all_model_data.append(model_data[np.isfinite(model_data)])
             all_tar_data.append(tar_data)
-            # todo set y limts constant
 
         # plot the thing
         positions = np.arange(len(all_model_data)) + 1

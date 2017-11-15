@@ -13,6 +13,9 @@ import netCDF4 as nc
 import os
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import matplotlib.pyplot as plt
+import pandas as pd
+from warnings import warn
+from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.all_well_layer_col_row import get_all_well_row_col
 
 def _above_mav(x, **kwargs):
     return x >= 11.3
@@ -26,7 +29,7 @@ def _above_quarter_mav(x, **kwargs):
 def _above_low(x, **kwargs):
     return x >= 1
 
-
+# todo decide on filters
 def plot_all_2d_con(outdir, filter_strs):
     if socket.gethostname() != 'GWATER02':
         raise ValueError('this must be run on GWATER02 as that is where the uncompressed data is stored')
@@ -102,6 +105,77 @@ def plot_all_2d_con(outdir, filter_strs):
 # both 2D spatial as well as point measurements at wells for example
 # take for granted that only 2000 something were run when looking through filters
 
-def plot_all_1d_con(outdir):
-    # watch nans for boxplots
-    raise NotImplementedError
+def plot_well_con(nc_path, outdir, filter_strs): #todo debug
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+    plt_data = pd.read_excel(r"\\gisdata\projects\SCI\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\WellNSMCPlotNitrateGroups.xlsx")
+    all_wells = get_all_well_row_col()
+    filter_strs = np.atleast_1d(filter_strs)
+    nc_data = nc.Dataset(nc_path)
+    supergroups = list(set(plt_data['Supergroup']))
+
+    for supergroup in supergroups:
+        fig, axs = plt.subplots(ncols=len(filter_strs), figsize=(18.5, 9.5))
+        axs = np.atleast_1d(axs)
+        plot_sites = list(plt_data.loc[plt_data['Supergroup'] == supergroup, 'Group'].values)
+        well_names = np.array(nc_data.variables['well_name'])
+        for filter_str_raw, ax in zip(filter_strs, axs):
+            ftype = 0
+            filter_str = filter_str_raw
+            textadd = ''
+            if '~0_' in filter_str_raw:
+                filter_str = filter_str_raw.replace('~0_', '')
+                ftype = 1
+                textadd = 'failed '
+            elif '~-1_' in filter_str_raw:
+                filter_str = filter_str_raw.replace('~-1', '')
+                ftype = 2
+                textadd = 'not run '
+            elif '~-10_' in filter_str_raw:
+                filter_str = filter_str_raw.replace('~-10', '')
+                ftype = 3
+                textadd = 'not run or failed '
+
+            temp_filter = np.array(nc_data.variables[filter_str])
+            if ftype == 0:
+                real_filter = temp_filter == 1
+            elif ftype == 1:
+                real_filter = temp_filter == 0
+            elif ftype == 2:
+                real_filter = temp_filter == -1
+            elif ftype == 3:
+                real_filter = temp_filter < 1
+            else:
+                raise ValueError('shouldnt get here')
+
+            nsmc_nums = np.array(nc_data.variables['nsmc_num'][real_filter])
+            all_model_data = []
+
+            # get the data
+            labels = []
+            for site in plot_sites:
+                layer, row, col = all_wells.loc[plt_data.loc[plt_data['Group']==site,'WELL_NO'].values,['layer','row','col']].values.transpose()
+                if len(layer) == 0 :
+                    warn('no wells for site {} not in observations'.format(site))
+                    continue
+                labels.append(site)
+
+
+                model_data = np.array([nc_data.variables['well_obs'][real_filter, l, r, c] for l,r,c in zip(layer, row, col)])
+                model_data = model_data.sum(axis=0)
+                all_model_data.append(model_data[np.isfinite(model_data)])
+
+            # plot it up
+            positions = np.arange(len(labels)) + 1
+            t = ax.boxplot(x=all_model_data, positions=positions, labels=labels)
+            [[e.set_linewidth(2) for e in j[1]] for j in t.items()]
+            ax.set_ylabel('m')
+            ax.set_title('{}{}'.format(textadd, filter_str))
+        ymax = max([e.get_ylim()[1] for e in axs.flatten()])
+        ymin = min([e.get_ylim()[0] for e in axs.flatten()])
+        [e.set_ylim(ymin, ymax) for e in axs.flatten()]
+        [[tick.set_rotation(45) for tick in ax.get_xticklabels()] for ax in axs.flatten()]
+
+        fig.suptitle(supergroup.title())
+
+        fig.savefig(os.path.join(outdir, supergroup.lower()))

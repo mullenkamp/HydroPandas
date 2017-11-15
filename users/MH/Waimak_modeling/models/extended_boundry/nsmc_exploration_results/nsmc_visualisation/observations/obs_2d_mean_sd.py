@@ -250,4 +250,5 @@ def plot_all_2d_obs(outdir,filter_strs):
 
 # todo implement and check
 if __name__ == '__main__':
+    # todo decide on filters
     plot_all_2d_obs(r"T:\Temp\temp_gw_files\test2dplots",    filter_strs = ['filter2', 'filter3'])
