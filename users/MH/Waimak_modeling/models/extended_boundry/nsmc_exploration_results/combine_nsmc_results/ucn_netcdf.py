@@ -169,7 +169,7 @@ def make_ucn_netcd(nsmc_nums, ucn_paths, units, description, nc_path, zlib, ucn_
         for i,group in enumerate(grouper(num_files,paths)):
             print('starting set {} to {} of {} for {}'.format(i*3, i*3+num_files, len(paths), var))
             num_not_nan = pd.notnull(list(group)).sum()
-            outdata = np.zeros((num_not_nan, smt.rows, smt.cols),dtype=np.float32).fill(np.nan)
+            outdata = np.zeros((num_not_nan, smt.rows, smt.cols),dtype=np.float32)*np.nan
             for j,path in enumerate(group):
                 if j% 100 == 0:
                     print('reading {} of {}'.format(j,j+100,num_files))

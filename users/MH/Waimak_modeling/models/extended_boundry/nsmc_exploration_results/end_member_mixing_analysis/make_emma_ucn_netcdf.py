@@ -74,5 +74,5 @@ if __name__ == '__main__':
     if cont != 'y':
         raise ValueError('user interuppted process to prevent overwrite')
     # the two versions are because of the massive read speed difference but the limited server space
-    make_netcd_endmember_mixing(env.gw_met_data(r"mh_modeling\netcdfs_of_key_modeling_data\emma_unc_riv.nc"), zlib=True)
-    #make_netcd_endmember_mixing("C:\mh_waimak_model_data\emma_con.nc",zlib=False) #todo make on gw02
+    #make_netcd_endmember_mixing(env.gw_met_data(r"mh_modeling\netcdfs_of_key_modeling_data\emma_unc.nc"), zlib=True)
+    make_netcd_endmember_mixing(r"C:\mh_waimak_model_data\emma_con.nc",zlib=False) # on gw02
