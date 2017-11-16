@@ -39,7 +39,7 @@ def plot_river_mixing(outdir):
 
         # plot the models
         plt_data = [e[np.isfinite(e)] for e in model_data.values]
-        t = ax.boxplot(x=plt_data, positions=pos, labels=[e.title() for e in ids])
+        t = ax.boxplot(x=plt_data, positions=pos, labels=[e.title() for e in ids], whis=[5,95])
         [[e.set_linewidth(2) for e in j[1]] for j in t.items()]
         fig.suptitle(key.title())
         ax.set_ylabel('fraction of alpine river')

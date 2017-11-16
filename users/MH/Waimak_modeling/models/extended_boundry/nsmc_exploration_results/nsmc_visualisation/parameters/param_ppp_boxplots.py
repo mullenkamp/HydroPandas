@@ -42,23 +42,23 @@ def _plt_parm_boxplot(ax, opt_prior, post_opt_dist, post_jac_dist, labels, filte
     positions = np.arange(len(opt_prior)) + 1
     # plot the data
     # post_opt_dist
-    t = ax.boxplot(x=post_opt_dist, positions=positions - 0.33)
+    t = ax.boxplot(x=post_opt_dist, positions=positions - 0.33, whis=[5,95])
     [[e.set_alpha(0.33) for e in j[1]] for j in t.items()]
 
     # post_jac_dist
-    t = ax.boxplot(x=post_jac_dist, positions=positions)
+    t = ax.boxplot(x=post_jac_dist, positions=positions, whis=[5,95])
     [[e.set_alpha(0.33) for e in j[1]] for j in t.items()]
 
     # filter_dist
-    t = ax.boxplot(x=filter_dist, positions=positions + 0.33, )
+    t = ax.boxplot(x=filter_dist, positions=positions + 0.33, whis=[5,95])
     [[e.set_linewidth(2) for e in j[1]] for j in t.items()]
 
     # plot limits
     for lim, pos in zip(limits, positions):
         # plot upper
-        ax.plot([pos - 0.33, pos + 0.33], [max(lim), max(lim)], color='k', linewidth=2)
+        ax.plot([pos - 0.33, pos + 0.33], [max(np.atleast_1d(lim)), max(np.atleast_1d(lim))], color='k', linewidth=2)
         # plot lower
-        ax.plot([pos - 0.33, pos + 0.33], [min(lim), min(lim)], color='k', linewidth=2)
+        ax.plot([pos - 0.33, pos + 0.33], [min(np.atleast_1d(lim)), min(np.atleast_1d(lim))], color='k', linewidth=2)
 
     # opt_prior
     t = ax.boxplot(x=opt_prior, positions=positions, usermedians=opt_prior, labels=labels,
@@ -105,7 +105,7 @@ def _get_plting_dists(nc_file, sites, data_types, filter_array, layers):
                     (post_opt_dist_t, gen_dist(sd_type, u, p_sd, array_len)[np.newaxis, :]))
                 post_jac_dist_t = np.concatenate(
                     (post_jac_dist_t, gen_dist(sd_type, u, j_sd, array_len)[np.newaxis, :]))
-                filter_dist_t = np.concatenate((filter_dist_t, np.array(nc_file[feature][filter_array])))
+                filter_dist_t = np.concatenate((filter_dist_t, np.array(nc_file[feature][filter_array])[np.newaxis,:]))
 
             else:
                 if data_type == 'rch':
@@ -144,7 +144,7 @@ def _get_plting_dists(nc_file, sites, data_types, filter_array, layers):
                     up = nc_file['{}_upper'.format(prefix)][layer][idx][0]
                     lo = nc_file['{}_lower'.format(prefix)][layer][idx][0]
                     filter_dist_t = np.concatenate(
-                        (filter_dist_t, np.array(nc_file[feature][filter_array, layer, idx])))
+                        (filter_dist_t, np.array(nc_file[feature][filter_array, layer, idx]))) #todo check shape
                 else:
                     ids = np.array(nc_file[id_str])
                     idx = ids == feature
@@ -155,7 +155,7 @@ def _get_plting_dists(nc_file, sites, data_types, filter_array, layers):
                     u = nc_file['{}_initial'.format(prefix)][idx][0]
                     up = nc_file['{}_upper'.format(prefix)][idx][0]
                     lo = nc_file['{}_lower'.format(prefix)][idx][0]
-                    filter_dist_t = np.concatenate((filter_dist_t, np.array(nc_file[feature][filter_array, idx])))
+                    filter_dist_t = np.concatenate((filter_dist_t, np.array(nc_file[feature][filter_array, idx]))) #todo check shape
 
                 opt_prior_t = np.concatenate((opt_prior_t, [[opt_p]]), axis=0)  # axis just to show for future
                 limits_t = np.concatenate((limits_t, [[lo, up]]))
@@ -165,7 +165,7 @@ def _get_plting_dists(nc_file, sites, data_types, filter_array, layers):
                     (post_jac_dist_t, gen_dist(sd_type, u, j_sd, array_len)[np.newaxis, :]))
 
         opt_prior.append(np.nanmean(opt_prior_t[1:], axis=0))
-        limits.append(np.nanmean(limits[1:], axis=0))
+        limits.append(np.nanmean(limits_t[1:], axis=0))
         post_opt_dist.append(np.nanmean(post_opt_dist_t[1:], axis=0))
         post_jac_dist.append(np.nanmean(post_jac_dist_t[1:], axis=0))
         filter_dist.append(np.nanmean(filter_dist_t[1:], axis=0))
@@ -307,8 +307,4 @@ def plot_all_ppp_boxplots(outdir, filter_strs):
 
 
 if __name__ == '__main__':
-    fix, ax = plt.subplots()
-    _plt_parm_boxplot(ax=ax, opt_prior=[[3]], post_opt_dist=[[1, 2, 2, 3]], post_jac_dist=[[2, 3, 3, 2]],
-                      labels=[['t']],
-                      filter_dist=[[2, 3, 3]], limits=[[1, 4]], ylab='test', ax_title='testtest')
-    plt.show()
+    plot_all_ppp_boxplots(r"T:\Temp\temp_gw_files\test_ppp_plots",'filter1')

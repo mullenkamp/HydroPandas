@@ -90,9 +90,9 @@ def obs_boxplots(param_netcdf_file, sites, title, yax, filter_strs):
         # plot the thing
         positions = np.arange(len(all_model_data)) + 1
         # plot the data
-        t = ax.boxplot(x=all_tar_data, positions=positions - 0.33)
+        t = ax.boxplot(x=all_tar_data, positions=positions - 0.33, whis=[5,95])
         [[e.set_alpha(0.33) for e in j[1]] for j in t.items()]
-        t = ax.boxplot(x=all_model_data, positions=positions, labels=sites.keys())
+        t = ax.boxplot(x=all_model_data, positions=positions, labels=sites.keys(), whis=[5,95])
         [[e.set_linewidth(2) for e in j[1]] for j in t.items()]
         ax.set_ylabel(yax)
         ax.set_title('{}{}'.format(textadd, filter_str))
@@ -275,9 +275,9 @@ def plot_hds_boxplots(nc_path, outdir, filter_strs):
 
             # plot it up
             positions = np.arange(len(labels)) + 1
-            t = ax.boxplot(x=all_target_data, positions=positions - 0.33)
+            t = ax.boxplot(x=all_target_data, positions=positions - 0.33, whis=[5,95])
             [[e.set_alpha(0.33) for e in j[1]] for j in t.items()]
-            t = ax.boxplot(x=all_model_data, positions=positions, labels=labels)
+            t = ax.boxplot(x=all_model_data, positions=positions, labels=labels, whis=[5,95])
             [[e.set_linewidth(2) for e in j[1]] for j in t.items()]
             ax.set_ylabel('m')
             ax.set_title('{}{}'.format(textadd, filter_str))

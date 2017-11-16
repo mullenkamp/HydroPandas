@@ -216,7 +216,7 @@ def plot_well_con(param_nc_path, con_nc_path, con_str, outdir, filter_strs):  # 
 
             # plot it up
             positions = np.arange(len(labels)) + 1
-            t = ax.boxplot(x=all_model_data, positions=positions, labels=labels)
+            t = ax.boxplot(x=all_model_data, positions=positions, labels=labels, whis=[5,95])
             [[e.set_linewidth(2) for e in j[1]] for j in t.items()]
             ax.set_ylabel('mg/l')
             ax.set_title('{}{}'.format(textadd, filter_str))

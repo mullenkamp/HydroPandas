@@ -99,6 +99,7 @@ def _add_simple_params(param, pst_param, prior_sd_data, postopt_sd_data, nc_file
                         'sd_type': simple_parameters[key]['sd_type'],
                         'p_sd': prior_sd_data.loc[key, 'sd'],
                         'j_sd': postopt_sd_data.loc[key, 'sd'],
+                        'opt_p': simple_parameters[key]['opt_p']
                         })
         temp[:] = param.loc[key].values
 
