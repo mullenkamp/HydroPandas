@@ -46,4 +46,4 @@ def plot_river_mixing(outdir):
         fig.savefig(os.path.join(outdir,key))
 
 if __name__ == '__main__':
-    plot_river_mixing(r"C:\Users\MattH\Downloads\test_emma_plots")
+    plot_river_mixing(r"T:\Temp\temp_gw_files\test_emma_plots")
