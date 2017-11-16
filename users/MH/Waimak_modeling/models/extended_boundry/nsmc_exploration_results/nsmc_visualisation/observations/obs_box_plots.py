@@ -199,7 +199,7 @@ def plot_all_obs_boxplots(nc_path, outdir, filter_strs):
         # save figures
         if not os.path.exists(outdir):
             os.makedirs(outdir)
-        fig.savefig(os.path.join(outdir, fig._suptitle._text))
+        fig.savefig(os.path.join(outdir, fig._suptitle._text+'.png'))
 
 
 def plot_hds_boxplots(nc_path, outdir, filter_strs):
@@ -288,7 +288,7 @@ def plot_hds_boxplots(nc_path, outdir, filter_strs):
 
         fig.suptitle(group.title())
 
-        fig.savefig(os.path.join(outdir, group.lower()))
+        fig.savefig(os.path.join(outdir, group.lower()+'.png'))
 
 
 # todo

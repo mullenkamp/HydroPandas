@@ -104,18 +104,18 @@ def plot_sd_mean_multid(filter_strs, layer, nc_param_data, nc_obs_data, data_id,
         else:
             raise ValueError('{} does not have 3 or 4 dims'.format(data_id))
 
-        mean = np.nanmean(temp, axis=0) #todo check this
-        sd = np.nanstd(temp, axis=0)
+        mean = np.nanmean(temp, axis=0)
+        sd = np.nanstd(temp, axis=0) # thought about relative sd, but the data is zero inflated so the scale gets buggered
         dsum = np.nansum(temp, axis=0)
         plot_data_mean[filter_str] = mean
         plot_data_sd[filter_str] = sd
         plot_data_sum[filter_str] = dsum
-        sum_maxes.append(np.nanmax(dsum))
-        sum_mins.append(np.nanmin(dsum))
-        mean_maxes.append(np.nanmax(mean))
-        mean_mins.append(np.nanmin(mean))
-        sd_maxes.append(np.nanmax(sd))
-        sd_mins.append(np.nanmin(sd))
+        sum_maxes.append(np.nanpercentile(dsum,99))
+        sum_mins.append(np.nanpercentile(dsum,1))
+        mean_maxes.append(np.nanpercentile(mean,99))
+        mean_mins.append(np.nanpercentile(mean,1))
+        sd_maxes.append(np.nanpercentile(sd,99))
+        sd_mins.append(np.nanpercentile(sd,1))
 
     # initalised teh figure
     if method == 'mean_sd':

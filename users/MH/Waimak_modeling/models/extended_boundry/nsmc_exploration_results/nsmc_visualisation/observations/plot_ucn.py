@@ -57,11 +57,11 @@ def plot_all_2d_con(outdir, filter_strs): #todo set vmaxs and vmins
                                        basemap=True, contour={'sd': False, 'mean': False, 'sum': True},
                                        method='mean_sd', contour_color='g')
 
-        fig.savefig(os.path.join(outdir, title.replace(' ', '_')))
+        fig.savefig(os.path.join(outdir, title.replace(' ', '_')+'.png'))
         plt.close()
 
     for l in range(smt.layers):
-        title = 'best N estimate for layer {:02d} low scale'.format(l)
+        title = 'best N estimate for layer low scale {:02d}'.format(l)
         print(title)
         fig, axs = plot_sd_mean_multid(filter_strs=filter_strs, layer=l,
                                        nc_param_data=nc_param_data, nc_obs_data=bestn,
@@ -71,7 +71,7 @@ def plot_all_2d_con(outdir, filter_strs): #todo set vmaxs and vmins
                                        method='mean_sd', contour_color='g',
                                        vmaxes={'mean':11.3, 'sd':3}, vmins={'mean':1})
 
-        fig.savefig(os.path.join(outdir, title.replace(' ', '_')))
+        fig.savefig(os.path.join(outdir, title.replace(' ', '_')+'.png'))
         plt.close()
 
     for l in range(smt.layers):
@@ -84,7 +84,7 @@ def plot_all_2d_con(outdir, filter_strs): #todo set vmaxs and vmins
                                        basemap=True, contour={'sd': False, 'mean': False, 'sum': True},
                                        method='mean_sd', contour_color='g')
 
-        fig.savefig(os.path.join(outdir, title.replace(' ', '_')))
+        fig.savefig(os.path.join(outdir, title.replace(' ', '_')+'.png'))
         plt.close()
 
     for l in range(smt.layers):
@@ -97,7 +97,7 @@ def plot_all_2d_con(outdir, filter_strs): #todo set vmaxs and vmins
                                        basemap=True, contour={'sd': False, 'mean': False, 'sum': True},
                                        method='mean_sd', contour_color='g')
 
-        fig.savefig(os.path.join(outdir, title.replace(' ', '_')))
+        fig.savefig(os.path.join(outdir, title.replace(' ', '_')+'.png'))
         plt.close()
 
     for l in range(smt.layers):
@@ -110,7 +110,7 @@ def plot_all_2d_con(outdir, filter_strs): #todo set vmaxs and vmins
                                        basemap=True, contour={'sd': False, 'mean': False, 'sum': True},
                                        method='mean_sd', contour_color='g')
 
-        fig.savefig(os.path.join(outdir, title.replace(' ', '_')))
+        fig.savefig(os.path.join(outdir, title.replace(' ', '_')+'.png'))
         plt.close()
 
     for limit, ftn in zip([1, 2.85, 5.65, 11.3], [_above_low, _above_quarter_mav, _above_half_mav, _above_mav]):
@@ -124,7 +124,7 @@ def plot_all_2d_con(outdir, filter_strs): #todo set vmaxs and vmins
                                            basemap=True, contour={'sd': True, 'mean': False, 'sum': True},
                                            method='mean_sd', contour_color='g')
 
-            fig.savefig(os.path.join(outdir, title.replace(' ', '_')))
+            fig.savefig(os.path.join(outdir, title.replace(' ', '_' )+'.png'))
             plt.close()
 
 
@@ -213,13 +213,13 @@ def plot_well_con(param_nc_path, con_nc_path, con_str, outdir, filter_strs):  # 
 
         fig.suptitle(supergroup.title())
 
-        fig.savefig(os.path.join(outdir, supergroup.lower()))
+        fig.savefig(os.path.join(outdir, supergroup.lower()+'.png'))
 
 
 if __name__ == '__main__':
+    plot_all_2d_con(r"T:\Temp\temp_gw_files\testcon2dplots", filter_strs=['filter2', 'filter3'])
     plot_well_con(r"K:\mh_modeling\netcdfs_of_key_modeling_data\nsmc_params_obs_metadata.nc",
                   r"C:\mh_waimak_model_data\mednload_ucn.nc",
                   con_str='mednload',
                   outdir=r"T:\Temp\temp_gw_files\testcon1dplots",
                   filter_strs=['filter2', 'filter3'])
-    plot_all_2d_con(r"T:\Temp\temp_gw_files\testcon2dplots", filter_strs=['filter2', 'filter3'])
