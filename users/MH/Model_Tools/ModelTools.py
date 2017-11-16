@@ -452,7 +452,7 @@ class ModelTools(object):
             temp = np.zeros((self.rows, self.cols))
             temp[no_flow] = np.nan
             if plt_background:
-                cmap, norm = from_levels_and_colors([-1, -0.5, 1, 2], ['black', 'black', 'black'])
+                cmap, norm = from_levels_and_colors([-1, -0.5, 1, 2], ['black', 'black', 'black']) #todo could pcolor be changed to imshow
                 ax.pcolor(model_xs, model_ys, np.ma.masked_invalid(temp), cmap=cmap, alpha=alpha, edgecolors=edgecolors)
             array[~no_flow] = np.nan
         if 'cmap' in kwargs:

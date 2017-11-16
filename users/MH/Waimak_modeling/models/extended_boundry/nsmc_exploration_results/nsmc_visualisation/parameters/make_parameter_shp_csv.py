@@ -21,8 +21,8 @@ def make_csvs_for_zeb(outdir):
     meanings = nc_file.variables['rch_ppt_group'].flag_meanings.split(' ')
     values = nc_file.variables['rch_ppt_group'].flag_values
     rch_flag_mapper = {v:m for v,m in zip(values,meanings)}
-    out_rch = pd.DataFrame({'id':rch_pt,'x':rchx,'y':rchy,'group':rchgroup})
-    out_rch = out_rch.replace({'group':rch_flag_mapper})
+    out_rch = pd.DataFrame({'id':rch_pt,'x':rchx,'y':rchy,'rch_group':rchgroup})
+    out_rch = out_rch.replace({'rch_group':rch_flag_mapper})
     out_rch.to_csv(os.path.join(outdir,'rch_ppt.csv'))
 
     kv_pt = np.array(nc_file.variables['khv_ppt'])
