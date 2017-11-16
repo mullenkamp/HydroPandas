@@ -48,6 +48,20 @@ def plot_all_2d_con(outdir, filter_strs): #todo set vmaxs and vmins
         os.makedirs(outdir)
 
     for l in range(smt.layers):
+        title = 'best N estimate for layer low scale {:02d}'.format(l+1)
+        print(title)
+        fig, axs = plot_sd_mean_multid(filter_strs=filter_strs, layer=l,
+                                       nc_param_data=nc_param_data, nc_obs_data=bestn,
+                                       data_id='mednload', function_adjust=no_change,
+                                       title=title,
+                                       basemap=True, contour={'sd': False, 'mean': False, 'sum': True},
+                                       method='mean_sd', contour_color='g',
+                                       vmaxes={'mean':11.3, 'sd':3}, vmins={'mean':1})
+
+        fig.savefig(os.path.join(outdir, title.replace(' ', '_')+'.png'))
+        plt.close()
+
+    for l in range(smt.layers):
         title = 'best N estimate for layer {:02d}'.format(l+1)
         print(title)
         fig, axs = plot_sd_mean_multid(filter_strs=filter_strs, layer=l,
@@ -60,19 +74,6 @@ def plot_all_2d_con(outdir, filter_strs): #todo set vmaxs and vmins
         fig.savefig(os.path.join(outdir, title.replace(' ', '_')+'.png'))
         plt.close()
 
-    for l in range(smt.layers):
-        title = 'best N estimate for layer low scale {:02d}'.format(l)
-        print(title)
-        fig, axs = plot_sd_mean_multid(filter_strs=filter_strs, layer=l+1,
-                                       nc_param_data=nc_param_data, nc_obs_data=bestn,
-                                       data_id='mednload', function_adjust=no_change,
-                                       title=title,
-                                       basemap=True, contour={'sd': False, 'mean': False, 'sum': True},
-                                       method='mean_sd', contour_color='g',
-                                       vmaxes={'mean':11.3, 'sd':3}, vmins={'mean':1})
-
-        fig.savefig(os.path.join(outdir, title.replace(' ', '_')+'.png'))
-        plt.close()
 
     for l in range(smt.layers):
         title = 'best N estimate for layer very low scale {:02d}'.format(l+1)
