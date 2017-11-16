@@ -27,8 +27,9 @@ def extract_data(param_nc, filter_bool, layer, data_id):
         val = np.log10(np.array(param_nc.variables[data_id][filter_bool, layer]))
         temp_mean = np.nanmean(val, axis=0)
         temp_sd = np.nanstd(val, axis=0)
-        outmean = griddata(points=(kv_x, kv_y), values=temp_mean, xi=(xs, ys), method='cubic')
-        outsd = griddata(points=(kv_x, kv_y), values=temp_sd, xi=(xs, ys), method='cubic')
+        idx = np.isfinite(temp_mean)
+        outmean = griddata(points=(kv_x[idx], kv_y[idx]), values=temp_mean[idx], xi=(xs, ys), method='cubic')
+        outsd = griddata(points=(kv_x[idx], kv_y[idx]), values=temp_sd[idx], xi=(xs, ys), method='cubic')
 
     elif 'rch' in data_id:
         rch_index_array = get_rch_index_array()
@@ -188,18 +189,10 @@ def plt_all_spatial_param(outdir,filter_strs):
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
-    # rch
-    title = 'recharge multiplier'
-    print(title)
-    fig, axs = plot_sd_mean_multid(filter_strs=filter_strs, layer=0, nc_param_data=nc_param_data, data_id='rch_mult',
-                        title=title, basemap=True, contour={'sd': False, 'mean': False},
-                        contour_color='g', vmins=None, vmaxes=None)
-    fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
-    plt.close()
 
     #kv for each layer
     for l in range(smt.layers):
-        title = 'kv for layer {:02d}'.format(l+1)
+        title = 'log kv for layer {:02d}'.format(l+1)
         print(title)
 
         fig, axs = plot_sd_mean_multid(filter_strs=filter_strs, layer=l, nc_param_data=nc_param_data,
@@ -212,7 +205,7 @@ def plt_all_spatial_param(outdir,filter_strs):
 
         #kh for each layer
     for l in range(smt.layers):
-        title = 'kh for layer {:02d}'.format(l+1)
+        title = 'log kh for layer {:02d}'.format(l+1)
         print(title)
 
         fig, axs = plot_sd_mean_multid(filter_strs=filter_strs, layer=l, nc_param_data=nc_param_data,
@@ -222,5 +215,13 @@ def plt_all_spatial_param(outdir,filter_strs):
         fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
         plt.close()
 
+    # rch
+    title = 'recharge multiplier'
+    print(title)
+    fig, axs = plot_sd_mean_multid(filter_strs=filter_strs, layer=0, nc_param_data=nc_param_data, data_id='rch_mult',
+                        title=title, basemap=True, contour={'sd': False, 'mean': False},
+                        contour_color='g', vmins=None, vmaxes=None)
+    fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
+    plt.close()
 if __name__ == '__main__':
     plt_all_spatial_param(r"T:\Temp\temp_gw_files\testparam2dplots", filter_strs=['filter2', 'filter3'])
