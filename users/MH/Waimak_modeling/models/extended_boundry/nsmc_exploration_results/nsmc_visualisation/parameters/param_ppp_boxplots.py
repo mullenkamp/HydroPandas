@@ -9,6 +9,16 @@ from core import env
 import numpy as np
 import matplotlib.pyplot as plt
 import netCDF4 as nc
+import os
+import pandas as pd
+
+
+def _no_change(x):  # note that the transformations act on lists of numpy arrays
+    return x
+
+def _to_m3s(x):
+    x = np.atleast_2d(x)
+    return x/86400
 
 
 def gen_dist(sd_type, u, sd, n):
@@ -163,7 +173,8 @@ def _get_plting_dists(nc_file, sites, data_types, filter_array, layers):
     return opt_prior, post_opt_dist, post_jac_dist, filter_dist, labels, limits
 
 
-def plot_supergroup_ppp_boxplots(filter_strs, param_nc, layers, supergroup, sites, datatypes, ylab):
+def plot_supergroup_ppp_boxplots(filter_strs, param_nc, layers, supergroup, sites, datatypes, ylab,
+                                 transformation=_no_change):
     fig, axs = plt.subplots(ncols=len(filter_strs), figsize=(18.5, 9.5))
     axs = np.atleast_1d(axs)
 
@@ -197,39 +208,103 @@ def plot_supergroup_ppp_boxplots(filter_strs, param_nc, layers, supergroup, site
             raise ValueError('shouldnt get here')
 
         # get the data
-        opt_prior, post_opt_dist, post_jac_dist, filter_dist, labels, limits = _get_plting_dists(nc_file=param_nc,
-                                                                                                 sites=sites,
-                                                                                                 data_types=datatypes,
-                                                                                                 filter_array=real_filter,
-                                                                                                 layers=layers)
+        opt_prior, post_opt_dist, post_jac_dist, \
+        filter_dist, labels, limits = _get_plting_dists(nc_file=param_nc,
+                                                        sites=sites,
+                                                        data_types=datatypes,
+                                                        filter_array=real_filter,
+                                                        layers=layers)
+
+        # apply transformation
+        opt_prior = transformation(opt_prior)
+        post_opt_dist= transformation(post_opt_dist)
+        post_jac_dist= transformation(post_jac_dist)
+        filter_dist= transformation(filter_dist)
+        limits= transformation(limits)
+
         _plt_parm_boxplot(ax, opt_prior, post_opt_dist, post_jac_dist, labels, filter_dist, limits, ylab,
-                          ax_title='{}{}'.format(textadd,filter_str))
+                          ax_title='{}{}'.format(textadd, filter_str))
+
+        ymax = max([e.get_ylim()[1] for e in axs.flatten()])
+        ymin = min([e.get_ylim()[0] for e in axs.flatten()])
+        [e.set_ylim(ymin, ymax)
+         for e in axs.flatten()]
+        fig.suptitle(supergroup.title())
+
+    return fig, axs
 
 
-    ymax = max([e.get_ylim()[1] for e in axs.flatten()])
-    ymin = min([e.get_ylim()[0] for e in axs.flatten()])
-    [e.set_ylim(ymin, ymax) for e in axs.flatten()]
-    fig.suptitle(supergroup.title())
+def plot_all_ppp_boxplots(outdir, filter_strs):
+    filter_strs = np.atleast_1d(filter_strs)
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
 
-    return fig,axs
+    param_nc = nc.Dataset(env.gw_met_data("mh_modeling/netcdfs_of_key_modeling_data/nsmc_params_obs_metadata.nc"))
 
-#todo plot zebs kv and kh groups both by layer(one plot per group) and all groups by layer (one plot per layer)
+    # PUMPING
+    title = 'pumping multipliers'
+    print(title)
+    fig, ax = plot_supergroup_ppp_boxplots(filter_strs=filter_strs, param_nc=param_nc,
+                                           layers = [0,0,0], supergroup=title,
+                                           sites={'CHCH':['pump_c'], 'Waimakariri':['pump_w'], 'Selwyn':['pump_s']},
+                                           datatypes = ['simple', 'simple', 'simple'], ylab='percent pumping')
+    fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
+
+    # nraces , nboundry flux, s river, south races
+    title = 'other multipliers'  # todo just a default
+    print(title)
+    fig, ax = plot_supergroup_ppp_boxplots(filter_strs=filter_strs, param_nc=param_nc,
+                                           layers = [0,0,0,0], supergroup=title,
+                                           sites={'WIL Races':['n_race'], 'N Boundary':['nbndf'],
+                                                  'Selwyn Streams':['sriv'], 'Selwyn Races':['s_race']},
+                                           datatypes = ['simple', 'simple', 'simple', 'simple'],
+                                           ylab='percent injection')
+    fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
+
+    # southern boundry fluxes
+    title = 'SW Boundary Flux'
+    print(title)
+    fig, ax = plot_supergroup_ppp_boxplots(filter_strs=filter_strs, param_nc=param_nc,
+                                           layers = [0,0], supergroup=title,
+                                           sites={'Inland':['ulrzf'], 'Coastal':['llrzf']},
+                                           datatypes = ['simple', 'simple'], ylab='m3/s',
+                                           transformation=_to_m3s)
+    fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
+
+    # river inflows (may need to split due to scale)
+    title = 'Eyre Flow'
+    print(title)
+    fig, ax = plot_supergroup_ppp_boxplots(filter_strs=filter_strs, param_nc=param_nc,
+                                           layers = [0], supergroup=title,
+                                           sites={'Eyre Inflow':['top_e_flo']},
+                                           datatypes = ['simple'], ylab='m3/s',
+                                           transformation=_to_m3s)
+    fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
+
+    title = 'Cust Inflows'  # todo may need to split this one
+    print(title)
+    fig, ax = plot_supergroup_ppp_boxplots(filter_strs=filter_strs, param_nc=param_nc,
+                                           layers = [0,0], supergroup=title,
+                                           sites={'Top Cust':['top_c_flo'], 'WIL Biwash':['mid_c_flo']},
+                                           datatypes = ['simple', 'simple'], ylab='m3/s',
+                                           transformation=_to_m3s)
+    fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
+
+    # fault multipliers
+    title = 'Fault Multipliers'
+    print(title)
+    fig, ax = plot_supergroup_ppp_boxplots(filter_strs=filter_strs, param_nc=param_nc,
+                                           layers = [0,0], supergroup=title,
+                                           sites={'Kh':['fkh_mult'], 'Kv':['fkv_mult']},
+                                           datatypes = ['simple', 'simple'], ylab='fraction')
+    fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
+
+    # todo plot zebs kv and kh groups both by layer(one plot per group) and all groups by layer (one plot per layer)
+    # recharge (tricky)
+
+    # ks (tricky
 
 
-
-"""
-groups
-pumping 
-n races, nboundry flux, s river, south races
-southern b fluxs
-river inflows (may need to split up do to scale)
-fault multipliers
-
-recharge (boxes of each irrigation group) # kind of hard
-recharge (boxes of each area_TBD) # kind of hard
-kv/kh # very hard
-
-"""
 
 if __name__ == '__main__':
     fix, ax = plt.subplots()
