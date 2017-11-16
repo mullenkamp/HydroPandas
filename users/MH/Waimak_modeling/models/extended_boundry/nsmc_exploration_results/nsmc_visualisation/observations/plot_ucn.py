@@ -217,9 +217,9 @@ def plot_well_con(param_nc_path, con_nc_path, con_str, outdir, filter_strs):  # 
 
 
 if __name__ == '__main__':
-    plot_all_2d_con(r"T:\Temp\temp_gw_files\testcon2dplots", filter_strs=['filter2', 'filter3'])
+    plot_all_2d_con(r"T:\Temp\temp_gw_files\testcon2dplots", filter_strs=['filter2'])
     plot_well_con(r"K:\mh_modeling\netcdfs_of_key_modeling_data\nsmc_params_obs_metadata.nc",
                   r"C:\mh_waimak_model_data\mednload_ucn.nc",
                   con_str='mednload',
                   outdir=r"T:\Temp\temp_gw_files\testcon1dplots",
-                  filter_strs=['filter2', 'filter3'])
+                  filter_strs=['filter2'])
