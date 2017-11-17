@@ -145,6 +145,8 @@ def end_member_mixing_filter(data_dict, site_limits, method='all_pass', weights=
     :param phi_threshold: not used as for weighted
     :return:
     """
+
+    # probably depreciated
     sites = data_dict.values[0].keys()
     nsmc_nums = data_dict.values[0].index
     # input data checks

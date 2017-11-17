@@ -60,7 +60,7 @@ def _add_simple_params(param, pst_param, prior_sd_data, postopt_sd_data, nc_file
                          'top_e_flo': {'units': 'm3/day',
                                        'long_name': 'top of the eyre flow',
                                        'sd_type': 'log',
-                                       'opt_p':171936},
+                                       'opt_p': 171936},
                          'mid_c_flo': {'units': 'm3/day',
                                        'long_name': 'mid cust (biwash) flow',
                                        'sd_type': 'log',
@@ -98,12 +98,12 @@ def _add_simple_params(param, pst_param, prior_sd_data, postopt_sd_data, nc_file
                         'vtype': 'param',
                         'sd_type': simple_parameters[key]['sd_type'],
                         'p_sd': prior_sd_data.loc[key, 'sd'],
-                        'j_sd': postopt_sd_data.loc[key, 'sd']**0.5,
+                        'j_sd': postopt_sd_data.loc[key, 'sd'] ** 0.5,
                         'opt_p': simple_parameters[key]['opt_p']
                         })
         adder = 0
         if key == 'llrzf':
-            adder = -181441 # offset in pest
+            adder = -181441  # offset in pest
         elif key == 'ulrzf':
             adder = -1
 
@@ -138,9 +138,9 @@ def _add_rch_params(param, rch_ppt_tpl, pst_param, prior_sd_data, postopt_sd_dat
 
     rch_opt_p = nc_file.createVariable('rch_ppt_opt_p', 'f8', ('rch_ppt',), fill_value=np.nan, zlib=False)
     rch_opt_p.setncatts({'units': 'nztmy',
-                     'long_name': 'recharge pilot point optimisation prior',
-                     'missing_value': np.nan,
-                     'vtype': 'meta'})
+                         'long_name': 'recharge pilot point optimisation prior',
+                         'missing_value': np.nan,
+                         'vtype': 'meta'})
     rch_opt_p[:] = np.ones((len(rch_ppt_ids)))
 
     # initials uppers lowers
@@ -179,7 +179,7 @@ def _add_rch_params(param, rch_ppt_tpl, pst_param, prior_sd_data, postopt_sd_dat
                            'missing_value': np.nan,
                            'vtype': 'meta',
                            'sd_type': 'lin'})
-    rch_sd_post[:] = postopt_sd_data.loc[rch_ppt_ids, 'sd'].values **0.5
+    rch_sd_post[:] = postopt_sd_data.loc[rch_ppt_ids, 'sd'].values ** 0.5
 
     rch_group = nc_file.createVariable('rch_ppt_group', 'i4', ('rch_ppt',), fill_value=-9, zlib=False)
     rch_group.setncatts({'flag_values': [1, 2, 3, 4],
@@ -252,11 +252,11 @@ def _add_sfr_cond(param, pst_param, prior_sd_data, postopt_sd_data, nc_file):
 
     sfr_opt_p = nc_file.createVariable('sfr_opt_p', 'f8', ('sfr_cond',), fill_value=np.nan, zlib=False)
     sfr_opt_p.setncatts({'units': 'none',
-                            'long_name': 'sfr cond optimisation prior ',
-                            'missing_value': np.nan,
-                            'vtype': 'meta',
-                            'sd_type': 'log'
-                            })
+                         'long_name': 'sfr cond optimisation prior ',
+                         'missing_value': np.nan,
+                         'vtype': 'meta',
+                         'sd_type': 'log'
+                         })
     sfr_opt_p[:] = np.ones(len(hcond_sites)).fill(10)
 
     sfr_post_sd = nc_file.createVariable('sfr_j_sd', 'f8', ('sfr_cond',), fill_value=np.nan, zlib=False)
@@ -266,7 +266,7 @@ def _add_sfr_cond(param, pst_param, prior_sd_data, postopt_sd_data, nc_file):
                            'vtype': 'meta',
                            'sd_type': 'log'
                            })
-    sfr_post_sd[:] = postopt_sd_data.loc[hcond_sites, 'sd'].values**0.5
+    sfr_post_sd[:] = postopt_sd_data.loc[hcond_sites, 'sd'].values ** 0.5
 
     sfr_cond_val = nc_file.createVariable('sfr_cond_val', 'f8', ('nsmc_num', 'sfr_cond'), fill_value=np.nan, zlib=False)
     sfr_cond_val.setncatts({'units': 'm/day',
@@ -323,10 +323,10 @@ def _add_drain_cond(param, pst_param, prior_sd_data, postopt_sd_data, nc_file):
 
     drn_opt_p = nc_file.createVariable('drn_opt_p', 'f8', ('drns',), fill_value=np.nan, zlib=False)
     drn_opt_p.setncatts({'units': 'none',
-                            'long_name': 'drain cond optimisation prior',
-                            'missing_value': np.nan,
-                            'vtype': 'meta',
-                            'sd_type': 'log'})
+                         'long_name': 'drain cond optimisation prior',
+                         'missing_value': np.nan,
+                         'vtype': 'meta',
+                         'sd_type': 'log'})
     drn_opt_p[:] = np.ones(len(drns)).fill(1680)
 
     drn_post_sd = nc_file.createVariable('drn_j_sd', 'f8', ('drns',), fill_value=np.nan, zlib=False)
@@ -335,7 +335,7 @@ def _add_drain_cond(param, pst_param, prior_sd_data, postopt_sd_data, nc_file):
                            'missing_value': np.nan,
                            'vtype': 'meta',
                            'sd_type': 'log'})
-    drn_post_sd[:] = postopt_sd_data.loc[drns, 'sd'].values**0.5
+    drn_post_sd[:] = postopt_sd_data.loc[drns, 'sd'].values ** 0.5
 
     drn_cond = nc_file.createVariable('drn_cond', 'f8', ('nsmc_num', 'drns'), fill_value=np.nan, zlib=False)
     drn_cond.setncatts({'units': 'm3/day',
@@ -414,7 +414,7 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
                 temp_initial[i, k] = pst_param.loc['{}_v{}'.format(key, i + 1), 'initial']
                 temp_prior_sd[i, k] = prior_ksd.loc['{}_v{}'.format(key, i + 1), 'sd']
                 temp_post_sd[i, k] = postopt_sd_data.loc['{}_v{}'.format(key, i + 1), 'sd']
-                temp_opt_p[i,k] = opt_priors.loc['{}_v{}'.format(key, i + 1)]
+                temp_opt_p[i, k] = opt_priors.loc['{}_v{}'.format(key, i + 1)]
             except KeyError:
                 pass
 
@@ -445,14 +445,14 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
                            'missing_value': np.nan,
                            'vtype': 'meta',
                            'sd_type': 'log'})
-    pptprior_sd[:] = temp_prior_sd**0.5
+    pptprior_sd[:] = temp_prior_sd ** 0.5
 
     pptoptp = nc_file.createVariable('kv_opt_p', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=False)
     pptoptp.setncatts({'units': 'm/day',
-                           'long_name': 'kv pilot point optimisation prior',
-                           'missing_value': np.nan,
-                           'vtype': 'meta',
-                           'sd_type': 'log'})
+                       'long_name': 'kv pilot point optimisation prior',
+                       'missing_value': np.nan,
+                       'vtype': 'meta',
+                       'sd_type': 'log'})
 
     pptoptp[:] = temp_opt_p
 
@@ -462,7 +462,7 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
                           'missing_value': np.nan,
                           'vtype': 'meta',
                           'sd_type': 'log'})
-    pptpost_sd[:] = temp_post_sd**0.5
+    pptpost_sd[:] = temp_post_sd ** 0.5
 
     # kh upper lower initial
     temp_upper = np.zeros((layer_dim, khv_dim)) * np.nan
@@ -482,7 +482,7 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
                 temp_initial[i, k] = pst_param.loc['{}_h{}'.format(key, i + 1), 'initial']
                 temp_prior_sd[i, k] = prior_ksd.loc['{}_h{}'.format(key, i + 1), 'sd']
                 temp_post_sd[i, k] = postopt_sd_data.loc['{}_h{}'.format(key, i + 1), 'sd']
-                temp_opt_p[i,k] = opt_priors.loc['{}_h{}'.format(key, i + 1)]
+                temp_opt_p[i, k] = opt_priors.loc['{}_h{}'.format(key, i + 1)]
 
             except KeyError:
                 pass
@@ -523,7 +523,7 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
                            'missing_value': np.nan,
                            'vtype': 'meta',
                            'sd_type': 'log'})
-    pptprior_sd[:] = temp_prior_sd**0.5
+    pptprior_sd[:] = temp_prior_sd ** 0.5
 
     pptpost_sd = nc_file.createVariable('kh_j_sd', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=False)
     pptpost_sd.setncatts({'units': 'm/day',
@@ -531,7 +531,7 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
                           'missing_value': np.nan,
                           'vtype': 'meta',
                           'sd_type': 'log'})
-    pptpost_sd[:] = temp_post_sd**0.5
+    pptpost_sd[:] = temp_post_sd ** 0.5
 
     # kv
     kv = nc_file.createVariable('kv', 'f8', ('nsmc_num', 'layer', 'khv_ppt'), fill_value=np.nan, zlib=False)
@@ -565,8 +565,6 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
 
 
 def _add_well_obs(obs_file, rei_file, nc_file):
-
-
     other_obs = ['brnthl_4_1', 'eyrftn_2_1', 'eyrftn_6_2', 'eyrftn_6_1', 'wdnd_4_2', 'wdnd_8_4', 'wdnd_8_2', 'peg_8_7',
                  'peg_9_8', 'peg_10_9', 'peg_10_7', 'eyrftm_2_1', 'eyrftl_7_2', 'oxfds_6_2', 'oxfdnr_3_1', 'oxfdnr_4_3',
                  'oxfdnr_4_1', 'chch_4_2', 'chb_ash', 'chb_chch', 'chb_chchz', 'chb_cust', 'chb_sely', 'sel_off',
@@ -799,14 +797,74 @@ def _add_filter_4(f4txt, nc_file):
     modfilter[:] = passed
 
 
-def _add_filter_5(f5txt, nc_file):
+def _add_filter_emma(f5txt, nc_file):
+    emma_data = pd.read_csv(f5txt, index_col=0)
     nsmc_nums = np.array(nc_file.variables['nsmc_num'])
-    # filter4 = np.array(nc_file.variables['filter4']) #todo enable once we've run the filter
-    # with open(f5txt) as f:
-    #    pass_nums = [int(e.strip()) for e in f.readlines()] + [-1, -2]
-    # passed = np.in1d(nsmc_nums, pass_nums).astype(int)
-    # passed[filter4 < 1] = -1
-    # passed[nsmc_nums > 4000] = -1
+    filters = {}
+    filter_atts = {
+        'run_mt3d': {'long_name': 'run mt3d',
+                     'comments': 'the models which we ran mt3d on'},
+        'emma_converge': {'long_name': 'End member mixing converged',
+                     'comments': 'there were some random models which did not converge in mt3d denoted as True'},
+        'n_converge': {'long_name': 'median nitrate converged',
+                     'comments': 'there were some random models which did not converge in mt3d denoted as True'},
+        'emma_no_wt': {'long_name': 'EMMA with no group weighting',
+                     'comments': 'the bottom 10% of data measured by the EMMA phi with no intergroup weights'},
+        'emma_eq_wt': {'long_name': 'EMMA with numerically equally weighting',
+                     'comments': 'the bottom 10 of the realisation measured by the emma phi where the inter group weighting was set by 1/ number of obs in each group'},
+        'emma_chch_wt': {'long_name': 'EMMA with CHCH weighted',
+                     'comments': 'bottom 10% with chch groups weighted up by 2 orders of magnitude'},
+        'emma_str_wt': {'long_name': 'EMMA with streams weighted',
+                     'comments': 'bottom 10% with stream groups weighted up by 2 orders of magnitude'},
+        'emma_ewf_wt': {'long_name': 'EMMA with eyrewell forest weighted',
+                     'comments': 'bottom 10% with eyrewell forest groups weighted up by 2 orders of magnitude'},
+    }
+    # ran mt3d
+    ran = np.in1d(nsmc_nums, emma_data.index)
+    filters['run_mt3d'] = ran.astype(int)
+
+    # emma converged
+    emmaconverged = np.in1d(nsmc_nums,emma_data.loc[emma_data.notnull().any(axis=1).index])
+    f = emmaconverged.astype(int)
+    f[~ran] = -1
+    filters['emma_converge'] = f
+
+    # N med load converged
+    'n_converge'
+
+    # emma no weighting
+    temp_data = emma_data['no_weighting']
+    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)]).astype(int)
+    f[~emmaconverged] = -1
+    filters['emma_no_wt'] = f
+
+    # emma equal weighting
+    temp_data = emma_data['equal_num']
+    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)]).astype(int)
+    f[~emmaconverged] = -1
+    filters['emma_eq_wt'] = f
+
+
+    # emma chch weighting
+    temp_data = emma_data['chch_weighted']
+    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)]).astype(int)
+    f[~emmaconverged] = -1
+    filters['emma_chch_wt'] = f
+
+
+    # emma stream weighting
+    temp_data = emma_data['stream_weighted']
+    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)]).astype(int)
+    f[~emmaconverged] = -1
+    filters['emma_str_wt'] = f
+
+
+    # emma ewf weighting
+    temp_data = emma_data['ewf_weighted']
+    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)]).astype(int)
+    f[~emmaconverged] = -1
+    filters['emma_ewf_wt'] = f
+
 
     modfilter = nc_file.createVariable('filter5', 'i1', ('nsmc_num',), fill_value=-1, zlib=False)
     modfilter.setncatts({'units': 'boolean',
@@ -953,7 +1011,7 @@ def make_netcdf_nsmc(nc_outfile, rrffile, rec_file, opt_lower_rec, opt_upper_rec
     _add_filter_2(f2txt, nc_file)  # vert filter
     _add_filter_3(f3txt, nc_file)  # piezo filter
     _add_filter_4(f4txt, nc_file)  # intersect of vert and piezo filter
-    _add_filter_5(f4txt, nc_file)  # end member mixing filter #todo potentially add filters for ran, didn't run ect
+    _add_filter_emma(f5txt, nc_file)  # end member mixing filter #todo potentially add filters for ran, didn't run ect
 
     # add general comments
     nc_file.description = (
@@ -982,10 +1040,11 @@ if __name__ == '__main__':
                      prior_sds="{}/sds/PriorSDs.txt".format(data_dir),
                      prior_ksds_dir="{}/sds/ppk_priorSD".format(data_dir),
                      postopt_sds="{}/sds/aw_ex_postopt_sd.txt".format(data_dir),
-                     opt_pst_file='{}/from_gns/NsmcBase/AW20171024_2_i2_optver/i2/aw_ex_reg_wtadj_manwtadj_midcal.pst'.format(smt.sdp),
+                     opt_pst_file='{}/from_gns/NsmcBase/AW20171024_2_i2_optver/i2/aw_ex_reg_wtadj_manwtadj_midcal.pst'.format(
+                         smt.sdp),
                      f1txt="{}/F1_filtered_parsets.txt".format(data_dir),
                      f2txt="{}/F2_vert_filtered_parsets.txt".format(data_dir),
                      f3txt="{}/F2_piez_filtered_parsets.txt".format(data_dir),
                      f4txt="{}/F2_intersect_filtered_parsets.txt".format(data_dir),
-                     f5txt='placeholder')  # todo update when run
+                     f5txt="{}/emma_phis.csv".format(data_dir))
     print('done')
