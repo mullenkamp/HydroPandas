@@ -13,7 +13,6 @@ import netCDF4 as nc
 import os
 import socket
 
-# todo add and and or to the filter options
 def no_change(x, **kwargs):
     return x
 
@@ -23,11 +22,11 @@ def is_dry(x, layer):
     no_flow[no_flow < 0] = 0
     elv_db = smt.calc_elv_db()
     temp = (x<elv_db[layer+1]) & no_flow.astype(bool)
-    return temp  # todo check
+    return temp
 
 
 def neg_zero_pos(x, **kwargs):
-    lower_lim = 0  # todo play with these
+    lower_lim = 0
     upper_lim = 0
     outdata = np.zeros(x.shape, np.int8)
     outdata[x < lower_lim] = -1
@@ -288,7 +287,5 @@ def plot_all_2d_obs(outdir,filter_strs):
         plt.close()
 
 
-# todo implement and check
 if __name__ == '__main__':
-    # todo decide on filters
     plot_all_2d_obs(r"T:\Temp\temp_gw_files\test2dplots",    filter_strs = ['filter2'])

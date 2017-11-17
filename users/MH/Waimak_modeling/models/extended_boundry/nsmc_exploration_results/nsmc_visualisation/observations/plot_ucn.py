@@ -36,8 +36,7 @@ def _above_low(x, **kwargs):
     return x >= 1
 
 
-# todo decide on filters
-def plot_all_2d_con(outdir, filter_strs): #todo set vmaxs and vmins
+def plot_all_2d_con(outdir, filter_strs):
     if socket.gethostname() != 'GWATER02':
         raise ValueError('this must be run on GWATER02 as that is where the uncompressed data is stored')
 
@@ -147,7 +146,7 @@ def plot_all_2d_con(outdir, filter_strs): #todo set vmaxs and vmins
 # both 2D spatial as well as point measurements at wells for example
 # take for granted that only 2000 something were run when looking through filters
 
-def plot_well_con(param_nc_path, con_nc_path, con_str, outdir, filter_strs):  # todo debug
+def plot_well_con(param_nc_path, con_nc_path, con_str, outdir, filter_strs):
     if not os.path.exists(outdir):
         os.makedirs(outdir)
     plt_data = pd.read_excel(
@@ -192,7 +191,7 @@ def plot_well_con(param_nc_path, con_nc_path, con_str, outdir, filter_strs):  # 
                 raise ValueError('shouldnt get here')
 
             nsmc_nums_param = np.array(
-                param_nc_data.variables['nsmc_num'][real_filter])  # todo make this work between filters
+                param_nc_data.variables['nsmc_num'][real_filter])
 
             nsmc_nums_con = np.array(con_nc_data.variables['nsmc_num'])
             real_filter = np.in1d(nsmc_nums_con, nsmc_nums_param)

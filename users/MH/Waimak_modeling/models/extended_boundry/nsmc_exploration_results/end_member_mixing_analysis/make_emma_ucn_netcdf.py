@@ -69,7 +69,6 @@ def make_netcd_endmember_mixing(nc_path,zlib):
 
 
 if __name__ == '__main__':
-    #todo debug
     cont = input('are you sure you want to re-run make EMMA UcN netcdfs it will overwrite and takes some time y/n')
     if cont != 'y':
         raise ValueError('user interuppted process to prevent overwrite')

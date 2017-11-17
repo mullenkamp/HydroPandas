@@ -48,10 +48,9 @@ def netcdf_best_est_n(nc_path,zlib):
 
 
 if __name__ == '__main__':
-    # todo debug
     cont = input('are you sure you want to re-run make mednload UcN netcdfs it will overwrite and takes some time y/n')
     if cont != 'y':
         raise ValueError('user interuppted process to prevent overwrite')
 
     #netcdf_best_est_n(env.gw_met_data(r"mh_modeling\netcdfs_of_key_modeling_data\mednload_unc.nc"),zlib=True)
-    netcdf_best_est_n(r"C:\mh_waimak_model_data\mednload_ucn.nc",zlib=False) #todo run on gw02
+    netcdf_best_est_n(r"C:\mh_waimak_model_data\mednload_ucn.nc",zlib=False) # run on gw02

@@ -757,7 +757,7 @@ def _add_filter_2(f2txt, nc_file):
     passed = np.in1d(nsmc_nums, pass_nums).astype(int)
     passed[filter1 < 1] = -1
 
-    modfilter = nc_file.createVariable('filter2', 'i1', ('nsmc_num',), fill_value=-1, zlib=False)
+    modfilter = nc_file.createVariable('filter2', 'i2', ('nsmc_num',), fill_value=-1, zlib=False)
     modfilter.setncatts({'units': 'boolean',
                          'long_name': 'filter 2 vert filter',
                          'missing_value': -1,
@@ -773,7 +773,7 @@ def _add_filter_3(f3txt, nc_file):
     passed = np.in1d(nsmc_nums, pass_nums).astype(int)
     passed[filter1 < 1] = -1
 
-    modfilter = nc_file.createVariable('filter3', 'i1', ('nsmc_num',), fill_value=-1, zlib=False)
+    modfilter = nc_file.createVariable('filter3', 'i2', ('nsmc_num',), fill_value=-1, zlib=False)
     modfilter.setncatts({'units': 'boolean',
                          'long_name': 'filter 3 piezo filter',
                          'missing_value': -1,
@@ -789,7 +789,7 @@ def _add_filter_4(f4txt, nc_file):
     passed = np.in1d(nsmc_nums, pass_nums).astype(int)
     passed[filter1 < 1] = -1
 
-    modfilter = nc_file.createVariable('filter4', 'i1', ('nsmc_num',), fill_value=-1, zlib=False)
+    modfilter = nc_file.createVariable('filter4', 'i2', ('nsmc_num',), fill_value=-1, zlib=False)
     modfilter.setncatts({'units': 'boolean',
                          'long_name': 'filter 4 intersect of piezo and vert filter',
                          'missing_value': -1,
@@ -797,7 +797,7 @@ def _add_filter_4(f4txt, nc_file):
     modfilter[:] = passed
 
 
-def _add_filter_emma(f5txt, nc_file):
+def _add_filter_emma(f5txt, nconv, nc_file):
     emma_data = pd.read_csv(f5txt, index_col=0)
     nsmc_nums = np.array(nc_file.variables['nsmc_num'])
     filters = {}
@@ -830,7 +830,12 @@ def _add_filter_emma(f5txt, nc_file):
     filters['emma_converge'] = f
 
     # N med load converged
-    'n_converge'
+    with open(nconv) as f:
+        nums = [int(e) for e in f.readlines()]
+
+    f = np.in1d(nsmc_nums,nums).astype(int)
+    f[~ran] = -1
+    filters['n_converge'] = f
 
     # emma no weighting
     temp_data = emma_data['no_weighting']
@@ -865,20 +870,20 @@ def _add_filter_emma(f5txt, nc_file):
     f[~emmaconverged] = -1
     filters['emma_ewf_wt'] = f
 
-
-    modfilter = nc_file.createVariable('filter5', 'i1', ('nsmc_num',), fill_value=-1, zlib=False)
-    modfilter.setncatts({'units': 'boolean',
-                         'long_name': 'filter 5 end member mixing filter',
-                         'comments': 'not run on models with number above 4000 (denoted -1)',
-                         'missing_value': -1,
-                         'vtype': 'filter'})
-    modfilter[:] = np.zeros((nsmc_dim,)) - 1  # todo
+    for key in filters.keys():
+        modfilter = nc_file.createVariable(key, 'i2', ('nsmc_num',), fill_value=-1, zlib=False)
+        modfilter.setncatts({'units': 'boolean',
+                             'long_name': filter_atts[key]['long_name'],
+                             'comments': filter_atts[key]['comments'],
+                             'missing_value': -1,
+                             'vtype': 'filter'})
+        modfilter[:] = filters[key]
 
 
 def make_netcdf_nsmc(nc_outfile, rrffile, rec_file, opt_lower_rec, opt_upper_rec, rch_ppt_tpl, kh_kv_ppt_file,
                      rei_file, opt_lower_rei, opt_upper_rei, pst_file, prior_sds, prior_ksds_dir, postopt_sds,
                      opt_pst_file,
-                     f1txt, f2txt, f3txt, f4txt, f5txt, recalc=False):
+                     f1txt, f2txt, f3txt, f4txt, f5txt, ncontxt, recalc=False):
     """
 
     :param nc_outfile: path to write the netcdf file
@@ -1011,7 +1016,7 @@ def make_netcdf_nsmc(nc_outfile, rrffile, rec_file, opt_lower_rec, opt_upper_rec
     _add_filter_2(f2txt, nc_file)  # vert filter
     _add_filter_3(f3txt, nc_file)  # piezo filter
     _add_filter_4(f4txt, nc_file)  # intersect of vert and piezo filter
-    _add_filter_emma(f5txt, nc_file)  # end member mixing filter #todo potentially add filters for ran, didn't run ect
+    _add_filter_emma(f5txt, ncontxt, nc_file)  # end member mixing filter
 
     # add general comments
     nc_file.description = (
@@ -1024,7 +1029,6 @@ def make_netcdf_nsmc(nc_outfile, rrffile, rec_file, opt_lower_rec, opt_upper_rec
 
 
 if __name__ == '__main__':
-    # todo spotcheck add opt priors
     data_dir = "{}/from_gns/nsmc".format(smt.sdp)
     make_netcdf_nsmc(nc_outfile=env.gw_met_data("mh_modeling/netcdfs_of_key_modeling_data/nsmc_params_obs_metadata.nc"),
                      rrffile="{}/aw_ex_mc/aw_ex_mc.rrf".format(data_dir),
@@ -1046,5 +1050,6 @@ if __name__ == '__main__':
                      f2txt="{}/F2_vert_filtered_parsets.txt".format(data_dir),
                      f3txt="{}/F2_piez_filtered_parsets.txt".format(data_dir),
                      f4txt="{}/F2_intersect_filtered_parsets.txt".format(data_dir),
-                     f5txt="{}/emma_phis.csv".format(data_dir))
+                     f5txt="{}/emma_phis.csv".format(data_dir),
+                     ncontxt="{}/mednload_converged.txt".format(data_dir))
     print('done')

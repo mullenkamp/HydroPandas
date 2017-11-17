@@ -167,16 +167,15 @@ def end_member_mixing_filter(data_dict, site_limits, method='all_pass', weights=
         inlimits = np.zeros((len(nsmc_nums), 3)).astype(bool)
         for i, rt in enumerate(runtypes):
             temp = (data_dict[rt] >= site_limits[0].loc[:, rt]) & (
-                data_dict[rt] <= site_limits[0].loc[:, rt])  # todo check
+                data_dict[rt] <= site_limits[0].loc[:, rt])
             inlimits[:, i] = temp
         passed = inlimits.all(axis=1)
 
     elif method == 'river':
         rt = 'river'
         passed = (data_dict[rt] >= site_limits[0].loc[:, rt]) & (
-            data_dict[rt] <= site_limits[0].loc[:, rt])  # todo check
+            data_dict[rt] <= site_limits[0].loc[:, rt])
 
-    # todo sort out weighted options
     else:
         raise ValueError('should not get here')
 
@@ -187,7 +186,7 @@ def end_member_mixing_filter(data_dict, site_limits, method='all_pass', weights=
 if __name__ == '__main__':
     ucn_path = env.gw_met_data("mh_modeling/netcdfs_of_key_modeling_data/emma_unc.nc")
     cbc_path = env.gw_met_data(
-        "mh_modeling/netcdfs_of_key_modeling_data/post_filter1_cell_budgets_temp.nc")  # todo update later
+        "mh_modeling/netcdfs_of_key_modeling_data/post_filter1_cell_budgets.nc")
     # set up well sites
     site_info = pd.read_excel(env.sci(
         r"Groundwater\Waimakariri\Groundwater\Groundwater Quality\End member mixing model\Sites_GroupList.xlsx"))
@@ -207,9 +206,3 @@ if __name__ == '__main__':
     data_dict = calculate_endmember_mixing(ucn_nc_path=ucn_path, cbc_nc_path=cbc_path, sites=sites,
                                            outdir=base_dir)
 
-    # todo set up site limits waiting on zeb, will probably end up on a phi option
-    # site_limits = None
-
-    ## run filters
-    # river = end_member_mixing_filter(data_dict=data_dict, site_limits=site_limits,method='river')
-    # river.to_csv(os.path.join(base_dir,'filter_river_method.csv'))

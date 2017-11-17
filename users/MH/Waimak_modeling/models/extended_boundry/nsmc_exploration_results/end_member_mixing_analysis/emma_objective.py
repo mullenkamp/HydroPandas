@@ -38,7 +38,7 @@ def calc_objective_function(modeled, target, weights, groups, group_weights):
     return phi
 
 
-def create_emma_phis(outpath):  # todo
+def create_emma_phis(outpath):
     data = pd.read_csv(env.sci(
         r"Groundwater\Waimakariri\Groundwater\Numerical GW model\nsmc_results\emma_filter\river_end_member_mixing.csv"),
         index_col=0)
@@ -53,10 +53,10 @@ def create_emma_phis(outpath):  # todo
     target_data.loc[:, 'sd'] = ((target_data.loc[:, 'river_med_4EM'] - target_data.loc[:, 'river_5th_4EM']) +
                                 (target_data.loc[:, 'river_95th_4EM'] - target_data.loc[:, 'river_med_4EM'])) / 2
 
-    targets = target_data.groupby('Group').aggregate({'sd': np.mean, 'river_med_4EM': np.mean})  # todo get supergroups
+    targets = target_data.groupby('Group').aggregate({'sd': np.mean, 'river_med_4EM': np.mean})
     targets.loc[:, 'supergroup'] = [target_data.loc[target_data.Group == g, 'SuperGroup'].iloc[0] for g in
                                     targets.index]
-    sites = list(set(target_data.Group).intersection(data.keys()) - {'inland'})  # todo anything else to pull out
+    sites = list(set(target_data.Group).intersection(data.keys()) - {'inland'})
     weights = 1 / targets.loc[sites, 'sd'].values
 
     #{'deep eyreton kaiapoi belfast',

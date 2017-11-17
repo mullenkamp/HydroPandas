@@ -195,7 +195,7 @@ def plot_all_obs_boxplots(nc_path, outdir, filter_strs):
 
         fig, axs = obs_boxplots(param_netcdf_file=nc_data,
                                 sites=val, title=key, yax=ylab,
-                                filter_strs=filter_strs)  # todo update when run filter 5
+                                filter_strs=filter_strs)
 
         # save figures
         if not os.path.exists(outdir):
@@ -292,7 +292,6 @@ def plot_hds_boxplots(nc_path, outdir, filter_strs):
         fig.savefig(os.path.join(outdir, group.lower()+'.png'))
 
 
-# todo
 # avon heathcote vs styks otikino
 
 if __name__ == '__main__':

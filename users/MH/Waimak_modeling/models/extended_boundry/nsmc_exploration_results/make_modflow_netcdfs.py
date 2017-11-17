@@ -52,7 +52,6 @@ def make_modflow_netcdfs(hds_nc_path, bud_nc_path, zlib):
 
 
 if __name__ == '__main__':
-    # todo debug/run
     cont = input('are you sure you want to re-run make modflow netcdfs it will overwrite and takes some time y/n')
     if cont != 'y':
         raise ValueError('user interuppted process to prevent overwrite')

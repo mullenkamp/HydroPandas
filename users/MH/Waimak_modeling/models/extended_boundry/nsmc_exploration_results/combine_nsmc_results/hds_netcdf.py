@@ -131,7 +131,6 @@ def make_hds_netcdf(nsmc_nums, hds_paths, description, nc_path, zlib):
         all_hds[i * num_files:i * num_files + num_not_nan] = outdata
         gc.collect()
 
-# todo debug
 def grouper(n, iterable, fillvalue=None):
     "grouper(3, 'ABCDEFG', 'x') --> ABC DEF Gxx"
     args = [iter(iterable)] * n

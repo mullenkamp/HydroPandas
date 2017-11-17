@@ -36,7 +36,6 @@ def gen_dist(sd_type, u, sd, n):
     return out
 
 
-# todo
 def _plt_parm_boxplot(ax, opt_prior, post_opt_dist, post_jac_dist, labels, filter_dist, limits, ylab, ax_title):
     # watch inputs carefully
     if not all([len(e) == len(opt_prior) for e in [opt_prior, post_opt_dist, post_jac_dist,
@@ -159,7 +158,7 @@ def _get_plting_dists(nc_file, sites, data_types, filter_array, layers):
                     up = nc_file['{}_upper'.format(prefix)][layer][idx][0]
                     lo = nc_file['{}_lower'.format(prefix)][layer][idx][0]
                     filter_dist_t = np.concatenate(
-                        (filter_dist_t, np.array(nc_file[prefix][filter_array, layer, idx]).transpose())) #todo check shape
+                        (filter_dist_t, np.array(nc_file[prefix][filter_array, layer, idx]).transpose()))
                 else:
                     ids = np.array(nc_file[id_str])
                     idx = ids == feature
@@ -299,7 +298,7 @@ def plot_all_ppp_boxplots(outdir, filter_strs):
                                            transformation=_to_m3s)
     fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
 
-    title = 'Cust Inflows'  # todo may need to split this one
+    title = 'Cust Inflows'
     print(title)
     fig, ax = plot_supergroup_ppp_boxplots(filter_strs=filter_strs, param_nc=param_nc,
                                            layers = [0,0], supergroup=title,
@@ -351,7 +350,7 @@ def plot_all_ppp_boxplots(outdir, filter_strs):
             fig, ax = plot_supergroup_ppp_boxplots(filter_strs=filter_strs, param_nc=param_nc,
                                                    layers=layers, supergroup=title,
                                                    sites=sites,
-                                                   datatypes=datatypes, ylab='fraction',
+                                                   datatypes=datatypes, ylab='log({})'.format(kidx),
                                                    transformation=_log10)
             fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
 
@@ -369,7 +368,7 @@ def plot_all_ppp_boxplots(outdir, filter_strs):
             fig, ax = plot_supergroup_ppp_boxplots(filter_strs=filter_strs, param_nc=param_nc,
                                                    layers=layers, supergroup=title,
                                                    sites=sites,
-                                                   datatypes=datatypes, ylab='fraction',
+                                                   datatypes=datatypes, ylab='log({})'.format(kidx),
                                                    transformation=_log10)
             fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
 
