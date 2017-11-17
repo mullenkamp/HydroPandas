@@ -118,10 +118,10 @@ def make_n_converged():
         if not np.isnan(np.array(nc_data.variables['mednload'][i,1])).all():
             conv.append(num)
 
-    with open(env.sci(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\from_gns\nsmc\mednload_converged.txt"),'w') as f:
+    with open(env.sci(r"Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\from_gns\nsmc\mednload_converged.txt"),'w') as f:
         f.writelines(['{}\n'.format(e) for e in conv])
 
 
 
 if __name__ == '__main__':
-    create_emma_phis(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\from_gns\nsmc\emma_phis.csv")
+    make_n_converged()
