@@ -824,7 +824,7 @@ def _add_filter_emma(f5txt, nconv, nc_file):
     filters['run_mt3d'] = ran.astype(int)
 
     # emma converged
-    emmaconverged = np.in1d(nsmc_nums,emma_data.loc[emma_data.notnull().any(axis=1).index])
+    emmaconverged = np.in1d(nsmc_nums,emma_data.notnull().any(axis=1).index)
     f = emmaconverged.astype(int)
     f[~ran] = -1
     filters['emma_converge'] = f
@@ -839,34 +839,34 @@ def _add_filter_emma(f5txt, nconv, nc_file):
 
     # emma no weighting
     temp_data = emma_data['no_weighting']
-    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)]).astype(int)
+    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)].index).astype(int)
     f[~emmaconverged] = -1
     filters['emma_no_wt'] = f
 
     # emma equal weighting
     temp_data = emma_data['equal_num']
-    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)]).astype(int)
+    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)].index).astype(int)
     f[~emmaconverged] = -1
     filters['emma_eq_wt'] = f
 
 
     # emma chch weighting
     temp_data = emma_data['chch_weighted']
-    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)]).astype(int)
+    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)].index).astype(int)
     f[~emmaconverged] = -1
     filters['emma_chch_wt'] = f
 
 
     # emma stream weighting
     temp_data = emma_data['stream_weighted']
-    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)]).astype(int)
+    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)].index).astype(int)
     f[~emmaconverged] = -1
     filters['emma_str_wt'] = f
 
 
     # emma ewf weighting
     temp_data = emma_data['ewf_weighted']
-    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)]).astype(int)
+    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)].index).astype(int)
     f[~emmaconverged] = -1
     filters['emma_ewf_wt'] = f
 

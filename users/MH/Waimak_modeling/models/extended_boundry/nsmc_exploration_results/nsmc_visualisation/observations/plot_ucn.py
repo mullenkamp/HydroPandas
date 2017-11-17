@@ -88,59 +88,59 @@ def plot_all_2d_con(outdir, filter_strs):
 
         fig.savefig(os.path.join(outdir, title.replace(' ', '_')+'.png'))
         plt.close()
-
-    for l in range(smt.layers):
-        title = 'coastal component for layer {:02d}'.format(l+1)
-        print(title)
-        fig, axs = plot_sd_mean_multid(filter_strs=filter_strs, layer=l,
-                                       nc_param_data=nc_param_data, nc_obs_data=emma,
-                                       data_id='coastal', function_adjust=no_change,
-                                       title=title,
-                                       basemap=True, contour={'sd': False, 'mean': False, 'sum': True},
-                                       method='mean_sd', contour_color='g')
-
-        fig.savefig(os.path.join(outdir, title.replace(' ', '_')+'.png'))
-        plt.close()
-
-    for l in range(smt.layers):
-        title = 'inland component for layer {:02d}'.format(l+1)
-        print(title)
-        fig, axs = plot_sd_mean_multid(filter_strs=filter_strs, layer=l,
-                                       nc_param_data=nc_param_data, nc_obs_data=emma,
-                                       data_id='inland', function_adjust=no_change,
-                                       title=title,
-                                       basemap=True, contour={'sd': False, 'mean': False, 'sum': True},
-                                       method='mean_sd', contour_color='g')
-
-        fig.savefig(os.path.join(outdir, title.replace(' ', '_')+'.png'))
-        plt.close()
-
-    for l in range(smt.layers):
-        title = 'river component for layer {:02d}'.format(l+1)
-        print(title)
-        fig, axs = plot_sd_mean_multid(filter_strs=filter_strs, layer=l,
-                                       nc_param_data=nc_param_data, nc_obs_data=emma,
-                                       data_id='river', function_adjust=no_change,
-                                       title=title,
-                                       basemap=True, contour={'sd': False, 'mean': False, 'sum': True},
-                                       method='mean_sd', contour_color='g')
-
-        fig.savefig(os.path.join(outdir, title.replace(' ', '_')+'.png'))
-        plt.close()
-
-    for limit, ftn in zip([1, 2.85, 5.65, 11.3], [_above_low, _above_quarter_mav, _above_half_mav, _above_mav]):
+    if False: # quick way to stop from running
         for l in range(smt.layers):
-            title = 'N above {} (gm3) for layer {:02d}'.format(limit, l+1)
+            title = 'coastal component for layer {:02d}'.format(l+1)
             print(title)
             fig, axs = plot_sd_mean_multid(filter_strs=filter_strs, layer=l,
-                                           nc_param_data=nc_param_data, nc_obs_data=bestn,
-                                           data_id='mednload', function_adjust=ftn,
+                                           nc_param_data=nc_param_data, nc_obs_data=emma,
+                                           data_id='coastal', function_adjust=no_change,
                                            title=title,
                                            basemap=True, contour={'sd': False, 'mean': False, 'sum': True},
                                            method='mean_sd', contour_color='g')
 
-            fig.savefig(os.path.join(outdir, title.replace(' ', '_' )+'.png'))
+            fig.savefig(os.path.join(outdir, title.replace(' ', '_')+'.png'))
             plt.close()
+
+        for l in range(smt.layers):
+            title = 'inland component for layer {:02d}'.format(l+1)
+            print(title)
+            fig, axs = plot_sd_mean_multid(filter_strs=filter_strs, layer=l,
+                                           nc_param_data=nc_param_data, nc_obs_data=emma,
+                                           data_id='inland', function_adjust=no_change,
+                                           title=title,
+                                           basemap=True, contour={'sd': False, 'mean': False, 'sum': True},
+                                           method='mean_sd', contour_color='g')
+
+            fig.savefig(os.path.join(outdir, title.replace(' ', '_')+'.png'))
+            plt.close()
+
+        for l in range(smt.layers):
+            title = 'river component for layer {:02d}'.format(l+1)
+            print(title)
+            fig, axs = plot_sd_mean_multid(filter_strs=filter_strs, layer=l,
+                                           nc_param_data=nc_param_data, nc_obs_data=emma,
+                                           data_id='river', function_adjust=no_change,
+                                           title=title,
+                                           basemap=True, contour={'sd': False, 'mean': False, 'sum': True},
+                                           method='mean_sd', contour_color='g')
+
+            fig.savefig(os.path.join(outdir, title.replace(' ', '_')+'.png'))
+            plt.close()
+
+        for limit, ftn in zip([1, 2.85, 5.65, 11.3], [_above_low, _above_quarter_mav, _above_half_mav, _above_mav]):
+            for l in range(smt.layers):
+                title = 'N above {} (gm3) for layer {:02d}'.format(limit, l+1)
+                print(title)
+                fig, axs = plot_sd_mean_multid(filter_strs=filter_strs, layer=l,
+                                               nc_param_data=nc_param_data, nc_obs_data=bestn,
+                                               data_id='mednload', function_adjust=ftn,
+                                               title=title,
+                                               basemap=True, contour={'sd': False, 'mean': False, 'sum': True},
+                                               method='mean_sd', contour_color='g')
+
+                fig.savefig(os.path.join(outdir, title.replace(' ', '_' )+'.png'))
+                plt.close()
 
 
 # both 2D spatial as well as point measurements at wells for example
@@ -229,6 +229,14 @@ def plot_well_con(param_nc_path, con_nc_path, con_str, outdir, filter_strs):
         fig.suptitle(supergroup.title())
 
         fig.savefig(os.path.join(outdir, supergroup.lower()+'.png'))
+
+def plot_all_cons(outdir,filterstrs):
+    plot_all_2d_con(outdir, filter_strs=filterstrs)
+    plot_well_con(env.gw_met_data(r"mh_modeling\netcdfs_of_key_modeling_data\nsmc_params_obs_metadata.nc"),
+                  r"C:\mh_waimak_model_data\mednload_ucn.nc",
+                  con_str='mednload',
+                  outdir=outdir,
+                  filter_strs=filterstrs)
 
 
 if __name__ == '__main__':

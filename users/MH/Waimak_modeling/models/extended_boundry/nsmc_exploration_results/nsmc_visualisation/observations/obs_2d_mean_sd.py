@@ -246,17 +246,18 @@ def plot_all_2d_obs(outdir,filter_strs):
         plt.close()
 
     # drn flux
-    title = 'drain flux'
-    print('plotting {}'.format(title))
-    fig, axs = plot_sd_mean_multid(filter_strs=filter_strs, layer=0,
-                                   nc_param_data=nc_param_data, nc_obs_data=nc_bud_data,
-                                   data_id='drains', function_adjust=no_change,
-                                   title=title,
-                                   basemap=True, contour={'sd': False, 'mean': False, 'sum': True},
-                                   method='mean_sd', contour_color='g')
+    if False: # quickly stop from running
+        title = 'drain flux'
+        print('plotting {}'.format(title))
+        fig, axs = plot_sd_mean_multid(filter_strs=filter_strs, layer=0,
+                                       nc_param_data=nc_param_data, nc_obs_data=nc_bud_data,
+                                       data_id='drains', function_adjust=no_change,
+                                       title=title,
+                                       basemap=True, contour={'sd': False, 'mean': False, 'sum': True},
+                                       method='mean_sd', contour_color='g')
 
-    fig.savefig(os.path.join(outdir, title.replace(' ','_')+'.png'))
-    plt.close()
+        fig.savefig(os.path.join(outdir, title.replace(' ','_')+'.png'))
+        plt.close()
 
     # layer one bottom flux (as 1 0 -1)
     for l in range(smt.layers):
