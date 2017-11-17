@@ -294,6 +294,12 @@ def plot_hds_boxplots(nc_path, outdir, filter_strs):
 
 # avon heathcote vs styks otikino
 
+def plot_obs_all_all_boxplots(outdir, filters):
+    nc_path = env.gw_met_data(r"mh_modeling\netcdfs_of_key_modeling_data\nsmc_params_obs_metadata.nc")
+    plot_all_obs_boxplots(nc_path,outdir,filters)
+    plot_hds_boxplots(nc_path,outdir,filters)
+
+
 if __name__ == '__main__':
     nc_path = r"K:\mh_modeling\netcdfs_of_key_modeling_data\nsmc_params_obs_metadata.nc"
     base_dir = r"C:\Users\MattH\Downloads"
