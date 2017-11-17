@@ -52,7 +52,17 @@ def full_vis(outdir, filters_strs):
 
 if __name__ == '__main__':
     filter_lists = [  # todo
-        ['filter1', 'filter2']
+        ['emma_converge', '~0emma_converge'],
+        ['n_converge', '~0n_converge'],
+        ['emma_ewf_wt', 'run_mt3d'],
+
+        ['emma_chch_wt', 'run_mt3d'],
+        ['emma_str_wt', 'run_mt3d'],
+        ['emma_no_wt', 'run_mt3d'],
+        ['emma_eq_wt', 'run_mt3d'],
+        ['emma_ewf_wt', 'emma_chch_wt'],
+        ['emma_no_wt', 'emma_eq_wt'],
+        ['emma_chch_wt', 'emma_str_wt']
 
     ]
 
@@ -60,4 +70,4 @@ if __name__ == '__main__':
     t = time.time()
     for i, fstr in enumerate(filter_lists):
         print '{}: {} of {} {} min from start'.format(fstr, i, len(filter_lists), (t - time.time()) / 60)
-        full_vis(os.path.join(base_dir, ''.join(fstr).replace('~', 'not')),fstr)
+        full_vis(os.path.join(base_dir, '_'.join(fstr).replace('~', 'not')), fstr)
