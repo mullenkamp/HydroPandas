@@ -71,6 +71,10 @@ def mc_calc_end_members(outdir, sites, o18_u, o18_s, cl_u, cl_s, n=10000):
         fig.savefig(os.path.join(plot_dir, '{}.png'.format(site.replace('/','_'))))
         plt.close(fig)
 
+        for i, name in enumerate(['coastal','inland','river']):
+            out = temp_out[:,0]
+            np.savetxt(os.path.join(outdir,'{}_{}.txt'.format(site.replace('/','_'),name)),out)
+
     outdata_5th.to_csv(os.path.join(outdir, '5th.csv'))
     outdata_median.to_csv(os.path.join(outdir, 'median.csv'))
     outdata_95th.to_csv(os.path.join(outdir, '95th.csv'))
@@ -93,6 +97,6 @@ if __name__ == '__main__':
                        'o18_upper': targets.loc[site,'o18_mean'] + targets.loc[site,'o18_stdev'],
                        'cl_lower': targets.loc[site,'cl_mean'] - targets.loc[site,'cl_stdev'],
                        'cl_upper': targets.loc[site,'cl_mean'] + targets.loc[site,'cl_stdev']}
-    mc_calc_end_members(r"\\gisdata\projects\SCI\Groundwater\Waimakariri\Groundwater\Groundwater Quality\End member mixing model\Additional target wells",
-                        sites, end_mean_o18, end_sd_o18, end_mean_cl, end_sd_cl)
+    mc_calc_end_members(r"\\gisdata\projects\SCI\Groundwater\Waimakariri\Groundwater\Groundwater Quality\End member mixing model\Additional target wells_rerun",
+                        sites, end_mean_o18, end_sd_o18, end_mean_cl, end_sd_cl,n=5000)
     print'done'

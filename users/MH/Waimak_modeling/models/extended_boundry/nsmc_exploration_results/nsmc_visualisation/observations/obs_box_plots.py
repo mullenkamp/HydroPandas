@@ -14,6 +14,7 @@ import os
 import pandas as pd
 from warnings import warn
 
+np.random.seed(1)
 
 def obs_boxplots(param_netcdf_file, sites, title, yax, filter_strs):
     """

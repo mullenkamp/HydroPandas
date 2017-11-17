@@ -11,19 +11,24 @@ import matplotlib.pyplot as plt
 import netCDF4 as nc
 import os
 import pandas as pd
+from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 
+np.random.seed(1)
 
 def _no_change(x):  # note that the transformations act on lists of numpy arrays
     return x
 
 def _to_m3s(x):
     x = np.atleast_2d(x)
-    return x/86400
+    return [e for e in x/86400]
+def _log10(x):
+    x = np.atleast_2d(x)
+    return [e for e in np.log10(x)]
 
 
 def gen_dist(sd_type, u, sd, n):
     if sd_type == 'log':
-        out = 10 ** np.random.normal(u, sd, size=n)
+        out = np.random.lognormal(np.log(u), sd/np.log10(np.e), size=n)
     elif sd_type == 'lin':
         out = np.random.normal(u, sd, size=n)
     else:
@@ -39,7 +44,8 @@ def _plt_parm_boxplot(ax, opt_prior, post_opt_dist, post_jac_dist, labels, filte
         raise ValueError('all distributions must have the same length')
 
     # the simple plotting set up
-    positions = np.arange(len(opt_prior)) + 1
+    stp=1.5
+    positions = np.arange(0,len(opt_prior)*stp, stp) + 1
     # plot the data
     # post_opt_dist
     t = ax.boxplot(x=post_opt_dist, positions=positions - 0.33, whis=[5,95])
@@ -65,6 +71,10 @@ def _plt_parm_boxplot(ax, opt_prior, post_opt_dist, post_jac_dist, labels, filte
                    showcaps=False, showbox=False, showfliers=False, medianprops={'color': 'm', 'linewidth': 2})
 
     ax.set_xlim([0, positions[-1] + 1])
+    ymax = np.max(limits)
+    ymin = np.min(limits)
+    ax.set_ylim(ymin - 0.05 * np.abs(ymin), ymax + 0.05 * np.abs(ymax))
+
 
     ax.set_ylabel(ylab)
     ax.set_title(ax_title)
@@ -79,8 +89,9 @@ def _get_plting_dists(nc_file, sites, data_types, filter_array, layers):
     :return:
     """
     opt_prior, post_opt_dist, post_jac_dist, filter_dist, labels, limits = [], [], [], [], [], []
-
-    for data_type, site, layer in zip(data_types, sites.keys(), layers):
+    sort_idx = np.argsort(sites.keys())
+    for data_type, site, layer in zip(np.array(data_types)[sort_idx], np.array(sites.keys())[sort_idx],
+                                      np.array(layers)[sort_idx]):
         labels.append(site)
         array_len = filter_array.sum()
         opt_prior_t = np.array([0])[np.newaxis, :]
@@ -98,13 +109,17 @@ def _get_plting_dists(nc_file, sites, data_types, filter_array, layers):
                 u = nc_file[feature].initial
                 up = nc_file[feature].upper
                 lo = nc_file[feature].lower
+                addju = 0
+                if feature == 'llrzf':
+                    u +=1000000
+                    addju = - 1000000
 
                 opt_prior_t = np.concatenate((opt_prior_t, [[opt_p]]), axis=0)  # axis just to show for future
                 limits_t = np.concatenate((limits_t, [[lo, up]]))
                 post_opt_dist_t = np.concatenate(
-                    (post_opt_dist_t, gen_dist(sd_type, u, p_sd, array_len)[np.newaxis, :]))
+                    (post_opt_dist_t, gen_dist(sd_type, u, p_sd, array_len)[np.newaxis, :]+addju))
                 post_jac_dist_t = np.concatenate(
-                    (post_jac_dist_t, gen_dist(sd_type, u, j_sd, array_len)[np.newaxis, :]))
+                    (post_jac_dist_t, gen_dist(sd_type, u, j_sd, array_len)[np.newaxis, :]+addju))
                 filter_dist_t = np.concatenate((filter_dist_t, np.array(nc_file[feature][filter_array])[np.newaxis,:]))
 
             else:
@@ -144,7 +159,7 @@ def _get_plting_dists(nc_file, sites, data_types, filter_array, layers):
                     up = nc_file['{}_upper'.format(prefix)][layer][idx][0]
                     lo = nc_file['{}_lower'.format(prefix)][layer][idx][0]
                     filter_dist_t = np.concatenate(
-                        (filter_dist_t, np.array(nc_file[feature][filter_array, layer, idx]))) #todo check shape
+                        (filter_dist_t, np.array(nc_file[prefix][filter_array, layer, idx]).transpose())) #todo check shape
                 else:
                     ids = np.array(nc_file[id_str])
                     idx = ids == feature
@@ -155,7 +170,7 @@ def _get_plting_dists(nc_file, sites, data_types, filter_array, layers):
                     u = nc_file['{}_initial'.format(prefix)][idx][0]
                     up = nc_file['{}_upper'.format(prefix)][idx][0]
                     lo = nc_file['{}_lower'.format(prefix)][idx][0]
-                    filter_dist_t = np.concatenate((filter_dist_t, np.array(nc_file[feature][filter_array, idx]))) #todo check shape
+                    filter_dist_t = np.concatenate((filter_dist_t, np.array(nc_file['rch_mult'][filter_array, idx]).transpose()))
 
                 opt_prior_t = np.concatenate((opt_prior_t, [[opt_p]]), axis=0)  # axis just to show for future
                 limits_t = np.concatenate((limits_t, [[lo, up]]))
@@ -229,17 +244,29 @@ def plot_supergroup_ppp_boxplots(filter_strs, param_nc, layers, supergroup, site
         ymin = min([e.get_ylim()[0] for e in axs.flatten()])
         [e.set_ylim(ymin, ymax)
          for e in axs.flatten()]
-        fig.suptitle(supergroup.title())
+    fig.suptitle(supergroup.title())
+    [[tick.set_rotation(45) for tick in ax.get_xticklabels()] for ax in axs.flatten()]
 
     return fig, axs
 
 
 def plot_all_ppp_boxplots(outdir, filter_strs):
     filter_strs = np.atleast_1d(filter_strs)
+    khv_rch_points = pd.read_excel(r'\\gisdata\projects\SCI\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\LSR_KhKv_PilotPoints_Groups.xlsx')
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
     param_nc = nc.Dataset(env.gw_met_data("mh_modeling/netcdfs_of_key_modeling_data/nsmc_params_obs_metadata.nc"))
+
+    # southern boundry fluxes
+    title = 'SW Boundary Flux'
+    print(title)
+    fig, ax = plot_supergroup_ppp_boxplots(filter_strs=filter_strs, param_nc=param_nc,
+                                           layers = [0,0], supergroup=title,
+                                           sites={'Inland':['ulrzf'], 'Coastal':['llrzf']},
+                                           datatypes = ['simple', 'simple'], ylab='m3/s',
+                                           transformation=_to_m3s)
+    fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
 
     # PUMPING
     title = 'pumping multipliers'
@@ -251,7 +278,7 @@ def plot_all_ppp_boxplots(outdir, filter_strs):
     fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
 
     # nraces , nboundry flux, s river, south races
-    title = 'other multipliers'  # todo just a default
+    title = 'other multipliers'
     print(title)
     fig, ax = plot_supergroup_ppp_boxplots(filter_strs=filter_strs, param_nc=param_nc,
                                            layers = [0,0,0,0], supergroup=title,
@@ -261,15 +288,6 @@ def plot_all_ppp_boxplots(outdir, filter_strs):
                                            ylab='percent injection')
     fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
 
-    # southern boundry fluxes
-    title = 'SW Boundary Flux'
-    print(title)
-    fig, ax = plot_supergroup_ppp_boxplots(filter_strs=filter_strs, param_nc=param_nc,
-                                           layers = [0,0], supergroup=title,
-                                           sites={'Inland':['ulrzf'], 'Coastal':['llrzf']},
-                                           datatypes = ['simple', 'simple'], ylab='m3/s',
-                                           transformation=_to_m3s)
-    fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
 
     # river inflows (may need to split due to scale)
     title = 'Eyre Flow'
@@ -291,18 +309,71 @@ def plot_all_ppp_boxplots(outdir, filter_strs):
     fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
 
     # fault multipliers
-    title = 'Fault Multipliers'
+    title = 'Log Fault Multipliers'
     print(title)
     fig, ax = plot_supergroup_ppp_boxplots(filter_strs=filter_strs, param_nc=param_nc,
                                            layers = [0,0], supergroup=title,
                                            sites={'Kh':['fkh_mult'], 'Kv':['fkv_mult']},
-                                           datatypes = ['simple', 'simple'], ylab='fraction')
+                                           datatypes = ['simple', 'simple'], ylab='log of multiplier',
+                                           transformation=_log10)
     fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
 
-    # todo plot zebs kv and kh groups both by layer(one plot per group) and all groups by layer (one plot per layer)
     # recharge (tricky)
+    title = 'Land Surface Recharge Multiplier'
+    print(title)
+    sites = {}
+    for g in set(khv_rch_points.loc[khv_rch_points['dtype']=='rch','Group']):
+        sites[g] = list(set(khv_rch_points.loc[khv_rch_points['Group']==g,'id']))
+    layers = np.zeros(len(sites.keys()))
+    datatypes = ['rch' for e in sites.keys()]
 
-    # ks (tricky
+    fig, ax = plot_supergroup_ppp_boxplots(filter_strs=filter_strs, param_nc=param_nc,
+                                           layers=layers, supergroup=title,
+                                           sites=sites,
+                                           datatypes=datatypes, ylab='fraction')
+    fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
+
+    # kh and kv
+    kgroups = list(set(khv_rch_points.loc[khv_rch_points['dtype']=='k','Group']))
+    for kidx  in ['kh', 'kv']:
+
+        # ks layers in same plot (per group) (tricky)
+        for g in kgroups:
+            title = 'Log10 {} all layers {}'.format(kidx,g)
+            print(title)
+            sites = {}
+            layers = []
+            for l in range(smt.layers):
+                sites['{} L{:02d}'.format(g,l)] = khv_rch_points.loc[khv_rch_points['Group']==g,'id']
+                layers.append(l)
+            datatypes = [kidx for e in sites.keys()]
+
+            fig, ax = plot_supergroup_ppp_boxplots(filter_strs=filter_strs, param_nc=param_nc,
+                                                   layers=layers, supergroup=title,
+                                                   sites=sites,
+                                                   datatypes=datatypes, ylab='fraction',
+                                                   transformation=_log10)
+            fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
+
+        # ks groups in same plot (per layer)(tricky)
+        for l in range(smt.layers):
+            title = 'Log10 {} layer {:02d}'.format(kidx,l)
+            print(title)
+            sites = {}
+            layers = []
+            for g in kgroups:
+                sites[g] = khv_rch_points.loc[khv_rch_points['Group']==g,'id']
+                layers.append(l)
+            datatypes = [kidx for e in sites.keys()]
+
+            fig, ax = plot_supergroup_ppp_boxplots(filter_strs=filter_strs, param_nc=param_nc,
+                                                   layers=layers, supergroup=title,
+                                                   sites=sites,
+                                                   datatypes=datatypes, ylab='fraction',
+                                                   transformation=_log10)
+            fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
+
+
 
 
 

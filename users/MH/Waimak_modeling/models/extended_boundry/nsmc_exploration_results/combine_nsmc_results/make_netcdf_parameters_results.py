@@ -98,10 +98,16 @@ def _add_simple_params(param, pst_param, prior_sd_data, postopt_sd_data, nc_file
                         'vtype': 'param',
                         'sd_type': simple_parameters[key]['sd_type'],
                         'p_sd': prior_sd_data.loc[key, 'sd'],
-                        'j_sd': postopt_sd_data.loc[key, 'sd'],
+                        'j_sd': postopt_sd_data.loc[key, 'sd']**0.5,
                         'opt_p': simple_parameters[key]['opt_p']
                         })
-        temp[:] = param.loc[key].values
+        adder = 0
+        if key == 'llrzf':
+            adder = -181441 # offset in pest
+        elif key == 'ulrzf':
+            adder = -1
+
+        temp[:] = param.loc[key].values + adder
 
 
 def _add_rch_params(param, rch_ppt_tpl, pst_param, prior_sd_data, postopt_sd_data, nc_file):
@@ -173,7 +179,7 @@ def _add_rch_params(param, rch_ppt_tpl, pst_param, prior_sd_data, postopt_sd_dat
                            'missing_value': np.nan,
                            'vtype': 'meta',
                            'sd_type': 'lin'})
-    rch_sd_post[:] = postopt_sd_data.loc[rch_ppt_ids, 'sd'].values
+    rch_sd_post[:] = postopt_sd_data.loc[rch_ppt_ids, 'sd'].values **0.5
 
     rch_group = nc_file.createVariable('rch_ppt_group', 'i4', ('rch_ppt',), fill_value=-9, zlib=False)
     rch_group.setncatts({'flag_values': [1, 2, 3, 4],
@@ -260,7 +266,7 @@ def _add_sfr_cond(param, pst_param, prior_sd_data, postopt_sd_data, nc_file):
                            'vtype': 'meta',
                            'sd_type': 'log'
                            })
-    sfr_post_sd[:] = postopt_sd_data.loc[hcond_sites, 'sd'].values
+    sfr_post_sd[:] = postopt_sd_data.loc[hcond_sites, 'sd'].values**0.5
 
     sfr_cond_val = nc_file.createVariable('sfr_cond_val', 'f8', ('nsmc_num', 'sfr_cond'), fill_value=np.nan, zlib=False)
     sfr_cond_val.setncatts({'units': 'm/day',
@@ -329,7 +335,7 @@ def _add_drain_cond(param, pst_param, prior_sd_data, postopt_sd_data, nc_file):
                            'missing_value': np.nan,
                            'vtype': 'meta',
                            'sd_type': 'log'})
-    drn_post_sd[:] = postopt_sd_data.loc[drns, 'sd'].values
+    drn_post_sd[:] = postopt_sd_data.loc[drns, 'sd'].values**0.5
 
     drn_cond = nc_file.createVariable('drn_cond', 'f8', ('nsmc_num', 'drns'), fill_value=np.nan, zlib=False)
     drn_cond.setncatts({'units': 'm3/day',
@@ -439,7 +445,7 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
                            'missing_value': np.nan,
                            'vtype': 'meta',
                            'sd_type': 'log'})
-    pptprior_sd[:] = temp_prior_sd
+    pptprior_sd[:] = temp_prior_sd**0.5
 
     pptoptp = nc_file.createVariable('kv_opt_p', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=False)
     pptoptp.setncatts({'units': 'm/day',
@@ -456,7 +462,7 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
                           'missing_value': np.nan,
                           'vtype': 'meta',
                           'sd_type': 'log'})
-    pptpost_sd[:] = temp_post_sd
+    pptpost_sd[:] = temp_post_sd**0.5
 
     # kh upper lower initial
     temp_upper = np.zeros((layer_dim, khv_dim)) * np.nan
@@ -517,7 +523,7 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
                            'missing_value': np.nan,
                            'vtype': 'meta',
                            'sd_type': 'log'})
-    pptprior_sd[:] = temp_prior_sd
+    pptprior_sd[:] = temp_prior_sd**0.5
 
     pptpost_sd = nc_file.createVariable('kh_j_sd', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=False)
     pptpost_sd.setncatts({'units': 'm/day',
@@ -525,7 +531,7 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
                           'missing_value': np.nan,
                           'vtype': 'meta',
                           'sd_type': 'log'})
-    pptpost_sd[:] = temp_post_sd
+    pptpost_sd[:] = temp_post_sd**0.5
 
     # kv
     kv = nc_file.createVariable('kv', 'f8', ('nsmc_num', 'layer', 'khv_ppt'), fill_value=np.nan, zlib=False)

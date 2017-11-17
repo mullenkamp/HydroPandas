@@ -18,6 +18,7 @@ from warnings import warn
 from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.all_well_layer_col_row import \
     get_all_well_row_col
 
+np.random.seed(1)
 
 def _above_mav(x, **kwargs):
     return x >= 11.3

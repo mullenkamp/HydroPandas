@@ -11,6 +11,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
+np.random.seed(1)
+
 #todo add the next level of filtering (e.g. post filter to this plot)
 def plot_river_mixing(outdir):
     data = pd.read_csv(env.sci(r"Groundwater\Waimakariri\Groundwater\Numerical GW model\nsmc_results\emma_filter\river_end_member_mixing.csv"))
