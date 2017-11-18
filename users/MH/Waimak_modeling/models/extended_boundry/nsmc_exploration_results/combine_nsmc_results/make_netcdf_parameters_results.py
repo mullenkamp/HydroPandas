@@ -824,7 +824,7 @@ def _add_filter_emma(f5txt, nconv, nc_file):
     filters['run_mt3d'] = ran.astype(int)
 
     # emma converged
-    emmaconverged = np.in1d(nsmc_nums,emma_data.notnull().any(axis=1).index)
+    emmaconverged = np.in1d(nsmc_nums,emma_data.loc[emma_data.notnull().any(axis=1)].index)
     f = emmaconverged.astype(int)
     f[~ran] = -1
     filters['emma_converge'] = f

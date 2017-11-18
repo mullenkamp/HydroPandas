@@ -18,10 +18,13 @@ import traceback
 from scipy.interpolate import griddata
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.stream_depletion_assesment.stream_depletion_numerical_model_runs.grid_sd.visualise_grid_sd import get_mask
 
-data = nc.Dataset(r"C:\mh_waimak_model_data\post_filter1_hds_comp.nc") # todo both on the server please
-data2 = nc.Dataset(r"C:\mh_waimak_model_data\post_filter1_hds.nc") #todo try the uncompressed file
-def read_netcdf_comp(n=1):
-    temp = data.variables['heads'][0,0]
+base_dir = r"K:\mh_modeling\nsmc_plots"
 
-def read_netcdf_uncomp(n=1):
-    temp = data2.variables['heads'][0,0]
+f = open(r"C:\Users\MattH\Downloads\check_plots.txt",'w')
+
+for dirs in os.listdir(base_dir):
+    f.write('{}\n'.format(dirs))
+    for sub in os.listdir(os.path.join(base_dir,dirs)):
+        f.write('{}\n'.format(sub))
+    f.write('\n')
+f.close()
