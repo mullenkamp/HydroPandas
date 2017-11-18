@@ -200,7 +200,7 @@ def plt_all_spatial_param(outdir,filter_strs):
                                        title=title, basemap=True, contour={'sd': False, 'mean': False},
                                        contour_color='g', vmins=None, vmaxes=None)
         fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
-        plt.close()
+        plt.close(fig)
 
 
         #kh for each layer
@@ -213,7 +213,7 @@ def plt_all_spatial_param(outdir,filter_strs):
                                        title=title, basemap=True, contour={'sd': False, 'mean': False},
                                        contour_color='g', vmins=None, vmaxes=None)
         fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
-        plt.close()
+        plt.close(fig)
 
     # rch
     title = 'recharge multiplier'
@@ -222,6 +222,6 @@ def plt_all_spatial_param(outdir,filter_strs):
                         title=title, basemap=True, contour={'sd': False, 'mean': False},
                         contour_color='g', vmins=None, vmaxes=None)
     fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
-    plt.close()
+    plt.close(fig)
 if __name__ == '__main__':
     plt_all_spatial_param(r"T:\Temp\temp_gw_files\testparam2dplots", filter_strs=['filter2', 'filter3'])

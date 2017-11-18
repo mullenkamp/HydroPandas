@@ -59,7 +59,7 @@ def plot_all_2d_con(outdir, filter_strs):
                                        vmaxes={'mean':11.3, 'sd':3}, vmins={'mean':1})
 
         fig.savefig(os.path.join(outdir, title.replace(' ', '_')+'.png'))
-        plt.close()
+        plt.close(fig)
 
     for l in range(smt.layers):
         title = 'best N estimate for layer {:02d}'.format(l+1)
@@ -72,7 +72,7 @@ def plot_all_2d_con(outdir, filter_strs):
                                        method='mean_sd', contour_color='g')
 
         fig.savefig(os.path.join(outdir, title.replace(' ', '_')+'.png'))
-        plt.close()
+        plt.close(fig)
 
 
     for l in range(smt.layers):
@@ -87,7 +87,7 @@ def plot_all_2d_con(outdir, filter_strs):
                                        vmaxes={'mean':5.65, 'sd':1.5}, vmins={'mean':1})
 
         fig.savefig(os.path.join(outdir, title.replace(' ', '_')+'.png'))
-        plt.close()
+        plt.close(fig)
     if False: # quick way to stop from running
         for l in range(smt.layers):
             title = 'coastal component for layer {:02d}'.format(l+1)
@@ -100,7 +100,7 @@ def plot_all_2d_con(outdir, filter_strs):
                                            method='mean_sd', contour_color='g')
 
             fig.savefig(os.path.join(outdir, title.replace(' ', '_')+'.png'))
-            plt.close()
+            plt.close(fig)
 
         for l in range(smt.layers):
             title = 'inland component for layer {:02d}'.format(l+1)
@@ -113,7 +113,7 @@ def plot_all_2d_con(outdir, filter_strs):
                                            method='mean_sd', contour_color='g')
 
             fig.savefig(os.path.join(outdir, title.replace(' ', '_')+'.png'))
-            plt.close()
+            plt.close(fig)
 
         for l in range(smt.layers):
             title = 'river component for layer {:02d}'.format(l+1)
@@ -126,7 +126,7 @@ def plot_all_2d_con(outdir, filter_strs):
                                            method='mean_sd', contour_color='g')
 
             fig.savefig(os.path.join(outdir, title.replace(' ', '_')+'.png'))
-            plt.close()
+            plt.close(fig)
 
         for limit, ftn in zip([1, 2.85, 5.65, 11.3], [_above_low, _above_quarter_mav, _above_half_mav, _above_mav]):
             for l in range(smt.layers):
@@ -140,7 +140,7 @@ def plot_all_2d_con(outdir, filter_strs):
                                                method='mean_sd', contour_color='g')
 
                 fig.savefig(os.path.join(outdir, title.replace(' ', '_' )+'.png'))
-                plt.close()
+                plt.close(fig)
 
 
 # both 2D spatial as well as point measurements at wells for example
@@ -229,6 +229,7 @@ def plot_well_con(param_nc_path, con_nc_path, con_str, outdir, filter_strs):
         fig.suptitle(supergroup.title())
 
         fig.savefig(os.path.join(outdir, supergroup.lower()+'.png'))
+        plt.close(fig)
 
 def plot_all_cons(outdir,filterstrs):
     plot_all_2d_con(outdir, filter_strs=filterstrs)

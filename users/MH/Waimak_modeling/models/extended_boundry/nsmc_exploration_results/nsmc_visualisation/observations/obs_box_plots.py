@@ -201,6 +201,7 @@ def plot_all_obs_boxplots(nc_path, outdir, filter_strs):
         if not os.path.exists(outdir):
             os.makedirs(outdir)
         fig.savefig(os.path.join(outdir, fig._suptitle._text+'.png'))
+        plt.close(fig)
 
 
 def plot_hds_boxplots(nc_path, outdir, filter_strs):
@@ -290,6 +291,7 @@ def plot_hds_boxplots(nc_path, outdir, filter_strs):
         fig.suptitle(group.title())
 
         fig.savefig(os.path.join(outdir, group.lower()+'.png'))
+        plt.close(fig)
 
 
 # avon heathcote vs styks otikino
@@ -301,8 +303,4 @@ def plot_obs_all_all_boxplots(outdir, filters):
 
 
 if __name__ == '__main__':
-    nc_path = r"K:\mh_modeling\netcdfs_of_key_modeling_data\nsmc_params_obs_metadata.nc"
-    base_dir = r"C:\Users\MattH\Downloads"
-    filters = ['filter1', '~0_filter1']
-    plot_all_obs_boxplots(nc_path, os.path.join(base_dir, 'obs_boxplots_non_head'), filters)
-    plot_hds_boxplots(nc_path, os.path.join(base_dir, 'obs_boxplots_hds'), filters)
+    plot_obs_all_all_boxplots(r"T:\Temp\temp_gw_files\testalllobsbox",['emma_ewf_wt', 'run_mt3d'])

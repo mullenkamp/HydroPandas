@@ -83,6 +83,7 @@ def plot_river_mixing(outdir, filter_strs):
         [[tick.set_rotation(45) for tick in ax.get_xticklabels()] for ax in axs.flatten()]
         [e.set_ylim(ymin, ymax) for e in axs.flatten()]
         fig.savefig(os.path.join(outdir,key))
+        plt.close(fig)
 
 if __name__ == '__main__':
     plot_river_mixing(r"T:\Temp\temp_gw_files\test_emma_plots",[u'emma_chch_wt',u'emma_ewf_wt'])

@@ -266,6 +266,7 @@ def plot_all_ppp_boxplots(outdir, filter_strs):
                                            datatypes = ['simple', 'simple'], ylab='m3/s',
                                            transformation=_to_m3s)
     fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
+    plt.close(fig)
 
     # PUMPING
     title = 'pumping multipliers'
@@ -275,7 +276,7 @@ def plot_all_ppp_boxplots(outdir, filter_strs):
                                            sites={'CHCH':['pump_c'], 'Waimakariri':['pump_w'], 'Selwyn':['pump_s']},
                                            datatypes = ['simple', 'simple', 'simple'], ylab='percent pumping')
     fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
-
+    plt.close(fig)
     # nraces , nboundry flux, s river, south races
     title = 'other multipliers'
     print(title)
@@ -286,7 +287,7 @@ def plot_all_ppp_boxplots(outdir, filter_strs):
                                            datatypes = ['simple', 'simple', 'simple', 'simple'],
                                            ylab='percent injection')
     fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
-
+    plt.close(fig)
 
     # river inflows (may need to split due to scale)
     title = 'Eyre Flow'
@@ -297,7 +298,7 @@ def plot_all_ppp_boxplots(outdir, filter_strs):
                                            datatypes = ['simple'], ylab='m3/s',
                                            transformation=_to_m3s)
     fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
-
+    plt.close(fig)
     title = 'Cust Inflows'
     print(title)
     fig, ax = plot_supergroup_ppp_boxplots(filter_strs=filter_strs, param_nc=param_nc,
@@ -306,7 +307,7 @@ def plot_all_ppp_boxplots(outdir, filter_strs):
                                            datatypes = ['simple', 'simple'], ylab='m3/s',
                                            transformation=_to_m3s)
     fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
-
+    plt.close(fig)
     # fault multipliers
     title = 'Log Fault Multipliers'
     print(title)
@@ -316,7 +317,7 @@ def plot_all_ppp_boxplots(outdir, filter_strs):
                                            datatypes = ['simple', 'simple'], ylab='log of multiplier',
                                            transformation=_log10)
     fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
-
+    plt.close(fig)
     # recharge (tricky)
     title = 'Land Surface Recharge Multiplier'
     print(title)
@@ -331,7 +332,7 @@ def plot_all_ppp_boxplots(outdir, filter_strs):
                                            sites=sites,
                                            datatypes=datatypes, ylab='fraction')
     fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
-
+    plt.close(fig)
     # kh and kv
     kgroups = list(set(khv_rch_points.loc[khv_rch_points['dtype']=='k','Group']))
     for kidx  in ['kh', 'kv']:
@@ -353,6 +354,7 @@ def plot_all_ppp_boxplots(outdir, filter_strs):
                                                    datatypes=datatypes, ylab='log({})'.format(kidx),
                                                    transformation=_log10)
             fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
+            plt.close(fig)
 
         # ks groups in same plot (per layer)(tricky)
         for l in range(smt.layers):
@@ -371,6 +373,7 @@ def plot_all_ppp_boxplots(outdir, filter_strs):
                                                    datatypes=datatypes, ylab='log({})'.format(kidx),
                                                    transformation=_log10)
             fig.savefig(os.path.join(outdir, title.replace(' ', '_') + '.png'))
+            plt.close(fig)
 
 
 

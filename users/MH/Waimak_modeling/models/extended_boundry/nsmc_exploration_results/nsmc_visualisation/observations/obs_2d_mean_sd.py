@@ -88,7 +88,6 @@ def plot_sd_mean_multid(filter_strs, layer, nc_param_data, nc_obs_data, data_id,
             raise ValueError('shouldnt get here')
         use_filter_strs.append(filter_str)
 
-        real_filters = np.where(real_filters)[0]
         # pull the data out
         if nc_obs_data.variables[data_id].ndim == 4:
             temp = nc_obs_data.variables[data_id][real_filters, layer, :, :]
@@ -243,7 +242,7 @@ def plot_all_2d_obs(outdir,filter_strs):
 
 
         fig.savefig(os.path.join(outdir, title.replace(' ','_')+'.png'))
-        plt.close()
+        plt.close(fig)
 
     # drn flux
     if False: # quickly stop from running
@@ -257,7 +256,7 @@ def plot_all_2d_obs(outdir,filter_strs):
                                        method='mean_sd', contour_color='g')
 
         fig.savefig(os.path.join(outdir, title.replace(' ','_')+'.png'))
-        plt.close()
+        plt.close(fig)
 
     # layer one bottom flux (as 1 0 -1)
     for l in range(smt.layers):
@@ -271,7 +270,7 @@ def plot_all_2d_obs(outdir,filter_strs):
                                        method='mean_sd', contour_color='g')
 
         fig.savefig(os.path.join(outdir, title.replace(' ','_')+'.png'))
-        plt.close()
+        plt.close(fig)
 
     # where the model is dry
     for l in range(smt.layers):
@@ -285,8 +284,8 @@ def plot_all_2d_obs(outdir,filter_strs):
                                        method='mean_sd', contour_color='g')
 
         fig.savefig(os.path.join(outdir, title.replace(' ','_')+'.png'))
-        plt.close()
+        plt.close(fig)
 
 
 if __name__ == '__main__':
-    plot_all_2d_obs(r"T:\Temp\temp_gw_files\test2dplots",    filter_strs = ['filter2'])
+    plot_all_2d_obs(r"T:\Temp\temp_gw_files\test2dplots",    filter_strs = ['emma_converge', '~0_emma_converge'])
