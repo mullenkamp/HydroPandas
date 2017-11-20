@@ -17,21 +17,24 @@ sites_dtype = {'site': 'VARCHAR(64)', 'data_source': 'VARCHAR(64)', 'mtype': 'VA
 
 data_dtype = {'site': 'VARCHAR(64)', 'mtype': 'VARCHAR(49)', 'time': 'DATETIME', 'data': 'VARCHAR(19)'}
 
+sample_params_dict = {'ProjectNumber': 'Project', 'CostCode': 'Cost Code', 'SampledBy': 'Technician', 'SampleComment': 'Sample Comment', 'FieldComment': 'Field Comment'}
+mtype_params_dict = {'LabMethod': 'Lab Method', 'LabName': 'Lab Name'}
+
 server = 'SQL2012DEV01'
 database = 'Hydro'
 sites_table = 'WQ_sites'
 data_table = 'WQ_data'
 
-
 hts_gw = r'\\hilltop01\Hilltop\Data\WQGroundwater.hts'
 hts_sw = r'\\hilltop01\Hilltop\Data\WQSurfacewater.hts'
-#hts = r'\\hilltop01\Hilltop\Data\Annual\Selwyn.hts'
 
 #sites = ['SQ36287']
 
-#df1 = rd_ht_quan_data(hts)
-gw_wq_data, gw_sites_info = rd_ht_wq_data(hts_gw, output_site_data=True)
-sw_wq_data, sw_sites_info = rd_ht_wq_data(hts_sw, output_site_data=True)
+###############################################
+### Extract data
+
+gw_wq_data, gw_sites_info = rd_ht_wq_data(hts_gw, output_site_data=True, sample_params=sample_params_dict.values(), mtype_params=mtype_params_dict.values())
+sw_wq_data, sw_sites_info = rd_ht_wq_data(hts_sw, output_site_data=True, sample_params=sample_params_dict.values(), mtype_params=mtype_params_dict.values())
 
 gw_sites_info = gw_sites_info.drop('divisor', axis=1)
 sw_sites_info = sw_sites_info.drop('divisor', axis=1)
@@ -63,13 +66,15 @@ df6, sites1 = rd_ht_wq_data(hts_gw, sites=['M36/1160'], output_site_data=True)
 
 t1.to_json(r'E:\ecan\shared\projects\end_of_squalarc\wq_data.json', orient='records', date_format='iso')
 
+hts = r'\\hilltop01\Hilltop\Data\WQGroundwater.hts'
+sites = ['M36/1160']
+
+sample_params = ['Technician', 'Project']
+mtype_params = ['Lab Method', 'Lab Name']
 
 
-
-
-
-
-
+sample_params_dict = {'ProjectNumber': 'Project', 'CostCode': 'Cost Code', 'SampledBy': 'Technician', 'SampleComment': 'Sample Comment', 'FieldComment': 'Field Comment'}
+mtype_params_dict = {'LabMethod': 'Lab Method', 'LabName': 'Lab Name'}
 
 
 

@@ -48,6 +48,7 @@ date = '2017-10-27'
 
 export_fig_path = path.join(base_path, name, date, 'figures')
 export_path = path.join(base_path, name, date, name + '_allo_use.csv')
+export_path_all = path.join(base_path, name, date, name + '_allo_use_all.csv')
 
 allo_name = name + '_past_allo.png'
 use_name = name + '_allo_use.png'
@@ -69,7 +70,9 @@ catch_name = agg_catch.catch_name.tolist()
 #################################
 ### Query data
 
-lw = allo_query(grp_by=grp_by, swaz=swaz, crc=crc2, cwms_zone=cwms_zone, take_type=take_type, use_type=use_type, allo_col=allo_col, years=years, catch_name=catch_name, export_path=export_path, sd_only=sd_only, agg_yr=agg_yr, export=True, debug=debug)
+lw = allo_query(grp_by=grp_by, swaz=swaz, crc=crc2, cwms_zone=cwms_zone, take_type=take_type, use_type=use_type, allo_col=allo_col, years=years, catch_name=catch_name, sd_only=sd_only, agg_yr=agg_yr, debug=debug)
+
+all1 = allo_query(grp_by=grp_by, swaz=swaz, crc=crc2, cwms_zone=cwms_zone, take_type=take_type, use_type=use_type, allo_col=allo_col, years=years, catch_name=catch_name, export_path=export_path_all, sd_only=sd_only, agg_yr=agg_yr, export=True, debug=True)
 
 lw1 = lw.reset_index()
 lw2 = merge(lw1, agg_catch, on='catch_name').drop('catch_name', axis=1)
