@@ -95,46 +95,6 @@ var1 = rd_sql(server, db, var_tab, var_cols)
 var1.columns = var_names
 
 
-###################################################
-#### Low flows joining
-
-allo_use_export = 'E:/ecan/shared/base_data/usage/allo_use_ts_mon_results.csv'
-
-restr = rd_sql(code='lowflow_restr_day')
-restr_cond = rd_sql(code='lowflow_restr')
-crc = rd_sql(code='lowflow_band_crc').drop('active', axis=1)
-sites = rd_sql(code='lowflow_gauge').drop(['active', 'DB'], axis=1)
-
-allo_use1 = read_csv(allo_use_export)
-
-c1 = crc.drop_duplicates()
-c1[c1.duplicated(subset=['lowflow_id', 'crc'], keep=False)]
-
-a1 = allo_use1[['crc', 'take_type', 'allo_block']].drop_duplicates()
-a1[a1.crc.duplicated(keep=False)]
-
-
-restr_cond[restr_cond.lowflow_id == 232]
-
-
-
-
-
-
-sites = [65901]
-qual_codes = [10, 20, 30]
-
-server = 'SQL2012PROD03'
-database = 'DataWarehouse'
-table = 'F_HY_Flow_Data'
-mtype = 'flow'
-time_col = 'DateTime'
-site_col = 'SiteNo'
-data_col = 'Value'
-qual_col = 'QualityCode'
-from_date='2000-01-01'
-to_date='2010-01-01'
-
 ##############################################3
 #### Hydro testing
 
