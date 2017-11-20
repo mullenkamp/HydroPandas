@@ -145,7 +145,7 @@ def parse_dsn(dsn_path):
     return(hts1)
 
 
-def rd_hilltop_sites(hts, sites=None, mtypes=None):
+def rd_hilltop_sites(hts, sites=None, mtypes=None, rem_wq_sample=True):
     """
     Function to read the site names, measurement types, and units of a Hilltop hts file. Returns a DataFrame.
 
@@ -215,6 +215,8 @@ def rd_hilltop_sites(hts, sites=None, mtypes=None):
                 sites_lst.append([site_name, ds_name, mtype1, unit1, divisor, str(start1), str(end1)])
 
     sites_df = DataFrame(sites_lst, columns=['site', 'data_source', 'mtype', 'unit', 'divisor', 'start_date', 'end_date'])
+    if rem_wq_sample:
+        sites_df = sites_df[~sites_df.mtype == 'WQ Sample']
     dfile.Close()
     cat.Close()
     return(sites_df)
@@ -224,16 +226,30 @@ def rd_ht_quan_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
     """
     Function to read data from an hts file and optionally select specific sites and aggregate the data.
 
-    Arguments:\n
-    hts -- Path to the hts file (str).\n
-    sites -- A list of site names within the hts file.\n
-    mtypes -- A list of measurement types that should be returned.\n
-    start -- The start date to retreive from the data in ISO format (e.g. '2011-11-30 00:00').\n
-    end -- The end date to retreive from the data in ISO format (e.g. '2011-11-30 00:00').\n
-    agg_period -- The resample period (e.g. 'day', 'month').\n
-    agg_n -- The number of periods (e.g. 1 for 1 day).\n
-    fun --  The resampling function.\
-    output_site_data -- Should the sites data be output?
+    Parameters
+    ----------
+    hts : str
+        Path to the hts file.
+    sites : list
+        A list of site names within the hts file.
+    mtypes : list
+        A list of measurement types that should be returned.
+    start : str
+        The start date to retreive from the data in ISO format (e.g. '2011-11-30 00:00').
+    end : str
+        The end date to retreive from the data in ISO format (e.g. '2011-11-30 00:00').
+    agg_period : str
+        The resample period (e.g. 'day', 'month').
+    agg_n : int
+        The number of periods (e.g. 1 for 1 day).
+    fun : str
+        The resampling function.
+    output_site_data : bool
+        Should the sites data be output?
+
+    Returns
+    -------
+    DataFrame
     """
     from core.ecan_io.hilltop import rd_hilltop_sites
     from win32com.client import Dispatch
@@ -315,20 +331,30 @@ def rd_ht_quan_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
             return(df2)
 
 
-
-def rd_ht_wq_data(hts=r'\\hilltop01\Hilltop\Data\Squalarc.hts', sites=None, mtypes=None, start=None, end=None, convert_dtl=False, dtl_method=None, output_site_data=False):
+def rd_ht_wq_data(hts, sites=None, mtypes=None, start=None, end=None, dtl_method=None, output_site_data=False, mtype_params=None, sample_params=None):
     """
     Function to read data from an hts file and optionally select specific sites and aggregate the data.
 
-    Arguments:\n
-    hts -- Path to the hts file (str).\n
-    sites -- A list of site names within the hts file.\n
-    mtypes -- A list of measurement types that should be returned.\n
-    start -- The start date to retreive from the data in ISO format (e.g. '2011-11-30 00:00').\n
-    end -- The end date to retreive from the data in ISO format (e.g. '2011-11-30 00:00').\n
-    convert_dtl -- Should values under the detection limit be converted to numeric?\n
-    dtl_method -- The method to use to convert values under a detection limit to numeric. None or 'standard' takes half of the detection limit. 'trend' is meant as an output for trend analysis with includes an additional column dtl_ratio referring to the ratio of values under the detection limit.
-    output_site_data -- Should the site data be output?
+    Parameters
+    ----------
+    hts : str
+        Path to the hts file.
+    sites : list
+        A list of site names within the hts file.
+    mtypes : list
+        A list of measurement types that should be returned.
+    start : str
+        The start date to retreive from the data in ISO format (e.g. '2011-11-30 00:00').
+    end : str
+        The end date to retreive from the data in ISO format (e.g. '2011-11-30 00:00').
+    dtl_method : None, 'standard', 'trend'
+        The method to use to convert values under a detection limit to numeric. None does no conversion. 'standard' takes half of the detection limit. 'trend' is meant as an output for trend analysis with includes an additional column dtl_ratio referring to the ratio of values under the detection limit.
+    output_site_data : bool
+        Should the site data be output?
+
+    Returns
+    -------
+    DataFrame
     """
     from core.ecan_io.hilltop import rd_hilltop_sites
     from win32com.client import Dispatch
@@ -363,7 +389,7 @@ def rd_ht_wq_data(hts=r'\\hilltop01\Hilltop\Data\Squalarc.hts', sites=None, mtyp
         sites2 = sites1
 
     ### First read all of the sites in the hts file and select the ones to be read
-    sites_df = rd_hilltop_sites(hts, sites=sites2, mtypes=mtypes)
+    sites_df = rd_hilltop_sites(hts, sites=sites2, mtypes=mtypes, rem_wq_sample=False)
 
     ### Open the hts file
     wqr = Dispatch("Hilltop.WQRetrieval")
@@ -377,9 +403,9 @@ def rd_ht_wq_data(hts=r'\\hilltop01\Hilltop\Data\Squalarc.hts', sites=None, mtyp
     df_lst = []
     for i in sites_df.index:
         site = sites_df.loc[i, 'site']
-#        data_source = sites_df.loc[i, 'data_source']
         mtype = sites_df.loc[i, 'mtype']
-#        unit = sites_df.loc[i, 'unit']
+        if mtype == 'WQ Sample':
+            continue
         wqr = dfile.FromWQSite(site, mtype)
 
         ## Set up start and end times and aggregation initiation
@@ -397,11 +423,25 @@ def rd_ht_wq_data(hts=r'\\hilltop01\Hilltop\Data\Squalarc.hts', sites=None, mtyp
         ## Extract data
         data = []
         time = []
-        while wqr.GetNext:
-            data.append(wqr.value)
-            time.append(str(pytime_to_datetime(wqr.time)))
+
+        test_params = sites_df[sites_df.site == site].mtype.unique()
+        if ('WQ Sample' in test_params) & (isinstance(mtype_params, list) | isinstance(sample_params, list)):
+            sample_p = []
+            mtype_p = []
+            while wqr.GetNext:
+                data.append(wqr.value)
+                time.append(str(pytime_to_datetime(wqr.time)))
+                sample_p.append({sp: wqr.params(sp).encode('ascii', 'ignore') for sp in sample_params})
+                mtype_p.append({mp: wqr.params(mp).encode('ascii', 'ignore') for mp in mtype_params})
+        else:
+            while wqr.GetNext:
+                data.append(wqr.value)
+                time.append(str(pytime_to_datetime(wqr.time)))
+
         if data:
             df_temp = DataFrame({'time': time, 'data': data, 'site': site, 'mtype': mtype})
+            if sample_p:
+                df_temp = concat([df_temp, DataFrame(sample_p), DataFrame(mtype_p)], axis=1)
             df_lst.append(df_temp)
 
     dfile.Close()
@@ -412,16 +452,16 @@ def rd_ht_wq_data(hts=r'\\hilltop01\Hilltop\Data\Squalarc.hts', sites=None, mtyp
         data1 = to_numeric(data.loc[:, 'data'], errors='coerce')
         data.loc[data1.notnull(), 'data'] = data1[data1.notnull()]
 #        data.loc[:, 'data'].str.replace('*', '')
-        data = data[['site', 'mtype', 'time', 'data']].reset_index(drop=True)
+        data = data.reset_index(drop=True)
 
         #### Convert detection limit values
-        if convert_dtl:
+        if dtl_method is not None:
             less1 = data['data'].str.match('<')
             if less1.sum() > 0:
                 less1.loc[less1.isnull()] = False
                 data2 = data.copy()
                 data2.loc[less1, 'data'] = to_numeric(data.loc[less1, 'data'].str.replace('<', ''), errors='coerce') * 0.5
-                if dtl_method in (None, 'standard'):
+                if dtl_method == 'standard':
                     data3 = data2
                 if dtl_method == 'trend':
                     df1 = data2.loc[less1]
@@ -435,8 +475,6 @@ def rd_ht_wq_data(hts=r'\\hilltop01\Hilltop\Data\Squalarc.hts', sites=None, mtyp
                     combo1['dtl_ratio'] = (combo1['dtl_count'] / combo1['tot_count']).round(2)
 
                     ## conditionals
-        #            param1 = combo1[(combo1['dtl_ratio'] <= 0.4) | (combo1['dtl_ratio'] == 1)]
-        #            under_40 = data['mtype'].isin(param1.index)
                     param2 = combo1[(combo1['dtl_ratio'] > 0.4) & (combo1['dtl_val_count'] != 1)]
                     over_40 = data['mtype'].isin(param2.index)
 

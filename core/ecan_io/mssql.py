@@ -451,6 +451,47 @@ def sql_ts_agg_stmt(table, groupby_cols, date_col, values_cols, resample_code, p
     return(stmt1)
 
 
+def site_stat_stmt(table, site_col, values_col, fun):
+    """
+    Function to produce an SQL statement to make a basic summary grouped by a sites column.
+
+    Parameters
+    ----------
+
+    table : str
+        The database table.
+    site_col : str
+        The column containing the sites.
+    values_col : str
+        The column containing the values to be summarised.
+    fun : str
+        The function to apply.
+
+    Returns
+    -------
+    str
+        SQL statement.
+    """
+    fun_dict = {'mean': 'avg', 'sum': 'sum', 'count': 'count', 'min': 'min', 'max': 'max'}
+
+    cols_str = ', '.join([site_col, fun_dict[fun] + '(' + values_col + ') as ' + values_col])
+    stmt1 = "SELECT " + cols_str + " FROM " + table + " GROUP BY " + site_col
+    return(stmt1)
+
+
+def sql_del_rows_stmt(table, **kwargs):
+    """
+    Function to create an sql statement to row rows based on where statements.
+    """
+    from core.ecan_io.mssql import sql_where_stmts
+
+    where_list = sql_where_stmts(**kwargs)
+    stmt1 = "DELETE FROM " + table + " WHERE " + " and ".join(where_list)
+    return(stmt1)
+
+
+
+
 def rd_sql_geo(server, database, table, where_lst=None):
     """
     Function to extract the geometry and coordinate system from an SQL geometry field. Returns a shapely geometry object and a proj4 str.

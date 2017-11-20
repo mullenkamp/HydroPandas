@@ -110,9 +110,9 @@ def rd_hydstra_by_var(varto, start=0, end=0, data_type='mean', interval='day', m
     return(data)
 
 
-def rd_hydstra_db(sites, start=0, end=0, datasource='A', data_type='mean', varfrom=100, varto=140, interval='day', multiplier=1, min_qual=None, export=False, export_path='flow_data.csv', return_qual=False, sites_chunk=20, print_sites=False):
+def rd_hydstra_db(sites, start=0, end=0, datasource='A', data_type='mean', varfrom=100, varto=140, interval='day', multiplier=1, qual_codes=[30, 20, 10, 11, 21, 18], report_time=None, sites_chunk=20, print_sites=False, export_path=None):
     """
-    Function to read in data from Hydstra's database using HYDLLP. Must be run in a 32bit python. If either start_time or end_time is not 0, then they both need a date.
+    Wrapper function over hydllp to read in data from Hydstra's database. Must be run in a 32bit python. If either start_time or end_time is not 0, then they both need a date.
 
     Parameters
     ----------
@@ -134,10 +134,8 @@ def rd_hydstra_db(sites, start=0, end=0, datasource='A', data_type='mean', varfr
         The frequency of the output data (year, month, day, hour, minute, second, period). If data_type is 'point', then interval cannot be 'period' (use anything else, it doesn't matter).
     multiplier : int
         interval frequency.
-    min_qual : int or None
-        The minimum quality code or None (and there is no screening by quality, suggest exporting qual).
-    return_qual : bool
-        If true returns series, qual_series.
+    qual_codes : list of int
+        The quality codes in Hydstra for filtering the data.
     sites_chunk : int
         Number of sites to request to hydllp at one time. Do not change unless you understand what it does.
 
@@ -147,8 +145,8 @@ def rd_hydstra_db(sites, start=0, end=0, datasource='A', data_type='mean', varfr
         In long format with site and time as a MultiIndex.
     """
     from core.ecan_io.hydllp import openHyDb
-    from pandas import Timestamp, DataFrame, concat
-    from core.misc import select_sites
+    from pandas import DataFrame, concat
+    from core.misc import select_sites, save_df
     from numpy import array_split, ceil
 
     ### Process sites into workable chunks
@@ -156,28 +154,21 @@ def rd_hydstra_db(sites, start=0, end=0, datasource='A', data_type='mean', varfr
     n_chunks = ceil(len(sites1)/float(sites_chunk))
     sites2 = array_split(sites1, n_chunks)
 
-    ### Datetime conversion
-    if start != 0:
-        start = Timestamp(start).strftime('%Y%m%d%H%M%S')
-    if end != 0:
-        end = Timestamp(end).strftime('%Y%m%d%H%M%S')
-
     ### Run instance of hydllp
-    data = []
+    data = DataFrame()
     for i in sites2:
         if print_sites:
             print(i)
         ### Open connection
         hyd = openHyDb()
         with hyd as h:
-            df = h.get_ts_traces(i, start=start, end=end, datasource=datasource, data_type=data_type, varfrom=varfrom, varto=varto, interval=interval, multiplier=multiplier, min_qual=min_qual, return_qual=return_qual)
-        data.append(df)
-    data2 = concat(data)
+            df = h.get_ts_traces(i, start=start, end=end, datasource=datasource, data_type=data_type, varfrom=varfrom, varto=varto, interval=interval, multiplier=multiplier, qual_codes=qual_codes, report_time=report_time)
+        data = concat([data, df])
 
-    if export:
-        data2.to_csv(export_path)
+    if isinstance(export_path, str):
+        save_df(data, export_path)
 
-    return(data2)
+    return(data)
 
 #Define a context manager generator
 #that creates and releases the connection to the hydstra server
@@ -440,7 +431,7 @@ class Hydllp(object):
 
         return(db_area_result["return"]["sites"])
 
-    def get_ts_blockinfo(self, site_list, datasources='A', variables=['100', '10', '110', '140', '130', '143', '450'], starttime=0, endtime=0, start_modified=0, end_modified=0, fill_gaps=0, auditinfo=0):
+    def get_ts_blockinfo(self, site_list, datasources='A', variables=['100', '10', '110', '140', '130', '143', '450'], starttime=0, endtime=0, start_modified=0, end_modified=0, fill_gaps=0, auditinfo=0, report_time='end', offset=0):
         """
 
         """
@@ -453,7 +444,7 @@ class Hydllp(object):
         site_list_str = ','.join([str(site) for site in sites])
 
         get_ts_blockinfo_request = {"function": "get_ts_blockinfo",
-                                    "version": 1,
+                                    "version": 2,
                                     "params": {'site_list': site_list,
                                                'datasources': datasources,
                                                'variables': variables,
@@ -462,88 +453,62 @@ class Hydllp(object):
                                                'start_modified': start_modified,
                                                'end_modified': end_modified,
                                                'fill_gaps': fill_gaps,
-                                               'auditinfo': auditinfo}}
+                                               'auditinfo': auditinfo
+                                               }}
 
         ts_blockinfo_result = self.query_by_dict(get_ts_blockinfo_request)
 
         return(ts_blockinfo_result["return"]["sites"])
 
 
-    def get_ts_traces(self, site_list, start=0, end=0, varfrom=100, varto=140, interval='day', multiplier=1, datasource='A', data_type='mean', sigfigs=4, decimals=3, min_qual=30, return_qual = False):
-        from pandas import to_numeric, to_datetime, Series, concat
-        from numpy import nan
+    def get_ts_traces(self, site_list, start=0, end=0, varfrom=100, varto=140, interval='day', multiplier=1, datasource='A', data_type='mean', qual_codes=[30, 20, 10, 11, 21, 18], report_time=None):
+        from pandas import to_numeric, to_datetime, concat, DataFrame, Timestamp
         from core.misc.misc import select_sites
 
         # Convert the site list to a comma delimited string of sites
         sites = select_sites(site_list).astype(str)
         site_list_str = ','.join([str(site) for site in sites])
 
-        ts_traces_request = {'function':'get_ts_traces',
-                             'version':1,
-                             'params':{'site_list':site_list_str,
-                                       'start_time':start,
-                                       'end_time':end,
-                                       'varfrom':varfrom,
-                                       'varto':varto,
-                                       'interval':interval,
-                                       'datasource':datasource,
-                                       'data_type':data_type,
-                                       'multiplier':multiplier,
-                                       'rounding':{'zero_no_dec':1,
-                                                   'dec_first':1,
-                                                   'sigfigs':sigfigs,
-                                                   'vatiable':varto,
-                                                   'decimals':decimals}}}
+        ### Datetime conversion
+        if start != 0:
+            start = Timestamp(start).strftime('%Y%m%d%H%M%S')
+        if end != 0:
+            end = Timestamp(end).strftime('%Y%m%d%H%M%S')
+
+        ts_traces_request = {'function': 'get_ts_traces',
+                             'version': 2,
+                             'params': {'site_list': site_list_str,
+                                        'start_time': start,
+                                        'end_time': end,
+                                        'varfrom': varfrom,
+                                        'varto': varto,
+                                        'interval': interval,
+                                        'datasource': datasource,
+                                        'data_type': data_type,
+                                        'multiplier': multiplier,
+                                        'report_time': report_time}}
 
         ts_traces_request = self.query_by_dict(ts_traces_request)
         j1 = ts_traces_request['return']['traces']
 
         ### Convert json to a dataframe
-        sites = [f['site'] for f in j1]
+        sites = [str(f['site']) for f in j1]
 
-        lst = []
-        qual_lst = []
+        out1 = DataFrame()
         for i in range(len(j1)):
-            if interval == 'period':
-                site_data = j1[i]['trace']
-            else:
-                site_data = j1[i]['trace'][1:-1]
-            b = to_numeric([f['v'] for f in site_data], errors='coerce')
-            if len(b) > 0:
-                time = to_datetime([f['t'] for f in site_data], format='%Y%m%d%H%M%S')
-                qual = to_numeric([f['q'] for f in site_data], errors='coerce')
-                if min_qual is not None:
-                    b[qual > min_qual] = nan
-                series = Series(b, index=time)
-                lst.append(series)
-                if return_qual:
-                    qual_series = Series(qual, index=time)
-                    qual_lst.append(qual_series)
-            else:
-                series = Series(nan, index=to_datetime(['2000-01-01']))
-                lst.append(series)
-                if return_qual:
-                    qual_series = Series(nan, index=to_datetime(['2000-01-01']))
-                    qual_lst.append(qual_series)
+            df1 = DataFrame(j1[i]['trace'])
+            if not df1.empty:
+                df1.rename(columns={'v': 'data', 't': 'time', 'q': 'qual_code'}, inplace=True)
+                df1['data'] = to_numeric(df1['data'], errors='coerce')
+                df1['time'] = to_datetime(df1['time'], format='%Y%m%d%H%M%S')
+                df1['qual_code'] = to_numeric(df1['qual_code'], errors='coerce', downcast='integer')
+                df1['site'] = sites[i]
+                df2 = df1[df1.qual_code.isin(qual_codes)]
+                out1 = concat([out1, df2])
 
-        df = concat(lst, axis=1)
-        df.columns = sites
-        df.columns.name = 'site'
-        df.index.name = 'time'
-        df = df.dropna(axis=1, how='all')
-        df2 = df.stack().reorder_levels(['site', 'time']).sort_index()
-        df2.name = 'data'
-        if return_qual:
-            qual_df = concat(qual_lst, axis=1)
-            qual_df.columns = sites
-            qual_df.columns.name = 'site'
-            qual_df.index.name = 'time'
-            qual_df = qual_df.dropna(axis=1, how='all')
-            qual_df2 = qual_df.stack().reorder_levels(['site', 'time']).sort_index()
-            qual_df2.name = 'qual_code'
-            df2 = concat([df2, qual_df2], axis=1)
+        out2 = out1.set_index(['site', 'time'])[['data', 'qual_code']]
 
-        return(df2)
+        return(out2)
 
 
 #End Class
