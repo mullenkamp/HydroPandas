@@ -16,9 +16,9 @@ from users.MH.Waimak_modeling.models.extended_boundry.nsmc_exploration_results.c
     make_ucn_netcd
 from users.MH.Waimak_modeling.models.extended_boundry.nsmc_exploration_results.combine_nsmc_results.nc_nums import \
     emma_nsmc_numbers
+from future.builtins import input
 
-
-def make_netcd_endmember_mixing(nc_path):
+def make_netcd_endmember_mixing(nc_path,zlib):
     """
     make the netcdf for the End member mixing analysis
     :param nc_path: path to save the netcdf
@@ -55,10 +55,23 @@ def make_netcd_endmember_mixing(nc_path):
      we envisage a third endmember (i.e. alpine river water), but due to time constraints we are assuming that the sum 
      of all of these endmembers is 1 for each observation point and did not run the alpine river endmember"""
 
-    make_ucn_netcd(nsmc_nums=emma_nsmc_numbers, ucn_paths=ucn_paths, units='fraction',
-                   description=description, nc_path=nc_path)
+    nc_file = make_ucn_netcd(nsmc_nums=emma_nsmc_numbers, ucn_paths=ucn_paths, units='fraction',
+                             description=description, nc_path=nc_path, zlib=zlib, sobs=None)
+
+    river = nc_file.createVariable('river', 'f4', ('nsmc_num', 'layer', 'row', 'col'), zlib=zlib)
+    river.setncatts({'units': 'fraction',
+                        'long_name': 'river',
+                        'missing_value': np.nan})
+
+    for l in range(smt.layers):
+        river[:, l] = 1 - np.array(nc_file.variables['coastal'][:, l]) - np.array(nc_file.variables['inland'][:, l])
+
 
 
 if __name__ == '__main__':
-    #todo debug
-    make_netcd_endmember_mixing(env.gw_met_data(r"mh_modeling\netcdfs_of_key_modeling_data\emma_unc.nc"))
+    cont = input('are you sure you want to re-run make EMMA UcN netcdfs it will overwrite and takes some time y/n')
+    if cont != 'y':
+        raise ValueError('user interuppted process to prevent overwrite')
+    # the two versions are because of the massive read speed difference but the limited server space
+    #make_netcd_endmember_mixing(env.gw_met_data(r"mh_modeling\netcdfs_of_key_modeling_data\emma_unc.nc"), zlib=True)
+    make_netcd_endmember_mixing(r"C:\mh_waimak_model_data\emma_con.nc",zlib=False) # on gw02

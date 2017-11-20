@@ -20,7 +20,7 @@ import pandas as pd
 import gc
 from itertools import izip_longest
 
-def make_hds_netcdf(nsmc_nums, hds_paths, description, nc_path):
+def make_hds_netcdf(nsmc_nums, hds_paths, description, nc_path, zlib):
     """
     make a cell budget file netcdf for easy use
     :param nsmc_nums: list the unique identifiers for the netcdfs
@@ -109,7 +109,7 @@ def make_hds_netcdf(nsmc_nums, hds_paths, description, nc_path):
 
     # create variable
     dim = ('nsmc_num', 'layer', 'row', 'col')
-    all_hds = nc_file.createVariable('heads', 'f8', dim, fill_value=np.nan, zlib=True)
+    all_hds = nc_file.createVariable('heads', 'f8', dim, fill_value=np.nan, zlib=zlib)
     all_hds.setncatts({'units': 'm',
                        'long_name': 'modelled heads',
                        'missing_value': np.nan})
@@ -131,7 +131,6 @@ def make_hds_netcdf(nsmc_nums, hds_paths, description, nc_path):
         all_hds[i * num_files:i * num_files + num_not_nan] = outdata
         gc.collect()
 
-# todo debug
 def grouper(n, iterable, fillvalue=None):
     "grouper(3, 'ABCDEFG', 'x') --> ABC DEF Gxx"
     args = [iter(iterable)] * n

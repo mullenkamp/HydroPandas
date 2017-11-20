@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import sys
 import datetime
-from read_pst import rd_pst_parameters, param_from_rec, extract_obs_opt_rei
+from read_pst import rd_pst_parameters, param_from_rec, extract_obs_opt_rei, extract_opt_priors
 from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.all_well_layer_col_row import \
     get_all_well_row_col
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
@@ -31,49 +31,64 @@ drn_dim = 37
 def _add_simple_params(param, pst_param, prior_sd_data, postopt_sd_data, nc_file):
     simple_parameters = {'pump_c': {'units': 'none',
                                     'long_name': 'christchurch west melton pumping multiplier',
-                                    'sd_type': 'lin'},
+                                    'sd_type': 'lin',
+                                    'opt_p': 1},
                          'pump_s': {'units': 'none',
                                     'long_name': 'selwyn pumping multiplier',
-                                    'sd_type': 'lin'},
+                                    'sd_type': 'lin',
+                                    'opt_p': 1},
                          'pump_w': {'units': 'none',
                                     'long_name': 'waimakariri pumping multiplier',
-                                    'sd_type': 'lin'},
+                                    'sd_type': 'lin',
+                                    'opt_p': 1},
                          'sriv': {'units': 'none',
                                   'long_name': 'selwyn river influx multiplier',
-                                  'sd_type': 'lin'},
+                                  'sd_type': 'lin',
+                                  'opt_p': 1},
                          'n_race': {'units': 'none',
                                     'long_name': 'waimakariri race multiplier',
-                                    'sd_type': 'lin'},
+                                    'sd_type': 'lin',
+                                    'opt_p': 1},
                          's_race': {'units': 'none',
                                     'long_name': 'selwyn race multiplier',
-                                    'sd_type': 'lin'},
+                                    'sd_type': 'lin',
+                                    'opt_p': 1},
                          'nbndf': {'units': 'none',
                                    'long_name': 'northern boundary flux multiplier',
-                                   'sd_type': 'lin'},
+                                   'sd_type': 'lin',
+                                   'opt_p': 1},
                          'top_e_flo': {'units': 'm3/day',
                                        'long_name': 'top of the eyre flow',
-                                       'sd_type': 'log'},
+                                       'sd_type': 'log',
+                                       'opt_p': 171936},
                          'mid_c_flo': {'units': 'm3/day',
                                        'long_name': 'mid cust (biwash) flow',
-                                       'sd_type': 'log'},
+                                       'sd_type': 'log',
+                                       'opt_p': 3456},
                          'top_c_flo': {'units': 'm3/day',
                                        'long_name': 'top of the cust flow',
-                                       'sd_type': 'log'},
+                                       'sd_type': 'log',
+                                       'opt_p': 14688},
                          'ulrzf': {'units': 'm3/day',
                                    'long_name': 'inland southwestern boundary flux',
-                                   'sd_type': 'log'},
+                                   'sd_type': 'log',
+                                   'opt_p': 259201.1
+                                   },
                          'llrzf': {'units': 'm3/day',
                                    'long_name': 'coastal southwestern boundary flux',
-                                   'sd_type': 'log'},
+                                   'sd_type': 'log',
+                                   'opt_p': 181440.8},
                          'fkh_mult': {'units': 'none',
                                       'long_name': 'fault kh multiplier',
-                                      'sd_type': 'log'},
+                                      'sd_type': 'log',
+                                      'opt_p': 1},
                          'fkv_mult': {'units': 'none',
                                       'long_name': 'fault kv multiplier',
-                                      'sd_type': 'log'}}
+                                      'sd_type': 'log',
+                                      'opt_p': 1}}
 
     for key in simple_parameters.keys():
-        temp = nc_file.createVariable(key, 'f8', ('nsmc_num',), fill_value=np.nan, zlib=True)
+        temp = nc_file.createVariable(key, 'f8', ('nsmc_num',), fill_value=np.nan, zlib=False)
         temp.setncatts({'units': simple_parameters[key]['units'],
                         'long_name': simple_parameters[key]['long_name'],
                         'missing_value': np.nan,
@@ -83,16 +98,23 @@ def _add_simple_params(param, pst_param, prior_sd_data, postopt_sd_data, nc_file
                         'vtype': 'param',
                         'sd_type': simple_parameters[key]['sd_type'],
                         'p_sd': prior_sd_data.loc[key, 'sd'],
-                        'j_sd': postopt_sd_data.loc[key, 'sd'],
+                        'j_sd': postopt_sd_data.loc[key, 'sd'] ** 0.5,
+                        'opt_p': simple_parameters[key]['opt_p']
                         })
-        temp[:] = param.loc[key].values
+        adder = 0
+        if key == 'llrzf':
+            adder = -181441  # offset in pest
+        elif key == 'ulrzf':
+            adder = -1
+
+        temp[:] = param.loc[key].values + adder
 
 
 def _add_rch_params(param, rch_ppt_tpl, pst_param, prior_sd_data, postopt_sd_data, nc_file):
     # rch ppts
     rch_meta = pd.read_table(rch_ppt_tpl, skiprows=1, names=['x', 'y', 'group', 'ignore'], delim_whitespace=True)
     rch_ppt_ids = ['rch_ppt_{:02d}'.format(e) for e in range(46)]
-    rch_pts = nc_file.createVariable('rch_ppt', str, ('rch_ppt',), zlib=True)
+    rch_pts = nc_file.createVariable('rch_ppt', str, ('rch_ppt',), zlib=False)
     rch_pts.setncatts({'units': 'none',
                        'long_name': 'recharge pilot point identifier',
                        'comments': 'this is a unique identifier',
@@ -100,43 +122,50 @@ def _add_rch_params(param, rch_ppt_tpl, pst_param, prior_sd_data, postopt_sd_dat
     for i, val in enumerate(rch_ppt_ids):
         rch_pts[i] = val
 
-    rch_x = nc_file.createVariable('rch_ppt_x', 'f8', ('rch_ppt',), fill_value=np.nan, zlib=True)
+    rch_x = nc_file.createVariable('rch_ppt_x', 'f8', ('rch_ppt',), fill_value=np.nan, zlib=False)
     rch_x.setncatts({'units': 'nztmx',
                      'long_name': 'recharge pilot point longitude',
                      'missing_value': np.nan,
                      'vtype': 'meta'})
     rch_x[:] = rch_meta.loc[:, 'x'].values
 
-    rch_y = nc_file.createVariable('rch_ppt_y', 'f8', ('rch_ppt',), fill_value=np.nan, zlib=True)
+    rch_y = nc_file.createVariable('rch_ppt_y', 'f8', ('rch_ppt',), fill_value=np.nan, zlib=False)
     rch_y.setncatts({'units': 'nztmy',
                      'long_name': 'recharge pilot point latitude',
                      'missing_value': np.nan,
                      'vtype': 'meta'})
     rch_y[:] = rch_meta.loc[:, 'y'].values
 
+    rch_opt_p = nc_file.createVariable('rch_ppt_opt_p', 'f8', ('rch_ppt',), fill_value=np.nan, zlib=False)
+    rch_opt_p.setncatts({'units': 'nztmy',
+                         'long_name': 'recharge pilot point optimisation prior',
+                         'missing_value': np.nan,
+                         'vtype': 'meta'})
+    rch_opt_p[:] = np.ones((len(rch_ppt_ids)))
+
     # initials uppers lowers
-    rch_lower = nc_file.createVariable('rch_ppt_lower', 'f8', ('rch_ppt',), fill_value=np.nan, zlib=True)
+    rch_lower = nc_file.createVariable('rch_ppt_lower', 'f8', ('rch_ppt',), fill_value=np.nan, zlib=False)
     rch_lower.setncatts({'units': 'none',
                          'long_name': 'recharge pilot point lower bound',
                          'missing_value': np.nan,
                          'vtype': 'meta'})
     rch_lower[:] = pst_param.loc[rch_ppt_ids, 'lower'].values
 
-    rch_upper = nc_file.createVariable('rch_ppt_upper', 'f8', ('rch_ppt',), fill_value=np.nan, zlib=True)
+    rch_upper = nc_file.createVariable('rch_ppt_upper', 'f8', ('rch_ppt',), fill_value=np.nan, zlib=False)
     rch_upper.setncatts({'units': 'none',
                          'long_name': 'recharge pilot point upper bound',
                          'missing_value': np.nan,
                          'vtype': 'meta'})
     rch_upper[:] = pst_param.loc[rch_ppt_ids, 'upper'].values
 
-    rch_initial = nc_file.createVariable('rch_ppt_initial', 'f8', ('rch_ppt',), fill_value=np.nan, zlib=True)
+    rch_initial = nc_file.createVariable('rch_ppt_initial', 'f8', ('rch_ppt',), fill_value=np.nan, zlib=False)
     rch_initial.setncatts({'units': 'none',
                            'long_name': 'recharge pilot point initial value',
                            'missing_value': np.nan,
                            'vtype': 'meta'})
     rch_initial[:] = pst_param.loc[rch_ppt_ids, 'initial'].values
 
-    rch_sd_prior = nc_file.createVariable('rch_ppt_p_sd', 'f8', ('rch_ppt',), fill_value=np.nan, zlib=True)
+    rch_sd_prior = nc_file.createVariable('rch_ppt_p_sd', 'f8', ('rch_ppt',), fill_value=np.nan, zlib=False)
     rch_sd_prior.setncatts({'units': 'none',
                             'long_name': 'recharge pilot point prior standard deviation',
                             'missing_value': np.nan,
@@ -144,15 +173,15 @@ def _add_rch_params(param, rch_ppt_tpl, pst_param, prior_sd_data, postopt_sd_dat
                             'sd_type': 'lin'})
     rch_sd_prior[:] = prior_sd_data.loc[rch_ppt_ids, 'sd'].values
 
-    rch_sd_post = nc_file.createVariable('rch_ppt_j_sd', 'f8', ('rch_ppt',), fill_value=np.nan, zlib=True)
+    rch_sd_post = nc_file.createVariable('rch_ppt_j_sd', 'f8', ('rch_ppt',), fill_value=np.nan, zlib=False)
     rch_sd_post.setncatts({'units': 'none',
                            'long_name': 'recharge pilot point post sensitivity standard deviation',
                            'missing_value': np.nan,
                            'vtype': 'meta',
                            'sd_type': 'lin'})
-    rch_sd_post[:] = postopt_sd_data.loc[rch_ppt_ids, 'sd'].values
+    rch_sd_post[:] = postopt_sd_data.loc[rch_ppt_ids, 'sd'].values ** 0.5
 
-    rch_group = nc_file.createVariable('rch_ppt_group', 'i4', ('rch_ppt',), fill_value=-9, zlib=True)
+    rch_group = nc_file.createVariable('rch_ppt_group', 'i4', ('rch_ppt',), fill_value=-9, zlib=False)
     rch_group.setncatts({'flag_values': [1, 2, 3, 4],
                          'flag_meanings': 'dryland confined selwyn_irr waimak_irr',
                          'long_name': 'recharge pilot point groups',
@@ -160,7 +189,7 @@ def _add_rch_params(param, rch_ppt_tpl, pst_param, prior_sd_data, postopt_sd_dat
                          'vtype': 'meta'})
     rch_group[:] = rch_meta.loc[:, 'group'].values
 
-    rch_mult = nc_file.createVariable('rch_mult', 'f8', ('nsmc_num', 'rch_ppt'), fill_value=np.nan, zlib=True)
+    rch_mult = nc_file.createVariable('rch_mult', 'f8', ('nsmc_num', 'rch_ppt'), fill_value=np.nan, zlib=False)
     rch_mult.setncatts({'units': 'none',
                         'long_name': 'recharge multipliers',
                         'missing_value': np.nan,
@@ -181,7 +210,7 @@ def _add_sfr_cond(param, pst_param, prior_sd_data, postopt_sd_data, nc_file):
                    'hcond36', 'hcond37', 'hcond38', 'hcond39', 'hcond40', 'hcond41', 'hcond42', 'hcond43', 'hcond44',
                    'hcond44x']
 
-    sfr_cond = nc_file.createVariable('sfr_cond', str, ('sfr_cond',), zlib=True)
+    sfr_cond = nc_file.createVariable('sfr_cond', str, ('sfr_cond',), zlib=False)
     sfr_cond.setncatts({'units': 'none',
                         'long_name': 'sfr conductance identifier',
                         'vtype': 'dim'})
@@ -191,28 +220,28 @@ def _add_sfr_cond(param, pst_param, prior_sd_data, postopt_sd_data, nc_file):
     # I could add river that the segment relates to if I have time (I wont)
 
     # add upper and lower bounds
-    sfr_lower = nc_file.createVariable('sfr_lower', 'f8', ('sfr_cond',), fill_value=np.nan, zlib=True)
+    sfr_lower = nc_file.createVariable('sfr_lower', 'f8', ('sfr_cond',), fill_value=np.nan, zlib=False)
     sfr_lower.setncatts({'units': 'none',
                          'long_name': 'sfr cond lower bound',
                          'missing_value': np.nan,
                          'vtype': 'meta'})
     sfr_lower[:] = pst_param.loc[hcond_sites, 'lower'].values
 
-    sfr_upper = nc_file.createVariable('sfr_upper', 'f8', ('sfr_cond',), fill_value=np.nan, zlib=True)
+    sfr_upper = nc_file.createVariable('sfr_upper', 'f8', ('sfr_cond',), fill_value=np.nan, zlib=False)
     sfr_upper.setncatts({'units': 'none',
                          'long_name': 'sfr cond upper bound',
                          'missing_value': np.nan,
                          'vtype': 'meta'})
     sfr_upper[:] = pst_param.loc[hcond_sites, 'upper'].values
 
-    sfr_initial = nc_file.createVariable('sfr_initial', 'f8', ('sfr_cond',), fill_value=np.nan, zlib=True)
+    sfr_initial = nc_file.createVariable('sfr_initial', 'f8', ('sfr_cond',), fill_value=np.nan, zlib=False)
     sfr_initial.setncatts({'units': 'none',
                            'long_name': 'sfr cond initial value',
                            'missing_value': np.nan,
                            'vtype': 'meta'})
     sfr_initial[:] = pst_param.loc[hcond_sites, 'initial'].values
 
-    sfr_prior_sd = nc_file.createVariable('sfr_p_sd', 'f8', ('sfr_cond',), fill_value=np.nan, zlib=True)
+    sfr_prior_sd = nc_file.createVariable('sfr_p_sd', 'f8', ('sfr_cond',), fill_value=np.nan, zlib=False)
     sfr_prior_sd.setncatts({'units': 'none',
                             'long_name': 'sfr cond prior standard deviation',
                             'missing_value': np.nan,
@@ -221,16 +250,25 @@ def _add_sfr_cond(param, pst_param, prior_sd_data, postopt_sd_data, nc_file):
                             })
     sfr_prior_sd[:] = prior_sd_data.loc[hcond_sites, 'sd'].values
 
-    sfr_post_sd = nc_file.createVariable('sfr_j_sd', 'f8', ('sfr_cond',), fill_value=np.nan, zlib=True)
+    sfr_opt_p = nc_file.createVariable('sfr_opt_p', 'f8', ('sfr_cond',), fill_value=np.nan, zlib=False)
+    sfr_opt_p.setncatts({'units': 'none',
+                         'long_name': 'sfr cond optimisation prior ',
+                         'missing_value': np.nan,
+                         'vtype': 'meta',
+                         'sd_type': 'log'
+                         })
+    sfr_opt_p[:] = np.ones(len(hcond_sites)).fill(10)
+
+    sfr_post_sd = nc_file.createVariable('sfr_j_sd', 'f8', ('sfr_cond',), fill_value=np.nan, zlib=False)
     sfr_post_sd.setncatts({'units': 'none',
                            'long_name': 'sfr cond post sensitivity matrix standard deviation',
                            'missing_value': np.nan,
                            'vtype': 'meta',
                            'sd_type': 'log'
                            })
-    sfr_post_sd[:] = postopt_sd_data.loc[hcond_sites, 'sd'].values
+    sfr_post_sd[:] = postopt_sd_data.loc[hcond_sites, 'sd'].values ** 0.5
 
-    sfr_cond_val = nc_file.createVariable('sfr_cond_val', 'f8', ('nsmc_num', 'sfr_cond'), fill_value=np.nan, zlib=True)
+    sfr_cond_val = nc_file.createVariable('sfr_cond_val', 'f8', ('nsmc_num', 'sfr_cond'), fill_value=np.nan, zlib=False)
     sfr_cond_val.setncatts({'units': 'm/day',
                             'long_name': 'sfr conductance at points',
                             'missing_value': np.nan,
@@ -247,35 +285,35 @@ def _add_drain_cond(param, pst_param, prior_sd_data, postopt_sd_data, nc_file):
             'd_oho_kpoi', 'd_sil_ilnd', 'd_oho_misc', 'd_oho_btch', 'd_cour_nrd', 'd_dwaimak', 'd_emd_gard',
             'd_bul_styx', 'd_sil_heyw', 'd_smiths', 'd_sil_harp', 'd_bul_avon', 'd_ash_c', 'd_cust_c', 'd_chch_c',
             'd_waihora', 'd_ulin_c', 'd_dlin_c', 'd_usel_c', 'd_dsel_c', 'd_uwaimak', 'd_ash_est']
-    drn_pts = nc_file.createVariable('drns', str, ('drns',), zlib=True)
+    drn_pts = nc_file.createVariable('drns', str, ('drns',), zlib=False)
     drn_pts.setncatts({'units': 'none',
                        'long_name': 'drain_segment names',
                        'vtype': 'dim'})
     for i, val in enumerate(drns):
         drn_pts[i] = val
 
-    drn_lower = nc_file.createVariable('drn_lower', 'f8', ('drns',), fill_value=np.nan, zlib=True)
+    drn_lower = nc_file.createVariable('drn_lower', 'f8', ('drns',), fill_value=np.nan, zlib=False)
     drn_lower.setncatts({'units': 'none',
                          'long_name': 'drain cond lower bound',
                          'missing_value': np.nan,
                          'vtype': 'meta'})
     drn_lower[:] = pst_param.loc[drns, 'lower'].values
 
-    drn_upper = nc_file.createVariable('drn_upper', 'f8', ('drns',), fill_value=np.nan, zlib=True)
+    drn_upper = nc_file.createVariable('drn_upper', 'f8', ('drns',), fill_value=np.nan, zlib=False)
     drn_upper.setncatts({'units': 'none',
                          'long_name': 'drain cond upper bound',
                          'missing_value': np.nan,
                          'vtype': 'meta'})
     drn_upper[:] = pst_param.loc[drns, 'upper'].values
 
-    drn_initial = nc_file.createVariable('drn_initial', 'f8', ('drns',), fill_value=np.nan, zlib=True)
+    drn_initial = nc_file.createVariable('drn_initial', 'f8', ('drns',), fill_value=np.nan, zlib=False)
     drn_initial.setncatts({'units': 'none',
                            'long_name': 'drain cond initial value',
                            'missing_value': np.nan,
                            'vtype': 'meta'})
     drn_initial[:] = pst_param.loc[drns, 'initial'].values
 
-    drn_prior_sd = nc_file.createVariable('drn_p_sd', 'f8', ('drns',), fill_value=np.nan, zlib=True)
+    drn_prior_sd = nc_file.createVariable('drn_p_sd', 'f8', ('drns',), fill_value=np.nan, zlib=False)
     drn_prior_sd.setncatts({'units': 'none',
                             'long_name': 'drain cond prior standard deviation',
                             'missing_value': np.nan,
@@ -283,15 +321,23 @@ def _add_drain_cond(param, pst_param, prior_sd_data, postopt_sd_data, nc_file):
                             'sd_type': 'log'})
     drn_prior_sd[:] = prior_sd_data.loc[drns, 'sd'].values
 
-    drn_post_sd = nc_file.createVariable('drn_j_sd', 'f8', ('drns',), fill_value=np.nan, zlib=True)
+    drn_opt_p = nc_file.createVariable('drn_opt_p', 'f8', ('drns',), fill_value=np.nan, zlib=False)
+    drn_opt_p.setncatts({'units': 'none',
+                         'long_name': 'drain cond optimisation prior',
+                         'missing_value': np.nan,
+                         'vtype': 'meta',
+                         'sd_type': 'log'})
+    drn_opt_p[:] = np.ones(len(drns)).fill(1680)
+
+    drn_post_sd = nc_file.createVariable('drn_j_sd', 'f8', ('drns',), fill_value=np.nan, zlib=False)
     drn_post_sd.setncatts({'units': 'none',
                            'long_name': 'drain cond post sensitivity matrix standard deviation',
                            'missing_value': np.nan,
                            'vtype': 'meta',
                            'sd_type': 'log'})
-    drn_post_sd[:] = postopt_sd_data.loc[drns, 'sd'].values
+    drn_post_sd[:] = postopt_sd_data.loc[drns, 'sd'].values ** 0.5
 
-    drn_cond = nc_file.createVariable('drn_cond', 'f8', ('nsmc_num', 'drns'), fill_value=np.nan, zlib=True)
+    drn_cond = nc_file.createVariable('drn_cond', 'f8', ('nsmc_num', 'drns'), fill_value=np.nan, zlib=False)
     drn_cond.setncatts({'units': 'm3/day',
                         'long_name': 'drain conductance',
                         'missing_value': np.nan,
@@ -299,7 +345,9 @@ def _add_drain_cond(param, pst_param, prior_sd_data, postopt_sd_data, nc_file):
     drn_cond[:] = param.loc[drns].transpose().values
 
 
-def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data, nc_file):
+def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data, opt_pst, nc_file):
+    opt_priors = extract_opt_priors(opt_pst)
+
     # kh kv pilot points dimensions (nsmc_num, ppt, layer)
     ppt_ids = ['pp005602', 'pp005630', 'pp005798', 'pp010726', 'pp010754', 'pp010810', 'pp010894', 'pp010922',
                'pp015738', 'pp015794', 'pp015822', 'pp015850', 'pp015878', 'pp015906', 'pp015934', 'pp015962',
@@ -326,7 +374,7 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
                'pp130948', 'pp130988']  # from layer 1 I assume this is all of them
     ppt_meta = pd.read_table(kh_kv_ppt_file, skiprows=1, names=['x', 'y', 'group', 'ignore'], delim_whitespace=True)
 
-    ppts = nc_file.createVariable('khv_ppt', str, ('khv_ppt',), zlib=True)
+    ppts = nc_file.createVariable('khv_ppt', str, ('khv_ppt',), zlib=False)
     ppts.setncatts({'units': 'none',
                     'long_name': 'kv and kh pilot point id',
                     'vtype': 'dim'})
@@ -334,7 +382,7 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
         ppts[i] = val
 
     # X
-    pptsx = nc_file.createVariable('khv_ppt_x', 'f8', ('khv_ppt',), fill_value=np.nan, zlib=True)
+    pptsx = nc_file.createVariable('khv_ppt_x', 'f8', ('khv_ppt',), fill_value=np.nan, zlib=False)
     pptsx.setncatts({'units': 'nztm',
                      'long_name': 'kv and kh pilot point longitude',
                      'missing_value': np.nan,
@@ -342,7 +390,7 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
     pptsx[:] = ppt_meta.loc[ppt_ids, 'x'].values
 
     # Y
-    pptsy = nc_file.createVariable('khv_ppt_y', 'f8', ('khv_ppt',), fill_value=np.nan, zlib=True)
+    pptsy = nc_file.createVariable('khv_ppt_y', 'f8', ('khv_ppt',), fill_value=np.nan, zlib=False)
     pptsy.setncatts({'units': 'nztm',
                      'long_name': 'kv and kh pilot point latitude',
                      'missing_value': np.nan,
@@ -355,6 +403,7 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
     temp_initial = np.zeros((layer_dim, khv_dim)) * np.nan
     temp_prior_sd = np.zeros((layer_dim, khv_dim)) * np.nan
     temp_post_sd = np.zeros((layer_dim, khv_dim)) * np.nan
+    temp_opt_p = np.zeros((layer_dim, khv_dim)) * np.nan
     for i in range(0, layer_dim):
         prior_ksd = pd.read_table(os.path.join(prior_ksds_dir, '{:02}_cov_v_07.txt'.format(i + 1)),
                                   skiprows=1, index_col=0, names=['sd'], delim_whitespace=True)
@@ -365,45 +414,55 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
                 temp_initial[i, k] = pst_param.loc['{}_v{}'.format(key, i + 1), 'initial']
                 temp_prior_sd[i, k] = prior_ksd.loc['{}_v{}'.format(key, i + 1), 'sd']
                 temp_post_sd[i, k] = postopt_sd_data.loc['{}_v{}'.format(key, i + 1), 'sd']
+                temp_opt_p[i, k] = opt_priors.loc['{}_v{}'.format(key, i + 1)]
             except KeyError:
                 pass
 
-    pptlower = nc_file.createVariable('kv_lower', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=True)
+    pptlower = nc_file.createVariable('kv_lower', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=False)
     pptlower.setncatts({'units': 'm/day',
                         'long_name': 'kv pilot point lower bound',
                         'missing_value': np.nan,
                         'vtype': 'meta'})
     pptlower[:] = temp_lower
 
-    pptupper = nc_file.createVariable('kv_upper', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=True)
+    pptupper = nc_file.createVariable('kv_upper', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=False)
     pptupper.setncatts({'units': 'm/day',
                         'long_name': 'kv pilot point upper bound',
                         'missing_value': np.nan,
                         'vtype': 'meta'})
     pptupper[:] = temp_upper
 
-    pptinitial = nc_file.createVariable('kv_initial', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=True)
+    pptinitial = nc_file.createVariable('kv_initial', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=False)
     pptinitial.setncatts({'units': 'm/day',
                           'long_name': 'kv pilot point initial value',
                           'missing_value': np.nan,
                           'vtype': 'meta'})
     pptinitial[:] = temp_initial
 
-    pptprior_sd = nc_file.createVariable('kv_p_sd', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=True)
+    pptprior_sd = nc_file.createVariable('kv_p_sd', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=False)
     pptprior_sd.setncatts({'units': 'm/day',
                            'long_name': 'kv pilot point prior standard deviation',
                            'missing_value': np.nan,
                            'vtype': 'meta',
                            'sd_type': 'log'})
-    pptprior_sd[:] = temp_prior_sd
+    pptprior_sd[:] = temp_prior_sd ** 0.5
 
-    pptpost_sd = nc_file.createVariable('kv_j_sd', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=True)
+    pptoptp = nc_file.createVariable('kv_opt_p', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=False)
+    pptoptp.setncatts({'units': 'm/day',
+                       'long_name': 'kv pilot point optimisation prior',
+                       'missing_value': np.nan,
+                       'vtype': 'meta',
+                       'sd_type': 'log'})
+
+    pptoptp[:] = temp_opt_p
+
+    pptpost_sd = nc_file.createVariable('kv_j_sd', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=False)
     pptpost_sd.setncatts({'units': 'm/day',
                           'long_name': 'kv pilot point post sensitivity matrix standard deviation',
                           'missing_value': np.nan,
                           'vtype': 'meta',
                           'sd_type': 'log'})
-    pptpost_sd[:] = temp_post_sd
+    pptpost_sd[:] = temp_post_sd ** 0.5
 
     # kh upper lower initial
     temp_upper = np.zeros((layer_dim, khv_dim)) * np.nan
@@ -411,6 +470,7 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
     temp_initial = np.zeros((layer_dim, khv_dim)) * np.nan
     temp_prior_sd = np.zeros((layer_dim, khv_dim)) * np.nan
     temp_post_sd = np.zeros((layer_dim, khv_dim)) * np.nan
+    temp_opt_p = np.zeros((layer_dim, khv_dim)) * np.nan
     for i in range(0, layer_dim):
         prior_ksd = pd.read_table(os.path.join(prior_ksds_dir, '{:02}_cov_05.txt'.format(i + 1)),
                                   skiprows=1, index_col=0, names=['sd'], delim_whitespace=True)
@@ -422,49 +482,59 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
                 temp_initial[i, k] = pst_param.loc['{}_h{}'.format(key, i + 1), 'initial']
                 temp_prior_sd[i, k] = prior_ksd.loc['{}_h{}'.format(key, i + 1), 'sd']
                 temp_post_sd[i, k] = postopt_sd_data.loc['{}_h{}'.format(key, i + 1), 'sd']
+                temp_opt_p[i, k] = opt_priors.loc['{}_h{}'.format(key, i + 1)]
 
             except KeyError:
                 pass
 
-    pptlower = nc_file.createVariable('kh_lower', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=True)
+    pptlower = nc_file.createVariable('kh_lower', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=False)
     pptlower.setncatts({'units': 'm/day',
                         'long_name': 'kh pilot point lower bound',
                         'missing_value': np.nan,
                         'vtype': 'meta'})
     pptlower[:] = temp_lower
 
-    pptupper = nc_file.createVariable('kh_upper', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=True)
+    pptupper = nc_file.createVariable('kh_upper', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=False)
     pptupper.setncatts({'units': 'm/day',
                         'long_name': 'kh pilot point upper bound',
                         'missing_value': np.nan,
                         'vtype': 'meta'})
     pptupper[:] = temp_upper
 
-    pptinitial = nc_file.createVariable('kh_initial', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=True)
+    pptinitial = nc_file.createVariable('kh_initial', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=False)
     pptinitial.setncatts({'units': 'm/day',
                           'long_name': 'kh pilot point initial value',
                           'missing_value': np.nan,
                           'vtype': 'meta'})
     pptinitial[:] = temp_initial
 
-    pptprior_sd = nc_file.createVariable('kh_p_sd', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=True)
+    pptoptp = nc_file.createVariable('kh_opt_p', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=False)
+    pptoptp.setncatts({'units': 'm/day',
+                       'long_name': 'kh pilot point optimisation prior',
+                       'missing_value': np.nan,
+                       'vtype': 'meta',
+                       'sd_type': 'log'})
+
+    pptoptp[:] = temp_opt_p
+
+    pptprior_sd = nc_file.createVariable('kh_p_sd', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=False)
     pptprior_sd.setncatts({'units': 'm/day',
                            'long_name': 'kh pilot point prior standard deviation',
                            'missing_value': np.nan,
                            'vtype': 'meta',
                            'sd_type': 'log'})
-    pptprior_sd[:] = temp_prior_sd
+    pptprior_sd[:] = temp_prior_sd ** 0.5
 
-    pptpost_sd = nc_file.createVariable('kh_j_sd', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=True)
+    pptpost_sd = nc_file.createVariable('kh_j_sd', 'f8', ('layer', 'khv_ppt'), fill_value=np.nan, zlib=False)
     pptpost_sd.setncatts({'units': 'm/day',
                           'long_name': 'kh pilot point post sensitivity matrix standard deviation',
                           'missing_value': np.nan,
                           'vtype': 'meta',
                           'sd_type': 'log'})
-    pptpost_sd[:] = temp_post_sd
+    pptpost_sd[:] = temp_post_sd ** 0.5
 
     # kv
-    kv = nc_file.createVariable('kv', 'f8', ('nsmc_num', 'layer', 'khv_ppt'), fill_value=np.nan, zlib=True)
+    kv = nc_file.createVariable('kv', 'f8', ('nsmc_num', 'layer', 'khv_ppt'), fill_value=np.nan, zlib=False)
     kv.setncatts({'units': 'm/day',
                   'long_name': 'vertical conductivity',
                   'missing_value': np.nan,
@@ -479,7 +549,7 @@ def _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data
     kv[:] = temp_data
 
     # kh
-    kh = nc_file.createVariable('kh', 'f8', ('nsmc_num', 'layer', 'khv_ppt'), fill_value=np.nan, zlib=True)
+    kh = nc_file.createVariable('kh', 'f8', ('nsmc_num', 'layer', 'khv_ppt'), fill_value=np.nan, zlib=False)
     kh.setncatts({'units': 'm/day',
                   'long_name': 'horizontal conductivity',
                   'missing_value': np.nan,
@@ -516,7 +586,7 @@ def _add_well_obs(obs_file, rei_file, nc_file):
     well_names_cap = [e.upper().replace('_', '/') for e in well_names]
 
     # names
-    well_nm = nc_file.createVariable('well_name', str, ('well_name',), zlib=True)
+    well_nm = nc_file.createVariable('well_name', str, ('well_name',), zlib=False)
     well_nm.setncatts({'units': 'none',
                        'long_name': 'identifier for head targets',
                        'vtype': 'dim'})
@@ -524,7 +594,7 @@ def _add_well_obs(obs_file, rei_file, nc_file):
         well_nm[i] = val
 
     # obs
-    obs = nc_file.createVariable('well_obs', 'f8', ('nsmc_num', 'well_name'), fill_value=np.nan, zlib=True)
+    obs = nc_file.createVariable('well_obs', 'f8', ('nsmc_num', 'well_name'), fill_value=np.nan, zlib=False)
     obs.setncatts({'units': 'm',
                    'long_name': 'model observation for head targets',
                    'missing_value': np.nan,
@@ -532,7 +602,7 @@ def _add_well_obs(obs_file, rei_file, nc_file):
     obs[:] = obs_file.loc[well_names].transpose().values
 
     # target values
-    tar = nc_file.createVariable('well_target', 'f8', ('well_name',), fill_value=np.nan, zlib=True)
+    tar = nc_file.createVariable('well_target', 'f8', ('well_name',), fill_value=np.nan, zlib=False)
     tar.setncatts({'units': 'm',
                    'long_name': 'head targets value',
                    'missing_value': np.nan,
@@ -540,7 +610,7 @@ def _add_well_obs(obs_file, rei_file, nc_file):
     tar[:] = meta.loc[well_names, 'Measured'].values
 
     # weight
-    weight = nc_file.createVariable('well_weight', 'f8', ('well_name',), fill_value=np.nan, zlib=True)
+    weight = nc_file.createVariable('well_weight', 'f8', ('well_name',), fill_value=np.nan, zlib=False)
     weight.setncatts({'units': 'none',
                       'long_name': 'NSMC weight for head targets',
                       'missing_value': np.nan,
@@ -550,7 +620,7 @@ def _add_well_obs(obs_file, rei_file, nc_file):
     all_wells = get_all_well_row_col()
 
     # x
-    x = nc_file.createVariable('well_x', 'f8', ('well_name',), fill_value=np.nan, zlib=True)
+    x = nc_file.createVariable('well_x', 'f8', ('well_name',), fill_value=np.nan, zlib=False)
     x.setncatts({'units': 'nztm',
                  'long_name': 'head targets longitude',
                  'missing_value': np.nan,
@@ -558,7 +628,7 @@ def _add_well_obs(obs_file, rei_file, nc_file):
     x[:] = all_wells.loc[well_names_cap, 'nztmx'].values
 
     # y
-    y = nc_file.createVariable('well_y', 'f8', ('well_name',), fill_value=np.nan, zlib=True)
+    y = nc_file.createVariable('well_y', 'f8', ('well_name',), fill_value=np.nan, zlib=False)
     y.setncatts({'units': 'nztm',
                  'long_name': 'head targets latitude',
                  'missing_value': np.nan,
@@ -566,7 +636,7 @@ def _add_well_obs(obs_file, rei_file, nc_file):
     y[:] = all_wells.loc[well_names_cap, 'nztmy'].values
 
     # depth
-    depth = nc_file.createVariable('well_depth', 'f8', ('well_name',), fill_value=np.nan, zlib=True)
+    depth = nc_file.createVariable('well_depth', 'f8', ('well_name',), fill_value=np.nan, zlib=False)
     depth.setncatts({'units': 'm',
                      'long_name': 'head targets depth',
                      'missing_value': np.nan,
@@ -574,7 +644,7 @@ def _add_well_obs(obs_file, rei_file, nc_file):
     depth[:] = all_wells.loc[well_names_cap, 'depth'].values
 
     # midscreen_elv
-    midscreen = nc_file.createVariable('well_midscreen', 'f8', ('well_name',), fill_value=np.nan, zlib=True)
+    midscreen = nc_file.createVariable('well_midscreen', 'f8', ('well_name',), fill_value=np.nan, zlib=False)
     midscreen.setncatts({'units': 'm',
                          'long_name': 'head targets midscreen elevation',
                          'missing_value': np.nan,
@@ -630,7 +700,7 @@ def _add_other_obs(obs_file, rei_file, nc_file):
         else:
             raise ValueError('{} shouldnt get here'.format(obs))
 
-        temp = nc_file.createVariable(obs, 'f8', ('nsmc_num',), fill_value=np.nan, zlib=True)
+        temp = nc_file.createVariable(obs, 'f8', ('nsmc_num',), fill_value=np.nan, zlib=False)
         temp.setncatts({'units': units,
                         'long_name': long_name,
                         'missing_value': np.nan,
@@ -642,7 +712,7 @@ def _add_other_obs(obs_file, rei_file, nc_file):
 
 def _add_convergence(obs_file, nc_file):
     converged = pd.isnull(obs_file.iloc[0]).values
-    con = nc_file.createVariable('converged', 'i1', ('nsmc_num',), fill_value=-1, zlib=True)
+    con = nc_file.createVariable('converged', 'i1', ('nsmc_num',), fill_value=-1, zlib=False)
     con.setncatts({'units': 'boolean',
                    'long_name': 'model_converged',
                    'missing_value': -1,
@@ -656,7 +726,7 @@ def _add_phis(rec_file, opt_lower_rec, opt_upper_rec, nc_file):
     lower_phis = extractoptphi(opt_lower_rec)
     upper_phis = extractoptphi(opt_upper_rec)
     for bn in basenames:
-        temp = nc_file.createVariable('phi_{}'.format(bn), 'f8', ('nsmc_num',), fill_value=np.nan, zlib=True)
+        temp = nc_file.createVariable('phi_{}'.format(bn), 'f8', ('nsmc_num',), fill_value=np.nan, zlib=False)
         temp.setncatts({'units': 'none',
                         'long_name': 'phi for {}'.format(bn),
                         'missing_value': np.nan,
@@ -671,7 +741,7 @@ def _add_filter_1(f1txt, nc_file):
     with open(f1txt) as f:
         pass_nums = [int(e.strip()) for e in f.readlines()] + [-1, -2]
     passed = np.in1d(nsmc_nums, pass_nums).astype(int)
-    modfilter = nc_file.createVariable('filter1', 'i1', ('nsmc_num',), fill_value=-1, zlib=True)
+    modfilter = nc_file.createVariable('filter1', 'i1', ('nsmc_num',), fill_value=-1, zlib=False)
     modfilter.setncatts({'units': 'boolean',
                          'long_name': 'filter 1 phi filter',
                          'missing_value': -1,
@@ -687,7 +757,7 @@ def _add_filter_2(f2txt, nc_file):
     passed = np.in1d(nsmc_nums, pass_nums).astype(int)
     passed[filter1 < 1] = -1
 
-    modfilter = nc_file.createVariable('filter2', 'i1', ('nsmc_num',), fill_value=-1, zlib=True)
+    modfilter = nc_file.createVariable('filter2', 'i2', ('nsmc_num',), fill_value=-1, zlib=False)
     modfilter.setncatts({'units': 'boolean',
                          'long_name': 'filter 2 vert filter',
                          'missing_value': -1,
@@ -703,7 +773,7 @@ def _add_filter_3(f3txt, nc_file):
     passed = np.in1d(nsmc_nums, pass_nums).astype(int)
     passed[filter1 < 1] = -1
 
-    modfilter = nc_file.createVariable('filter3', 'i1', ('nsmc_num',), fill_value=-1, zlib=True)
+    modfilter = nc_file.createVariable('filter3', 'i2', ('nsmc_num',), fill_value=-1, zlib=False)
     modfilter.setncatts({'units': 'boolean',
                          'long_name': 'filter 3 piezo filter',
                          'missing_value': -1,
@@ -719,7 +789,7 @@ def _add_filter_4(f4txt, nc_file):
     passed = np.in1d(nsmc_nums, pass_nums).astype(int)
     passed[filter1 < 1] = -1
 
-    modfilter = nc_file.createVariable('filter4', 'i1', ('nsmc_num',), fill_value=-1, zlib=True)
+    modfilter = nc_file.createVariable('filter4', 'i2', ('nsmc_num',), fill_value=-1, zlib=False)
     modfilter.setncatts({'units': 'boolean',
                          'long_name': 'filter 4 intersect of piezo and vert filter',
                          'missing_value': -1,
@@ -727,27 +797,93 @@ def _add_filter_4(f4txt, nc_file):
     modfilter[:] = passed
 
 
-def _add_filter_5(f5txt, nc_file):
+def _add_filter_emma(f5txt, nconv, nc_file):
+    emma_data = pd.read_csv(f5txt, index_col=0)
     nsmc_nums = np.array(nc_file.variables['nsmc_num'])
-    # filter4 = np.array(nc_file.variables['filter4']) #todo enable once we've run the filter
-    # with open(f5txt) as f:
-    #    pass_nums = [int(e.strip()) for e in f.readlines()] + [-1, -2]
-    # passed = np.in1d(nsmc_nums, pass_nums).astype(int)
-    # passed[filter4 < 1] = -1
-    # passed[nsmc_nums > 4000] = -1
+    filters = {}
+    filter_atts = {
+        'run_mt3d': {'long_name': 'run mt3d',
+                     'comments': 'the models which we ran mt3d on'},
+        'emma_converge': {'long_name': 'End member mixing converged',
+                     'comments': 'there were some random models which did not converge in mt3d denoted as True'},
+        'n_converge': {'long_name': 'median nitrate converged',
+                     'comments': 'there were some random models which did not converge in mt3d denoted as True'},
+        'emma_no_wt': {'long_name': 'EMMA with no group weighting',
+                     'comments': 'the bottom 10% of data measured by the EMMA phi with no intergroup weights'},
+        'emma_eq_wt': {'long_name': 'EMMA with numerically equally weighting',
+                     'comments': 'the bottom 10 of the realisation measured by the emma phi where the inter group weighting was set by 1/ number of obs in each group'},
+        'emma_chch_wt': {'long_name': 'EMMA with CHCH weighted',
+                     'comments': 'bottom 10% with chch groups weighted up by 2 orders of magnitude'},
+        'emma_str_wt': {'long_name': 'EMMA with streams weighted',
+                     'comments': 'bottom 10% with stream groups weighted up by 2 orders of magnitude'},
+        'emma_ewf_wt': {'long_name': 'EMMA with eyrewell forest weighted',
+                     'comments': 'bottom 10% with eyrewell forest groups weighted up by 2 orders of magnitude'},
+    }
+    # ran mt3d
+    ran = np.in1d(nsmc_nums, emma_data.index)
+    filters['run_mt3d'] = ran.astype(int)
 
-    modfilter = nc_file.createVariable('filter5', 'i1', ('nsmc_num',), fill_value=-1, zlib=True)
-    modfilter.setncatts({'units': 'boolean',
-                         'long_name': 'filter 5 end member mixing filter',
-                         'comments': 'not run on models with number above 4000 (denoted -1)',
-                         'missing_value': -1,
-                         'vtype': 'filter'})
-    modfilter[:] = np.zeros((nsmc_dim,)) - 1  # todo
+    # emma converged
+    emmaconverged = np.in1d(nsmc_nums,emma_data.loc[emma_data.notnull().any(axis=1)].index)
+    f = emmaconverged.astype(int)
+    f[~ran] = -1
+    filters['emma_converge'] = f
+
+    # N med load converged
+    with open(nconv) as f:
+        nums = [int(e) for e in f.readlines()]
+
+    f = np.in1d(nsmc_nums,nums).astype(int)
+    f[~ran] = -1
+    filters['n_converge'] = f
+
+    # emma no weighting
+    temp_data = emma_data['no_weighting']
+    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)].index).astype(int)
+    f[~emmaconverged] = -1
+    filters['emma_no_wt'] = f
+
+    # emma equal weighting
+    temp_data = emma_data['equal_num']
+    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)].index).astype(int)
+    f[~emmaconverged] = -1
+    filters['emma_eq_wt'] = f
+
+
+    # emma chch weighting
+    temp_data = emma_data['chch_weighted']
+    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)].index).astype(int)
+    f[~emmaconverged] = -1
+    filters['emma_chch_wt'] = f
+
+
+    # emma stream weighting
+    temp_data = emma_data['stream_weighted']
+    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)].index).astype(int)
+    f[~emmaconverged] = -1
+    filters['emma_str_wt'] = f
+
+
+    # emma ewf weighting
+    temp_data = emma_data['ewf_weighted']
+    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)].index).astype(int)
+    f[~emmaconverged] = -1
+    filters['emma_ewf_wt'] = f
+
+    for key in filters.keys():
+        modfilter = nc_file.createVariable(key, 'i2', ('nsmc_num',), fill_value=-1, zlib=False)
+        modfilter.setncatts({'units': 'boolean',
+                             'long_name': filter_atts[key]['long_name'],
+                             'comments': filter_atts[key]['comments'],
+                             'missing_value': -1,
+                             'vtype': 'filter'})
+        modfilter[:] = filters[key]
 
 
 def make_netcdf_nsmc(nc_outfile, rrffile, rec_file, opt_lower_rec, opt_upper_rec, rch_ppt_tpl, kh_kv_ppt_file,
                      rei_file, opt_lower_rei, opt_upper_rei, pst_file, prior_sds, prior_ksds_dir, postopt_sds,
-                     f1txt, f2txt, f3txt, f4txt, f5txt, recalc=False):
+                     opt_pst_file,
+                     f1txt, f2txt, f3txt, f4txt, f5txt, ncontxt, recalc=False):
     """
 
     :param nc_outfile: path to write the netcdf file
@@ -764,6 +900,7 @@ def make_netcdf_nsmc(nc_outfile, rrffile, rec_file, opt_lower_rec, opt_upper_rec
     :param prior_sds: text file with the prior sds for all non khv
     :param prior_ksds_dir: directory with all of the Kh and Kv sds
     :param postopt_sds: textfile with the sds after sensitivity matrix
+    :param opt_pst_file: the pest file for the original optimisation to pull kvh priors
     :param f1txt: the text file with a list that passed filter 1 phi
     :param f2txt: the text file with a list that passed filter 2 vert
     :param f3txt: the text file with a list that passed filter 3 piezo
@@ -824,6 +961,8 @@ def make_netcdf_nsmc(nc_outfile, rrffile, rec_file, opt_lower_rec, opt_upper_rec
                     the k priors were reduced to 70% for kv and 50% for kh from the true coveriance matrix
                     note that these distributions are not truly bayesian as the distribution is centered by the initial 
                     value and truncated at the bounds
+                    
+                    'opt_p' is the optimisation prior (e.g. the prior for the optimisation process)
                     """
 
     # make dimensions
@@ -836,7 +975,7 @@ def make_netcdf_nsmc(nc_outfile, rrffile, rec_file, opt_lower_rec, opt_upper_rec
     nc_file.createDimension('drns', drn_dim)
 
     # variables
-    nsmc_num = nc_file.createVariable('nsmc_num', 'i4', ('nsmc_num',), fill_value=-9, zlib=True)
+    nsmc_num = nc_file.createVariable('nsmc_num', 'i4', ('nsmc_num',), fill_value=-9, zlib=False)
     nsmc_num.setncatts({'units': 'none',
                         'long_name': 'Null Space Monte Carlo Realisation Number',
                         'comments': 'unique identifier phi lower and phi upper are -1 and -2, respectively',
@@ -844,7 +983,7 @@ def make_netcdf_nsmc(nc_outfile, rrffile, rec_file, opt_lower_rec, opt_upper_rec
                         'vtype': 'dim'})
     nsmc_num[:] = range(1, nsmc_dim + -1) + [-1, -2]
 
-    layer = nc_file.createVariable('layer', 'i4', ('layer',), fill_value=-9, zlib=True)
+    layer = nc_file.createVariable('layer', 'i4', ('layer',), fill_value=-9, zlib=False)
     layer.setncatts({'units': 'none',
                      'long_name': 'model layer',
                      'comments': '1 indexed',
@@ -861,7 +1000,7 @@ def make_netcdf_nsmc(nc_outfile, rrffile, rec_file, opt_lower_rec, opt_upper_rec
 
     _add_drain_cond(param, pst_param, prior_sd_data, postopt_sd_data, nc_file)
 
-    _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data, nc_file)
+    _add_kv_kh(param, kh_kv_ppt_file, pst_param, prior_ksds_dir, postopt_sd_data, opt_pst_file, nc_file)
 
     # add observations convergence and phis
     _add_well_obs(obs, rei_file, nc_file)
@@ -877,7 +1016,7 @@ def make_netcdf_nsmc(nc_outfile, rrffile, rec_file, opt_lower_rec, opt_upper_rec
     _add_filter_2(f2txt, nc_file)  # vert filter
     _add_filter_3(f3txt, nc_file)  # piezo filter
     _add_filter_4(f4txt, nc_file)  # intersect of vert and piezo filter
-    _add_filter_5(f4txt, nc_file)  # end member mixing filter
+    _add_filter_emma(f5txt, ncontxt, nc_file)  # end member mixing filter
 
     # add general comments
     nc_file.description = (
@@ -890,7 +1029,6 @@ def make_netcdf_nsmc(nc_outfile, rrffile, rec_file, opt_lower_rec, opt_upper_rec
 
 
 if __name__ == '__main__':
-    # todo spotcheck
     data_dir = "{}/from_gns/nsmc".format(smt.sdp)
     make_netcdf_nsmc(nc_outfile=env.gw_met_data("mh_modeling/netcdfs_of_key_modeling_data/nsmc_params_obs_metadata.nc"),
                      rrffile="{}/aw_ex_mc/aw_ex_mc.rrf".format(data_dir),
@@ -906,9 +1044,12 @@ if __name__ == '__main__':
                      prior_sds="{}/sds/PriorSDs.txt".format(data_dir),
                      prior_ksds_dir="{}/sds/ppk_priorSD".format(data_dir),
                      postopt_sds="{}/sds/aw_ex_postopt_sd.txt".format(data_dir),
+                     opt_pst_file='{}/from_gns/NsmcBase/AW20171024_2_i2_optver/i2/aw_ex_reg_wtadj_manwtadj_midcal.pst'.format(
+                         smt.sdp),
                      f1txt="{}/F1_filtered_parsets.txt".format(data_dir),
                      f2txt="{}/F2_vert_filtered_parsets.txt".format(data_dir),
                      f3txt="{}/F2_piez_filtered_parsets.txt".format(data_dir),
                      f4txt="{}/F2_intersect_filtered_parsets.txt".format(data_dir),
-                     f5txt='placeholder')  # todo update when run
+                     f5txt="{}/emma_phis.csv".format(data_dir),
+                     ncontxt="{}/mednload_converged.txt".format(data_dir))
     print('done')

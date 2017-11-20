@@ -16,9 +16,9 @@ def get_rch_index_array():
     zones = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/cwms_zones.shp".format(smt.sdp), 'ZONE_CODE')
     zones[~no_flow.astype(bool)] = np.nan
     # waimak = 4, chch_wm = 7, selwyn=8
-    irrigation = smt.shape_file_to_model_array(r"C:\Users\MattH\Downloads\irrigated_Area.shp",'OBJECTID',True)
+    irrigation = smt.shape_file_to_model_array(r"{}\m_ex_bd_inputs\shp\irrigated_Area.shp".format(smt.sdp),'OBJECTID',True)
     irrigation[~no_flow.astype(bool)] = np.nan
-    confined = smt.shape_file_to_model_array(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\supporting_data_for_scripts\ex_bd_va_sdp\m_ex_bd_inputs\shp\confined_zone_full_extent.shp",'Id',True)
+    confined = smt.shape_file_to_model_array(r"{}\m_ex_bd_inputs\shp\confined_zone_full_extent.shp".format(smt.sdp),'Id',True)
     confined[~no_flow.astype(bool)] = np.nan
 
     # 0=ibound 1 = dryland, 2=confined dryland, 3= selwyn irrigated, 4 =waimak irrigated

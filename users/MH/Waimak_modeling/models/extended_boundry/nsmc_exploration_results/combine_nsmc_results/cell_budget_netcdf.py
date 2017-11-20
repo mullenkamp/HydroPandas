@@ -21,7 +21,7 @@ import pandas as pd
 from itertools import izip_longest
 
 
-def make_cellbud_netcdf(nsmc_nums, sfo_paths, cbc_paths, description, nc_path):
+def make_cellbud_netcdf(nsmc_nums, sfo_paths, cbc_paths, description, nc_path, zlib):
     """
     make a cell budget file netcdf for easy use
     :param nsmc_nums: list the unique identifiers for the netcdfs
@@ -105,7 +105,7 @@ def make_cellbud_netcdf(nsmc_nums, sfo_paths, cbc_paths, description, nc_path):
 
     # create variables
     variables = [e.lower() for e in
-                 ['CONSTANT HEAD', 'FLOW RIGHT FACE', 'FLOW FRONT FACE', 'FLOW LOWER FACE', 'WELLS', 'DRAINS',
+                 ['streamflow out', 'CONSTANT HEAD', 'FLOW RIGHT FACE', 'FLOW FRONT FACE', 'FLOW LOWER FACE', 'WELLS', 'DRAINS',
                   'RECHARGE', 'STREAM LEAKAGE']]
 
     # create stream flow variable
@@ -114,7 +114,7 @@ def make_cellbud_netcdf(nsmc_nums, sfo_paths, cbc_paths, description, nc_path):
         dim = ('nsmc_num', 'layer', 'row', 'col')
         if var in ['constant head', 'drains', 'recharge', 'stream leakage', 'streamflow out']:
             dim = ('nsmc_num', 'row', 'col')
-        temp = nc_file.createVariable(var, 'f8', dim, fill_value=np.nan, zlib=True)
+        temp = nc_file.createVariable(var, 'f8', dim, fill_value=np.nan, zlib=zlib)
         temp.setncatts({'units': 'm3/day',
                         'long_name': 'cell by cell flow {}'.format(var),
                         'missing_value': np.nan})
@@ -157,15 +157,9 @@ def make_cellbud_netcdf(nsmc_nums, sfo_paths, cbc_paths, description, nc_path):
                 # get data from files
                 if var == 'streamflow out':
                     # below returns a list of masked array(s) this give the array filled with np.nan
-                    try:
-                        temp_data = sfo.get_data(kstpkper=kstpkper, text=var, full3D=True)[0].filled(np.nan)
-                    except: # flopy's exceptions suck ass
-                        continue
+                    temp_data = sfo.get_data(kstpkper=kstpkper, text=var, full3D=True)[0].filled(np.nan)
                 else:
-                    try:
-                        temp_data = cbc.get_data(kstpkper=kstpkper, text=var, full3D=True)[0]
-                    except: # flopy's exceptions suck
-                        continue
+                    temp_data = cbc.get_data(kstpkper=kstpkper, text=var, full3D=True)[0]
                     if isinstance(temp_data, np.ma.MaskedArray):
                         temp_data = temp_data.filled(np.nan)
 
@@ -187,4 +181,3 @@ def grouper(n, iterable, fillvalue=None):
     args = [iter(iterable)] * n
     return izip_longest(fillvalue=fillvalue, *args)
 
-# todo debug
