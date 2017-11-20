@@ -5,25 +5,6 @@ Created on Fri Oct 07 18:16:59 2016
 @author: MichaelEK
 """
 
-from os import path
-from pandas import read_table, DataFrame, concat, merge, Timedelta, datetime, to_datetime, DateOffset, date_range, Timestamp, read_csv, to_numeric, Series
-from misc_fun import printf
-from allo_use_fun import stream_nat, flow_ros
-from stats_fun import lin_reg
-from import_fun import rd_hydstra_csv, rd_vcn, rd_ts, rd_henry
-from spatial_fun import grid_interp_iter, catch_net, pts_poly_join, catch_agg, grid_catch_agg
-from geopandas import read_file
-from ts_stats_fun import malf7d, flow_stats, est_low_flows, flow_dur
-import matplotlib.pyplot as plt
-import seaborn as sns
-from numpy import nan, log, in1d, polyfit, poly1d, interp, mean, median
-from scipy import stats, optimize
-import statsmodels.api as sm
-import xray as xr
-from ast import literal_eval
-from shapely.wkt import loads
-
-
 ######################################################
 #### 69618 Rockwood correlations to upstream Opihi
 
