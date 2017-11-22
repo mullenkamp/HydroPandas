@@ -216,7 +216,7 @@ def rd_hilltop_sites(hts, sites=None, mtypes=None, rem_wq_sample=True):
 
     sites_df = DataFrame(sites_lst, columns=['site', 'data_source', 'mtype', 'unit', 'divisor', 'start_date', 'end_date'])
     if rem_wq_sample:
-        sites_df = sites_df[~sites_df.mtype == 'WQ Sample']
+        sites_df = sites_df[~(sites_df.mtype == 'WQ Sample')]
     dfile.Close()
     cat.Close()
     return(sites_df)
@@ -489,7 +489,9 @@ def rd_ht_wq_data(hts, sites=None, mtypes=None, start=None, end=None, dtl_method
                 data3 = data
         else:
             data3 = data
+
         if output_site_data:
+            sites_df = sites_df[~(sites_df.mtype == 'WQ Sample')]
             return(data3, sites_df)
         else:
             return(data3)

@@ -222,22 +222,24 @@ def rd_sw_rain_geo(sites=None):
     return(site_geo3.set_index('site'))
 
 
-def write_sql(server, database, table, df, dtype_dict, create_table=True, drop_table=False):
+def write_sql(df, server, database, table, dtype_dict, primary_keys=None, create_table=True, drop_table=False):
     """
     Function to write pandas dataframes to mssql server tables. Must have write permissions to database!
 
     Parameters
     ----------
+    df : DataFrame
+        DataFrame to be saved.
     server : str
         The server name. e.g.: 'SQL2012PROD03'
     database : str
         The specific database within the server. e.g.: 'LowFlows'
     table : str
         The specific table within the database. e.g.: 'LowFlowSiteRestrictionDaily'
-    df : DataFrame
-        DataFrame to be saved.
     dtype_dict : dict of str
         Dictionary of df columns to the associated sql data type. Examples below.
+    primary_keys : str or list of str
+        Index columns to define uniqueness in the data structure.
     create_table : bool
         Should a new table be created or should it be appended to an existing table?
     drop_table : bool
@@ -280,7 +282,7 @@ def write_sql(server, database, table, df, dtype_dict, create_table=True, drop_t
             time1 = to_datetime(df[i]).astype(str)
             df.loc[:, i] = time1
         elif 'VARCHAR' in dtype1:
-            df.loc[:, i] = df.loc[:, i].astype(str)
+            df.loc[:, i] = df.loc[:, i].astype(str).str.replace('\'', ' ')
         elif 'NUMERIC' in dtype1:
             df.loc[:, i] = df.loc[:, i].astype(float)
         elif 'decimal' in dtype1:
@@ -295,36 +297,47 @@ def write_sql(server, database, table, df, dtype_dict, create_table=True, drop_t
     tup1 = [str(tuple(i)) for i in list1]
     tup2 = chunker(tup1, 1000)
 
+    #### Primary keys
+    if isinstance(primary_keys, str):
+        primary_keys = [primary_keys]
+    if isinstance(primary_keys, list):
+        key_stmt = ", Primary key (" + ", ".join(primary_keys) + ")"
+    else:
+        key_stmt = ""
+
     #### Initial create table and insert statements
     d1 = [str(i) + ' ' + dtype_dict[i] for i in df.columns]
     d2 = ', '.join(d1)
-    tab_create_stmt = "create table " + table + " (" + d2 + ")"
+    tab_create_stmt = "create table " + table + " (" + d2 + key_stmt + ")"
     insert_stmt1 = "insert into " + table + " values "
 
-    conn = connect(server, database=database)
-    cursor = conn.cursor()
+    try:
+        conn = connect(server, database=database)
+        cursor = conn.cursor()
 
-    #### Drop table if it exists
-    if drop_table:
-        drop_stmt = "IF OBJECT_ID(" + str([str(table)])[1:-1] + ", 'U') IS NOT NULL DROP TABLE " + table
-        cursor.execute(drop_stmt)
+        #### Drop table if it exists
+        if drop_table:
+            drop_stmt = "IF OBJECT_ID(" + str([str(table)])[1:-1] + ", 'U') IS NOT NULL DROP TABLE " + table
+            cursor.execute(drop_stmt)
+            conn.commit()
+
+        #### Create table in database
+        if create_table:
+            cursor.execute(tab_create_stmt)
+            conn.commit()
+
+        #### Insert data into table
+        for i in tup2:
+            rows = ",".join(i)
+            insert_stmt2 = insert_stmt1 + rows
+            cursor.execute(insert_stmt2)
         conn.commit()
 
-    #### Create table in database
-    if create_table:
-        cursor.execute(tab_create_stmt)
-        conn.commit()
-
-    #### Insert data into table
-    for i in tup2:
-        rows = ','.join(i)
-        insert_stmt2 = insert_stmt1 + rows
-        cursor.execute(insert_stmt2)
-    conn.commit()
-
-    #### Close everything!
-    cursor.close()
-    conn.close()
+        #### Close everything!
+        cursor.close()
+        conn.close()
+    except:
+        raise ValueError('Could not complete SQL import')
 
 
 def sql_where_stmts(where_col=None, where_val=None, where_op='AND', from_date=None, to_date=None, date_col=None):
