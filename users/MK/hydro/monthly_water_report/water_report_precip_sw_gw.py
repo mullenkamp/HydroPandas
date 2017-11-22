@@ -352,8 +352,8 @@ catch_cat2 = concat([catch_stats1, catch_cat1], axis=1)
 
 print('Exporting results to csv')
 
-ts_out1 = hy_summ2.copy()
-ts_out2 = ts_out1.pivot_table('perc', ['mtype', 'site'], 'time').round(2)
+ts_out1 = hy_summ1.copy()
+ts_out2 = ts_out1.pivot_table('perc_temp', ['mtype', 'site'], 'time').round(2)
 ts_out3 = ts_out2.reset_index()
 ts_out3.to_csv(path.join(base_dir, ts_out_csv), index=False)
 
