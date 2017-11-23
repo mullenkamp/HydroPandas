@@ -40,11 +40,12 @@ years = 'all'
 debug = False
 sd_only = False
 agg_yr = True
+rem_over_usage = True
 
 ## output parameters
 base_path = 'E:/ecan/local/Projects/requests'
 name = 'opihi'
-date = '2017-10-27'
+date = '2017-11-23'
 
 export_fig_path = path.join(base_path, name, date, 'figures')
 export_path = path.join(base_path, name, date, name + '_allo_use.csv')
@@ -70,7 +71,7 @@ catch_name = agg_catch.catch_name.tolist()
 #################################
 ### Query data
 
-lw = allo_query(grp_by=grp_by, swaz=swaz, crc=crc2, cwms_zone=cwms_zone, take_type=take_type, use_type=use_type, allo_col=allo_col, years=years, catch_name=catch_name, sd_only=sd_only, agg_yr=agg_yr, debug=debug)
+lw = allo_query(grp_by=grp_by, swaz=swaz, crc=crc2, cwms_zone=cwms_zone, take_type=take_type, use_type=use_type, allo_col=allo_col, years=years, catch_name=catch_name, sd_only=sd_only, agg_yr=agg_yr, debug=debug, rem_over_usage=rem_over_usage)
 
 all1 = allo_query(grp_by=grp_by, swaz=swaz, crc=crc2, cwms_zone=cwms_zone, take_type=take_type, use_type=use_type, allo_col=allo_col, years=years, catch_name=catch_name, export_path=export_path_all, sd_only=sd_only, agg_yr=agg_yr, export=True, debug=True)
 

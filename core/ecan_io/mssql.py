@@ -368,8 +368,8 @@ def sql_where_stmts(where_col=None, where_val=None, where_op='AND', from_date=No
 
     if where_col is not None:
         if isinstance(where_col, str) & isinstance(where_val, list):
-            if len(where_val) > 10000:
-                raise ValueError('The number of values in where_val cannot be over 10000 (or so). MSSQL limitation. Break them into smaller chunks.')
+#            if len(where_val) > 10000:
+#                raise ValueError('The number of values in where_val cannot be over 10000 (or so). MSSQL limitation. Break them into smaller chunks.')
             where_val = [str(i) for i in where_val]
             where_stmt = [str(where_col) + ' IN (' + str(where_val)[1:-1] + ')']
         elif isinstance(where_col, dict):
