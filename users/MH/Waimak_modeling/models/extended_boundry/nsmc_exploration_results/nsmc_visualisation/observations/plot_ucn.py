@@ -21,22 +21,52 @@ from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.a
 np.random.seed(1)
 
 def _above_mav(x, **kwargs):
+    """
+    quick function to transform data
+    :param x: input data
+    :param kwargs: to allow other arguments passed to other transformations
+    :return:
+    """
     return x >= 11.3
 
 
 def _above_half_mav(x, **kwargs):
+    """
+    quick function to transform data
+    :param x: input data
+    :param kwargs: to allow other arguments passed to other transformations
+    :return:
+    """
     return x >= 5.65
 
 
 def _above_quarter_mav(x, **kwargs):
+    """
+    quick function to transform data
+    :param x: input data
+    :param kwargs: to allow other arguments passed to other transformations
+    :return:
+    """
     return x >= 2.825
 
 
 def _above_low(x, **kwargs):
+    """
+    quick function to transform data
+    :param x: input data
+    :param kwargs: to allow other arguments passed to other transformations
+    :return:
+    """
     return x >= 1
 
 
 def plot_all_2d_con(outdir, filter_strs):
+    """
+    plot the 2d concentration plots
+    :param outdir: the directory to save all the plots
+    :param filter_strs: the filter strings to p
+    :return:
+    """
     if socket.gethostname() != 'GWATER02':
         raise ValueError('this must be run on GWATER02 as that is where the uncompressed data is stored')
 
@@ -147,6 +177,15 @@ def plot_all_2d_con(outdir, filter_strs):
 # take for granted that only 2000 something were run when looking through filters
 
 def plot_well_con(param_nc_path, con_nc_path, con_str, outdir, filter_strs):
+    """
+    plot the concentration at key wells groups
+    :param param_nc_path: path to the parameter netcdf
+    :param con_nc_path: path to the concentration netcdf
+    :param con_str: key for the concentration data
+    :param outdir: dir to save the plots
+    :param filter_strs: filter strings to use see plot 2d or boxplots for better description
+    :return:
+    """
     if not os.path.exists(outdir):
         os.makedirs(outdir)
     plt_data = pd.read_excel(
@@ -232,6 +271,12 @@ def plot_well_con(param_nc_path, con_nc_path, con_str, outdir, filter_strs):
         plt.close(fig)
 
 def plot_all_cons(outdir,filterstrs):
+    """
+    quick wrapper to plot all concentration data
+    :param outdir: dir to save plots
+    :param filterstrs: normal filter sting arguments
+    :return:
+    """
     plot_all_2d_con(outdir, filter_strs=filterstrs)
     plot_well_con(env.gw_met_data(r"mh_modeling\netcdfs_of_key_modeling_data\nsmc_params_obs_metadata.nc"),
                   r"C:\mh_waimak_model_data\mednload_ucn.nc",
