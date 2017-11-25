@@ -2,22 +2,33 @@
 """
 Functions for importing flow data.
 """
+from core.ts import tsreg, w_resample
+from pandas import read_table, DataFrame, to_datetime, merge, to_numeric, Series, read_csv, concat
+from numpy import nan, isnan, in1d
+from core.ecan_io.mssql import rd_sql, rd_sql_ts
+from numpy import ndarray
+from core.misc import select_sites, save_df, rd_dir
+from core.ts.sw import flow_stats, malf7d, fre_accrual
+from geopandas import read_file, GeoDataFrame
+from os.path import join, dirname
+from core.spatial.vector import sel_sites_poly
+from os import path
 
 
 def rd_ts(csv, index=1, header='infer', skiprows=0, reg=False, **kwargs):
     """
     Simple function to read in time series data and make it regular if needed.
     """
-    from pandas import read_csv
-    from core.ts import tsreg
 
-    ts = read_csv(csv, parse_dates=[index - 1], infer_datetime_format=True, index_col=0, dayfirst=True, skiprows=skiprows, header=header)
+    ts = read_csv(csv, parse_dates=[index - 1], infer_datetime_format=True, index_col=0, dayfirst=True,
+                  skiprows=skiprows, header=header)
     if reg:
         ts = tsreg(ts, **kwargs)
-    return(ts)
+    return (ts)
 
 
-def rd_henry(sites, sites_col=1, from_date=None, to_date=None, agg_day=True, sites_by_col=False, min_filter=None, export=False, export_path='gauge_flows.csv'):
+def rd_henry(sites, from_date=None, to_date=None, agg_day=True, sites_by_col=False, min_filter=None, export=False,
+             export_path='gauge_flows.csv'):
     """
     Function to read in gaugings data from the "Henry DB". Hopefully, they keep this around for a while longer.
 
@@ -30,15 +41,11 @@ def rd_henry(sites, sites_col=1, from_date=None, to_date=None, agg_day=True, sit
     sites_by_col -- 'False' does not make a time series, rather it is organized by site, date, and gauging. 'True' creates a time series with the columns as gauging sites (will create many NAs).\n
     min_filter -- Minimum number of days required for the gaugings output.
     """
-    from core.ecan_io import rd_sql
-    from pandas import read_csv
-    from numpy import ndarray, in1d
-    from core.misc import select_sites
 
     def resample1(df):
         df.index = df.date
         df2 = df.resample('D').mean()
-        return(df2)
+        return (df2)
 
     #### Fields and names for databases
 
@@ -62,17 +69,17 @@ def rd_henry(sites, sites_col=1, from_date=None, to_date=None, agg_day=True, sit
 
     ## Will change to the following!!! Or stay as a duplicate...
 
-    #database1 = 'Hydstra'
+    # database1 = 'Hydstra'
 
-    #table1 = 'Hydstra.dbo.GAUGINGS'
+    # table1 = 'Hydstra.dbo.GAUGINGS'
 
     ########################################
     ### Read in data
 
-    if sites is not None:
-        sites1 = select_sites(sites).tolist()
-        data = rd_sql(server=server, database=database, table=table, col_names=fields, where_col=where_col, where_val=sites1).dropna()
-        data.columns = names
+    sites1 = select_sites(sites).tolist()
+    data = rd_sql(server=server, database=database, table=table, col_names=fields, where_col=where_col,
+                  where_val=sites1).dropna()
+    data.columns = names
 
     ### Aggregate duplicates
 
@@ -88,7 +95,7 @@ def rd_henry(sites, sites_col=1, from_date=None, to_date=None, agg_day=True, sit
     ### Filter out sites with less than min_filter
     if min_filter is not None:
         count1 = data3.groupby('site')['flow'].count()
-        count_index = count1[count1 >= min_filter ].index
+        count_index = count1[count1 >= min_filter].index
         data3 = data3[in1d(data3.site.values, count_index)]
 
     ### Select within date range
@@ -110,7 +117,7 @@ def rd_henry(sites, sites_col=1, from_date=None, to_date=None, agg_day=True, sit
         else:
             data4.to_csv(export_path, index=False)
 
-    return(data4)
+    return (data4)
 
 
 def rd_hydstra_csv(csv_path, qual_codes=False, min_qual_code=30, min_filter=False, min_yrs=25):
@@ -124,22 +131,20 @@ def rd_hydstra_csv(csv_path, qual_codes=False, min_qual_code=30, min_filter=Fals
     years?\n
     min_yrs -- The minimum number of years to be filtered.
     """
-    from pandas import read_table, DataFrame
-    from core.ts.sw import flow_stats
-    from numpy import nan, isnan
 
     if qual_codes:
         t1_index = read_table(csv_path, sep=',', nrows=1, header=None)
         t1_index2 = t1_index.values[0]
         t1_index3 = [i for i in t1_index2[1:] if not isnan(i)]
         col_num = range(len(t1_index2))
-        t1 = read_table(csv_path, sep=',', parse_dates=[0], header=None, infer_datetime_format=True, skiprows=3, index_col=0, dayfirst=True)
+        t1 = read_table(csv_path, sep=',', parse_dates=[0], header=None, infer_datetime_format=True, skiprows=3,
+                        index_col=0, dayfirst=True)
         qual_index = t1[t1.columns[1::2]] > min_qual_code
         t2 = t1[t1.columns[::2]]
         t2.columns = t1_index3
         for i in range(len(t2.columns)):
             df_col = t2.columns[i]
-            t2.loc[qual_index.iloc[:,i], df_col] = nan
+            t2.loc[qual_index.iloc[:, i], df_col] = nan
         t3 = t2.dropna(axis=1, how='all')
         t3.index.name = 'date'
 
@@ -147,7 +152,8 @@ def rd_hydstra_csv(csv_path, qual_codes=False, min_qual_code=30, min_filter=Fals
         t1_index = read_table(csv_path, sep=',', nrows=1, header=None)
         t1_index2 = t1_index.values[0]
         col_num = range(len(t1_index2))
-        t1 = read_table(csv_path, sep=',', parse_dates=[0], infer_datetime_format=True, skiprows=2, header=0, index_col=0, names=t1_index2, usecols=col_num, dayfirst=True)
+        t1 = read_table(csv_path, sep=',', parse_dates=[0], infer_datetime_format=True, skiprows=2, header=0,
+                        index_col=0, names=t1_index2, usecols=col_num, dayfirst=True)
         t2 = DataFrame(t1)
         t3 = t2.dropna(axis=1, how='all')
 
@@ -157,10 +163,11 @@ def rd_hydstra_csv(csv_path, qual_codes=False, min_qual_code=30, min_filter=Fals
     else:
         t4 = t3
 
-    return(t4)
+    return (t4)
 
 
-def rd_hydstra_dir(input_path, min_filter=False, min_yrs=25, export=False, export_path='', export_name='hydsra_export.csv'):
+def rd_hydstra_dir(input_path, min_filter=False, min_yrs=25, export=False, export_path='',
+                   export_name='hydsra_export.csv'):
     """
     Read in all csv files exported by Hydstra via the HYDCSV tool
     within a specified directory.
@@ -175,22 +182,19 @@ def rd_hydstra_dir(input_path, min_filter=False, min_yrs=25, export=False, expor
     output_path -- Path where the export csv will be saved. If None then
     output_path = input_path.\n
     """
-    from pandas import concat
-    from os import listdir, path
-    from fnmatch import filter
-    from core.ecan_io import rd_hydstra_csv
-    from core.misc import rd_dir
 
     files = rd_dir(input_path, 'csv', False)
 
-    t1 = concat((rd_hydstra_csv(path.join(input_path, f), min_filter=min_filter, min_yrs=min_yrs) for f in files), axis=1)
+    t1 = concat((rd_hydstra_csv(path.join(input_path, f), min_filter=min_filter, min_yrs=min_yrs) for f in files),
+                axis=1)
 
     if export:
         t1.to_csv(path.join(export_path, export_name))
-    return(t1)
+    return (t1)
 
 
-def rd_hydrotel(sites, mtype='river_flow_cont_raw', from_date=None, to_date=None, resample_code='D', period=1, fun='mean', val_round=3, min_count=None, pivot=False, export_path=None):
+def rd_hydrotel(sites, mtype='river_flow_cont_raw', from_date=None, to_date=None, resample_code='D', period=1,
+                fun='mean', val_round=3, min_count=None, pivot=False, export_path=None):
     """
     Function to extract time series data from the hydrotel database.
 
@@ -222,13 +226,11 @@ def rd_hydrotel(sites, mtype='river_flow_cont_raw', from_date=None, to_date=None
     Series or DataFrame
         A MultiIndex Pandas Series if pivot is False and a DataFrame if True
     """
-    from core.ecan_io import rd_sql, rd_sql_ts
-    from pandas import to_datetime, merge, to_numeric, Series, Timestamp
-    from numpy import ndarray
-    from core.misc import select_sites, save_df
 
     #### mtypes dict
-    mtypes_dict = {'river_flow_cont_raw': 'Flow Rate', 'aq_wl_cont_raw': 'Water Level', 'atmos_precip_cont_raw': 'Rainfall Depth', 'river_wl_cont_raw': 'Water Level', 'river_wtemp_cont_raw': 'Water Temperature'}
+    mtypes_dict = {'river_flow_cont_raw': 'Flow Rate', 'aq_wl_cont_raw': 'Water Level',
+                   'atmos_precip_cont_raw': 'Rainfall Depth', 'river_wl_cont_raw': 'Water Level',
+                   'river_wtemp_cont_raw': 'Water Temperature'}
 
     #### Database parameters
     server = 'SQL2012PROD05'
@@ -250,7 +252,8 @@ def rd_hydrotel(sites, mtype='river_flow_cont_raw', from_date=None, to_date=None
 
     sites = select_sites(sites)
     if mtype == 'atmos_precip_cont_raw':
-        site_ob1 = rd_sql(server, database, objects_tab, ['Site', 'ExtSysId'], 'ExtSysId', sites.astype('int32').tolist())
+        site_ob1 = rd_sql(server, database, objects_tab, ['Site', 'ExtSysId'], 'ExtSysId',
+                          sites.astype('int32').tolist())
         site_val0 = rd_sql(server, database, sites_tab, ['Site', 'Name'], 'Site', site_ob1.Site.tolist())
         site_val1 = merge(site_val0, site_ob1, on='Site')
     elif mtype == 'aq_wl_cont_raw':
@@ -264,7 +267,7 @@ def rd_hydrotel(sites, mtype='river_flow_cont_raw', from_date=None, to_date=None
     if site_val1.empty:
         raise ValueError('No site(s) in database')
 
-    site_val1.loc[:, 'ExtSysId'] = to_numeric(site_val1.loc[:,'ExtSysId'], errors='ignore')
+    site_val1.loc[:, 'ExtSysId'] = to_numeric(site_val1.loc[:, 'ExtSysId'], errors='ignore')
     site_val = site_val1.Site.astype('int32').tolist()
     if isinstance(mtype, (list, ndarray, Series)):
         mtypes = [mtypes_dict[i] for i in mtype]
@@ -294,7 +297,8 @@ def rd_hydrotel(sites, mtype='river_flow_cont_raw', from_date=None, to_date=None
 
     #### Pull out the data
     ### Make SQL statement
-    data1 = rd_sql_ts(server, database, data_tab, 'Point', 'DT', 'SampleValue', resample_code, period, fun, val_round, {'Point': point_val}, from_date=from_date, to_date=to_date, min_count=min_count)['SampleValue']
+    data1 = rd_sql_ts(server, database, data_tab, 'Point', 'DT', 'SampleValue', resample_code, period, fun, val_round,
+                      {'Point': point_val}, from_date=from_date, to_date=to_date, min_count=min_count)['SampleValue']
 
     data1.index.names = ['site', 'time']
     data1.name = 'value'
@@ -310,23 +314,17 @@ def rd_hydrotel(sites, mtype='river_flow_cont_raw', from_date=None, to_date=None
     if export_path is not None:
         save_df(data3, export_path)
 
-    return(data3)
+    return (data3)
 
 
-def flow_import(rec_sites='None', gauge_sites='None', min_flow_only=False, site_ref_csv='hydstra_recorder_numbers.csv', start='1900-01-01', end='2100-01-01', min_days=365, RAW=False, export_flow=False, export_stats=False, export_shp=False, export_rec_path='all_rec_data.csv', export_gauge_path='all_gauge_data.csv', export_stats_path='all_rec_stats.csv', export_rec_shp_path='all_rec_loc.shp', export_gauge_shp_path='all_gauge_loc.shp'):
+def flow_import(rec_sites='None', gauge_sites='None', min_flow_only=False, site_ref_csv='hydstra_recorder_numbers.csv',
+                start='1900-01-01', end='2100-01-01', min_days=365, RAW=False, export_flow=False, export_stats=False,
+                export_shp=False, export_rec_path='all_rec_data.csv', export_gauge_path='all_gauge_data.csv',
+                export_stats_path='all_rec_stats.csv', export_rec_shp_path='all_rec_loc.shp',
+                export_gauge_shp_path='all_gauge_loc.shp'):
     """
     Function to import recorder and gauging data. Should be the top level import function for this data.
     """
-    from pandas import read_csv, concat
-    from core.ecan_io import rd_henry, rd_hydstra_db, rd_sql, rd_hydrotel, rd_site_geo
-    from core.ts.sw import flow_stats, malf7d, fre_accrual
-    from core.ts import  w_resample
-    from core.spatial import sel_sites_poly
-    from geopandas import read_file, GeoDataFrame
-    from numpy import in1d
-    from core.misc import select_sites
-    from os.path import join, dirname, realpath
-    from core.ecan_io import flow
 
     script_dir = dirname(flow.__file__)
 
@@ -336,7 +334,9 @@ def flow_import(rec_sites='None', gauge_sites='None', min_flow_only=False, site_
     site_ref.columns = site_ref.columns.astype(int)
 
     ### Import from databases
-    min_flow_sites = rd_sql('SQL2012PROD05', 'Wells', '"vMinimumFlowSites+Consent+Well"', col_names=['RefDbase', 'RefDbaseKey', 'restrictionType', 'RecordNo', 'WellNo'], where_col='RefDbase', where_val=['Gauging', 'Hydrotel'])
+    min_flow_sites = rd_sql('SQL2012PROD05', 'Wells', '"vMinimumFlowSites+Consent+Well"',
+                            col_names=['RefDbase', 'RefDbaseKey', 'restrictionType', 'RecordNo', 'WellNo'],
+                            where_col='RefDbase', where_val=['Gauging', 'Hydrotel'])
     min_flow_sites.columns = ['type', 'site', 'restr', 'crc', 'wap']
     min_flow_sites['site'] = min_flow_sites['site'].astype(int)
     min_flow_sites = min_flow_sites[min_flow_sites.restr == 'LowFlow']
@@ -360,9 +360,9 @@ def flow_import(rec_sites='None', gauge_sites='None', min_flow_only=False, site_
                 r_sites_sel = r_sites_sel_geo.site.values
                 r_sites = site_ref.apply(lambda x: x[in1d(x, r_sites_sel)], axis=0)
         elif type(rec_sites) is GeoDataFrame:
-                r_sites_sel_geo = sel_sites_poly(rec_sites, site_geo)
-                r_sites_sel = r_sites_sel_geo.site.values
-                r_sites = site_ref.apply(lambda x: x[in1d(x, r_sites_sel)], axis=0)
+            r_sites_sel_geo = sel_sites_poly(rec_sites, site_geo)
+            r_sites_sel = r_sites_sel_geo.site.values
+            r_sites = site_ref.apply(lambda x: x[in1d(x, r_sites_sel)], axis=0)
         else:
             r_sites_sel = select_sites(rec_sites)
             r_sites = site_ref.apply(lambda x: x[in1d(x, r_sites_sel)], axis=0)
@@ -401,9 +401,9 @@ def flow_import(rec_sites='None', gauge_sites='None', min_flow_only=False, site_
                 g_sites_sel = g_sites_sel_geo.site.values
                 g_sites = g_sites_sel[~in1d(g_sites_sel, site_ref.stack().values)]
         elif type(gauge_sites) is GeoDataFrame:
-                g_sites_sel_geo = sel_sites_poly(gauge_sites, site_geo)
-                g_sites_sel = g_sites_sel_geo.site.values
-                g_sites = g_sites_sel[~in1d(g_sites_sel, site_ref.stack().values)]
+            g_sites_sel_geo = sel_sites_poly(gauge_sites, site_geo)
+            g_sites_sel = g_sites_sel_geo.site.values
+            g_sites = g_sites_sel[~in1d(g_sites_sel, site_ref.stack().values)]
         else:
             g_sites = select_sites(gauge_sites)
 
@@ -458,56 +458,11 @@ def flow_import(rec_sites='None', gauge_sites='None', min_flow_only=False, site_
 
     #### Return data
     if (rec_sites is not 'None') and (gauge_sites is not 'None'):
-        return([r_flow, g_flow])
+        return ([r_flow, g_flow])
     if (rec_sites is not 'None'):
-        return(r_flow)
+        return (r_flow)
     if (gauge_sites is not 'None'):
-        return(g_flow)
-
-
-def rd_nc(poly_shp, nc_path, poly_epsg=4326, poly_id='Station_ID', x_col='longitude', y_col='latitude', data_col='rain', as_ts=True, export=True, export_path='nc_data.csv'):
-    """
-    Function to read in netCDF files, select locations based on a polygon, and export the results.
-    """
-    import xarray as xr
-    from core.spatial import sel_sites_poly, xy_to_gpd, pts_poly_join
-    from geopandas import read_file
-    from numpy import in1d
-    from pandas import merge
-
-    ### Read in all data
-    poly = read_file(poly_shp)[[poly_id, 'geometry']].to_crs(epsg=poly_epsg)
-    nc = xr.open_dataset(nc_path)
-
-    ### Filter nc data
-    df1 = nc.to_dataframe().drop('time_bnds', axis=1).reset_index()
-    df1 = df1[df1.nb2 == 0].drop('nb2', axis=1)
-
-    ### convert x and y to geopandas
-    df1_xy = df1[[y_col, x_col]].drop_duplicates()
-    df1_xy['id'] = range(len(df1_xy))
-    pts = xy_to_gpd('id', x_col, y_col, df1_xy, poly_epsg)
-
-    ### Mask the points from the polygon
-    join1, poly2 = pts_poly_join(pts, poly, poly_id, dissolve=False)
-    join2 = join1[['id', poly_id]]
-
-    ### Select the associated data
-    sel_xy = merge(df1_xy, join2, on='id').drop('id', axis=1)
-    df2 = merge(df1, sel_xy, on=[y_col, x_col])
-
-    ### Convert to time series
-    if as_ts:
-        df3 = df2[[poly_id, 'time', data_col]].groupby([poly_id, 'time']).first().reset_index()
-        df4 = df3.pivot(index='time', columns=poly_id, values=data_col).round(2)
-        if export:
-            df4.to_csv(export_path)
-    else:
-        df4 = df2
-        if export:
-            df4.to_csv(export_path)
-
-    return(df4)
+        return (g_flow)
 
 
 def hydstra_site_mod_time(sites=None):
@@ -523,9 +478,6 @@ def hydstra_site_mod_time(sites=None):
     -------
     DataFrame
     """
-    from core.misc import rd_dir, select_sites
-    from os import path
-    from pandas import to_datetime, DataFrame, DateOffset
 
     site_files_path = r'\\fileservices02\ManagedShares\Data\Hydstra\prod\hyd\dat\hyd'
     files1 = rd_dir(site_files_path, 'A')
@@ -541,7 +493,4 @@ def hydstra_site_mod_time(sites=None):
     mod_times = to_datetime([round(path.getmtime(path.join(site_files_path, i + '.A'))) for i in file_sites1], unit='s')
 
     df = DataFrame({'site': file_sites1, 'mod_time': mod_times})
-    return(df)
-
-
-
+    return (df)

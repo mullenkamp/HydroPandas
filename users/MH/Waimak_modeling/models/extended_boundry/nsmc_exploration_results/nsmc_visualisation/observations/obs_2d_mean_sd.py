@@ -14,10 +14,22 @@ import os
 import socket
 
 def no_change(x, **kwargs):
+    """
+    small fuction to add to transformations
+    :param x:
+    :param kwargs: allows other kwargs to showup
+    :return: x unchnaged
+    """
     return x
 
 
 def is_dry(x, layer):
+    """
+    small function, Returns boolean array True if cell is dry
+    :param x:
+    :param layer:
+    :return:
+    """
     no_flow = smt.get_no_flow(layer)
     no_flow[no_flow < 0] = 0
     elv_db = smt.calc_elv_db()
@@ -26,6 +38,12 @@ def is_dry(x, layer):
 
 
 def neg_zero_pos(x, **kwargs):
+    """
+    small function returns array of -1, 0, 1 for negative zero and positive values respectivly
+    :param x: array
+    :param kwargs: allows things to be passed to other functions
+    :return:
+    """
     lower_lim = 0
     upper_lim = 0
     outdata = np.zeros(x.shape, np.int8)
@@ -37,6 +55,27 @@ def neg_zero_pos(x, **kwargs):
 def plot_sd_mean_multid(filter_strs, layer, nc_param_data, nc_obs_data, data_id, function_adjust,
                         title, basemap=True, contour={'sd': True, 'mean': True, 'sum': True}, method='mean_sd',
                         contour_color='g', vmins=None, vmaxes=None):
+    """
+
+    :param filter_strs: a string or list of strings corresponding to the filter name to use from the param netcdf
+                        possible prefixes: ~0_ where the filter failed
+                                           ~1_ where the filter was not run
+                                           ~10_ where the filter was not run or failed
+    :param layer: the zero indexed modflow layer
+    :param nc_param_data: the netcdf class of the parameter and observation data
+    :param nc_obs_data: the 3-4d netcdf (e.g. concentration or head or drain flux)
+    :param data_id: the key for the data
+    :param function_adjust: a function to run the data through prior to amalgamation
+    :param title: the tile for the plot
+    :param basemap: Boolean, argument for ModelTools.plt_matrix
+    :param contour: a dictionary keys sum, mean, sd and boolean values of whether or not to contour the data
+    :param method: either mean_sd (plots the mean and standard devation as 2 plot)  or sum(plots just eh sum).
+    :param contour_color: a string to denote the color for the contouring, default green
+    :param vmins: a dictionary with keys sum, mean, sd and keys of the maximum value to use in the pcolor mesh
+                  or None(use default min/maxes) not all keys need to present
+    :param vmaxes: as vmins, but for the minimum value
+    :return: fig,axs (matplotlib figure, array of axes)
+    """
     filter_strs = np.atleast_1d(filter_strs)
     param_nc_nums = np.array(nc_param_data.variables['nsmc_num'])
     obs_nc_nums = np.array(nc_obs_data.variables['nsmc_num'])
@@ -122,11 +161,14 @@ def plot_sd_mean_multid(filter_strs, layer, nc_param_data, nc_obs_data, data_id,
         ncols = 1
     else:
         raise ValueError('unexpected value for method')
+    # initalise the plotting options
     fig, axs = plt.subplots(ncols=ncols, nrows=len(filter_strs), figsize=(18.5, 9.5))
     axs = np.atleast_2d(axs)
     mean_vmin = min(mean_mins)
     sd_vmin = min(sd_mins)
     sum_vmin = min(sum_mins)
+
+    # get any user specified vmin/maxes
     if vmins is not None:
         if not isinstance(vmins,dict):
             raise ValueError('vmins must be none or dict')
@@ -165,16 +207,18 @@ def plot_sd_mean_multid(filter_strs, layer, nc_param_data, nc_obs_data, data_id,
             pass
 
     for i, fstr in enumerate(use_filter_strs):
+        # no color bar on the all but the last set
         plt_cbar = False
         cbar_lab_sd = None
         cbar_lab_mean = None
         cbar_lab_sum = None
-        if i == len(use_filter_strs) - 1:
+        if i == len(use_filter_strs) - 1:  # set up the color bar at the end of each set
             plt_cbar = True
             cbar_lab_sd = 'Std'
             cbar_lab_mean = 'Mean'
             cbar_lab_sum = 'Sum'
 
+        # plot the data
         if method == 'mean_sd':
             meanax = axs[i, 0]
             sdax = axs[i, 1]
@@ -219,8 +263,18 @@ def plot_sd_mean_multid(filter_strs, layer, nc_param_data, nc_obs_data, data_id,
 
 
 def plot_all_2d_obs(outdir,filter_strs):
+    """
+    plot all of the 2d observations for this set of nsmc
+    :param outdir: the directory to save the plots in (name is title.png)
+    :param filter_strs: list of filter strings
+                        possible prefixes: ~0_ where the filter failed
+                                           ~1_ where the filter was not run
+                                           ~10_ where the filter was not run or failed
+    :return:
+    """
     if socket.gethostname() != 'GWATER02':
         raise ValueError('this must be run on GWATER02 as that is where the uncompressed data is stored')
+        # compressed data takes way to long to query
 
     nc_param_data = nc.Dataset(r"K:\mh_modeling\netcdfs_of_key_modeling_data\nsmc_params_obs_metadata.nc")
     nc_hds_data = nc.Dataset(r"C:\mh_waimak_model_data\post_filter1_hds.nc")
