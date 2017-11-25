@@ -19,9 +19,9 @@ from core.misc import printf
 ## import parameters
 
 ## query parameters
-grp_by = ['date', 'take_type', 'swaz']
+grp_by = ['date', 'take_type']
 cwms_zone = 'all'
-swaz = ['Temuka', 'Opihi Saleyards', 'North Opuha', 'South Opuha', 'Opihi Rockwood', 'Te Nga Wai to – Te Ana a Wai', 'Opihi SH1']
+swaz = ['Temuka']
 allo_col = ['allo', 'allo_restr']
 crc2 = 'all'
 take_type = 'all'
@@ -36,7 +36,7 @@ crc_rem = ['CRC051574', 'CRC041954.1', 'CRC991274.2', 'CRC051304.1', 'CRC150757'
 #take_type = ['Take Surface Water']
 years = 'all'
 
-debug = False
+debug = True
 sd_only = False
 agg_yr = False
 

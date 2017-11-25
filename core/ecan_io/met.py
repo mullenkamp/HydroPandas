@@ -4,7 +4,9 @@ Functions for importing meteorological data.
 """
 
 
-def rd_niwa_rcp(base_path, mtypes, poly, vcsn_sites_csv=r'\\fileservices02\ManagedShares\Data\VirtualClimate\GIS\niwa_vcsn_wgs84.csv', id_col='Network', x_col='deg_x', y_col='deg_y', output_fun=None, export_path='output'):
+def rd_niwa_rcp(base_path, mtypes, poly,
+                vcsn_sites_csv=r'\\fileservices02\ManagedShares\Data\VirtualClimate\GIS\niwa_vcsn_wgs84.csv',
+                id_col='Network', x_col='deg_x', y_col='deg_y', output_fun=None, export_path='output'):
     """
     Function to read in the NIWA RCP netcdf files and output the data in a specified format.
     """
@@ -14,7 +16,8 @@ def rd_niwa_rcp(base_path, mtypes, poly, vcsn_sites_csv=r'\\fileservices02\Manag
     from os import path, walk, makedirs
     from core.ecan_io.met import rd_niwa_rcp_dir
 
-    mtype_name = {'precip': 'TotalPrecipCorr', 'T_max': 'MaxTempCorr', 'T_min': 'MinTempCorr', 'P_atmos': 'MSLP', 'PET': 'PE', 'RH_mean': 'RelHum', 'R_s': 'SurfRad', 'U_z': 'WindSpeed'}
+    mtype_name = {'precip': 'TotalPrecipCorr', 'T_max': 'MaxTempCorr', 'T_min': 'MinTempCorr', 'P_atmos': 'MSLP',
+                  'PET': 'PE', 'RH_mean': 'RelHum', 'R_s': 'SurfRad', 'U_z': 'WindSpeed'}
 
     ### Import and reorganize data
     vcsn_sites = read_csv(vcsn_sites_csv)[[id_col, x_col, y_col]]
@@ -49,7 +52,7 @@ def rd_niwa_rcp(base_path, mtypes, poly, vcsn_sites_csv=r'\\fileservices02\Manag
             else:
                 raise ValueError('Must have a output function.')
 
-    ### What should I return?
+                ### What should I return?
 
 
 def rd_niwa_rcp_dir(file_paths, site_loc, mtypes):
@@ -65,13 +68,16 @@ def rd_niwa_rcp_dir(file_paths, site_loc, mtypes):
     from os.path import basename
 
     ### Parameters
-    mtype_param = {'precip': 'rain', 'T_max': 'tmax', 'T_min': 'tmin', 'P_atmos': 'mslp', 'PET': 'pe', 'RH_mean': 'rh', 'R_s': 'srad', 'U_z': 'wind'}
+    mtype_param = {'precip': 'rain', 'T_max': 'tmax', 'T_min': 'tmin', 'P_atmos': 'mslp', 'PET': 'pe', 'RH_mean': 'rh',
+                   'R_s': 'srad', 'U_z': 'wind'}
     mtype_param1 = {v: k for k, v in mtype_param.iteritems()}
     prob_mtypes = ['P_atmos', 'RH_mean', 'R_s', 'U_z', 'T_min']
     bad_names = {'mslp2': 'mslp'}
     data_attr = {'grid_mapping': 'crs'}
-    nc_crs = {'inverse_flattening': 298.257223563, 'longitude_of_prime_meridian': 0, 'semi_major_axis': 6378137, 'grid_mapping_name': 'latitude_longitude'}
-    time_attr = {'bounds': 'time_bounds', 'standard_name': 'time', 'axis': 'T', 'long_name': 'time (end of reporting period)'}
+    nc_crs = {'inverse_flattening': 298.257223563, 'longitude_of_prime_meridian': 0, 'semi_major_axis': 6378137,
+              'grid_mapping_name': 'latitude_longitude'}
+    time_attr = {'bounds': 'time_bounds', 'standard_name': 'time', 'axis': 'T',
+                 'long_name': 'time (end of reporting period)'}
 
     ### Extract the proper time coordinate to fix the problem parameters if needed
     if any(in1d(prob_mtypes, mtypes)):
@@ -93,8 +99,8 @@ def rd_niwa_rcp_dir(file_paths, site_loc, mtypes):
         if 'bool_lat' not in locals():
             lat1 = (ds5.latitude.data * 1000).astype('int32')
             lon1 = (ds5.longitude.data * 1000).astype('int32')
-            site_lat  = (site_loc['y'] * 1000).astype('int32').unique()
-            site_lon  = (site_loc['x'] * 1000).astype('int32').unique()
+            site_lat = (site_loc['y'] * 1000).astype('int32').unique()
+            site_lon = (site_loc['x'] * 1000).astype('int32').unique()
 
             bool_lat = in1d(lat1, site_lat)
             bool_lon = in1d(lon1, site_lon)
@@ -113,7 +119,7 @@ def rd_niwa_rcp_dir(file_paths, site_loc, mtypes):
 
         ## Merge datasets
         ds10 = ds10.merge(da1)
-#        print([mtype2, len(ds10.time)])
+        #        print([mtype2, len(ds10.time)])
         print(mtype0)
 
     ### Add in dummy GIS variable
@@ -121,10 +127,10 @@ def rd_niwa_rcp_dir(file_paths, site_loc, mtypes):
     ds11 = ds10.merge(ds_crs).copy()
     ds11.attrs = da1.attrs
 
-    return(ds11)
+    return (ds11)
 
 
-#def export_rcp_lst(ds, export_path):
+# def export_rcp_lst(ds, export_path):
 #    """
 #    Function to take the output of rd_niwa_rcp_dir and save the data as standard lst files.
 #    """
@@ -153,7 +159,6 @@ def export_rcp_nc(ds, export_path, file_name):
     ds.close()
 
 
-
 def nc_add_gis(nc, x_coord, y_coord):
     """
     Function to add the appropriate attributes to a netcdf file to be able to load it into GIS if the netcdf file has x and y in WGS84 decimal degrees.
@@ -166,7 +171,8 @@ def nc_add_gis(nc, x_coord, y_coord):
     from os.path import splitext
 
     ### Attributes for the various datasets
-    nc_crs = {'inverse_flattening': 298.257223563, 'longitude_of_prime_meridian': 0, 'semi_major_axis': 6378137, 'grid_mapping_name': 'latitude_longitude'}
+    nc_crs = {'inverse_flattening': 298.257223563, 'longitude_of_prime_meridian': 0, 'semi_major_axis': 6378137,
+              'grid_mapping_name': 'latitude_longitude'}
 
     x_attr = {'long_name': 'longitude', 'units': 'degrees_east', 'standard_name': 'longitude', 'axis': 'X'}
     y_attr = {'long_name': 'latitude', 'units': 'degrees_north', 'standard_name': 'latitude', 'axis': 'Y'}
@@ -199,7 +205,11 @@ def nc_add_gis(nc, x_coord, y_coord):
     ds2.close()
 
 
-def rd_niwa_vcsn(mtypes, sites, nc_path=r'\\fileservices02\ManagedShares\Data\VirtualClimate\vcsn_precip_et_2016-06-06.nc', vcsn_sites_csv=r'\\fileservices02\ManagedShares\Data\VirtualClimate\GIS\niwa_vcsn_wgs84.csv', id_col='Network', x_col='deg_x', y_col='deg_y', buffer_dis=0, include_sites=False, from_date=None, to_date=None, out_crs=None, netcdf_out=None):
+def rd_niwa_vcsn(mtypes, sites,
+                 nc_path=r'\\fileservices02\ManagedShares\Data\VirtualClimate\vcsn_precip_et_2016-06-06.nc',
+                 vcsn_sites_csv=r'\\fileservices02\ManagedShares\Data\VirtualClimate\GIS\niwa_vcsn_wgs84.csv',
+                 id_col='Network', x_col='deg_x', y_col='deg_y', buffer_dis=0, include_sites=False, from_date=None,
+                 to_date=None, out_crs=None, netcdf_out=None):
     """
     Function to read in the NIWA vcsn netcdf file and output the data as a dataframe.
 
@@ -291,10 +301,11 @@ def rd_niwa_vcsn(mtypes, sites, nc_path=r'\\fileservices02\ManagedShares\Data\Vi
     ### Return
     if isinstance(netcdf_out, str):
         ds3.to_netcdf(netcdf_out)
-    return(df4)
+    return (df4)
 
 
-def rd_niwa_climate_proj(mtypes, bound_shp, nc_dir, buffer_dis=0, from_date=None, to_date=None, out_crs=None, netcdf_out=None):
+def rd_niwa_climate_proj(mtypes, bound_shp, nc_dir, buffer_dis=0, from_date=None, to_date=None, out_crs=None,
+                         netcdf_out=None):
     """
     Function to read in the NIWA vcsn netcdf file and output the data as a dataframe.
 
@@ -329,7 +340,8 @@ def rd_niwa_climate_proj(mtypes, bound_shp, nc_dir, buffer_dis=0, from_date=None
         niwa_file_name = file_name[mt]
         file1 = [i for i in files1 if niwa_file_name in i][0]
 
-        ds3 = sel_xy_nc(bound_shp, join(nc_dir, file1), nc_vars=[niwa_mtype], buffer_dis=buffer_dis, from_date=from_date, to_date=to_date, out_type='xarray')
+        ds3 = sel_xy_nc(bound_shp, join(nc_dir, file1), nc_vars=[niwa_mtype], buffer_dis=buffer_dis,
+                        from_date=from_date, to_date=to_date, out_type='xarray')
 
         if 'ds4' in locals():
             ds4 = ds4.merge(ds3)
@@ -348,10 +360,13 @@ def rd_niwa_climate_proj(mtypes, bound_shp, nc_dir, buffer_dis=0, from_date=None
     if isinstance(netcdf_out, str):
         ds4.to_netcdf(netcdf_out)
     ds4.close()
-    return(df2)
+    return (df2)
 
 
-def rd_niwa_data_lsrm(bound_shp, nc_dir, vcsn_sites_csv=r'\\fileservices02\ManagedShares\Data\VirtualClimate\GIS\niwa_vcsn_wgs84.csv', id_col='Network', x_col='deg_x', y_col='deg_y', buffer_dis=0, from_date=None, to_date=None, out_crs=None, netcdf_out=None):
+def rd_niwa_data_lsrm(bound_shp, nc_dir,
+                      vcsn_sites_csv=r'\\fileservices02\ManagedShares\Data\VirtualClimate\GIS\niwa_vcsn_wgs84.csv',
+                      id_col='Network', x_col='deg_x', y_col='deg_y', buffer_dis=0, from_date=None, to_date=None,
+                      out_crs=None, netcdf_out=None):
     """
     Convienence function to read in either the past VCSN data or the projections.
     """
@@ -364,13 +379,16 @@ def rd_niwa_data_lsrm(bound_shp, nc_dir, vcsn_sites_csv=r'\\fileservices02\Manag
 
     ### Run function to get data
     if name_split == past_vcsn:
-        ds5 = rd_niwa_vcsn(['precip', 'PET'], bound_shp, buffer_dis=buffer_dis, from_date=from_date, to_date=to_date, out_crs=out_crs, netcdf_out=netcdf_out)
+        ds5 = rd_niwa_vcsn(['precip', 'PET'], bound_shp, buffer_dis=buffer_dis, from_date=from_date, to_date=to_date,
+                           out_crs=out_crs, netcdf_out=netcdf_out)
     else:
-        ds5 = rd_niwa_climate_proj(['precip', 'PET'], bound_shp, nc_dir=nc_dir, buffer_dis=buffer_dis, from_date=from_date, to_date=to_date, out_crs=out_crs, netcdf_out=netcdf_out)
-    return(ds5)
+        ds5 = rd_niwa_climate_proj(['precip', 'PET'], bound_shp, nc_dir=nc_dir, buffer_dis=buffer_dis,
+                                   from_date=from_date, to_date=to_date, out_crs=out_crs, netcdf_out=netcdf_out)
+    return (ds5)
 
 
-def sel_xy_nc(bound_shp, nc_path, x_col='longitude', y_col='latitude', time_col='time', nc_vars=None, buffer_dis=0, from_date=None, to_date=None, nc_crs=4326, out_crs=None, out_type='pandas'):
+def sel_xy_nc(bound_shp, nc_path, x_col='longitude', y_col='latitude', time_col='time', nc_vars=None, buffer_dis=0,
+              from_date=None, to_date=None, nc_crs=4326, out_crs=None, out_type='pandas'):
     """
     Function to select space and time data from a netcdf file using a polygon shapefile.
     """
@@ -397,8 +415,8 @@ def sel_xy_nc(bound_shp, nc_path, x_col='longitude', y_col='latitude', time_col=
     lon2 = lon1[(lon1 >= x_min) & (lon1 <= x_max)]
     ds2 = ds1.loc[{x_col: lon2, time_col: time1.values, y_col: lat2}]
 
-#    coords1 = ds2.coords.keys()
-#    dims1 = ds2.dims.keys()
+    #    coords1 = ds2.coords.keys()
+    #    dims1 = ds2.dims.keys()
 
     ## Select mtypes
     if isinstance(nc_vars, str):
@@ -423,23 +441,10 @@ def sel_xy_nc(bound_shp, nc_path, x_col='longitude', y_col='latitude', time_col=
         df2 = merge(df1, site_loc2[[x_col, y_col, 'x_new', 'y_new']], on=[x_col, y_col], how='left')
         df3 = df2.drop([x_col, y_col], axis=1).rename(columns={'x_new': x_col, 'y_new': y_col})
         ds1.close()
-        return(df3)
+        return (df3)
     elif out_type == 'pandas':
         df1 = ds3.to_dataframe().reset_index()
         ds1.close()
-        return(df1)
+        return (df1)
     elif out_type == 'xarray':
-        return(ds3)
-
-
-
-
-
-
-
-
-
-
-
-
-
+        return (ds3)
