@@ -9,6 +9,11 @@ from core import env
 import pandas as pd
 
 def rd_pst_parameters(pst_file):
+    """
+    get the inital lower upper  from pest file
+    :param pst_file: the pest file
+    :return:
+    """
     skiplines_top = 0
     nrows=-1 #to account for the extra that gets generated
     start = False
@@ -33,6 +38,12 @@ def rd_pst_parameters(pst_file):
     return data
 
 def param_from_rec(rec_file,series_name):
+    """
+    get the parameter from phi low and high
+    :param rec_file: the parameter rec file
+    :param series_name: name to give to the series
+    :return:
+    """
     skiplines_top = 3
     nrows=-3 #to account for the extra that gets generated
     start = False

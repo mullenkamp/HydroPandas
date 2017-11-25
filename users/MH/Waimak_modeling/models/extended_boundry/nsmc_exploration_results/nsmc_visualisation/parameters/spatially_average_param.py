@@ -15,11 +15,22 @@ import matplotlib.pyplot as plt
 import netCDF4 as nc
 import os
 
-def no_change(x):
+def no_change(x, **kwargs):
     return x
 
+def _log_10(x, **kwargs):
+    return np.log10(x)
 
-def extract_data(param_nc, filter_bool, layer, data_id):
+def extract_data(param_nc, filter_bool, layer, data_id, transform=no_change):
+    """
+    extract and extrapolate (via cubic spline) data
+    :param param_nc: netcdf object for the parameter data
+    :param filter_bool: a boolean filter of lenght netchd object
+    :param layer: zero indexed layer
+    :param data_id: the key for teh netcdf
+    :param transform: the function to apply to the interpolated arrays (note that kv/kh is logged prior to this step)
+    :return:
+    """
     xs, ys = smt.get_model_x_y()
     if data_id in ['kv','kh']:
         kv_x = np.array(param_nc.variables['khv_ppt_x'])
@@ -52,11 +63,11 @@ def extract_data(param_nc, filter_bool, layer, data_id):
             outsd[grid_idx] = griddata(points=(temp_x, temp_y), values=temp_sd, xi=(xs, ys), method='cubic')[grid_idx]
     else:
         raise NotImplementedError('{} not yet implemented for 2d plotting'.format(data_id))
-    return outmean, outsd
+    return transform(outmean,layer), transform(outsd,layer)
 
 def plot_sd_mean_multid(filter_strs, layer, nc_param_data, data_id,
                         title, basemap=True, contour={'sd': False, 'mean': False},
-                        contour_color='g', vmins=None, vmaxes=None):
+                        contour_color='g', vmins=None, vmaxes=None, tranform=_log_10):
     filter_strs = np.atleast_1d(filter_strs)
 
     # get the data
@@ -104,7 +115,7 @@ def plot_sd_mean_multid(filter_strs, layer, nc_param_data, data_id,
 
         # pull the data out
 
-        mean, sd = extract_data(param_nc=nc_param_data, filter_bool=real_filters, layer=layer, data_id=data_id)
+        mean, sd = extract_data(param_nc=nc_param_data, filter_bool=real_filters, layer=layer, data_id=data_id,transform=tranform)
         plot_data_mean[filter_str] = mean
         plot_data_sd[filter_str] = sd # thought about relative sd, but it makes a mess as the data is zero inflated
         mean_mins.append(np.nanpercentile(mean,1))

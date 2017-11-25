@@ -13,20 +13,38 @@ import os
 import pandas as pd
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 
-np.random.seed(1)
+np.random.seed(1) # stop the distributions from changing between iterations
 
 def _no_change(x):  # note that the transformations act on lists of numpy arrays
     return x
 
 def _to_m3s(x):
+    """
+    convert to m3/s from m3/day
+    :param x:
+    :return:
+    """
     x = np.atleast_2d(x)
     return [e for e in x/86400]
 def _log10(x):
+    """
+    log transform x
+    :param x:
+    :return:
+    """
     x = np.atleast_2d(x)
     return [e for e in np.log10(x)]
 
 
 def gen_dist(sd_type, u, sd, n):
+    """
+    generate teh appropriate distribution
+    :param sd_type: 'lin' or 'log'
+    :param u: mean (not log transformed)
+    :param sd: standard deviation (possibly log transformed
+    :param n: number of samplse to create
+    :return: randomlly distributed parameters
+    """
     if sd_type == 'log':
         out = np.random.lognormal(np.log(u), sd/np.log10(np.e), size=n)
     elif sd_type == 'lin':
@@ -37,6 +55,19 @@ def gen_dist(sd_type, u, sd, n):
 
 
 def _plt_parm_boxplot(ax, opt_prior, post_opt_dist, post_jac_dist, labels, filter_dist, limits, ylab, ax_title):
+    """
+    plot up the parameter boxplots
+    :param ax: the matplotlib ax object
+    :param opt_prior: the optimisation prior
+    :param post_opt_dist: list of numpy arrays the distribution for the priors
+    :param post_jac_dist: list of numpy arrays the distibution after the sensitivitiy analysis
+    :param labels: the labels to plot list
+    :param filter_dist: the data for the distribution after the filtering
+    :param limits: list of the minium and maximum [[min1,max1], [min2,max2],...[minn,maxn]]
+    :param ylab: the string to put on the ylabel
+    :param ax_title: the title for the axis
+    :return:
+    """
     # watch inputs carefully
     if not all([len(e) == len(opt_prior) for e in [opt_prior, post_opt_dist, post_jac_dist,
                                                    filter_dist, labels, limits]]):
@@ -85,7 +116,7 @@ def _get_plting_dists(nc_file, sites, data_types, filter_array, layers):
     :param nc_file: param netcdf
     :param sites: dictionary {site: [components]}
     :param data_types: array of one of rch, kv, kh, sfr, drn, simple
-    :return:
+    :return: opt_prior, post_opt_dist, post_jac_dist, filter_dist, labels, limits
     """
     opt_prior, post_opt_dist, post_jac_dist, filter_dist, labels, limits = [], [], [], [], [], []
     sort_idx = np.argsort(sites.keys())
@@ -189,6 +220,18 @@ def _get_plting_dists(nc_file, sites, data_types, filter_array, layers):
 
 def plot_supergroup_ppp_boxplots(filter_strs, param_nc, layers, supergroup, sites, datatypes, ylab,
                                  transformation=_no_change):
+    """
+
+    :param filter_strs: typical filter string arguments
+    :param param_nc: the netcdf object for the parameter file
+    :param layers: list of len sites.keys{} layer to use (assumed to be constant)
+    :param supergroup: name of the super group used for the title
+    :param sites: the sites {name: [site names to amagamate]}
+    :param datatypes: list of len sites.keys() (assumed ot be one value
+    :param ylab: label to put on data
+    :param transformation: the transformation to do to the distributions (E.g. log10) (a function)
+    :return: fig, axs
+    """
     fig, axs = plt.subplots(ncols=len(filter_strs), figsize=(18.5, 9.5))
     axs = np.atleast_1d(axs)
 
@@ -250,6 +293,12 @@ def plot_supergroup_ppp_boxplots(filter_strs, param_nc, layers, supergroup, site
 
 
 def plot_all_ppp_boxplots(outdir, filter_strs):
+    """
+    plot up all of the ppp boxplots
+    :param outdir: dir to save the files in
+    :param filter_strs: typical filter strings argument
+    :return:
+    """
     filter_strs = np.atleast_1d(filter_strs)
     khv_rch_points = pd.read_excel(r'\\gisdata\projects\SCI\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model build and optimisation\LSR_KhKv_PilotPoints_Groups.xlsx')
     if not os.path.exists(outdir):

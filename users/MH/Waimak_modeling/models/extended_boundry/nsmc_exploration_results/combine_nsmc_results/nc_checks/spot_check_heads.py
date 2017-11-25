@@ -12,7 +12,7 @@ import flopy
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.data_extraction.data_at_wells import \
     hds_no_data
 
-
+# quick check for the netcdf
 def spot_check_hds(n):
     data = nc.Dataset(env.gw_met_data(r"mh_modeling\netcdfs_of_key_modeling_data\post_filter1_hds.nc"))
     nsmc_nums = data.variables['nsmc_num']
