@@ -14,7 +14,7 @@ import os
 import pandas as pd
 from warnings import warn
 
-np.random.seed(1)
+np.random.seed(1) # make it so the random distributions don't get mucked up in future
 
 def obs_boxplots(param_netcdf_file, sites, title, yax, filter_strs):
     """
@@ -29,7 +29,7 @@ def obs_boxplots(param_netcdf_file, sites, title, yax, filter_strs):
                         possible prefixes: ~0_ where the filter failed
                                            ~1_ where the filter was not run
                                            ~10_ where the filter was not run or failed
-    :return: fig, ax
+    :return: fig, axs
     """
     filter_strs = np.atleast_1d(filter_strs)
     if not isinstance(sites, OrderedDict):
@@ -106,6 +106,13 @@ def obs_boxplots(param_netcdf_file, sites, title, yax, filter_strs):
 
 
 def plot_all_obs_boxplots(nc_path, outdir, filter_strs):
+    """
+
+    :param nc_path: the path to the param/obs/metadata netcdf
+    :param outdir: the directory to save the plots to
+    :param filter_strs: a list of filter strings
+    :return:
+    """
     nc_data = nc.Dataset(nc_path)
 
     plots = {
@@ -205,6 +212,13 @@ def plot_all_obs_boxplots(nc_path, outdir, filter_strs):
 
 
 def plot_hds_boxplots(nc_path, outdir, filter_strs):
+    """
+    plot up heads boxplots
+    :param nc_path: the param/obs ect netcdf
+    :param outdir: directory to plot
+    :param filter_strs: strings to use
+    :return:
+    """
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
@@ -294,9 +308,14 @@ def plot_hds_boxplots(nc_path, outdir, filter_strs):
         plt.close(fig)
 
 
-# avon heathcote vs styks otikino
 
 def plot_obs_all_all_boxplots(outdir, filters):
+    """
+    quick wrapper to quicly let me plot everything
+    :param outdir:
+    :param filters:
+    :return:
+    """
     nc_path = env.gw_met_data(r"mh_modeling\netcdfs_of_key_modeling_data\nsmc_params_obs_metadata.nc")
     plot_all_obs_boxplots(nc_path,outdir,filters)
     plot_hds_boxplots(nc_path,outdir,filters)

@@ -12,6 +12,11 @@ import netCDF4 as nc
 import os
 
 def make_csvs_for_zeb(outdir):
+    """
+    a quiick script to give zeb data for picking rch and k pilot points to plot up together
+    :param outdir:
+    :return:
+    """
     nc_file = nc.Dataset(env.gw_met_data(r"mh_modeling\netcdfs_of_key_modeling_data\nsmc_params_obs_metadata.nc"))
 
     rch_pt = np.array(nc_file.variables['rch_ppt'])

@@ -10,7 +10,7 @@ from numpy import in1d
 from matplotlib import pyplot as plt
 from pandas import merge, read_csv, DataFrame
 from core.allo_use import allo_query
-from core.allo_use.plot import allo_plt, allo_multi_plot, allo_restr_plt
+from core.allo_use.plot import allo_plt, allo_multi_plot
 from core.misc import printf
 
 #################################
@@ -19,41 +19,37 @@ from core.misc import printf
 ## import parameters
 
 ## query parameters
-grp_by = ['date', 'catch_name']
+grp_by = ['date', 'take_type']
 cwms_zone = 'all'
-#swaz = ['Temuka', 'Opihi Saleyards', 'North Opuha', 'South Opuha', 'Opihi Rockwood', 'Te Nga Wai to – Te Ana a Wai', 'Opihi SH1']
-swaz = 'all'
+swaz = ['Temuka']
 allo_col = ['allo', 'allo_restr']
 crc2 = 'all'
-take_type = ['Take Surface Water']
+take_type = 'all'
 use_type = 'all'
+crc_rem = ['CRC051574', 'CRC041954.1', 'CRC991274.2', 'CRC051304.1', 'CRC150757', 'CRC151047', 'CRC153930', 'CRC153817', 'CRC155368', 'CRC150020', 'CRC050111', 'CRC050150', 'CRC100883', 'CRC102094', 'CRC121972', 'CRC991963A.2', 'CRC991963B.2']
+
 #gwaz = ['Valetta', 'Mayfield-Hinds']
 #shp = r'C:\ecan\local\Projects\requests\hinds_MAR\2017-03-08\poly1.shp'
 
 #waps_csv = 'C:/ecan/local/Projects/requests/helen/set1/set1.csv'
 
-agg_catch_csv = r'E:\ecan\shared\projects\otop\opihi\allocation\agg_catch.csv'
-
 #take_type = ['Take Surface Water']
 years = 'all'
 
-debug = False
+debug = True
 sd_only = False
-agg_yr = True
-rem_over_usage = True
+agg_yr = False
 
 ## output parameters
 base_path = 'E:/ecan/local/Projects/requests'
 name = 'opihi'
-date = '2017-11-23'
+date = '2017-11-24'
 
 export_fig_path = path.join(base_path, name, date, 'figures')
 export_path = path.join(base_path, name, date, name + '_allo_use.csv')
-export_path_all = path.join(base_path, name, date, name + '_allo_use_all.csv')
 
 allo_name = name + '_past_allo.png'
 use_name = name + '_allo_use.png'
-use_name2 = name + '_allo_use2.png'
 
 if not path.exists(export_fig_path):
     makedirs(export_fig_path)
@@ -61,8 +57,6 @@ if not path.exists(export_fig_path):
 #################################
 ### Read in allocation and usage data and merge data
 
-agg_catch = read_csv(agg_catch_csv)
-catch_name = agg_catch.catch_name.tolist()
 
 ### Read in input data to be used in the query
 
@@ -71,14 +65,8 @@ catch_name = agg_catch.catch_name.tolist()
 #################################
 ### Query data
 
-lw = allo_query(grp_by=grp_by, swaz=swaz, crc=crc2, cwms_zone=cwms_zone, take_type=take_type, use_type=use_type, allo_col=allo_col, years=years, catch_name=catch_name, sd_only=sd_only, agg_yr=agg_yr, debug=debug, rem_over_usage=rem_over_usage)
+lw = allo_query(grp_by=grp_by, swaz=swaz, crc=crc2, cwms_zone=cwms_zone, take_type=take_type, use_type=use_type, allo_col=allo_col, years=years, export_path=export_path, sd_only=sd_only, agg_yr=agg_yr, crc_rem=crc_rem, export=True, debug=debug)
 
-all1 = allo_query(grp_by=grp_by, swaz=swaz, crc=crc2, cwms_zone=cwms_zone, take_type=take_type, use_type=use_type, allo_col=allo_col, years=years, catch_name=catch_name, export_path=export_path_all, sd_only=sd_only, agg_yr=agg_yr, export=True, debug=True)
-
-lw1 = lw.reset_index()
-lw2 = merge(lw1, agg_catch, on='catch_name').drop('catch_name', axis=1)
-lw3 = lw2.groupby(['date', 'catchment']).sum()
-lw3.to_csv(export_path)
 #index1 = otop1.index.levels[1][~in1d(otop1.index.levels[1], out1)].values
 #otop2 = otop1.loc[(slice(None), index1, slice(None)), :]
 
@@ -101,10 +89,7 @@ lw3.to_csv(export_path)
 allo_plt(lw, start='2004', export_path=export_fig_path, export_name=use_name)
 allo_plt(lw, start='1970', cat=['tot_allo'], export_path=export_fig_path, export_name=allo_name)
 
-allo_multi_plot(lw3, export_path=export_fig_path, export_name=use_name, plot_fun=allo_restr_plt, start='2004', cat=['meter_allo', 'meter_usage'])
-allo_multi_plot(lw3, export_path=export_fig_path, export_name=use_name2, plot_fun=allo_restr_plt, start='2004', cat=['tot_allo', 'meter_allo', 'meter_usage'])
-
-allo_restr_plt(lw3, start='2004', cat=['meter_allo', 'meter_usage'], export_path=export_fig_path, export_name=use_name)
+#allo_multi_plot(otop2, agg_level=1, export_path=export_path, export_name='_' + name4 + ex_name)
 
 
 #############################

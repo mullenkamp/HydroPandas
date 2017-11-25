@@ -1,116 +1,124 @@
 """
-Function to read in Hydstra data. Requires a 32bit python environment.
+Functions to read in Hydstra data. Requires a 32bit python environment.
 """
 
 import ctypes
 import os
 import contextlib
+# from core.ecan_io.mssql import rd_sql
+from numpy import array_split, ceil
+from pandas import to_numeric, to_datetime, concat, DataFrame, Timestamp
+from core.misc.misc import select_sites, save_df
 
 
-def rd_hydstra_by_var(varto, start=0, end=0, data_type='mean', interval='day', multiplier=1, min_qual=None, sites_chunk=20, return_qual=True, print_sites=False, export=False, export_path='flow_data.csv'):
-    """
-    Function to read in data from Hydstra's database using HYDLLP. This function extracts all sites with a specific variable code (varto).
+# def rd_hydstra_by_var(varto, start=0, end=0, data_type='mean', interval='day', multiplier=1, min_qual=None,
+#                       sites_chunk=20, return_qual=True, print_sites=False, export=False, export_path='flow_data.csv'):
+#     """
+#     Function to read in data from Hydstra's database using HYDLLP. This function extracts all sites with a specific variable code (varto).
+#
+#     Parameters
+#     ----------
+#     start : str or int of 0
+#         The start time in the format of either '2001-01-01' or 0 (for all data).
+#     end : str or int of 0
+#         Same formatting as start.
+#     datasource : str
+#         Hydstra datasource code (usually 'A').
+#     data_type : str
+#         mean, maxmin, max, min, start, end, first, last, tot, point, partialtot, or cum.
+#     varfrom : int or float
+#         The hydstra source data variable (100.00 is water level).
+#     varto : int or float
+#         The hydstra conversion data variable (140.00 is flow).
+#     interval : str
+#         The frequency of the output data (year, month, day, hour, minute, second, period). If data_type is 'point', then interval cannot be 'period' (use anything else, it doesn't matter).
+#     multiplier : int
+#         interval frequency.
+#     min_qual : int or None
+#         The minimum quality code or None (and there is no screening by quality, suggest exporting qual).
+#     return_qual : bool
+#         If true returns series, qual_series.
+#     sites_chunk : int
+#         Number of sites to request to hydllp at one time. Do not change unless you understand what it does.
+#
+#     Return
+#     ------
+#     Series
+#         In long format with site and time as a MultiIndex.
+#     """
+#
+#     ### Parameters
+#     #    numeric_varto = [100, 140, 143, 10, 130]
+#
+#     server = 'SQL2012PROD03'
+#     db = 'Hydstra'
+#     period_tab = 'PERIOD'
+#     #    var_tab = 'VARIABLE'
+#     #    site_tab = 'SITE'
+#     #    qual_tab = 'QUALITY'
+#
+#     period_cols = ['STATION', 'VARFROM', 'VARIABLE', 'PERSTART', 'PEREND', 'NUMPOINTS']
+#     period_names = ['site', 'varfrom', 'varto', 'start', 'end', 'num_points']
+#     #    var_cols = ['VARNUM', 'VARNAM', 'VARUNIT', 'SHORTNAME']
+#     #    var_names = ['var_num', 'var_name', 'var_unit', 'var_short_name']
+#     #    site_cols = ['STATION', 'STNAME', 'SHORTNAME']
+#     #    site_names = ['site', 'site_name', 'site_short_name']
+#     #    qual_cols = ['QUALITY', 'TEXT']
+#     #    qual_names = ['qual_code', 'qual_name']
+#
+#     ## Removals
+#     rem_dict = {'165131': [140, 140], '69302': [140, 140], '71106': [140, 140]}
+#
+#     ### Import
+#     period1 = rd_sql(server, db, period_tab, period_cols, where_col='DATASOURCE', where_val=['A'])
+#     period1.columns = period_names
+#     period1.loc[:, 'site'] = period1.site.str.strip()
+#
+#     #    var1 = rd_sql(server, db, var_tab, var_cols)
+#     #    var1.columns = var_names
+#
+#     #    site1 = rd_sql(server, db, site_tab, site_cols)
+#     #    site1.columns = site_names
+#
+#     #    qual1 = rd_sql(server, db, qual_tab, qual_cols)
+#     #    qual1.columns = qual_names
+#
+#     ### Determine the variables to extract
+#     period2 = period1[period1.varto.isin(period1.varto.round())].sort_values('site')
+#     period2 = period2[period2.varto != 101]
+#     for i in rem_dict:
+#         period2 = period2[
+#             ~((period2.site == i) & (period2.varfrom == rem_dict[i][0]) & (period2.varto == rem_dict[i][1]))]
+#     #    data_vars1 = period2.varto.sort_values().unique()
+#     #    var2 = var1[var1.var_num.isin(data_vars1)]
+#
+#     ### Extract the sites for the specific varto
+#     period3 = period2[period2.varto == varto]
+#     varfrom1 = period3.varfrom.unique()
+#
+#     data = DataFrame()
+#     for j in varfrom1:
+#         #        if varto in numeric_varto:
+#         #            sites1 = to_numeric(period3[period3.varfrom == j].site, 'coerce', 'integer').dropna().values
+#         #        else:
+#         sites1 = period3[period3.varfrom == j].site.values
+#         df = rd_hydstra_db(sites1, data_type=data_type, start=start, end=end, varfrom=j, varto=varto, interval=interval,
+#                            multiplier=multiplier, min_qual=min_qual, return_qual=return_qual, sites_chunk=sites_chunk,
+#                            print_sites=print_sites)
+#         data = concat([data, df])
+#
+#     ### Make sure the data types are correct
+#     data.loc[:, 'qual_code'] = data.qual_code.astype('int32')
+#
+#     ### Export data
+#     if export:
+#         data.to_csv(export_path)
+#     return (data)
 
-    Parameters
-    ----------
-    start : str or int of 0
-        The start time in the format of either '2001-01-01' or 0 (for all data).
-    end : str or int of 0
-        Same formatting as start.
-    datasource : str
-        Hydstra datasource code (usually 'A').
-    data_type : str
-        mean, maxmin, max, min, start, end, first, last, tot, point, partialtot, or cum.
-    varfrom : int or float
-        The hydstra source data variable (100.00 is water level).
-    varto : int or float
-        The hydstra conversion data variable (140.00 is flow).
-    interval : str
-        The frequency of the output data (year, month, day, hour, minute, second, period). If data_type is 'point', then interval cannot be 'period' (use anything else, it doesn't matter).
-    multiplier : int
-        interval frequency.
-    min_qual : int or None
-        The minimum quality code or None (and there is no screening by quality, suggest exporting qual).
-    return_qual : bool
-        If true returns series, qual_series.
-    sites_chunk : int
-        Number of sites to request to hydllp at one time. Do not change unless you understand what it does.
 
-    Return
-    ------
-    Series
-        In long format with site and time as a MultiIndex.
-    """
-    from core.ecan_io import rd_sql, rd_hydstra_db
-    from pandas import DataFrame, concat, to_numeric
-
-    ### Parameters
-#    numeric_varto = [100, 140, 143, 10, 130]
-
-    server = 'SQL2012PROD03'
-    db = 'Hydstra'
-    period_tab = 'PERIOD'
-#    var_tab = 'VARIABLE'
-#    site_tab = 'SITE'
-#    qual_tab = 'QUALITY'
-
-    period_cols = ['STATION', 'VARFROM', 'VARIABLE', 'PERSTART', 'PEREND', 'NUMPOINTS']
-    period_names = ['site', 'varfrom', 'varto', 'start', 'end', 'num_points']
-#    var_cols = ['VARNUM', 'VARNAM', 'VARUNIT', 'SHORTNAME']
-#    var_names = ['var_num', 'var_name', 'var_unit', 'var_short_name']
-#    site_cols = ['STATION', 'STNAME', 'SHORTNAME']
-#    site_names = ['site', 'site_name', 'site_short_name']
-#    qual_cols = ['QUALITY', 'TEXT']
-#    qual_names = ['qual_code', 'qual_name']
-
-    ## Removals
-    rem_dict = {'165131': [140, 140], '69302': [140, 140], '71106': [140, 140]}
-
-    ### Import
-    period1 = rd_sql(server, db, period_tab, period_cols, where_col='DATASOURCE', where_val=['A'])
-    period1.columns = period_names
-    period1.loc[:, 'site'] = period1.site.str.strip()
-
-#    var1 = rd_sql(server, db, var_tab, var_cols)
-#    var1.columns = var_names
-
-#    site1 = rd_sql(server, db, site_tab, site_cols)
-#    site1.columns = site_names
-
-#    qual1 = rd_sql(server, db, qual_tab, qual_cols)
-#    qual1.columns = qual_names
-
-    ### Determine the variables to extract
-    period2 = period1[period1.varto.isin(period1.varto.round())].sort_values('site')
-    period2 = period2[period2.varto != 101]
-    for i in rem_dict:
-        period2 = period2[~((period2.site == i) & (period2.varfrom == rem_dict[i][0]) & (period2.varto == rem_dict[i][1]))]
-#    data_vars1 = period2.varto.sort_values().unique()
-#    var2 = var1[var1.var_num.isin(data_vars1)]
-
-    ### Extract the sites for the specific varto
-    period3 = period2[period2.varto == varto]
-    varfrom1 = period3.varfrom.unique()
-
-    data = DataFrame()
-    for j in varfrom1:
-#        if varto in numeric_varto:
-#            sites1 = to_numeric(period3[period3.varfrom == j].site, 'coerce', 'integer').dropna().values
-#        else:
-        sites1 = period3[period3.varfrom == j].site.values
-        df = rd_hydstra_db(sites1, data_type=data_type, start=start, end=end, varfrom=j, varto=varto, interval=interval, multiplier=multiplier, min_qual=min_qual, return_qual=return_qual, sites_chunk=sites_chunk, print_sites=print_sites)
-        data = concat([data, df])
-
-    ### Make sure the data types are correct
-    data.loc[:, 'qual_code'] = data.qual_code.astype('int32')
-
-    ### Export data
-    if export:
-        data.to_csv(export_path)
-    return(data)
-
-
-def rd_hydstra_db(sites, start=0, end=0, datasource='A', data_type='mean', varfrom=100, varto=140, interval='day', multiplier=1, qual_codes=[30, 20, 10, 11, 21, 18], report_time=None, sites_chunk=20, print_sites=False, export_path=None):
+def rd_hydstra_db(sites, start=0, end=0, datasource='A', data_type='mean', varfrom=100, varto=140, interval='day',
+                  multiplier=1, qual_codes=[30, 20, 10, 11, 21, 18], report_time=None, sites_chunk=20,
+                  print_sites=False, export_path=None):
     """
     Wrapper function over hydllp to read in data from Hydstra's database. Must be run in a 32bit python. If either start_time or end_time is not 0, then they both need a date.
 
@@ -144,14 +152,10 @@ def rd_hydstra_db(sites, start=0, end=0, datasource='A', data_type='mean', varfr
     Series
         In long format with site and time as a MultiIndex.
     """
-    from core.ecan_io.hydllp import openHyDb
-    from pandas import DataFrame, concat
-    from core.misc import select_sites, save_df
-    from numpy import array_split, ceil
 
     ### Process sites into workable chunks
     sites1 = select_sites(sites)
-    n_chunks = ceil(len(sites1)/float(sites_chunk))
+    n_chunks = ceil(len(sites1) / float(sites_chunk))
     sites2 = array_split(sites1, n_chunks)
 
     ### Run instance of hydllp
@@ -162,20 +166,23 @@ def rd_hydstra_db(sites, start=0, end=0, datasource='A', data_type='mean', varfr
         ### Open connection
         hyd = openHyDb()
         with hyd as h:
-            df = h.get_ts_traces(i, start=start, end=end, datasource=datasource, data_type=data_type, varfrom=varfrom, varto=varto, interval=interval, multiplier=multiplier, qual_codes=qual_codes, report_time=report_time)
+            df = h.get_ts_traces(i, start=start, end=end, datasource=datasource, data_type=data_type, varfrom=varfrom,
+                                 varto=varto, interval=interval, multiplier=multiplier, qual_codes=qual_codes,
+                                 report_time=report_time)
         data = concat([data, df])
 
     if isinstance(export_path, str):
         save_df(data, export_path)
 
-    return(data)
+    return (data)
 
-#Define a context manager generator
-#that creates and releases the connection to the hydstra server
+
+# Define a context manager generator
+# that creates and releases the connection to the hydstra server
 @contextlib.contextmanager
 def openHyDb(ini_path='Y:/Hydstra/prod/hyd/', dll_path='Y:/Hydstra/prod/hyd/sys/run/', username='', password=''):
-    hyd = Hydllp(dll_path = dll_path,
-                 ini_path = ini_path)
+    hyd = Hydllp(dll_path=dll_path,
+                 ini_path=ini_path)
     try:
         hyd.login(username, password)
         yield hyd
@@ -183,44 +190,47 @@ def openHyDb(ini_path='Y:/Hydstra/prod/hyd/', dll_path='Y:/Hydstra/prod/hyd/sys/
         hyd.logout()
 
 
-#Exception for hydstra related errors
+# Exception for hydstra related errors
 class HydstraError(Exception):
     pass
+
 
 class HydstraErrorUnknown(HydstraError):
     pass
 
+
 class Hydllp(object):
     def __init__(self,
-                 dll_path = 'Y:/Hydstra/prod/hyd/sys/run/',
-                 ini_path = 'Y:/Hydstra/prod/hyd/',
-                 hydllp_filename = 'hydllp.dll',
-                 hyaccess_filename = 'Hyaccess.ini',
-                 hyconfig_filename = 'HYCONFIG.INI'):
+                 dll_path='Y:/Hydstra/prod/hyd/sys/run/',
+                 ini_path='Y:/Hydstra/prod/hyd/',
+                 hydllp_filename='hydllp.dll',
+                 hyaccess_filename='Hyaccess.ini',
+                 hyconfig_filename='HYCONFIG.INI'):
 
         self._dll_path = dll_path
         self._ini_path = ini_path
 
-        self._dll_filename      = os.path.join(self._dll_path, hydllp_filename)
+        self._dll_filename = os.path.join(self._dll_path, hydllp_filename)
         self._hyaccess_filename = os.path.join(self._ini_path, hyaccess_filename)
         self._hyconfig_filename = os.path.join(self._ini_path, hyconfig_filename)
 
-        #See Hydstra Help file
-        #According to the HYDLLP doc, the hydll.dll needs to run "in situ" since
-        #it needs to reference other files in that directory.
+        # See Hydstra Help file
+        # According to the HYDLLP doc, the hydll.dll needs to run "in situ" since
+        # it needs to reference other files in that directory.
         os.chdir(self._dll_path)
 
-        #According to the HYDLLP doc, the stdcall calling convention is used.
+        # According to the HYDLLP doc, the stdcall calling convention is used.
         self._dll = ctypes.WinDLL(self._dll_filename)
 
-        #Hydstra server handle. Unique to each instance.
+        # Hydstra server handle. Unique to each instance.
         self._handle = ctypes.c_int()
 
         self._logged_in = False
 
-#********************************************************************************
-# Start - Define HYDLLP Wrappers
-#********************************************************************************
+        # ********************************************************************************
+
+    # Start - Define HYDLLP Wrappers
+    # ********************************************************************************
 
     def _decode_error(self, error_code):
         """
@@ -232,18 +242,18 @@ class Hydllp(object):
                 The error code returned by startup_ex
         """
 
-        #Reference the DecodeError dll function
+        # Reference the DecodeError dll function
         decode_error_lib = self._dll['DecodeError']
         decode_error_lib.restype = ctypes.c_int
 
-        #string c_type to store the error message
+        # string c_type to store the error message
         error_str = ""
         c_error_str = ctypes.c_char_p(error_str)
 
-        #Allocate memory for the return string
-        return_str = ctypes.create_string_buffer(" ",1400)
+        # Allocate memory for the return string
+        return_str = ctypes.create_string_buffer(" ", 1400)
 
-        #Call "DecodeError"
+        # Call "DecodeError"
         err = decode_error_lib(ctypes.c_int(error_code),
                                c_error_str,
                                ctypes.c_int(1023))
@@ -271,7 +281,7 @@ class Hydllp(object):
         startUpEx_lib = self._dll['StartUpEx']
         startUpEx_lib.restype = ctypes.c_int
 
-        #Call the dll function "StartUpEx"
+        # Call the dll function "StartUpEx"
         err = startUpEx_lib(ctypes.c_char_p(user),
                             ctypes.c_char_p(password),
                             ctypes.c_char_p(hyaccess),
@@ -293,7 +303,7 @@ class Hydllp(object):
 
         error_code = shutdown_lib(self._handle)
 
-        #Values other than 0 means that an error occured
+        # Values other than 0 means that an error occured
         if error_code != 0:
             error_msg = self._decode_error(error_code)
             raise HydstraError(error_msg)
@@ -306,23 +316,24 @@ class Hydllp(object):
         jsonCall_lib = self._dll['JSonCall']
         jsonCall_lib.restype = ctypes.c_int
 
-        #Allocate memory for the return string
+        # Allocate memory for the return string
         return_str = ctypes.create_string_buffer(" ", return_str_len)
 
-        #c_return_str = ctypes.c_char_p(return_str)
+        # c_return_str = ctypes.c_char_p(return_str)
 
-        #Call the dll function "JsonCall"
+        # Call the dll function "JsonCall"
         err = jsonCall_lib(self._handle,
                            ctypes.c_char_p(request_str),
                            return_str,
                            return_str_len)
 
         result = return_str.value
-        return(result)
+        return (result)
 
-#********************************************************************************
-# End - Define HYDLLP Wrappers
-#********************************************************************************
+        # ********************************************************************************
+
+    # End - Define HYDLLP Wrappers
+    # ********************************************************************************
 
     def login(self, username, password):
         """
@@ -338,11 +349,11 @@ class Hydllp(object):
 
         """
         error_code = self._start_up_ex(username,
-                          password,
-                          self._hyaccess_filename,
-                          self._hyconfig_filename)
+                                       password,
+                                       self._hyaccess_filename,
+                                       self._hyconfig_filename)
 
-        #Values other than 0 means that an error occured
+        # Values other than 0 means that an error occured
         if error_code != 0:
             error_msg = self._decode_error(error_code)
             raise HydstraError(error_msg)
@@ -366,78 +377,77 @@ class Hydllp(object):
         """
         import json
 
-        #initial buffer length
-        #If it is too small, we can resize, see below
+        # initial buffer length
+        # If it is too small, we can resize, see below
         buffer_len = 1400
 
-        #convert request dict to a json string
+        # convert request dict to a json string
         request_json = json.dumps(request_dict)
 
-        #call json_call and convert result to python dictionary
+        # call json_call and convert result to python dictionary
         result_json = self._json_call(request_json, buffer_len)
         result_dict = json.loads(result_json)
 
-        #If the initial buffer is too small, then re-call json_call
-        #with the actual buffer length given by the error response
+        # If the initial buffer is too small, then re-call json_call
+        # with the actual buffer length given by the error response
         if result_dict["error_num"] == 200:
             buffer_len = result_dict["buff_required"]
             result_json = self._json_call(request_json, buffer_len)
             result_dict = json.loads(result_json)
 
-        #If error_num is not 0, then an error occured
+        # If error_num is not 0, then an error occured
         if result_dict["error_num"] != 0:
             error_msg = "Error num:{}, {}".format(result_dict['error_num'],
                                                   result_dict['error_msg'])
             raise HydstraError(error_msg)
 
-        #Just in case the result doesn't have a 'return'
+        # Just in case the result doesn't have a 'return'
         elif 'return' not in result_dict:
             error_msg = "Error code = 0, however no 'return' was found"
             raise HydstraError(error_msg)
 
-        return(result_dict)
+        return (result_dict)
 
     def get_site_list(self, site_list_exp):
-        #Generate a request of all the sites
-        site_list_req_dict = {"function":"get_site_list",
-                              "version":1,
-                              "params":{"site_list":site_list_exp}}
+        # Generate a request of all the sites
+        site_list_req_dict = {"function": "get_site_list",
+                              "version": 1,
+                              "params": {"site_list": site_list_exp}}
 
         site_list_result = self.query_by_dict(site_list_req_dict)
 
-        return(site_list_result["return"]["sites"])
+        return (site_list_result["return"]["sites"])
 
     def get_variable_list(self, site_list, data_source):
 
-        #Convert the site list to a comma delimited string of sites
+        # Convert the site list to a comma delimited string of sites
         site_list_str = ",".join([str(site) for site in site_list])
 
-        var_list_request = {"function":"get_variable_list",
-                            "version":1,
-                            "params":{"site_list":site_list_str,
-                                      "datasource":data_source}}
+        var_list_request = {"function": "get_variable_list",
+                            "version": 1,
+                            "params": {"site_list": site_list_str,
+                                       "datasource": data_source}}
 
         var_list_result = self.query_by_dict(var_list_request)
 
-        return(var_list_result["return"]["sites"])
+        return (var_list_result["return"]["sites"])
 
     def get_db_areas(self, area_classes_list):
 
-        db_areas_request = {"function":"get_db_areas",
-                            "version":1,
-                            "params":{"area_classes":area_classes_list}}
+        db_areas_request = {"function": "get_db_areas",
+                            "version": 1,
+                            "params": {"area_classes": area_classes_list}}
 
         db_area_result = self.query_by_dict(db_areas_request)
 
-        return(db_area_result["return"]["sites"])
+        return (db_area_result["return"]["sites"])
 
-    def get_ts_blockinfo(self, site_list, datasources='A', variables=['100', '10', '110', '140', '130', '143', '450'], starttime=0, endtime=0, start_modified=0, end_modified=0, fill_gaps=0, auditinfo=0, report_time='end', offset=0):
+    def get_ts_blockinfo(self, site_list, datasources='A', variables=['100', '10', '110', '140', '130', '143', '450'],
+                         starttime=0, endtime=0, start_modified=0, end_modified=0, fill_gaps=0, auditinfo=0,
+                         report_time='end', offset=0):
         """
 
         """
-        from pandas import to_numeric, to_datetime, Series, concat
-        from numpy import nan
-        from core.misc.misc import select_sites
 
         # Convert the site list to a comma delimited string of sites
         sites = select_sites(site_list).astype(str)
@@ -458,12 +468,25 @@ class Hydllp(object):
 
         ts_blockinfo_result = self.query_by_dict(get_ts_blockinfo_request)
 
-        return(ts_blockinfo_result["return"]["sites"])
+        return (ts_blockinfo_result["return"]["sites"])
 
+    def get_ts_traces(self, site_list, start=0, end=0, varfrom=100, varto=140, interval='day', multiplier=1,
+                      datasource='A', data_type='mean', qual_codes=[30, 20, 10, 11, 21, 18], report_time=None):
+        """
 
-    def get_ts_traces(self, site_list, start=0, end=0, varfrom=100, varto=140, interval='day', multiplier=1, datasource='A', data_type='mean', qual_codes=[30, 20, 10, 11, 21, 18], report_time=None):
-        from pandas import to_numeric, to_datetime, concat, DataFrame, Timestamp
-        from core.misc.misc import select_sites
+        :param site_list:
+        :param start:
+        :param end:
+        :param varfrom:
+        :param varto:
+        :param interval:
+        :param multiplier:
+        :param datasource:
+        :param data_type:
+        :param qual_codes:
+        :param report_time:
+        :return:
+        """
 
         # Convert the site list to a comma delimited string of sites
         sites = select_sites(site_list).astype(str)
@@ -508,7 +531,6 @@ class Hydllp(object):
 
         out2 = out1.set_index(['site', 'time'])[['data', 'qual_code']]
 
-        return(out2)
+        return (out2)
 
-
-#End Class
+# End Class

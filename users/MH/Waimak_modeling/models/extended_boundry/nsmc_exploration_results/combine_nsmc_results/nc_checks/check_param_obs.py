@@ -10,6 +10,7 @@ import netCDF4 as nc
 import numpy as np
 import pandas as pd
 
+# quick check for the netcdf
 def check_attributes(nc_path, outpath):
     # write out every variable and attribute of the nc file to a text file so I can check it
     f = open(outpath,'w')
