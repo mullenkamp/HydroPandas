@@ -7,13 +7,13 @@ Created on Fri Sep 08 09:23:46 2017
 
 from xarray import open_dataset, open_mfdataset
 from os import path
-from core.misc import rd_dir, unarchive_dir, save_df, get_subdir
+from core.misc.misc import rd_dir, unarchive_dir, save_df, get_subdir
 from geopandas import read_file, sjoin
 from core.ecan_io.met import nc_add_gis
 from pandas import to_datetime, DataFrame, concat, read_hdf, merge
-from core.ts.met.topnet import proc_topnet_nc
+#from core.ts.met.topnet import proc_topnet_nc
 from core.spatial.vector import closest_line_to_pts, multipoly_to_poly, spatial_overlays
-from core.ts import grp_ts_agg
+from core.ts.ts import grp_ts_agg
 
 from bokeh.layouts import widgetbox, column, row
 from bokeh.plotting import figure, save, show, output_file, curdoc
