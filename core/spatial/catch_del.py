@@ -2,14 +2,19 @@
 """
 Functions to delineate catchments.
 """
+from pandas import DataFrame, read_csv, concat
+from geopandas import read_file, GeoDataFrame, GeoSeries
+from numpy import in1d, append, isnan
+from core.ecan_io import rd_sql
+from core.spatial.network import find_upstream_rec, extract_rec_catch, agg_rec_catch
+from core.spatial.vector import closest_line_to_pts
+from core.misc import select_sites
 
 
 def catch_net(catch_sites_csv, catch_sites_col=['GRIDCODE', 'SITE']):
     """
     Function to create a dataframe of all the upstream catchments from specific locations. Input should be the output from ArcGIS script (2 columns of catchments and sites).
     """
-    from numpy import append, isnan, in1d
-    from pandas import DataFrame, read_csv
 
     ## Read in data
     catch_sites_names=['catch', 'site']
@@ -50,10 +55,6 @@ def agg_catch(catch_del_shp, catch_sites_csv, catch_sites_col=['GRIDCODE', 'SITE
     """
     Function to take the output of the ArcGIS catchment delineation polygon shapefile and cathcment sites csv and return a shapefile with appropriately delineated polygons.
     """
-    from geopandas import read_file, GeoDataFrame, GeoSeries
-    from core.spatial import catch_net
-    from pandas import concat
-    from numpy import in1d, append
 
     ## Catchment areas shp
     catch = read_file(catch_del_shp)[[catch_col, 'geometry']]
@@ -84,11 +85,6 @@ def rec_catch_del(sites_shp, sites_col='site', catch_output=None):
     sites_col -- The column name of the site numbers in the sites_shp.\n
     catch_output -- The output polygon shapefile path of the catchment delineation.
     """
-
-    from core.ecan_io import rd_sql
-    from core.spatial.network import find_upstream_rec, extract_rec_catch, agg_rec_catch
-    from core.spatial.vector import closest_line_to_pts
-    from core.misc import select_sites
 
     ### Parameters
     server = 'SQL2012PROD05'

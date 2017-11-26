@@ -7,7 +7,6 @@ from pandas import DataFrame, concat, Series
 from core.ts.sw.stats import malf7d as malf_fun
 from core.ts.sw.stats import malf_reg as malf_reg_fun
 from core.ts.sw.stats import flow_reg as flow_reg_fun
-from numpy import in1d
 
 #######################################
 #### Adapted functions

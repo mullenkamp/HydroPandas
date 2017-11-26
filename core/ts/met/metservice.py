@@ -6,6 +6,14 @@ Created on Thu Jun 29 11:17:26 2017
 
 Functions for processing MetService data.
 """
+from os import path
+from xarray import open_dataset
+from numpy import tile, arange
+from shapely.geometry import Point
+from geopandas import GeoDataFrame
+from pandas import to_datetime, merge, to_numeric
+from core.ecan_io.mssql import rd_sql
+from core.spatial.vector import xy_to_gpd
 
 
 def proc_metservice_nc(nc, lat_coord='south_north', lon_coord='west_east', time_coord='Time', time_var='Times', export_dir=None):
@@ -30,12 +38,6 @@ def proc_metservice_nc(nc, lat_coord='south_north', lon_coord='west_east', time_
     str
         The new path to the processed netcdf file.
     """
-    from xarray import open_dataset
-    from os import path
-    from numpy import arange
-    from pandas import to_datetime
-    from core.ts.met import ACPR_to_rate
-    from core.spatial.vector import convert_crs
 
     ### Parameters
     proj1 = '+proj=lcc +lat_1=-60 +lat_2=-30 +lat_0=-60 +lon_0=167.5 +x_0=211921 +y_0=-1221320 +a=6367470 +b=6367470 +no_defs'
@@ -124,7 +126,6 @@ def ACPR_to_rate(df, lat_coord='y', lon_coord='x', time_coord='time'):
     DataFrame
         Three dimensions with hourly precip rate.
     """
-    from pandas import merge
 
     ### Extract data into dataframe
     df1 = df.copy().set_index(time_coord)
@@ -162,11 +163,6 @@ def MetS_nc_to_df(nc, lat_coord='y', lon_coord='x', time_coord='time', precip_va
     Timestamp
         The model date start time
     """
-    from xarray import open_dataset
-    from numpy import tile
-    from shapely.geometry import Point
-    from geopandas import GeoDataFrame
-    from pandas import to_datetime
 
     ### Extract all data to dataframes
     with open_dataset(nc) as ds:
@@ -202,9 +198,6 @@ def metconnect_id_loc(hydrotel_pt_number=None):
     -------
     GeoDataFrame
     """
-    from core.ecan_io import rd_sql
-    from core.spatial.vector import xy_to_gpd
-    from pandas import merge, to_numeric
 
     ### Input parameters
     mc_server = 'SQL2012PROD03'

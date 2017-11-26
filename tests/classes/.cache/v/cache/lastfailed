@@ -1,6 +1,1 @@
-{
-  "hydro/test_ecan_get_data.py": true, 
-  "hydro/test_indexing.py": true, 
-  "hydro/test_io_fun.py": true, 
-  "hydro/test_stats_fun.py": true
-}
+{}

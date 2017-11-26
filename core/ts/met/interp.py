@@ -6,6 +6,12 @@ Created on Thu Jun 29 11:16:40 2017
 
 Interpolation functions for Met data.
 """
+from core.spatial.vector import sel_sites_poly, xy_to_gpd
+from core.spatial.raster import grid_interp_ts, save_geotiff
+from geopandas import read_file, GeoDataFrame, GeoSeries
+from numpy import tile, ceil, min
+from os import path
+from pandas import merge
 
 
 def poly_interp_agg(precip, precip_crs, poly, data_col, time_col, x_col, y_col, interp_buffer_dis=10000, poly_buffer_dis=0, grid_res=None, interp_fun='cubic', agg_ts_fun=None, period=None, digits=2, agg_xy=False, nfiles='many', output_path=None):
@@ -25,11 +31,6 @@ def poly_interp_agg(precip, precip_crs, poly, data_col, time_col, x_col, y_col, 
     nfiles -- If output_path is a geotiff, then 'one' or 'many' geotiffs to be created.\n
     output_path -- Full path string where the output should be stored. The file extension should be one of '.tif' for geotiff, '.nc' for netcdf, or '.csv' for csv.
     """
-    from core.spatial import sel_sites_poly, grid_interp_ts, xy_to_gpd, save_geotiff
-    from geopandas import read_file, GeoDataFrame, GeoSeries
-    from numpy import tile, ceil, min
-    from os import path
-    from pandas import merge
 
     ### Convert x and y of precip to geodataframe
     sites0 = precip[[x_col, y_col]].drop_duplicates().reset_index(drop=True)

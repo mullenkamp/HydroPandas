@@ -2,13 +2,13 @@
 """
 Functions for importing flow data.
 """
-from core.ts import tsreg, w_resample
+from core.ts.ts import tsreg, w_resample
 from pandas import read_table, DataFrame, to_datetime, merge, to_numeric, Series, read_csv, concat
 from numpy import nan, isnan, in1d
 from core.ecan_io.mssql import rd_sql, rd_sql_ts
 from numpy import ndarray
-from core.misc import select_sites, save_df, rd_dir
-from core.ts.sw import flow_stats, malf7d, fre_accrual
+from core.misc.misc import select_sites, save_df, rd_dir
+from core.ts.sw.stats import flow_stats, malf7d, fre_accrual
 from geopandas import read_file, GeoDataFrame
 from os.path import join, dirname
 from core.spatial.vector import sel_sites_poly
@@ -157,13 +157,13 @@ def rd_hydstra_csv(csv_path, qual_codes=False, min_qual_code=30, min_filter=Fals
         t2 = DataFrame(t1)
         t3 = t2.dropna(axis=1, how='all')
 
-    if min_filter:
-        stats1 = flow_stats(t3).loc['Tot data yrs']
-        t4 = t3.loc[:, stats1 >= min_yrs]
-    else:
-        t4 = t3
+#    if min_filter:
+#        stats1 = flow_stats(t3).loc['Tot data yrs']
+#        t4 = t3.loc[:, stats1 >= min_yrs]
+#    else:
+#        t4 = t3
 
-    return (t4)
+    return (t3)
 
 
 def rd_hydstra_dir(input_path, min_filter=False, min_yrs=25, export=False, export_path='',

@@ -9,8 +9,8 @@ from os import path
 from win32com.client import Dispatch
 from geopandas import GeoDataFrame
 from core.ecan_io import rd_sql
-from core.spatial import xy_to_gpd, sel_sites_poly
-from core.misc import select_sites, pytime_to_datetime, time_switch
+from core.spatial.vector import xy_to_gpd, sel_sites_poly
+from core.misc.misc import select_sites, pytime_to_datetime, time_switch
 from lxml import etree
 from pandas import to_datetime, DataFrame, concat, read_csv, Series, to_numeric, merge
 from os.path import basename

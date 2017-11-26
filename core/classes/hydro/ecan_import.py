@@ -5,11 +5,10 @@ Input and output functions specific to ECan systems.
 
 from numpy import ndarray, in1d, dtype
 from geopandas import read_file
-from core.ecan_io import rd_sql
+from core.ecan_io.mssql import rd_sql
 from core.spatial.vector import xy_to_gpd
-from core.ecan_io import rd_hydstra_db
-from core.ecan_io.flow import rd_hydrotel
-from core.ecan_io.flow import rd_henry
+from core.ecan_io.hydllp import rd_hydstra_db
+from core.ecan_io.flow import rd_hydrotel, rd_henry
 from pandas import Series, concat, to_numeric
 
 ############################################

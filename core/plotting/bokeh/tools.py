@@ -4,6 +4,7 @@ Created on Mon Sep 11 09:39:40 2017
 
 @author: MichaelEK
 """
+from shapely.geometry import Point, LineString, Polygon
 
 
 def getPolyCoords(row, coord_type, geom='geometry'):
@@ -40,7 +41,6 @@ def getCoords(gdf):
     """
     Function to put in x and y coordinates for Bokeh plotting from geodataframes of points, lines, or polygons.
     """
-    from shapely.geometry import Point, LineString, Polygon
     gdf1 = gdf.copy()
 
     x_all = []
