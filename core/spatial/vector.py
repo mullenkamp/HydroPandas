@@ -8,7 +8,7 @@ from core.ecan_io.SQL_databases import sql_arg
 from numpy import insert, in1d, ndarray
 from pandas import concat, Series, Index, to_numeric
 from shapely.geometry import Point, Polygon
-from core.misc import select_sites
+from core.misc.misc import select_sites
 from core.ecan_io.mssql import rd_sql
 from pycrs import parser
 

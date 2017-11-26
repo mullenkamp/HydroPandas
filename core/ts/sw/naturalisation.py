@@ -2,6 +2,12 @@
 """
 Stream naturalisation functions.
 """
+from pandas import to_datetime, concat, DataFrame, merge, read_hdf, to_timedelta
+from core.ecan_io.flow import rd_ts
+from geopandas import read_file
+from core.spatial.vector import pts_poly_join
+from core.misc.misc import select_sites, save_df
+from core.classes.hydro.base import hydro
 
 
 def stream_nat(sites, catch_shp=r'P:\cant_catch_delin\recorders\catch_del.shp', include_gw=True, max_date='2015-06-30', sd_hdf='S:/Surface Water/shared/base_data/usage/sd_est_all_mon_vol.h5', flow_csv=None, crc_shp=r'S:\Surface Water\shared\GIS_base\vector\allocations\allo_gis.shp', catch_col='site', pivot=False, return_data=False, export_path=None):
@@ -18,13 +24,6 @@ def stream_nat(sites, catch_shp=r'P:\cant_catch_delin\recorders\catch_del.shp', 
     pivot -- Should the output be pivotted?\n
     return_data -- Should the allocation/usage time series be returned?
     """
-    from pandas import to_datetime, concat, DataFrame, merge, read_hdf, to_timedelta
-    from core.ecan_io import rd_henry, rd_ts
-    from geopandas import read_file
-    from core.spatial import pts_poly_join
-    from core.misc import select_sites
-    from core.classes.hydro.base import hydro
-    from core.misc import save_df
 
     qual_codes = [10, 18, 20, 50]
 

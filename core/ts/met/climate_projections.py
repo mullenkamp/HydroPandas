@@ -4,6 +4,9 @@ Created on Tue Sep 19 15:02:29 2017
 
 @author: MichaelEK
 """
+from xarray import open_dataset, concat
+from os import path, walk, makedirs
+from pandas import to_datetime
 
 
 def proc_waimak_nc(base_path, out_path):
@@ -13,9 +16,6 @@ def proc_waimak_nc(base_path, out_path):
     base_path -- The base path where many nc files and subfolders lay.\n
     out_path -- The output directory for the processed data.\n
     """
-    from xarray import open_dataset, concat, Dataset
-    from os import path, walk, makedirs
-    from pandas import to_datetime
 
     #### Walk through the files and folders
     for root, dirs, files in walk(base_path):
@@ -88,10 +88,6 @@ def proc_cant_nc(base_path, out_path):
     base_path -- The base path where many nc files and subfolders lay.\n
     out_path -- The output directory for the processed data.\n
     """
-    from xarray import open_dataset, concat, Dataset, open_mfdataset
-    from os import path, walk, makedirs, rename
-    from pandas import to_datetime
-    from shutil import copyfile
 
     mtypes = ['mod_flow', 'drainge', 'canevap', 'instn_q', 'ovstn_q', 'soilevp', 'soilh2o', 'aprecip', 'potevap', 'soilevp', 'soilh2o', 'zbarh2o']
 

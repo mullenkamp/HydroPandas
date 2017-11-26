@@ -2,7 +2,15 @@
 """
 Raster and spatial interpolation functions.
 """
-
+from pandas import DataFrame, TimeGrouper, Grouper, to_datetime
+from numpy import tile, repeat, column_stack, nan, arange, meshgrid
+from shapely.geometry import Point
+from geopandas import GeoDataFrame, read_file
+from scipy.interpolate import griddata, Rbf
+from core.spatial.vector import convert_crs
+from rasterio import open as ras_open
+from rasterio import transform
+from os import path
 
 
 def grid_interp_ts(df, time_col, x_col, y_col, data_col, grid_res, from_crs=None, to_crs=2193, interp_fun='cubic', agg_ts_fun=None, period=None, digits=2):
@@ -22,12 +30,6 @@ def grid_interp_ts(df, time_col, x_col, y_col, data_col, grid_res, from_crs=None
     period -- The pandas time series code to resample the data in time (i.e. '2H' for two hours).\n
     digits -- the number of digits to round to (int).
     """
-    from numpy import arange, meshgrid, tile, repeat, column_stack
-    from pandas import DataFrame, TimeGrouper, Grouper, to_datetime
-    from core.spatial import convert_crs
-    from shapely.geometry import Point
-    from geopandas import GeoDataFrame
-    from scipy.interpolate import griddata
 
     #### Create the grids
     df1 = df.copy()
@@ -113,12 +115,6 @@ def point_interp_ts(df, time_col, x_col, y_col, data_col, point_shp, point_site_
     period -- The pandas time series code to resample the data in time (i.e. '2H' for two hours).\n
     digits -- the number of digits to round to (int).
     """
-    from numpy import tile, repeat, column_stack
-    from pandas import DataFrame, TimeGrouper, Grouper, to_datetime
-    from core.spatial import convert_crs
-    from shapely.geometry import Point
-    from geopandas import GeoDataFrame, read_file
-    from scipy.interpolate import griddata
 
     #### Read in points
     if isinstance(point_shp, str) & isinstance(point_site_col, str):
@@ -194,7 +190,6 @@ def grid_resample(x, y, z, x_int, y_int, digits=3, method='multiquadric'):
     """
     Function to interpolate and resample a set of x, y, z values.
     """
-    from scipy.interpolate import Rbf
 
     interp1 = Rbf(x, y, z, function=method)
     z_int = interp1(x_int, y_int).round(digits)
@@ -218,12 +213,6 @@ def save_geotiff(df, data_col, crs, x_col='x', y_col='y', time_col=None, nfiles=
     path -- The save path.\n
     grid_res -- The grid resolution of the output raster (int). The default None will output the the resolution based on the point spacing of a regular grid.
     """
-    from core.spatial import convert_crs
-    from rasterio import open as ras_open
-    from rasterio import transform
-    from numpy import nan
-    from os import path
-    from pandas import to_datetime
 
     ### create the xy coordinates
     if time_col is None:

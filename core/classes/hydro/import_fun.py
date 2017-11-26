@@ -12,7 +12,7 @@ from xarray import open_dataset
 from shapely.wkt import loads
 from shapely.geometry import Point
 from core.ecan_io.mssql import rd_sql_ts, rd_sql
-from core.spatial import sel_sites_poly
+from core.spatial.vector import sel_sites_poly
 
 
 ########################################################
