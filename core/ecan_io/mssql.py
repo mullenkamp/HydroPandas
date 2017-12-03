@@ -3,8 +3,8 @@
 Functions for importing mssql data.
 """
 from geopandas import GeoDataFrame
-from core.misc import save_df
-#from core.spatial import xy_to_gpd
+from core.misc.misc import save_df
+# from core.spatial import xy_to_gpd
 from pandas import to_numeric, to_datetime, Timestamp, read_sql
 from shapely.wkt import loads
 from pycrs.parser import from_epsg_code

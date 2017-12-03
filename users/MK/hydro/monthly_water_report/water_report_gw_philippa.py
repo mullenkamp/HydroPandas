@@ -12,12 +12,12 @@ from geopandas import read_file, sjoin
 from pandas import DateOffset, to_datetime, concat, merge, cut, DataFrame, MultiIndex, Series, read_csv
 from os.path import join
 from core.spatial.vector import multipoly_to_poly
-from core.ts import grp_ts_agg
+from core.ts.ts import grp_ts_agg
 from datetime import date
 from scipy.stats import percentileofscore, rankdata
 from numpy import nan, percentile
 from core.classes.hydro import hydro
-from core.ts import tsreg
+from core.ts.ts import tsreg
 from warnings import filterwarnings
 
 from bokeh.plotting import figure, show, output_file
