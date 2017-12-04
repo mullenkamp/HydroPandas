@@ -234,7 +234,7 @@ def rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resa
 #    return (site_geo3.set_index('site'))
 
 
-def write_sql(df, server, database, table, dtype_dict, primary_keys=None, foreign_keys=None, foreign_table=None, create_table=True, drop_table=False):
+def write_sql(df, server, database, table, dtype_dict, primary_keys=None, foreign_keys=None, foreign_table=None, create_table=True, drop_table=False, output_stmt=False):
     """
     Function to write pandas dataframes to mssql server tables. Must have write permissions to database!
 
@@ -252,14 +252,20 @@ def write_sql(df, server, database, table, dtype_dict, primary_keys=None, foreig
         Dictionary of df columns to the associated sql data type. Examples below.
     primary_keys : str or list of str
         Index columns to define uniqueness in the data structure.
+    foreign_keys : str or list of str
+        Columns to link to another table in the same database.
+    foreign_table: str
+        The table in the same database with the identical foreign key(s).
     create_table : bool
         Should a new table be created or should it be appended to an existing table?
     drop_table : bool
         If the table already exists, should it be dropped?
+    output_stmt : bool
+        Should the SQL statements be outputted to a dictionary?
 
     Returns
     -------
-    None
+    if output_stmt is True then dict else None
 
     dtype strings for matching python data types to SQL
     ---------------------------------------------------
@@ -333,28 +339,36 @@ def write_sql(df, server, database, table, dtype_dict, primary_keys=None, foreig
     try:
         conn = connect(server, database=database)
         cursor = conn.cursor()
+        stmt_dict = {}
 
         #### Drop table if it exists
         if drop_table:
             drop_stmt = "IF OBJECT_ID(" + str([str(table)])[1:-1] + ", 'U') IS NOT NULL DROP TABLE " + table
             cursor.execute(drop_stmt)
             conn.commit()
+            stmt_dict.update({'drop_stmt': drop_stmt})
 
         #### Create table in database
         if create_table:
             cursor.execute(tab_create_stmt)
             conn.commit()
+            stmt_dict.update({'tab_create_stmt': tab_create_stmt})
 
         #### Insert data into table
-        for i in tup2:
-            rows = ",".join(i)
+        for i in range(len(tup2)):
+            rows = ",".join(tup2[i])
             insert_stmt2 = insert_stmt1 + rows
             cursor.execute(insert_stmt2)
+            stmt_dict.update({'insert' + str(i+1): insert_stmt2})
         conn.commit()
+
 
         #### Close everything!
         cursor.close()
         conn.close()
+
+        if output_stmt:
+            return stmt_dict
     except:
         raise ValueError('Could not complete SQL import')
 

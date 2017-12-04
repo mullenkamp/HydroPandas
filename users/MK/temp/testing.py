@@ -1481,16 +1481,16 @@ from core.ecan_io import write_sql
 server = 'SQL2012DEV01'
 database = 'Hydro'
 database = 'MetConnect'
-sites_table = 'RainFallPredictionSitesGrid'
+table = 'RainFallPredictionSitesGrid'
 
-tab_dict = {'MetConnectID': 'INT', 'SiteString': 'VARCHAR(34)', 'Office': 'VARCHAR(2)', 'HydroTelPointNo': 'INT', 'TidedaID': 'INT', 'StartDate': 'DATE'}
+dtype_dict = {'MetConnectID': 'INT', 'SiteString': 'VARCHAR(34)', 'Office': 'VARCHAR(2)', 'HydroTelPointNo': 'INT', 'TidedaID': 'INT', 'StartDate': 'DATE'}
 
 sites_csv = r'E:\ecan\shared\projects\metservice_processing\RainFallPredictionSites.csv'
 
 sites = read_csv(sites_csv)
 sites['StartDate'] = to_datetime(sites['StartDate'], dayfirst=True, format='%d/%m/%Y')
 
-write_sql(sites, server, database, sites_table, tab_dict, ['MetConnectID'])
+stmt_dict = write_sql(sites, server, database, table, dtype_dict, primary_keys=['MetConnectID'])
 
 
 
