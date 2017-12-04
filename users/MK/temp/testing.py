@@ -1472,12 +1472,25 @@ h1 = hydro().get_data(mtypes='river_wl_cont_qc', sites=sites, qual_codes=[10, 18
 
 t1 = rd_hydrotel([66204], mtype='river_flow_cont_raw', from_date=start_date.strftime('%Y-%m-%d'), to_date=end_date.strftime('%Y-%m-%d'))
 
+##################################################
+### Add MetConnect sites table
 
+from pandas import read_csv, to_datetime
+from core.ecan_io import write_sql
 
+server = 'SQL2012DEV01'
+database = 'Hydro'
+database = 'MetConnect'
+sites_table = 'RainFallPredictionSitesGrid'
 
+tab_dict = {'MetConnectID': 'INT', 'SiteString': 'VARCHAR(34)', 'Office': 'VARCHAR(2)', 'HydroTelPointNo': 'INT', 'TidedaID': 'INT', 'StartDate': 'DATE'}
 
+sites_csv = r'E:\ecan\shared\projects\metservice_processing\RainFallPredictionSites.csv'
 
+sites = read_csv(sites_csv)
+sites['StartDate'] = to_datetime(sites['StartDate'], dayfirst=True, format='%d/%m/%Y')
 
+write_sql(sites, server, database, sites_table, tab_dict, ['MetConnectID'])
 
 
 

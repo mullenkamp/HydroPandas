@@ -234,7 +234,7 @@ def rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resa
 #    return (site_geo3.set_index('site'))
 
 
-def write_sql(df, server, database, table, dtype_dict, primary_keys=None, create_table=True, drop_table=False):
+def write_sql(df, server, database, table, dtype_dict, primary_keys=None, foreign_keys=None, foreign_table=None, create_table=True, drop_table=False):
     """
     Function to write pandas dataframes to mssql server tables. Must have write permissions to database!
 
@@ -316,10 +316,18 @@ def write_sql(df, server, database, table, dtype_dict, primary_keys=None, create
     else:
         key_stmt = ""
 
+    #### Foreign keys
+    if isinstance(foreign_keys, str):
+        foreign_keys = [foreign_keys]
+    if isinstance(foreign_keys, list):
+        fkey_stmt = ", Foreign key (" + ", ".join(foreign_keys) + ") " + "References " + foreign_table + "(" + ", ".join(foreign_keys) + ")"
+    else:
+        fkey_stmt = ""
+
     #### Initial create table and insert statements
     d1 = [str(i) + ' ' + dtype_dict[i] for i in df.columns]
     d2 = ', '.join(d1)
-    tab_create_stmt = "create table " + table + " (" + d2 + key_stmt + ")"
+    tab_create_stmt = "create table " + table + " (" + d2 + key_stmt + fkey_stmt + ")"
     insert_stmt1 = "insert into " + table + " values "
 
     try:
