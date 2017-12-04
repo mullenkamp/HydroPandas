@@ -34,7 +34,7 @@ class ModelTools(object):
     base_mod_path = None
     _elv_calculator = None
 
-    def __init__(self, model_version_name, sdp=None, ulx=None, uly=None, layers=None, rows=None, cols=None,
+    def __init__(self, model_version_name, sdp=None, ulx=None, uly=None, rotation=0,layers=None, rows=None, cols=None,
                  grid_space=None, no_flow_calc=None, temp_file_dir=None, elv_calculator=None, base_mod_path=None,base_map_path=None):
         """
         rotation and differential grid spacing not supported
@@ -42,6 +42,7 @@ class ModelTools(object):
         :param sdp: the path to the folder containing supporting data (for ease of reference)
         :param ulx: upper left x coordinate for the model grid
         :param uly:  the upper left y coordinate for the model grid
+        :param rotation: the rotation of the grid
         :param layers: the number of layers in the model
         :param rows: the number of rows in the model
         :param cols: the number of columns in the model
@@ -52,6 +53,8 @@ class ModelTools(object):
         :param base_mod_path: the path to the base model (depreciated
         :param base_map_path: the path to a geotiff to allow underlaying it below plots
         """
+        #todo add a flopy.utils.SpatialReference object as an attriubte to this class with try/except
+        self.rotation = rotation
         self.ulx = ulx
         self.uly = uly
         self.grid_space = grid_space

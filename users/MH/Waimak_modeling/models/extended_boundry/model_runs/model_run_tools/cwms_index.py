@@ -49,5 +49,5 @@ def get_zone_array_index(zones, recalc=False):
 
 
 if __name__ == '__main__':
-    test = get_zone_array_index(['inland_waimak', 'coastal_waimak'],True)
+    test = get_zone_array_index('waimak')
     print('done')
