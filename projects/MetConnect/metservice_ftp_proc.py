@@ -6,10 +6,30 @@ Created on Fri Jul 07 09:09:11 2017
 
 Script to process the metservice netcdf files.
 """
+import sys
+from os import path, getcwd
+
+######################################
+### Change pythonpath and add init
+
+base_py_path = r'D:\Executables\PythonScripts'
+proj_name = 'MetConnect'
+py_path = path.join(base_py_path, proj_name)
+
+sys.path.append(py_path)
+
+init1 = path.join(py_path, '__init__.py')
+try:
+    fh = open(init1,'r')
+except:
+    fh = open(init1,'w')
+
+#######################################
+### Start the work
+
+from configparser import ConfigParser
 from pandas import to_datetime
 from pandas.io.sql import DatabaseError
-from configparser import ConfigParser
-from os import path, getcwd
 from core.ts.met.metservice import proc_metservice_nc, MetS_nc_to_df, metconnect_id_loc
 from core.spatial.vector import sel_sites_poly
 from core.spatial.raster import point_interp_ts
@@ -18,8 +38,8 @@ from core.ecan_io import write_sql, rd_sql
 
 ##########################################
 
-py_dir = r'E:\ecan\git\Ecan.Science.Python.Base\users\MK\met\metservice\ftp_processing'
-file1 = 'metservice_ftp_proc.py'
+#py_dir = r'E:\ecan\git\Ecan.Science.Python.Base\projects\Metconnect'
+#file1 = 'metservice_ftp_proc.py'
 
 ### Load in ini parameters
 
@@ -27,7 +47,7 @@ py_dir = path.realpath(path.join(getcwd(), path.dirname(__file__)))
 
 ini1 = ConfigParser()
 ini1.read([path.join(py_dir, path.splitext(__file__)[0] + '.ini')])
-ini1.read([path.join(py_dir, path.splitext(file1)[0] + '.ini')])
+#ini1.read([path.join(py_dir, path.splitext(file1)[0] + '.ini')])
 
 nc_dir = str(ini1.get('Input', 'nc_dir'))
 server = str(ini1.get('Output', 'server'))
