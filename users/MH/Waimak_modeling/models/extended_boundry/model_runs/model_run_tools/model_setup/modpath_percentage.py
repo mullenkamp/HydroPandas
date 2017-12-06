@@ -18,7 +18,8 @@ from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_too
 
 def create_mp_slf(particle_data, m=None, mp_ws=None, hdfile=None, budfile=None, disfile=None,
                   prsity=0.3, prsitycb=0.3, mp_name=None, direction='forward',
-                  simulation_type='pathline', capt_weak_s=False, time_pts=1):  # todo debug this
+                  simulation_type='pathline', capt_weak_s=False, time_pts=1, hnoflo=1e+30, hdry=-888.0,
+                  laytype=(1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0)):
     """
     create a modpath simulation which derives particles from point data.  assumptions are listed below
     :param particle_data: record array of particle data, Note that the label must be explicitly passed (cannot be '')
@@ -52,11 +53,15 @@ def create_mp_slf(particle_data, m=None, mp_ws=None, hdfile=None, budfile=None, 
 
         if mp_name is None:
             mp_name = '{}_mp'.format(m.name)
+    else:
+        m = flopy.modflow.Modflow()
+        flopy.modflow.ModflowDis(m,smt.layers,smt.rows,smt.cols,1)
+        flopy.modflow.ModflowUpw(m)
 
 
     mp = flopy.modpath.Modpath(modelname=mp_name,
                                exe_name="{}/models_exes/modpath.6_0/bin/mp6.exe".format(sdp),
-                               modflowmodel=None,
+                               modflowmodel=m,
                                model_ws=mp_ws,
                                listunit=6,
                                dis_file=disfile,
@@ -65,11 +70,11 @@ def create_mp_slf(particle_data, m=None, mp_ws=None, hdfile=None, budfile=None, 
 
 
     mpb = flopy.modpath.ModpathBas(mp,
-                                   hnoflo=m.bas6.hnoflo,
-                                   hdry=m.upw.hdry,
+                                   hnoflo=hnoflo, #todo sort out
+                                   hdry=hdry,
                                    bud_label=None,  # what should this be? might be the header it seems to work as None
-                                   laytyp=m.upw.laytyp.array,
-                                   ibound=m.bas6.ibound.array,
+                                   laytyp=laytype,
+                                   ibound=smt.get_no_flow(),
                                    prsity=prsity,
                                    prsityCB=prsitycb
                                    )
@@ -159,18 +164,6 @@ def create_mp_slf(particle_data, m=None, mp_ws=None, hdfile=None, budfile=None, 
 
     return mp
 
-def make_mp_particles(): #todo
-    # particles must have a label as a string otherwise it terminates
-    # mass weighted particles for each of the models for the sfr/well(races/rivers) and rch
-    #todo particle layer of 0 is the top most layer therefore it may or may not be 1 indexed for row/col
-    #todo particles may be 1 indexed... eeps
-    outdata = flopy.modpath.mpsim.StartingLocationsFile.get_empty_starting_locations_data()
-    raise NotImplementedError()
-    flopy.utils.PathlineFile.write_shapefile()
-    flopy.utils.reference.SpatialReference
-#todo the global x,y is the location in meters from the bottom left of the grid! this makes it easy to convert to GIS systems
-# might be able to handle some of the extensive data by creating lists of inputs rather than a gridded system... think about this
-
 def export_paths_to_shapefile(paths_file, shape_file, particle_ids=None):
     # generate spatial reference
     spatial_ref = flopy.utils.SpatialReference(delr=np.full((smt.rows),200), delc=np.full((smt.cols),200), lenuni=2,
@@ -189,6 +182,7 @@ if __name__ == '__main__':
     # todo play with pathline data for a couple of particles
 
     particle_data = flopy.modpath.mpsim.StartingLocationsFile.get_empty_starting_locations_data(2)
+    particle_data['particleid'] =[120,150]
     particle_data['i0'][:] = [120,150]
     particle_data['j0'][:] = [120,150]
     particle_data['particlegroup'][:] = 1
