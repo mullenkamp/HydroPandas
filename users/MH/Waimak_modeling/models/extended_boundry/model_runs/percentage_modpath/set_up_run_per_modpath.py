@@ -11,12 +11,15 @@ import flopy
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_setup.modpath_percentage import \
     create_mp_slf
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools import import_gns_model
+import os
 
 def part_group_cell_mapper():
     ibnd = smt.get_no_flow(0).flatten()
     js, iss = np.meshgrid(range(smt.cols), range(smt.rows)) # zero indexed to agree with python interpretation
     idx = ibnd==1
     out = dict(zip(range(1,idx.sum()+1),list(zip(iss.flatten()[idx],js.flatten()[idx]))))
+    return out
 
 
 
@@ -57,7 +60,7 @@ def make_mp_particles(cbc_path):
     outdata = flopy.modpath.mpsim.StartingLocationsFile.get_empty_starting_locations_data(num_parts.sum())
     outdata['label'] = 's'
     outdata['k0'] = 0  # I think that particles in flopy are 1 indexed, but 0 means active most layer
-    js, iss = np.meshgrid(range(1, smt.cols + 1), range(1, smt.rows + 1))  # todo check but I think this is 1 indexed
+    js, iss = np.meshgrid(range(1, smt.cols + 1), range(1, smt.rows + 1))  # this is passed to the file as 1 indexed
 
     ibnd = smt.get_no_flow(0).flatten()
     idx = ibnd == 1
@@ -79,9 +82,21 @@ def make_mp_particles(cbc_path):
         start_idx = end_idx
     return outdata
 
-def run_modflow_model(model_id): # todo probably ask brioch/run pest control file
-    # set up something to run the model id (or re-run all models with hdry)
-    raise NotImplementedError
+def get_cbc(model_id, base_dir): # todo probably ask brioch/run pest control file
+    cbc_path = os.path.join(base_dir,'{}_for_modpath'.format(model_id),'{}_for_modpath.cbc'.format(model_id)) #todo check
+
+    if os.path.exists(cbc_path):
+        return cbc_path
+
+    m = import_gns_model(model_id,'for_modpath',os.path.join(base_dir,'for_modpath'),False)
+    m.write_name_file()
+    m.upw.iphdry = 0  # hdry is -888.0
+
+    m.write_input()
+    m.run_model()
+
+    return cbc_path
+
 
 def setup_run_modpath(cbc_path, mp_ws, mp_name):
     particles = make_mp_particles(cbc_path)

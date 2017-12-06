@@ -10,6 +10,8 @@ import pandas as pd
 from set_up_run_per_modpath import part_group_cell_mapper
 import netCDF4 as nc
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
+import itertools
+
 
 # particle id moves to 0 indexed
 # particle id links the endpoint file and path file
@@ -42,8 +44,10 @@ def open_path_file_as_df(path):
     data = pd.read_table(path, skiprows=3, names=names, delim_whitespace=True)
     return data
 
+
 def _get_group_num(x):
     return x.iloc[0]
+
 
 def extract_data(path):
     """
@@ -52,52 +56,121 @@ def extract_data(path):
     :return:
     """
     # for now assume that I can hold the full thing in memory, but watch
-    data = open_path_file_as_df(path).loc[:,['Particle_ID', 'Particle_Group', 'Time_Point_Index',
-                                             'Layer', 'Row', 'Column']]
-    data['ref_cell_id'] = ['{:02d}_{:03d}_{:03d}'.format(k,i,j) for k,i,j in data.loc[:,['Layer', 'Row', 'Column']].itertuples(False,None)]
+    data = open_path_file_as_df(path).loc[:, ['Particle_ID', 'Particle_Group', 'Time_Point_Index',
+                                              'Layer', 'Row', 'Column']]
+    # make a ref cell id and make sure it is zero indexed
+    data['ref_cell_id'] = ['{:02d}_{:03d}_{:03d}'.format(k - 1, i - 1, j - 1) for k, i, j in
+                           data.loc[:, ['Layer', 'Row', 'Column']].itertuples(False, None)]
     # now for some fancy groupby operations
-    outdata = data.groupby(['ref_cell_id','Particle_ID']).aggregate({'Particle_Group': _get_group_num}).reset_index()
-    outdata = outdata.groupby(['ref_cell_id','Particle_Group']).count() #todo check this too...
+    outdata = data.groupby(['ref_cell_id', 'Particle_ID']).aggregate({'Particle_Group': _get_group_num}).reset_index()
+    outdata = outdata.groupby(['ref_cell_id', 'Particle_Group']).count().astype(float)  # todo check this too...
 
     return outdata
 
 
-
-def save_emulator(path, outpath): #todo
+def save_emulator(path, outpath):  # todo check
     # save the data extracted above to an emulator netcdf
     # keep the group id to locate cells, but make a linker (e.g. pass the dictionary to the dataframe)
-    data = extract_data(path)
     mapper = part_group_cell_mapper()
+    data = extract_data(path)
+    temp = data.reset_index()
+    comps_dim = temp.groupby('ref_cell_id').count()['Particle_Group'].max()
+    # turn data to percentages
+    data['Particle_ID'] *= 1/data['Particle_ID'].sum()
+
 
     # initalise the dataset
-    nc_data = nc.Dataset(outpath, 'w')
+    nc_file = nc.Dataset(outpath, 'w')
 
     # dimensions
-    nc_data.createDimension('layer', smt.layers)
-    nc_data.createDimension('row', smt.rows)
-    nc_data.createDimension('col',smt.cols)
-    nc_data.createDimension('components') # unbounded
-    nc_data.createDimension('comp_id', len(mapper)) # to store the cell to cell mapper
+    nc_file.createDimension('layer', smt.layers)
+    nc_file.createDimension('row', smt.rows)
+    nc_file.createDimension('col', smt.cols)
+    nc_file.createDimension('component', comps_dim)
+    nc_file.createDimension('comp_id', len(mapper))  # to store the cell to cell mapper
 
     # variables (metadata)
-    # layer
-    nc_data.createVariable('layer',)
-    # row
-    # col
+    layer = nc_file.createVariable('layer', 'i4', ('layer',), fill_value=-9)
+    layer.setncatts({'units': 'none',
+                     'long_name': 'model layer',
+                     'comments': '0 indexed',
+                     'missing_value': -9})
+    layer[:] = range(smt.layers)
+
+    row = nc_file.createVariable('row', 'i4', ('row',), fill_value=-9)
+    row.setncatts({'units': 'none',
+                   'long_name': 'model row',
+                   'comments': '0 indexed',
+                   'missing_value': -9})
+    row[:] = range(smt.rows)
+
+    col = nc_file.createVariable('col', 'i4', ('col',), fill_value=-9)
+    col.setncatts({'units': 'none',
+                   'long_name': 'model column',
+                   'comments': '0 indexed',
+                   'missing_value': -9})
+    col[:] = range(smt.cols)
+
     # orgid for mapper
+    keys, values = mapper.keys(), mapper.values()
+    orgid = nc_file.createVariable('orgid', 'i4', ('comp_id',), fill_value=-9)
+    orgid.setncatts({'units': 'none',
+                     'long_name': 'origin ID',
+                     'missing_value': -9})
+    orgid[:] = keys
     # org layer
     # org row
     # org col
+    temp = mapper.values()
+    orglayer = nc_file.createVariable('org_layer', 'i1', ('comp_id',), fill_value=-9)
+    orglayer.setncatts({'units': 'none',
+                        'long_name': 'origin model layer',
+                        'comments': '0 indexed',
+                        'missing_value': -9})
+    orglayer[:] = 0  # all from top layer
 
-    # actual data #todo how does netcdf handle expanding dimensions when filling data in parts
+    orgrow = nc_file.createVariable('org_row', 'i1', ('comp_id',), fill_value=-9)
+    orgrow.setncatts({'units': 'none',
+                      'long_name': 'origin model row',
+                      'comments': '0 indexed',
+                      'missing_value': -9})
+    orgrow[:] = [e[0] for e in values]
+
+    orgcol = nc_file.createVariable('org_col', 'i1', ('comp_id',), fill_value=-9)
+    orgcol.setncatts({'units': 'none',
+                      'long_name': 'origin model column',
+                      'comments': '0 indexed',
+                      'missing_value': -9})
+    t = [e[1] for e in values]
+    orgcol[:] = t
+
+    # actual data
     # component id
-    # component percentage
+    component = nc_file.createVariable('component', 'i4', ('layer', 'row', 'col', 'component'), fill_value=-1)
+    component.setncatts({'units': 'none',
+                         'long_name': 'component ids for that cell',
+                         'comments': 'mapped to cell location from orgid,orglayer, etc.',
+                         'missing_value': -1})
+    fraction = nc_file.createVariable('fraction', 'i4', ('layer', 'row', 'col', 'component'), fill_value=-1)
+    fraction.setncatts({'units': 'none',
+                        'long_name': 'component fraction for that cell',
+                        'comments': 'mapped to cell location from component id and orgid,orglayer, etc.',
+                        'missing_value': -1})
 
-
-
-
+    ibnd = smt.get_no_flow()
+    # add data #todo speed up? ask mike
+    all_keys = data.index.levels[0]
+    for layer, row, col in itertools.product(range(smt.layers), range(smt.rows), range(smt.cols)):
+        key = '{:02d}_{:03d}_{:03d}'.format(layer, row, col)
+        if key not in all_keys:  # no data here
+            continue
+        temp_data = data.loc[key]
+        end = len(temp_data.index)
+        # the 0:end is necessary as this forces the netcdf to expand the unbounded dimension
+        component[layer,row,col,0:end] = temp_data.index.values
+        fraction[layer,row,col,0:end] = temp_data[u'Particle_ID'].values
 
 
 if __name__ == '__main__':
-    data = extract_data(r"C:\Users\MattH\Desktop\NsmcBase_modpath_tester\NsmcBase_modpath_tester_mp.mppth")
-    data.to_csv(r"C:\Users\MattH\Desktop\NsmcBase_modpath_tester\easy_read_pathline.csv")
+    save_emulator(r"C:\Users\MattH\Desktop\NsmcBase_modpath_tester\NsmcBase_modpath_tester_mp.mppth",
+                  r"C:\Users\MattH\Desktop\NsmcBase_modpath_tester\test_emulator.csv")
