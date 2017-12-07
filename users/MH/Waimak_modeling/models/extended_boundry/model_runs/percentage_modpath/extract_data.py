@@ -11,6 +11,8 @@ from set_up_run_per_modpath import part_group_cell_mapper
 import netCDF4 as nc
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import itertools
+import pickle
+import numpy as np
 
 
 # particle id moves to 0 indexed
@@ -170,7 +172,72 @@ def save_emulator(path, outpath):  # todo check
         component[layer,row,col,0:end] = temp_data.index.values
         fraction[layer,row,col,0:end] = temp_data[u'Particle_ID'].values
 
+def _dump_extract_pickle(extracted_data, outpath): #todo write and test
+    """
+    wrapper to dump extracted data to pickle (handle the row,col string)
+    :param extracted_data:
+    :return:
+    """
+    extracted_data = extracted_data.reset_index()
+    lrc = np.array([[int(s) for s in e.split('_')] for e in extracted_data['ref_cell_id']])
+    extracted_data.loc[:,'ref_layer'] = lrc[:,0]
+    extracted_data.loc[:,'ref_row'] = lrc [:,1]
+    extracted_data.loc[:,'ref_col'] = lrc[:,2]
+    extracted_data.drop('ref_cell_id', axis=1, inplace=True)
+    pickle.dump(extracted_data,open(outpath,'w'),protocol=2) # if move to python 3 this should be the default for the best preformance
+
+
+def _load_extract_pickle(path): #todo write and test
+    """
+    wrapper to read data dumped by _dump_extract_pickle (handle the row/col string)
+    :param path:
+    :return:
+    """
+    data = pickle.load(open(path))
+    data.loc[:,'ref_cell_id'] = ['{:02d}_{:03d}_{:03d}'.format(l, r, c) for l, r, c in data[['ref_layer','ref_row','ref_col']].itertuples(False,None)]
+    data.drop(['ref_layer','ref_row','ref_col'], axis=1, inplace=True)
+    return data
 
 if __name__ == '__main__':
-    save_emulator(r"C:\Users\MattH\Desktop\NsmcBase_modpath_tester\NsmcBase_modpath_tester_mp.mppth",
-                  r"C:\Users\MattH\Desktop\NsmcBase_modpath_tester\test_emulator.csv")
+    import time
+    t = time.time()
+    test = extract_data("D:\mh_waimak_models\modpath_emulator\NsmcBase_first_try.mppth")
+    print('took {} min to extract data'.format((time.time()-t)/60))
+
+    print('data size is {} gb'.format(test.memory_usage().sum()/1e9))
+    t = time.time()
+
+
+    #todo it may be quicker to break apart the string into ints to store. all numeric data is very fast to dump with pickle pickle(..., protocol=2)
+    test.to_csv(r"D:\mh_waimak_models\modpath_emulator\first_try.csv")
+    print('took {} min to write data to csv'.format((time.time()-t)/60))
+    t = time.time()
+
+    test.to_hdf(r"D:\mh_waimak_models\modpath_emulator\first_try.hdf")
+    print('took {} min to write data to hdf'.format((time.time()-t)/60))
+    t = time.time()
+
+    pickle.dump(test,open(r"D:\mh_waimak_models\modpath_emulator\first_try.p",'w'))
+    print('took {} min to write data to pickle'.format((time.time()-t)/60))
+    t = time.time()
+
+
+    temp = pd.read_hdf(r"D:\mh_waimak_models\modpath_emulator\first_try.hdf")
+    print('took {} min to read data from hdf'.format((time.time()-t)/60))
+    t = time.time()
+
+    temp = pd.read_csv(r"D:\mh_waimak_models\modpath_emulator\first_try.csv")
+    print('took {} min to read data from csv'.format((time.time()-t)/60))
+    t = time.time()
+
+    temp = pickle.load(open(r"D:\mh_waimak_models\modpath_emulator\first_try.p"))
+    print('took {} min to read data from pickle'.format((time.time()-t)/60))
+    t = time.time()
+
+    _dump_extract_pickle(test,open(r"D:\mh_waimak_models\modpath_emulator\first_try.np",'w'))
+    print('took {} min to write data to numeric pickle'.format((time.time()-t)/60))
+    t = time.time()
+
+    temp = _load_extract_pickle(r"D:\mh_waimak_models\modpath_emulator\first_try.np")
+    print('took {} min to read data from numeric pickle'.format((time.time()-t)/60))
+    t = time.time()
