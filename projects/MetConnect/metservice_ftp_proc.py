@@ -38,8 +38,11 @@ from core.ecan_io import write_sql, rd_sql
 
 ##########################################
 
-py_dir = r'E:\ecan\git\Ecan.Science.Python.Base\projects\Metconnect'
-file1 = 'metservice_ftp_proc.py'
+## Testing parameters - comment out once finished!!!
+#nc_dir = r'E:\ecan\shared\projects\metservice_processing\test\netcdf_combined'
+#server = 'SQL2012DEV01'
+#data_table = 'RainFallPredictionsGrid'
+#nc_output_dir = r'E:\ecan\shared\projects\metservice_processing\test'
 
 ### Load in ini parameters
 
@@ -47,20 +50,16 @@ py_dir = path.realpath(path.join(getcwd(), path.dirname(__file__)))
 
 ini1 = ConfigParser()
 ini1.read([path.join(py_dir, path.splitext(__file__)[0] + '.ini')])
-ini1.read([path.join(py_dir, path.splitext(file1)[0] + '.ini')])
 
 nc_dir = str(ini1.get('Input', 'nc_dir'))
-gis_server = str(ini1.get('Input', 'gis_server'))
-server = str(ini1.get('Output', 'server'))
-database = str(ini1.get('Output', 'database'))
+server = str(ini1.get('Input', 'server'))
 data_table = str(ini1.get('Output', 'data_table'))
-nc_out_dir = str(ini1.get('Output', 'nc_output_dir'))
+nc_output_dir = str(ini1.get('Output', 'nc_output_dir'))
 log_path = str(ini1.get('Output', 'log_path'))
 
 ## Processing parameters
 
-mc_server = database
-mc_db = 'MetConnect'
+database = 'MetConnect'
 mc_site_table = 'RainFallPredictionSitesGrid'
 mc_cols = ['MetConnectID', 'SiteString', 'TidedaID']
 
@@ -73,6 +72,7 @@ buffer_dis = 16000
 digits = 2
 
 ## Output parameters
+create_table = False
 
 rename_dict = {'site': 'MetConnectID', 'model_date': 'PredictionDateTime', 'time': 'ReadingDateTime', 'precip': 'HourlyRainfall'}
 
@@ -82,7 +82,7 @@ dtype_dict = {'MetConnectID': 'INT', 'PredictionDateTime': 'DATETIME', 'ReadingD
 ### Read in site locations
 print('Read in site locations')
 
-points = metconnect_id_loc(mc_server=mc_server, mc_db=mc_db, mc_site_table=mc_site_table, mc_cols=mc_cols, gis_server=gis_server)
+points = metconnect_id_loc(mc_server=server, mc_db=database, mc_site_table=mc_site_table, mc_cols=mc_cols, gis_server=server)
 
 ########################################
 ### Check the model of the day! And see if we already have a record.
@@ -96,29 +96,20 @@ nc1 = rd_dir(nc_dir, 'nc')
 nc_model = [i for i in nc1 if model1 in i][-1]
 model_date = to_datetime(nc_model[-16:-6], format='%Y%m%d%H')
 
-try:
-    last_predict_date = rd_sql(server, database, stmt = str("select max(PredictionDateTime) from " + data_table)).loc[0][0]
+last_predict_date = rd_sql(server, database, stmt = str("select max(PredictionDateTime) from " + data_table)).loc[0][0]
 
-    if model_date == last_predict_date:
-        print('Already have the data for this forecast...closing...')
-        logging(log_path, str(last_predict_date) + ' was the last model date in the database table. It is the lastest date on the ftp site. Nothing was updated.')
-        raise SystemExit
-    else:
-        print("We don't have the newest data in the database table...processing data now...")
-
-    create_table = False
-
-except DatabaseError:
-    last_predict_date = None
-    create_table = True
-    pass
+if model_date == last_predict_date:
+    logging(log_path, str(last_predict_date) + ' was the last model date in the database table. It is the lastest date on the ftp site. Nothing was updated.')
+    sys.exit('Already have the data for this forecast...closing...')
+else:
+    print("We don't have the newest data in the database table...processing data now...")
 
 
 #########################################
 ### Process data
 
 ## preprocess the nc file to save it as a proper nc file
-new_nc = proc_metservice_nc(path.join(nc_dir, nc_model), export_dir=nc_out_dir)
+new_nc = proc_metservice_nc(path.join(nc_dir, nc_model), export_dir=nc_output_dir)
 
 ## Extract the data from the new nc file
 precip, sites, start_date = MetS_nc_to_df(new_nc)
