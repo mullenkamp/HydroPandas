@@ -185,7 +185,7 @@ def MetS_nc_to_df(nc, lat_coord='y', lon_coord='x', time_coord='time', precip_va
     return(precip, sites, start_date)
 
 
-def metconnect_id_loc(sites=None, mc_server='SQL2012PROD03', mc_db='MetConnect', mc_site_table='RainFallPredictionSites', mc_cols=['MetConnectID', 'SiteString', 'TidedaID']):
+def metconnect_id_loc(sites=None, mc_server='SQL2012PROD03', mc_db='MetConnect', mc_site_table='RainFallPredictionSites', mc_cols=['MetConnectID', 'SiteString', 'TidedaID'], gis_server='SQL2012PROD05'):
     """
     Function to extract the metconnect id table with geometry location.
 
@@ -200,7 +200,7 @@ def metconnect_id_loc(sites=None, mc_server='SQL2012PROD03', mc_db='MetConnect',
     """
 
     ### Input parameters
-    hy_server = 'SQL2012PROD05'
+#    hy_server = 'SQL2012PROD05'
 #    hy_db = 'Hydrotel'
 #    pts_table = 'Points'
 #    objs_table = 'Objects'
@@ -226,7 +226,7 @@ def metconnect_id_loc(sites=None, mc_server='SQL2012PROD03', mc_db='MetConnect',
 #    hy_objs = rd_sql(hy_server, hy_db, objs_table, objs_cols, 'Object', hy_pts.Object.tolist())
 #    hy_sites = rd_sql(hy_server, hy_db, sites_table, sites_cols, 'Site', hy_objs.Site.tolist())
 #    hy_sites['ExtSysId'] = to_numeric(hy_sites['ExtSysId'])
-    hy_loc = rd_sql(hy_server, loc_db, loc_table, loc_cols, 'SiteNumber', mc2.ExtSysId.tolist())
+    hy_loc = rd_sql(gis_server, loc_db, loc_table, loc_cols, 'SiteNumber', mc2.ExtSysId.tolist())
     hy_loc.columns = ['ExtSysId', 'x', 'y']
 
 #    t1 = merge(mc2, hy_pts, on='Point')

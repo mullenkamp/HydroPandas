@@ -50,6 +50,7 @@ ini1.read([path.join(py_dir, path.splitext(__file__)[0] + '.ini')])
 #ini1.read([path.join(py_dir, path.splitext(file1)[0] + '.ini')])
 
 nc_dir = str(ini1.get('Input', 'nc_dir'))
+gis_server = str(ini1.get('Input', 'gis_server'))
 server = str(ini1.get('Output', 'server'))
 database = str(ini1.get('Output', 'database'))
 data_table = str(ini1.get('Output', 'data_table'))
@@ -58,7 +59,7 @@ log_path = str(ini1.get('Output', 'log_path'))
 
 ## Processing parameters
 
-mc_server = 'SQL2012DEV01'
+mc_server = database
 mc_db = 'MetConnect'
 mc_site_table = 'RainFallPredictionSitesGrid'
 mc_cols = ['MetConnectID', 'SiteString', 'TidedaID']
@@ -81,7 +82,7 @@ dtype_dict = {'MetConnectID': 'INT', 'PredictionDateTime': 'DATETIME', 'ReadingD
 ### Read in site locations
 print('Read in site locations')
 
-points = metconnect_id_loc(mc_server=mc_server, mc_db=mc_db, mc_site_table=mc_site_table, mc_cols=mc_cols)
+points = metconnect_id_loc(mc_server=mc_server, mc_db=mc_db, mc_site_table=mc_site_table, mc_cols=mc_cols, gis_server=gis_server)
 
 ########################################
 ### Check the model of the day! And see if we already have a record.
