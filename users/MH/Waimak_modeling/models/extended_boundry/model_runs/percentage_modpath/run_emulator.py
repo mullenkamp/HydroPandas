@@ -9,3 +9,4 @@ from core import env
 
 # make a function to run the full emulator and to run only certain cells given a load layer.  also function to run as a
 # stocastic simulation
+# try something around a replace dictionary?  or is it better to handle as an array?  think, particularly with a stocastic simulation

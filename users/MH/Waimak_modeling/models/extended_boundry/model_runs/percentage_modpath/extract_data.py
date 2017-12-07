@@ -58,11 +58,25 @@ def extract_data(path):
     :return:
     """
     # for now assume that I can hold the full thing in memory, but watch
-    data = open_path_file_as_df(path).loc[:, ['Particle_ID', 'Particle_Group', 'Time_Point_Index',
-                                              'Layer', 'Row', 'Column']] #todo fix this so it drops in place
+    drop_names = [
+     'Time_Point_Index',
+     'Cumulative_Time_Step',
+     'Tracking_Time',
+     'Global_X',
+     'Global_Y',
+     'Global_Z',
+     'Grid',
+     'Local_X',
+     'Local_Y',
+     'Local_Z',
+     'Line_Segment_Index',
+     ]
+    data = open_path_file_as_df(path)
+    data.drop(drop_names, 1, inplace=True)
     # make a ref cell id and make sure it is zero indexed
     data['ref_cell_id'] = ['{:02d}_{:03d}_{:03d}'.format(k - 1, i - 1, j - 1) for k, i, j in
-                           data.loc[:, ['Layer', 'Row', 'Column']].itertuples(False, None)] #todo drop all of the other components in place
+                           data.loc[:, ['Layer', 'Row', 'Column']].itertuples(False, None)]
+    data.drop(['Layer', 'Row', 'Column'],axis=1,inplace=True)
     # now for some fancy groupby operations
     outdata = data.groupby(['ref_cell_id', 'Particle_ID']).aggregate({'Particle_Group': _get_group_num}).reset_index()
     outdata = outdata.groupby(['ref_cell_id', 'Particle_Group']).count().astype(float)  # todo check this too...
@@ -70,7 +84,7 @@ def extract_data(path):
     return outdata
 
 
-def save_emulator(path, outpath):  # todo check
+def save_emulator(path, outpath):  # todo check this should maybe be saved as something else it's really slow and storage intensive
     # save the data extracted above to an emulator netcdf
     # keep the group id to locate cells, but make a linker (e.g. pass the dictionary to the dataframe)
     mapper = part_group_cell_mapper()
@@ -160,7 +174,9 @@ def save_emulator(path, outpath):  # todo check
                         'missing_value': -1})
 
     ibnd = smt.get_no_flow()
-    # add data #todo speed up? ask mike
+    # add data #todo speed up? ask mike quite key if I go for a different setup of saving
+    # perhaps a groupby ect
+    # that said t
     all_keys = data.index.levels[0]
     for layer, row, col in itertools.product(range(smt.layers), range(smt.rows), range(smt.cols)):
         key = '{:02d}_{:03d}_{:03d}'.format(layer, row, col)
