@@ -14,14 +14,11 @@ import os
 
 if __name__ == '__main__':
     t = time()
-    mp_ws = ''  # todo
+    mp_ws = r"D:\mh_waimak_models\modpath_emulator"
     if not os.path.exists(mp_ws):
         os.makedirs(mp_ws)
     cbc = get_cbc('NsmcBase', mp_ws)
     print('{} min to make cbc'.format((time() - t) / 60))
-    t = time()
-    particles = make_mp_particles(cbc)
-    print('{} min to make particles'.format((time() - t) / 60))
     t = time()
     setup_run_modpath(cbc, mp_ws, 'NsmcBase_first_try')
     print('{} min to setup and run modpath'.format((time() - t) / 60))

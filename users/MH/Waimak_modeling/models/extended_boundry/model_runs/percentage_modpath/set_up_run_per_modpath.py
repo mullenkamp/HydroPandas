@@ -63,7 +63,7 @@ def make_mp_particles(cbc_path):
     js, iss = np.meshgrid(range(1, smt.cols + 1), range(1, smt.rows + 1))  # this is passed to the file as 1 indexed
 
     ibnd = smt.get_no_flow(0).flatten()
-    idx = ibnd == 1
+    idx = bd_type.flatten() != -1
     group_dict = part_group_cell_mapper()
     start_idx = 0
     print('generating particles')
@@ -100,11 +100,13 @@ def get_cbc(model_id, base_dir): # todo probably ask brioch/run pest control fil
 
 def setup_run_modpath(cbc_path, mp_ws, mp_name):
     particles = make_mp_particles(cbc_path)
-    mp = create_mp_slf(particle_data=particles, mp_ws=mp_ws, hdfile=cbc_path.replace('cbc','hds'), budfile=cbc_path,
+    temp_particles = flopy.modpath.mpsim.StartingLocationsFile.get_empty_starting_locations_data(0)
+    mp = create_mp_slf(particle_data=temp_particles, mp_ws=mp_ws, hdfile=cbc_path.replace('cbc','hds'), budfile=cbc_path,
                        disfile=cbc_path.replace('cbc', 'dis'), mp_name=mp_name)
     print('writing model {}'.format(mp_name))
     mp.write_input()
-    mp.write_name_file()
+    mp.write_name_file() #todo faster way to write the locations file?
+    #todo write the particles to the loc file with pandas?
     print('running model {}'.format(mp_name))
     mp.run_model()
 

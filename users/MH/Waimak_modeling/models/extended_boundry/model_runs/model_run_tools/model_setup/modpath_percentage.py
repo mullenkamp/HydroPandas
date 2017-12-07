@@ -54,7 +54,7 @@ def create_mp_slf(particle_data, m=None, mp_ws=None, hdfile=None, budfile=None, 
         if mp_name is None:
             mp_name = '{}_mp'.format(m.name)
     else:
-        m = flopy.modflow.Modflow()
+        m = flopy.modflow.Modflow(version='mfnwt')
         flopy.modflow.ModflowDis(m,smt.layers,smt.rows,smt.cols,1)
         flopy.modflow.ModflowUpw(m)
 

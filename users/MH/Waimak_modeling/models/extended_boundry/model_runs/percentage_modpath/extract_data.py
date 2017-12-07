@@ -57,10 +57,10 @@ def extract_data(path):
     """
     # for now assume that I can hold the full thing in memory, but watch
     data = open_path_file_as_df(path).loc[:, ['Particle_ID', 'Particle_Group', 'Time_Point_Index',
-                                              'Layer', 'Row', 'Column']]
+                                              'Layer', 'Row', 'Column']] #todo fix this so it drops in place
     # make a ref cell id and make sure it is zero indexed
     data['ref_cell_id'] = ['{:02d}_{:03d}_{:03d}'.format(k - 1, i - 1, j - 1) for k, i, j in
-                           data.loc[:, ['Layer', 'Row', 'Column']].itertuples(False, None)]
+                           data.loc[:, ['Layer', 'Row', 'Column']].itertuples(False, None)] #todo drop all of the other components in place
     # now for some fancy groupby operations
     outdata = data.groupby(['ref_cell_id', 'Particle_ID']).aggregate({'Particle_Group': _get_group_num}).reset_index()
     outdata = outdata.groupby(['ref_cell_id', 'Particle_Group']).count().astype(float)  # todo check this too...
