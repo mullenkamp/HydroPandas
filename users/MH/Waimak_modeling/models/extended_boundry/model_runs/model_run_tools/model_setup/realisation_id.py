@@ -157,7 +157,7 @@ def get_model_name_path(model_id):
         # optimisation revieved on 25/10/2017 which is the previous iteration to NsmcBase.  NsmcBase was quite unstable,
         # which is why we are considering the previous optimisation
         'NsmcBaseB': "{}/from_gns/NsmcBaseB/AW20171024_2_i1_optver/i1/mf_aw_ex.nam".format(smt.sdp)
-    }
+    } #todo implement the nsmc realisations in here some how
     if '_' in model_id:
         raise ValueError('_ in model id: {}, model_id cannot include an "_" as this is a splitting character'.format(model_id))
     if model_id not in model_dict.keys():

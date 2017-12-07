@@ -11,12 +11,16 @@ import flopy
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_setup.modpath_percentage import \
     create_mp_slf
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools import import_gns_model
+import os
+import pandas as pd
 
 def part_group_cell_mapper():
     ibnd = smt.get_no_flow(0).flatten()
     js, iss = np.meshgrid(range(smt.cols), range(smt.rows)) # zero indexed to agree with python interpretation
     idx = ibnd==1
     out = dict(zip(range(1,idx.sum()+1),list(zip(iss.flatten()[idx],js.flatten()[idx]))))
+    return out
 
 
 
@@ -43,7 +47,7 @@ def make_mp_particles(cbc_path):
     flow = rch + well + sfr
     flow[smt.get_no_flow(0) != 1] = 0
 
-    # generate particles (minimum of 1 per cell) #todo how many particles are reasonable? I could double this
+    # generate particles (minimum of 1 per cell) #todo how many particles are reasonable? right now 1 per cell
     num_parts = np.round(flow / flow[flow > 0].min()).astype(int)
 
     # identify boundary condition types
@@ -57,10 +61,10 @@ def make_mp_particles(cbc_path):
     outdata = flopy.modpath.mpsim.StartingLocationsFile.get_empty_starting_locations_data(num_parts.sum())
     outdata['label'] = 's'
     outdata['k0'] = 0  # I think that particles in flopy are 1 indexed, but 0 means active most layer
-    js, iss = np.meshgrid(range(1, smt.cols + 1), range(1, smt.rows + 1))  # todo check but I think this is 1 indexed
+    js, iss = np.meshgrid(range(1, smt.cols + 1), range(1, smt.rows + 1))  # this is passed to the file as 1 indexed
 
     ibnd = smt.get_no_flow(0).flatten()
-    idx = ibnd == 1
+    idx = bd_type.flatten() != -1
     group_dict = part_group_cell_mapper()
     start_idx = 0
     print('generating particles')
@@ -79,17 +83,51 @@ def make_mp_particles(cbc_path):
         start_idx = end_idx
     return outdata
 
-def run_modflow_model(model_id): # todo probably ask brioch/run pest control file
-    # set up something to run the model id (or re-run all models with hdry)
-    raise NotImplementedError
+def get_cbc(model_id, base_dir): # todo implement nsmcrealisations in import_gns_model
+    cbc_path = os.path.join(base_dir,'{}_for_modpath'.format(model_id),'{}_for_modpath.cbc'.format(model_id))
+
+    if os.path.exists(cbc_path):
+        return cbc_path
+
+    m = import_gns_model(model_id,'for_modpath',os.path.join(base_dir,'for_modpath'),False)
+    m.write_name_file()
+    m.upw.iphdry = 0  # hdry is -888.0
+
+    m.write_input()
+    m.run_model()
+
+    return cbc_path
+
 
 def setup_run_modpath(cbc_path, mp_ws, mp_name):
-    particles = make_mp_particles(cbc_path)
-    mp = create_mp_slf(particle_data=particles, mp_ws=mp_ws, hdfile=cbc_path.replace('cbc','hds'), budfile=cbc_path,
-                       disfile=cbc_path.replace('cbc', 'dis'), mp_name=mp_name)
+    particles = pd.DataFrame(make_mp_particles(cbc_path))
+    temp_particles = flopy.modpath.mpsim.StartingLocationsFile.get_empty_starting_locations_data(0)
+    mp = create_mp_slf(particle_data=temp_particles, mp_ws=mp_ws, hdfile=cbc_path.replace('cbc','hds'),
+                       budfile=cbc_path, disfile=cbc_path.replace('cbc', 'dis'), mp_name=mp_name)
     print('writing model {}'.format(mp_name))
     mp.write_input()
     mp.write_name_file()
+
+    # write loc file with pandas to save time
+    # simple speed test writing particles with flopy and running model took 30 min, writing with pandas took __min
+    loc_path = mp.get_package('loc').fn_path
+    loc_package = mp.get_package('loc')
+    # write groups
+    groups = particles[['particlegroup','groupname']].groupby('particlegroup').count().reset_index().rename(columns={'groupname':'count'})
+    groups.loc[:,'groupname'] = groups.loc[:,'particlegroup'].replace(dict(particles[['particlegroup','groupname']].itertuples(False,None)))
+    group_count = len(groups.index)
+    groups = pd.Series(groups[['groupname','count']].astype(str).values.flatten())
+    with open(loc_path,'w') as f:
+        f.write('{}\n'.format(loc_package.heading))
+        f.write('{:d}\n'.format(loc_package.input_style))
+        f.write('{}\n'.format(group_count))
+
+    groups.to_csv(loc_path,False,sep=' ',header=False, mode='a')
+
+    # write particle data
+    particles.drop('groupname', 1, inplace=True)
+    particles.to_csv(loc_path,sep=' ',header=False,index=False,mode='a')
+
     print('running model {}'.format(mp_name))
     mp.run_model()
 
@@ -97,6 +135,6 @@ def setup_run_modpath(cbc_path, mp_ws, mp_name):
 if __name__ == '__main__':
     import time
     t = time.time()
-    test = make_mp_particles(r"C:\Users\MattH\Desktop\NsmcBase_simple_modpath\NsmcBase_modpath_base.cbc")
+    test = setup_run_modpath(r"C:\Users\MattH\Desktop\NsmcBase_simple_modpath\NsmcBase_modpath_base.cbc", r"C:\Users\MattH\Desktop\test_write\part2",'test' )
     print(time.time()-t)
     print('done')
