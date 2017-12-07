@@ -6,19 +6,39 @@ Created on Fri Jul 07 09:09:11 2017
 
 Script to process the metservice netcdf files.
 """
+import sys
+from os import path, getcwd
+
+######################################
+### Change pythonpath and add init
+
+base_py_path = r'D:\Executables\PythonScripts'
+proj_name = 'MetConnect'
+py_path = path.join(base_py_path, proj_name)
+
+sys.path.append(py_path)
+
+init1 = path.join(py_path, '__init__.py')
+try:
+    fh = open(init1,'r')
+except:
+    fh = open(init1,'w')
+
+#######################################
+### Start the work
+
+from configparser import ConfigParser
 from pandas import to_datetime
 from pandas.io.sql import DatabaseError
-from configparser import ConfigParser
-from os import path, getcwd
 from core.ts.met.metservice import proc_metservice_nc, MetS_nc_to_df, metconnect_id_loc
 from core.spatial.vector import sel_sites_poly
 from core.spatial.raster import point_interp_ts
-from core.misc.misc import rd_dir, logging
+from core.misc import rd_dir, logging
 from core.ecan_io import write_sql, rd_sql
 
 ##########################################
 
-py_dir = r'E:\ecan\git\Ecan.Science.Python.Base\users\MK\met\metservice\ftp_processing'
+py_dir = r'E:\ecan\git\Ecan.Science.Python.Base\projects\Metconnect'
 file1 = 'metservice_ftp_proc.py'
 
 ### Load in ini parameters
@@ -30,6 +50,7 @@ ini1.read([path.join(py_dir, path.splitext(__file__)[0] + '.ini')])
 ini1.read([path.join(py_dir, path.splitext(file1)[0] + '.ini')])
 
 nc_dir = str(ini1.get('Input', 'nc_dir'))
+gis_server = str(ini1.get('Input', 'gis_server'))
 server = str(ini1.get('Output', 'server'))
 database = str(ini1.get('Output', 'database'))
 data_table = str(ini1.get('Output', 'data_table'))
@@ -38,7 +59,7 @@ log_path = str(ini1.get('Output', 'log_path'))
 
 ## Processing parameters
 
-mc_server = 'SQL2012DEV01'
+mc_server = database
 mc_db = 'MetConnect'
 mc_site_table = 'RainFallPredictionSitesGrid'
 mc_cols = ['MetConnectID', 'SiteString', 'TidedaID']
@@ -61,7 +82,7 @@ dtype_dict = {'MetConnectID': 'INT', 'PredictionDateTime': 'DATETIME', 'ReadingD
 ### Read in site locations
 print('Read in site locations')
 
-points = metconnect_id_loc(mc_server=mc_server, mc_db=mc_db, mc_site_table=mc_site_table, mc_cols=mc_cols)
+points = metconnect_id_loc(mc_server=mc_server, mc_db=mc_db, mc_site_table=mc_site_table, mc_cols=mc_cols, gis_server=gis_server)
 
 ########################################
 ### Check the model of the day! And see if we already have a record.

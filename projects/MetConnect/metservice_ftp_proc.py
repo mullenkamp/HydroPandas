@@ -38,8 +38,8 @@ from core.ecan_io import write_sql, rd_sql
 
 ##########################################
 
-#py_dir = r'E:\ecan\git\Ecan.Science.Python.Base\projects\Metconnect'
-#file1 = 'metservice_ftp_proc.py'
+py_dir = r'E:\ecan\git\Ecan.Science.Python.Base\projects\Metconnect'
+file1 = 'metservice_ftp_proc.py'
 
 ### Load in ini parameters
 
@@ -47,7 +47,7 @@ py_dir = path.realpath(path.join(getcwd(), path.dirname(__file__)))
 
 ini1 = ConfigParser()
 ini1.read([path.join(py_dir, path.splitext(__file__)[0] + '.ini')])
-#ini1.read([path.join(py_dir, path.splitext(file1)[0] + '.ini')])
+ini1.read([path.join(py_dir, path.splitext(file1)[0] + '.ini')])
 
 nc_dir = str(ini1.get('Input', 'nc_dir'))
 gis_server = str(ini1.get('Input', 'gis_server'))
