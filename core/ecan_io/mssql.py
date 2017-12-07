@@ -293,24 +293,29 @@ def write_sql(df, server, database, table, dtype_dict, primary_keys=None, foreig
     if not all(df.columns.isin(dtype_dict.keys())):
         raise ValueError('dtype_dict must have the same column names as the columns in the df.')
 
+    df1 = df.copy()
+
     for i in df.columns:
         dtype1 = dtype_dict[i]
         if (dtype1 == 'DATE') | (dtype1 == 'DATETIME'):
             time1 = to_datetime(df[i]).astype(str)
-            df.loc[:, i] = time1
+            df1.loc[:, i] = time1
         elif 'VARCHAR' in dtype1:
-            df.loc[:, i] = df.loc[:, i].astype(str).str.replace('\'', ' ')
+            try:
+                df1.loc[:, i] = df.loc[:, i].astype(str).str.replace('\'', '')
+            except:
+                df1.loc[:, i] = df.loc[:, i].str.encode('utf-8', 'ignore').str.replace('\'', '')
         elif 'NUMERIC' in dtype1:
-            df.loc[:, i] = df.loc[:, i].astype(float)
+            df1.loc[:, i] = df.loc[:, i].astype(float)
         elif 'decimal' in dtype1:
-            df.loc[:, i] = df.loc[:, i].astype(float)
+            df1.loc[:, i] = df.loc[:, i].astype(float)
         elif not dtype1 in py_sql.keys():
             raise ValueError('dtype must be one of ' + str(py_sql.keys()))
         else:
-            df.loc[:, i] = df.loc[:, i].astype(py_sql[dtype1])
+            df1.loc[:, i] = df.loc[:, i].astype(py_sql[dtype1])
 
     #### Convert df to set of tuples to be ingested by sql
-    list1 = df.values.tolist()
+    list1 = df1.values.tolist()
     tup1 = [str(tuple(i)) for i in list1]
     tup2 = chunker(tup1, 1000)
 
@@ -336,10 +341,10 @@ def write_sql(df, server, database, table, dtype_dict, primary_keys=None, foreig
     tab_create_stmt = "create table " + table + " (" + d2 + key_stmt + fkey_stmt + ")"
     insert_stmt1 = "insert into " + table + " values "
 
+    conn = connect(server, database=database)
+    cursor = conn.cursor()
+    stmt_dict = {}
     try:
-        conn = connect(server, database=database)
-        cursor = conn.cursor()
-        stmt_dict = {}
 
         #### Drop table if it exists
         if drop_table:
@@ -362,7 +367,6 @@ def write_sql(df, server, database, table, dtype_dict, primary_keys=None, foreig
             stmt_dict.update({'insert' + str(i+1): insert_stmt2})
         conn.commit()
 
-
         #### Close everything!
         cursor.close()
         conn.close()
@@ -370,6 +374,8 @@ def write_sql(df, server, database, table, dtype_dict, primary_keys=None, foreig
         if output_stmt:
             return stmt_dict
     except:
+        conn.rollback()
+        conn.close()
         raise ValueError('Could not complete SQL import')
 
 

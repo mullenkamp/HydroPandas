@@ -1493,12 +1493,21 @@ sites['StartDate'] = to_datetime(sites['StartDate'], dayfirst=True, format='%d/%
 stmt_dict = write_sql(sites, server, database, table, dtype_dict, primary_keys=['MetConnectID'])
 
 
+####################################################
+### Low flows
 
+siteid = 12
 
+restr_val[restr_val.SiteID == siteid]
+sites[sites.SiteID == siteid]
 
+####################################################
+### More hydstra
 
+site = 164606
 
-
+from_date = '2017-10-01'
+to_date = '2017-12-06'
 
 
 

@@ -13,7 +13,7 @@ from os import path, getcwd
 from core.ts.met.metservice import proc_metservice_nc, MetS_nc_to_df, metconnect_id_loc
 from core.spatial.vector import sel_sites_poly
 from core.spatial.raster import point_interp_ts
-from core.misc import rd_dir, logging
+from core.misc.misc import rd_dir, logging
 from core.ecan_io import write_sql, rd_sql
 
 ##########################################

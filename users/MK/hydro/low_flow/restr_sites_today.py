@@ -5,7 +5,8 @@ Created on Tue Dec 05 09:34:22 2017
 @author: MichaelEK
 """
 from os.path import join
-from core.allo_use.ros import current_site_restr
+from datetime import date
+from core.allo_use.ros import low_flow_restr
 #from core.misc.misc import save_df
 
 ############################################
@@ -18,7 +19,9 @@ output_csv2 = 'restr_site_band.csv'
 ###########################################
 ### Run function
 
-basic, complete = current_site_restr()
+today1 = str(date.today())
+
+basic, complete = low_flow_restr(from_date=today1, to_date=today1)
 
 basic.to_csv(join(base_dir, output_csv1), index=False)
 complete.to_csv(join(base_dir, output_csv2), index=False)
