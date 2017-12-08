@@ -81,7 +81,7 @@ def make_mp_particles(cbc_path):
         outdata['yloc0'][start_idx:end_idx] = np.random.uniform(size=num)
         outdata['zloc0'][start_idx:end_idx] = 1 if bt != 1 else np.random.uniform(size=num)
         start_idx = end_idx
-    return outdata
+    return outdata, bd_type
 
 def get_cbc(model_id, base_dir): # todo implement nsmcrealisations in import_gns_model
     cbc_path = os.path.join(base_dir,'{}_for_modpath'.format(model_id),'{}_for_modpath.cbc'.format(model_id))
@@ -100,7 +100,9 @@ def get_cbc(model_id, base_dir): # todo implement nsmcrealisations in import_gns
 
 
 def setup_run_modpath(cbc_path, mp_ws, mp_name):
-    particles = pd.DataFrame(make_mp_particles(cbc_path))
+    particles, bd_type = make_mp_particles(cbc_path)
+    particles = pd.DataFrame(particles)
+    np.savetxt(os.path.join(mp_ws,'{}_bnd_type.txt'.format(mp_name)),bd_type)
     temp_particles = flopy.modpath.mpsim.StartingLocationsFile.get_empty_starting_locations_data(0)
     mp = create_mp_slf(particle_data=temp_particles, mp_ws=mp_ws, hdfile=cbc_path.replace('cbc','hds'),
                        budfile=cbc_path, disfile=cbc_path.replace('cbc', 'dis'), mp_name=mp_name)

@@ -55,13 +55,6 @@ def run_emulator(emulator_path, load_layer, index=None):
     t = time()
     emulator = pd.read_hdf(emulator_path)  # this keeps the structure of everything
 
-    # todo delete after new file
-    emulator = emulator.rename(columns={'Particle_ID':'fraction'})
-    sums = emulator.groupby('ref_cell_id').sum()
-    emulator = emulator/sums
-    emulator = emulator.reset_index().set_index('ref_cell_id')
-    #todo delete above with new file
-
     outdata = smt.get_empty_model_grid(True)
     outdata.fill(np.nan)
     print('took {} s to load emulator'.format(time()-t))
@@ -100,7 +93,6 @@ def run_emulator(emulator_path, load_layer, index=None):
 def vec_translate(a, d):
     return np.vectorize(d.__getitem__)(a)
 
-# todo make load layer... some how
 #todo make a stocastic version....
 #todo how to handle stream routing...
 
