@@ -113,6 +113,7 @@ def setup_run_modpath(cbc_path, mp_ws, mp_name):
     loc_path = mp.get_package('loc').fn_path
     loc_package = mp.get_package('loc')
     # write groups
+    print ('writing group loc data')
     groups = particles[['particlegroup','groupname']].groupby('particlegroup').count().reset_index().rename(columns={'groupname':'count'})
     groups.loc[:,'groupname'] = groups.loc[:,'particlegroup'].replace(dict(particles[['particlegroup','groupname']].itertuples(False,None)))
     group_count = len(groups.index)
@@ -125,6 +126,7 @@ def setup_run_modpath(cbc_path, mp_ws, mp_name):
     groups.to_csv(loc_path,False,sep=' ',header=False, mode='a')
 
     # write particle data
+    print ('writing loc particle data')
     particles.drop('groupname', 1, inplace=True)
     particles.to_csv(loc_path,sep=' ',header=False,index=False,mode='a')
 

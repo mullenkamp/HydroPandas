@@ -71,20 +71,29 @@ def extract_data(path):
      'Local_Z',
      'Line_Segment_Index',
      ]
+    print('reading data')
     data = open_path_file_as_df(path)
+    print('simplifying data')
     data.drop(drop_names, 1, inplace=True)
     # make a ref cell id and make sure it is zero indexed
     data['ref_cell_id'] = ['{:02d}_{:03d}_{:03d}'.format(k - 1, i - 1, j - 1) for k, i, j in
                            data.loc[:, ['Layer', 'Row', 'Column']].itertuples(False, None)]
     data.drop(['Layer', 'Row', 'Column'],axis=1,inplace=True)
     # now for some fancy groupby operations
+    print('calculating percentages')
     outdata = data.groupby(['ref_cell_id', 'Particle_ID']).aggregate({'Particle_Group': _get_group_num}).reset_index()
     outdata = outdata.groupby(['ref_cell_id', 'Particle_Group']).count().astype(float)  # todo check this too...
+
+    # make this output a fraction
+    outdata = outdata.rename(columns={'Particle_ID':'fraction'})
+    sums = outdata.groupby('ref_cell_id').sum()
+    outdata = outdata/sums
+    outdata = outdata.reset_index().set_index('ref_cell_id')
 
     return outdata
 
 
-def save_emulator(path, outpath):  # todo check this should maybe be saved as something else it's really slow and storage intensive
+def save_emulator(path, outpath):  # todo check this should maybe be saved as something else it's really slow and storage intensive #todo save as hdf
     # save the data extracted above to an emulator netcdf
     # keep the group id to locate cells, but make a linker (e.g. pass the dictionary to the dataframe)
     mapper = part_group_cell_mapper()
@@ -224,12 +233,11 @@ if __name__ == '__main__':
     t = time.time()
 
 
-    #todo it may be quicker to break apart the string into ints to store. all numeric data is very fast to dump with pickle pickle(..., protocol=2)
     test.to_csv(r"D:\mh_waimak_models\modpath_emulator\first_try.csv")
     print('took {} min to write data to csv'.format((time.time()-t)/60))
     t = time.time()
 
-    test.to_hdf(r"D:\mh_waimak_models\modpath_emulator\first_try.hdf")
+    test.to_hdf(r"D:\mh_waimak_models\modpath_emulator\first_try.hdf",'em',mode='w')
     print('took {} min to write data to hdf'.format((time.time()-t)/60))
     t = time.time()
 

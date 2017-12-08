@@ -54,7 +54,13 @@ def run_emulator(emulator_path, load_layer, index=None):
     print('loading emulator')
     t = time()
     emulator = pd.read_hdf(emulator_path)  # this keeps the structure of everything
-    emulator = emulator.reset_index().set_index('ref_cell_id') #todo delete after new file
+
+    # todo delete after new file
+    emulator = emulator.rename(columns={'Particle_ID':'fraction'})
+    sums = emulator.groupby('ref_cell_id').sum()
+    emulator = emulator/sums
+    emulator = emulator.reset_index().set_index('ref_cell_id')
+    #todo delete above with new file
 
     outdata = smt.get_empty_model_grid(True)
     outdata.fill(np.nan)
@@ -73,9 +79,10 @@ def run_emulator(emulator_path, load_layer, index=None):
 
     # add concentrations
     print('calculating concentrations')
-    emulator.loc[:, 'i_con'] = emulator.loc[:, 'Particle_Group']*-1 # -1 to make this unique from the concentration values
     cons = _convert_data_to_cell_dict(load_layer)
-    emulator = emulator.replace({'i_con':cons})
+    print('replacing cons')
+    emulator['con'] = vec_translate(emulator.loc[:, 'Particle_Group'].values*-1, cons) # much faster and more effcient than replace
+    print('sorting out data')
     emulator['con'] *= emulator['fraction']
     temp_out = emulator['con'].groupby('ref_cell_id').sum()
 
@@ -88,6 +95,10 @@ def run_emulator(emulator_path, load_layer, index=None):
 
 
     return outdata
+
+# quickest way to assign is to loop or to use below
+def vec_translate(a, d):
+    return np.vectorize(d.__getitem__)(a)
 
 # todo make load layer... some how
 #todo make a stocastic version....
