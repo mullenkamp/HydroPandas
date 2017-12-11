@@ -17,27 +17,31 @@ import pickle
 import numpy as np
 
 if __name__ == '__main__':
+    run_model = True
     t = time()
     mp_ws = r"D:\mh_waimak_models\modpath_emulator"
     mp_name = 'NsmcBase_first_try'
-    if not os.path.exists(mp_ws):
-        os.makedirs(mp_ws)
-    cbc = get_cbc('NsmcBase', mp_ws)
-    print('{} min to make cbc'.format((time() - t) / 60))
-    t = time()
-
-    setup_run_modpath(cbc, mp_ws, mp_name)
-    print('{} min to setup and run modpath'.format((time() - t) / 60))
-    t = time()
     path_file = os.path.join(mp_ws, 'NsmcBase_first_try.mppth')
+    if run_model:
+        if not os.path.exists(mp_ws):
+            os.makedirs(mp_ws)
+        cbc = get_cbc('NsmcBase', mp_ws)
+        print('{} min to make cbc'.format((time() - t) / 60))
+        t = time()
 
-    save_emulator(path_file,path_file.replace('.mppth','.hdf'))
-    print('{} min to make emulator'.format((time() - t) / 60))
-    t = time()
+        setup_run_modpath(cbc, mp_ws, mp_name)
+        print('{} min to setup and run modpath'.format((time() - t) / 60))
+        t = time()
+
+        save_emulator(path_file,path_file.replace('.mppth','.hdf'))
+        print('{} min to make emulator'.format((time() - t) / 60))
+        t = time()
 
     bnd_type = np.loadtxt(os.path.join(mp_ws,'{}_bnd_type.txt'.format(mp_name)))
     load = _make_mednload_approx(bnd_type)
-    outdata = run_emulator(path_file.replace('.mppth','.hdf'),load)
+    outdata = run_emulator(path_file.replace('.mppth','.hdf'),load, bd_type=bnd_type)
     pickle.dump(outdata, open(os.path.join(os.path.dirname(path_file),'{}_test_med_n.p'.format(mp_name)),'w'))
     print('{} min to run emulator'.format((time() - t) / 60))
+
+    #todo keep checking bdtype vs ibound to create array index
 

@@ -15,10 +15,10 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
 import os
 import pandas as pd
 
-def part_group_cell_mapper():
+def part_group_cell_mapper(bd_type):
     ibnd = smt.get_no_flow(0).flatten()
     js, iss = np.meshgrid(range(smt.cols), range(smt.rows)) # zero indexed to agree with python interpretation
-    idx = ibnd==1
+    idx = bd_type.flatten() != -1
     out = dict(zip(range(1,idx.sum()+1),list(zip(iss.flatten()[idx],js.flatten()[idx]))))
     return out
 
@@ -49,6 +49,7 @@ def make_mp_particles(cbc_path):
 
     # generate particles (minimum of 1 per cell) #todo how many particles are reasonable? right now 1 per cell
     num_parts = np.round(flow / flow[flow > 0].min()).astype(int)
+    num_parts[num_parts>0] = 1 #todo delete after debug
 
     # identify boundary condition types
     bd_type = smt.get_empty_model_grid()  # 0=rch,1=well,2==sfr
@@ -63,11 +64,10 @@ def make_mp_particles(cbc_path):
     outdata['k0'] = 0  # I think that particles in flopy are 1 indexed, but 0 means active most layer
     js, iss = np.meshgrid(range(1, smt.cols + 1), range(1, smt.rows + 1))  # this is passed to the file as 1 indexed
 
-    ibnd = smt.get_no_flow(0).flatten()
     idx = bd_type.flatten() != -1
-    group_dict = part_group_cell_mapper()
+    group_dict = part_group_cell_mapper(bd_type)
     start_idx = 0
-    print('generating particles')
+    print('generating particles') #todo the offset is happening here as my index is where the bd_type !=0
     for l, (num, i, j, bt) in enumerate(zip(num_parts.flatten()[idx], iss.flatten()[idx], js.flatten()[idx], bd_type.flatten()[idx])):
         if num == 0:
             raise ValueError('unexpected zero points')
@@ -106,7 +106,7 @@ def setup_run_modpath(cbc_path, mp_ws, mp_name):
     temp_particles = flopy.modpath.mpsim.StartingLocationsFile.get_empty_starting_locations_data(0)
     mp = create_mp_slf(particle_data=temp_particles, mp_ws=mp_ws, hdfile=cbc_path.replace('cbc','hds'),
                        budfile=cbc_path, disfile=cbc_path.replace('cbc', 'dis'), mp_name=mp_name)
-    print('writing model {}'.format(mp_name))
+    print('writing model {}; ignore the "no data to write" comment (this is a hack)'.format(mp_name))
     mp.write_input()
     mp.write_name_file()
 
@@ -139,6 +139,6 @@ def setup_run_modpath(cbc_path, mp_ws, mp_name):
 if __name__ == '__main__':
     import time
     t = time.time()
-    test = setup_run_modpath(r"C:\Users\MattH\Desktop\NsmcBase_simple_modpath\NsmcBase_modpath_base.cbc", r"C:\Users\MattH\Desktop\test_write\part2",'test' )
+    test = setup_run_modpath(r"C:\Users\MattH\Desktop\NsmcBase_simple_modpath\NsmcBase_modpath_base.cbc", r"C:\Users\MattH\Desktop\test_write\part2",'one_part_per_cell' )
     print(time.time()-t)
     print('done')
