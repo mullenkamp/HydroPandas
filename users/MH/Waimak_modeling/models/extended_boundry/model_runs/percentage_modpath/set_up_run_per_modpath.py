@@ -49,7 +49,6 @@ def make_mp_particles(cbc_path):
 
     # generate particles (minimum of 1 per cell) #todo how many particles are reasonable? right now 1 per cell
     num_parts = np.round(flow / flow[flow > 0].min()).astype(int)
-    num_parts[num_parts>0] = 1 #todo delete after debug
 
     # identify boundary condition types
     bd_type = smt.get_empty_model_grid()  # 0=rch,1=well,2==sfr
@@ -67,7 +66,7 @@ def make_mp_particles(cbc_path):
     idx = bd_type.flatten() != -1
     group_dict = part_group_cell_mapper(bd_type)
     start_idx = 0
-    print('generating particles') #todo the offset is happening here as my index is where the bd_type !=0
+    print('generating particles') #todo the offset is happening here as my index is where the bd_type !=-1
     for l, (num, i, j, bt) in enumerate(zip(num_parts.flatten()[idx], iss.flatten()[idx], js.flatten()[idx], bd_type.flatten()[idx])):
         if num == 0:
             raise ValueError('unexpected zero points')
