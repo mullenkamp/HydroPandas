@@ -2,7 +2,15 @@
 """
 Reliability of Supply and min flow restrictions functions.
 """
+from numpy import ndarray, in1d, nan, array, where
+from ast import literal_eval, parse
+from pandas import read_csv, DataFrame, merge, concat, Series, MultiIndex, to_datetime, DateOffset
+from datetime import date
 
+from core.misc.misc import printf, select_sites, save_df
+from core.spatial.vector import sel_sites_poly
+from core.ecan_io.SQL_databases import sql_arg
+from core.ecan_io import rd_ts, rd_hydrotel, rd_sql, rd_sql_ts
 
 ### ROS and min flow restrictions
 
@@ -11,10 +19,6 @@ def ros_proc(allo_use, date_col='date', allo_col='allo', min_days=150, export_us
     """
     Function to process the reliability of supply data from the low flows db and merge it with the allo_use.
     """
-    from pandas import merge, to_datetime
-    from core.ecan_io import rd_sql
-    from core.misc import save_df
-    from core.ecan_io.SQL_databases import sql_arg
 
     def resample2(df, min_days=20):
         from numpy import nan
@@ -141,35 +145,22 @@ def ros_proc(allo_use, date_col='date', allo_col='allo', min_days=150, export_us
     return([use_ros1b, ann_ros1])
 
 
-def low_flow_restr(sites_num=None, from_date=None, to_date=None):
+def min_max_trig(SiteID=None):
     """
-    Function to determine the flow sites currently on restriction.
+    Function to determine the min/max triggers.
     """
-    from pandas import merge, to_datetime, read_csv, concat, Series
-    from core.misc.misc import printf, select_sites
-    from core.ecan_io import rd_sql, rd_sql_ts
-    from core.spatial.vector import sel_sites_poly
-    from numpy import ndarray, in1d, nan, array
-    from datetime import date
 
-    ########################################
+    ######################################
     ### Parameters
 
     is_active = True
 
-    ## Query fields - Be sure to use single quotes for the names!!!
-    restr_fields = ['SiteID', 'RestrictionDate', 'BandNo', 'BandAllocation', 'TriggerLevel', 'AsmtFlow']
-    sites_fields = ['Siteid', 'RefDBaseKey', 'Waterway', 'Location']
-    min_flow_fields = ['SiteID', 'BandNo', 'PeriodNo', 'Allocation', 'Flow']
-    crc_fields = ['SiteID', 'BandNo', 'RecordNo']
     period_fields = ['SiteID', 'BandNo', 'PeriodNo', 'fmDate', 'toDate']
-
-    ## Equivelant short names for analyses - Use these names!!!
-    restr_names = ['SiteID', 'band_num', 'date', 'flow', 'band_allo']
-    sites_names = ['SiteID', 'site', 'Waterway', 'Location']
-    min_flow_names = ['SiteID', 'band_num', 'period', 'allo_perc', 'trig_level']
-    crc_names = ['SiteID', 'band_num', 'crc']
     period_names = ['SiteID', 'band_num', 'period', 'from_date', 'to_date']
+    min_flow_fields = ['SiteID', 'BandNo', 'PeriodNo', 'Allocation', 'Flow']
+    min_flow_names = ['SiteID', 'band_num', 'period', 'allo_perc', 'trig_level']
+    site_type_fields = ['SiteID', 'BandNo']
+    site_type_names = ['SiteID', 'band_num']
 
     ## Databases
 
@@ -177,46 +168,44 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None):
     server1 = 'SQL2012PROD03'
     database1 = 'LowFlows'
 
-    restr_table = 'LowFlows.dbo.LowFlowSiteRestrictionDaily'
-    restr_where = {'SnapshotType': ['Live']}
-
-    # Sites info
-    server2 = 'SQL2012PROD03'
-    database2 = 'LowFlows'
-
-    sites_table = 'LowFlowSite'
-
     # Internal site id, band, and min flow
     min_flow_table = 'LowFlowSiteBandPeriodAllocation'
 
     # period info
     period_table = 'LowFlowSiteBandPeriod'
 
-    # crc, sites, and bands
-    crc_table = 'LowFlows.dbo.vLowFlowConsents2'
+    # site band active
+    site_type_table = 'LowFlowSiteBand'
 
-    ########################################
+    #######################################
     ### Read in data
 
-    sites = rd_sql(server2, database2, sites_table, sites_fields, {'isActive': [is_active]}, rename_cols=sites_names)
+    periods0 = rd_sql(server1, database1, period_table, period_fields, rename_cols=period_names)
 
-    allo_values = range(100)
-    allo_values.extend(range(103, 110))
+    if isinstance(SiteID, list):
+        restr_val = rd_sql(server1, database1, min_flow_table, min_flow_fields, {'SiteID': SiteID}, rename_cols=min_flow_names)
+    else:
+        restr_val = rd_sql(server1, database1, min_flow_table, min_flow_fields, rename_cols=min_flow_names)
 
-    restr_day = rd_sql_ts(server=server1, database=database1, table=restr_table, groupby_cols=['SiteID', 'BandNo'], date_col='RestrictionDate',  values_cols=['AsmtFlow', 'BandAllocation'], from_date=from_date, to_date=to_date, where_col={'BandAllocation': allo_values})
-    restr_day = restr_day.reset_index()
-    restr_day.columns = restr_names
-
-    restr_val = rd_sql(server1, database1, min_flow_table, min_flow_fields, {'SiteID': restr_day.SiteID.astype('int32').tolist()}, rename_cols=min_flow_names)
-
-    crc = rd_sql(server1, database1, crc_table, crc_fields, {'isCurrent': [is_active]}, rename_cols=crc_names)
-
-    periods = rd_sql(server1, database1, period_table, period_fields, rename_cols=period_names)
+    site_type = rd_sql(server1, database1, site_type_table, site_type_fields, {'isActive': [is_active], 'RestrictionType': ['LowFlow']}, rename_cols=site_type_names)
 
     #######################################
     ### Process data
 
+    ## Fix duplicate zero allocations at zero flow
+    grp1 = restr_val.groupby(['SiteID', 'band_num', 'period'])
+    zeros1 = grp1.min()
+    zeros2 = zeros1[zeros1.trig_level == 0]['allo_perc']
+    zeros3 = merge(restr_val, zeros2.reset_index(), on=['SiteID', 'band_num', 'period', 'allo_perc'])
+    max_zero = zeros3.groupby(['SiteID', 'band_num', 'period', 'allo_perc'])['trig_level'].max()
+
+    all_trig = restr_val.groupby(['SiteID', 'band_num', 'period', 'allo_perc'])['trig_level'].min()
+
+    all_trig[max_zero.index] = max_zero
+
     ## Periods by month
+    periods = merge(periods0, site_type, on=['SiteID', 'band_num'])
+
     periods['from_mon'] = periods['from_date'].dt.month
     periods['to_mon'] = periods['to_date'].dt.month
 
@@ -236,6 +225,90 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None):
     p_set = concat([p_min, p_max], axis=1).reset_index()
     p_set_site = concat([p_min_site, p_max_site], axis=1).reset_index()
 
+    return (p_set_site, p_set)
+
+
+def low_flow_restr(sites_num=None, from_date=None, to_date=None):
+    """
+    Function to determine the flow sites currently on restriction.
+
+    Parameters
+    ----------
+    sites_num: list or None
+        A list of sites to return, or all sites if None.
+    from_date: str
+        The start date in the format '2017-01-01'.
+    end_date: str
+        The end date in the format '2017-01-01'.
+
+    Returns
+    -------
+    DataFrames
+        Two DataFrames are returned. One is a summary of each site on restriction and one has the sites and bands on restriction.
+
+    Notes
+    -----
+    This should note be queried for low flows history past the last season as the bands and consents history are not stored. They only reflect active bands and consents.
+    """
+
+    ########################################
+    ### Parameters
+
+    is_active = True
+
+    ## Query fields - Be sure to use single quotes for the names!!!
+    restr_fields = ['SiteID', 'RestrictionDate', 'BandNo', 'BandAllocation', 'TriggerLevel', 'AsmtFlow']
+    sites_fields = ['Siteid', 'RefDBaseKey', 'Waterway', 'Location']
+    crc_fields = ['SiteID', 'BandNo', 'RecordNo']
+    site_type_fields = ['SiteID', 'BandNo', 'RestrictionType']
+
+    ## Equivelant short names for analyses - Use these names!!!
+    restr_names = ['SiteID', 'band_num', 'date', 'flow', 'band_allo']
+    sites_names = ['SiteID', 'site', 'Waterway', 'Location']
+    crc_names = ['SiteID', 'band_num', 'crc']
+    site_type_names = ['SiteID', 'band_num', 'restr_type']
+
+    ## Databases
+
+    server1 = 'SQL2012PROD03'
+    database1 = 'LowFlows'
+
+    # daily restrictions
+    restr_table = 'LowFlows.dbo.LowFlowSiteRestrictionDaily'
+    restr_where = {'SnapshotType': ['Live']}
+
+    # Sites info
+    sites_table = 'LowFlowSite'
+
+    # crc, sites, and bands
+    crc_table = 'LowFlows.dbo.vLowFlowConsents2'
+
+    # lowflow or residual flow site
+    site_type_table = 'LowFlowSiteBand'
+
+    ########################################
+    ### Read in data
+
+    sites = rd_sql(server1, database1, sites_table, sites_fields, {'isActive': [is_active]}, rename_cols=sites_names)
+
+    allo_values = range(100)
+    allo_values.extend(range(103, 110))
+
+    restr_day = rd_sql_ts(server=server1, database=database1, table=restr_table, groupby_cols=['SiteID', 'BandNo'], date_col='RestrictionDate',  values_cols=['AsmtFlow', 'BandAllocation'], from_date=from_date, to_date=to_date, where_col={'BandAllocation': allo_values})
+    restr_day = restr_day.reset_index()
+    restr_day.columns = restr_names
+
+    crc = rd_sql(server1, database1, crc_table, crc_fields, {'isCurrent': [is_active]}, rename_cols=crc_names)
+
+
+    site_type = rd_sql(server1, database1, site_type_table, site_type_fields, {'isActive': [is_active]}, rename_cols=site_type_names)
+
+    #######################################
+    ### Process data
+
+    ## Periods by month
+    p_set_site, p_set = min_max_trig(restr_day.SiteID.tolist())
+
     ## Trigger flows
     restr_day['mon'] = restr_day['date'].dt.month
     restr2 = merge(restr_day, p_set, on=['SiteID', 'band_num', 'mon'], how='left')
@@ -246,6 +319,10 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None):
 
     ## Combine restr with crc
     restr_crc = merge(restr2, crc_count.reset_index(), on=['SiteID', 'band_num'])
+
+    ## Only low flow sites
+    lowflow_site = site_type[site_type.restr_type == 'LowFlow'].copy().drop('restr_type', axis=1)
+    restr_crc = merge(restr_crc, lowflow_site, on=['SiteID', 'band_num'], how='inner')
 
     ## Aggregate to site and date
     grp1 = restr_crc.groupby(['SiteID', 'date'])
@@ -271,6 +348,92 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None):
     return (restr_sites, restr_crc_sites)
 
 
+def priority_gaugings(num_previous_months=2):
+    """
+    Function to extract the gauging sites for low flow restrictions that hven't been gauged in a while.
+    """
+    ########################################
+    ### Parameters
+
+    is_active = True
+
+    ## Query fields - Be sure to use single quotes for the names!!!
+    ass_fields = ['SiteID', 'MeasuredDate', 'Flow']
+    sites_fields = ['Siteid', 'RefDBaseKey', 'Waterway', 'Location']
+    crc_fields = ['SiteID', 'BandNo', 'RecordNo']
+    site_type_fields = ['SiteID', 'BandNo', 'RestrictionType']
+
+    ## Equivelant short names for analyses - Use these names!!!
+    ass_names = ['SiteID', 'date', 'flow']
+    sites_names = ['SiteID', 'site', 'Waterway', 'Location']
+    crc_names = ['SiteID', 'band_num', 'crc']
+    site_type_names = ['SiteID', 'band_num', 'restr_type']
+
+    ## Databases
+
+    server1 = 'SQL2012PROD03'
+    database1 = 'LowFlows'
+
+    # assessments table
+    ass_table = 'LowFlowSiteAssessment'
+
+    # Sites info
+    sites_table = 'LowFlowSite'
+
+    # crc, sites, and bands
+    crc_table = 'LowFlows.dbo.vLowFlowConsents2'
+
+    # lowflow or residual flow site
+    site_type_table = 'LowFlowSiteBand'
+
+    ########################################
+    ### Read in data
+
+    today1 = to_datetime(date.today())
+    from_date = today1 - DateOffset(months=num_previous_months)
+
+    sites = rd_sql(server1, database1, sites_table, sites_fields, {'isActive': [is_active], 'RefDBase': ['Gauging']}, rename_cols=sites_names)
+
+    ass = rd_sql(server1, database1, ass_table, ass_fields, {'MethodID': [1, 2, 3]}, rename_cols=ass_names)
+
+    crc = rd_sql(server1, database1, crc_table, crc_fields, {'isCurrent': [is_active]}, rename_cols=crc_names)
+
+    site_type = rd_sql(server1, database1, site_type_table, site_type_fields, {'isActive': [is_active]}, rename_cols=site_type_names)
+
+    #######################################
+    ### Process data
+
+    ## max ass
+    max_ass1 = ass.groupby('SiteID')['date'].max().reset_index()
+    max_ass = merge(ass, max_ass1, on=['SiteID', 'date']).set_index('SiteID')
+    max_ass.columns = ['last_gauging', 'flow']
+
+    ## crc counts
+    crc_count = crc.groupby('SiteID')['crc'].count()
+    crc_count.name = 'crc_count'
+
+    ## Only low flow sites
+    lowflow_site1 = site_type[site_type.restr_type == 'LowFlow'].SiteID.unique()
+    lowflow_sites = sites[sites.SiteID.isin(lowflow_site1)].set_index('SiteID')
+
+    ## Combine all df
+    sites_lastg = concat([lowflow_sites, max_ass, crc_count], axis=1, join='inner')
+
+    ## Filter out sites that have been gauged recently
+    sites_lastg2 = sites_lastg[sites_lastg['last_gauging'] < from_date].sort_values('crc_count', ascending=False)
+
+    ## Add in min and max triggers
+    basic, complete = min_max_trig()
+    basic2 = basic[basic.mon == today1.month].copy().drop('mon', axis=1).set_index('SiteID')
+    basic2['trig_date'] = today1.date()
+
+    ## Combine
+    sites_lastg3 = concat([sites_lastg2, basic2], axis=1, join='inner').set_index('site')
+
+    ### Return
+    return sites_lastg3
+
+
 def restr_days(select, period='A-JUN', months=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], min_sites_shp='S:/Surface Water/shared/GIS_base/vector/low_flows/min_flows_sites_Cant.shp', sites_col='ReferenceN', export=True, export_path='restr_days.csv'):
     """
     Function to determine the number of days on restriction per period according to the LowFlows database.
@@ -279,11 +442,6 @@ def restr_days(select, period='A-JUN', months=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
     select -- Can either be a list of gauging site numbers or a shapefile polygon of an area that contains min flow sites.\n
     period -- Pandas time series code for the time period.
     """
-    from pandas import merge, to_datetime, read_csv, concat
-    from core.misc.misc import printf, select_sites
-    from core.ecan_io import rd_sql
-    from core.spatial.vector import sel_sites_poly
-    from numpy import ndarray, in1d, nan, array
 
     ########################################
     ### Parameters
@@ -415,11 +573,6 @@ def flow_ros(select=all, start_date='1900-01-01', end_date='2016-06-30', fill_na
     start_date / end_date -- The start and/or end date for the results as a string.\n
     *_csv -- csv files necessary for the analysis.
     """
-    from pandas import read_csv, DataFrame, merge, concat, Series, MultiIndex, to_datetime
-    from ast import literal_eval, parse
-    from numpy import nan, in1d, where
-    from core.misc import select_sites
-    from core.ecan_io import rd_ts, rd_hydrotel
 
     def norm_eval(series):
         if series['lower'] == '0':
@@ -598,11 +751,6 @@ def crc_band_flow(site_lst=None, crc_lst=None, names=False):
     """
     Function to determine the min flow conditions for each flow site, band, and crc.
     """
-    from pandas import merge, to_datetime, read_csv, concat
-    from core.ecan_io import rd_sql
-    from core.spatial.vector import sel_sites_poly
-    from numpy import ndarray, in1d
-    from core.misc.misc import select_sites
 
     ### Database parameters
     # crc, sites, and bands
@@ -675,8 +823,6 @@ def ros_freq(ros, period='water year', min_days=245, norm=False):
     Arguments:\n
     period -- Can be either 'water year' or 'summer'.
     """
-    from numpy import in1d, nan
-    from pandas import concat
 
     ## Number of data days
     days = ros.resample('A-JUN').count()

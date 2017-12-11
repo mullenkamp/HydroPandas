@@ -1503,17 +1503,21 @@ sites[sites.SiteID == siteid]
 
 ####################################################
 ### More hydstra
+from pint import UnitRegistry
 
 site = 164606
 
 from_date = '2017-10-01'
 to_date = '2017-12-06'
 
+period2.varto.sort_values().unique().tolist()
 
+(period2.varto == 500).sum()
+period2[(period2.varto == 101)]
 
+ureg = UnitRegistry()
 
-
-
+m_s = ureg.meter / ureg.second
 
 
 
