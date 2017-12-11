@@ -14,7 +14,7 @@ from time import time
 # make a function to run the full emulator and to run only certain cells given a load layer.  also function to run as a
 # stocastic simulation
 
-def _convert_data_to_cell_dict(array):
+def _convert_data_to_cell_dict(array, bd_type):
     """
     converts the data to a dictionary to replace teh group ids
     :param array: array of data (will be converted to float)
@@ -24,17 +24,17 @@ def _convert_data_to_cell_dict(array):
     if array.shape != (smt.rows,smt.cols):
         raise ValueError('array must have shape of {} not {}'.format((smt.rows,smt.cols),array.shape))
     array = array.astype(float)
-    ibnd = smt.get_no_flow(0).flatten()
-    idx = ibnd == 1
+    idx = bd_type.flatten() != -1
     outdata = {k:v for k,v in zip(np.array(range(1,idx.sum()+1))*-1, array.flatten()[idx])}
     return outdata
 
 
-def run_emulator(emulator_path, load_layer, index=None):
+def run_emulator(emulator_path, load_layer, bd_type, index=None):
     """
 
     :param emulator_path: path to the emulator (hdf)
     :param load_layer:
+    :param bd_type: the boundary condition type used to map particles
     :param index: a boolean array of size smt.layers, rows, cols or None,
                   if None concentrations will be calculated across all active cells
     :return:
@@ -72,7 +72,7 @@ def run_emulator(emulator_path, load_layer, index=None):
 
     # add concentrations
     print('calculating concentrations')
-    cons = _convert_data_to_cell_dict(load_layer)
+    cons = _convert_data_to_cell_dict(load_layer, bd_type)
     print('replacing cons')
     emulator['con'] = vec_translate(emulator.loc[:, 'Particle_Group'].values*-1, cons) # much faster and more effcient than replace
     print('sorting out data')
@@ -103,7 +103,7 @@ def __try_run_emulator():
     """
     load = smt.get_empty_model_grid()
     load.fill(1)
-    outdata = run_emulator(r"T:\Temp\temp_gw_files\first_try.hdf",load)
+    outdata = run_emulator(r"T:\Temp\temp_gw_files\first_try.hdf",load) #todo will not run
 
 if __name__ == '__main__':
     __try_run_emulator()

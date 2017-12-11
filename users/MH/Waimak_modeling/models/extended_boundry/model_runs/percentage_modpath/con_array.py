@@ -40,12 +40,12 @@ def make_inital_sfr_dataframe(ashley, cust, eyre, waimak):
     :return:
     """
     sfr = gpd.read_file(r"{}\m_ex_bd_inputs\raw_sw_samp_points\sfr\all_sfr.shp".format(smt.sdp))
-    sfr = sfr.loc[:['riv_name', 'k', 'i', 'j']]
+    sfr = sfr.loc[:,['riv_name', 'k', 'i', 'j']]
     sfr.loc[:,'conc'] = 0
-    sfr.loc[sfr['riv_name'=='waimak'],'conc'] = waimak
-    sfr.loc[sfr['riv_name'=='eyre'],'conc'] = eyre
-    sfr.loc[sfr['riv_name'=='cust'],'conc'] = cust
-    sfr.loc[sfr['riv_name'=='ashley'],'conc'] = ashley
+    sfr.loc[sfr['riv_name']=='waimak','conc'] = waimak
+    sfr.loc[sfr['riv_name']=='eyre','conc'] = eyre
+    sfr.loc[sfr['riv_name']=='cust','conc'] = cust
+    sfr.loc[sfr['riv_name']=='ashley','conc'] = ashley
 
     return sfr
 
@@ -61,3 +61,12 @@ def _make_mednload_approx(bnd_type):
     return load
 
 #todo could try to handle stream flow routing
+
+if __name__ == '__main__':
+    import os
+    import numpy as np
+    mp_ws = r"D:\mh_waimak_models\modpath_emulator"
+    mp_name = 'NsmcBase_first_try'
+    bnd_type = np.loadtxt(os.path.join(mp_ws,'{}_bnd_type.txt'.format(mp_name)))
+    load = _make_mednload_approx(bnd_type)
+    print'done'
