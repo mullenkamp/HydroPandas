@@ -286,6 +286,9 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None):
     # lowflow or residual flow site
     site_type_table = 'LowFlowSiteBand'
 
+    # assessments table
+    ass_table = 'LowFlowSiteAssessment'
+
     ########################################
     ### Read in data
 
@@ -300,8 +303,9 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None):
 
     crc = rd_sql(server1, database1, crc_table, crc_fields, {'isCurrent': [is_active]}, rename_cols=crc_names)
 
-
     site_type = rd_sql(server1, database1, site_type_table, site_type_fields, {'isActive': [is_active]}, rename_cols=site_type_names)
+
+    tel_sites = rd_sql(server1, database1, ass_table, ['SiteID'], {'MethodID': [3], 'MeasuredDate': [to_date]})
 
     #######################################
     ### Process data
@@ -324,17 +328,22 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None):
     lowflow_site = site_type[site_type.restr_type == 'LowFlow'].copy().drop('restr_type', axis=1)
     restr_crc = merge(restr_crc, lowflow_site, on=['SiteID', 'band_num'], how='inner')
 
+    ## Add in whether it is currently telemetered
+    tel_sites['flow_from_telem'] = True
+    restr_crc_tel = merge(restr_crc, tel_sites, on='SiteID', how='left')
+    restr_crc_tel.loc[restr_crc_tel['flow_from_telem'].isnull(), 'flow_from_telem'] = False
+
     ## Aggregate to site and date
-    grp1 = restr_crc.groupby(['SiteID', 'date'])
+    grp1 = restr_crc_tel.groupby(['SiteID', 'date'])
     crcs1 = grp1['crc_count'].sum()
-    flow_site = grp1[['flow', 'mon']].first()
+    flow_site = grp1[['flow', 'mon', 'flow_from_telem']].first()
     crc_flow = concat([flow_site, crcs1], axis=1).reset_index()
 
     restr_sites1 = merge(crc_flow, p_set_site, on=['SiteID', 'mon'], how='left').drop('mon', axis=1)
     restr_sites1['below_min_trig'] = restr_sites1['flow'] <= restr_sites1['min_trig']
 
     ## Add in site numbers
-    restr_crc_sites = merge(sites, restr_crc.drop('mon', axis=1), on='SiteID').drop('SiteID', axis=1).sort_values(['Waterway', 'date', 'min_trig'])
+    restr_crc_sites = merge(sites, restr_crc_tel.drop('mon', axis=1), on='SiteID').drop('SiteID', axis=1).sort_values(['Waterway', 'date', 'min_trig'])
     restr_sites = merge(sites, restr_sites1, on='SiteID').drop('SiteID', axis=1).sort_values(['Waterway', 'date', 'min_trig'])
 
     ## Filter sites if needed
