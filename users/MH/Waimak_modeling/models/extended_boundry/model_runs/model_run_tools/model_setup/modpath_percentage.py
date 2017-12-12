@@ -165,6 +165,13 @@ def create_mp_slf(particle_data, m=None, mp_ws=None, hdfile=None, budfile=None, 
     return mp
 
 def export_paths_to_shapefile(paths_file, shape_file, particle_ids=None):
+    """
+    export paths to a shapefile
+    :param paths_file:
+    :param shape_file:
+    :param particle_ids:
+    :return:
+    """
     # generate spatial reference
     spatial_ref = flopy.utils.SpatialReference(delr=np.full((smt.rows),200), delc=np.full((smt.cols),200), lenuni=2,
                  xul=smt.ulx, yul=smt.uly, rotation=smt.rotation,
@@ -175,25 +182,29 @@ def export_paths_to_shapefile(paths_file, shape_file, particle_ids=None):
         pathdata = [e[['x','y','z','k','id']] for e in paths.get_alldata()]
         paths.write_shapefile(shpname=shape_file,sr=spatial_ref)
     else:
-        raise NotImplementedError
+        particle_ids = np.atleast_1d(particle_ids)
+        pathdata = [paths.get_data(e) for e in particle_ids]
+        paths.write_shapefile(particle_data=pathdata, shpname=shape_file, sr=spatial_ref)
 
 
 if __name__ == '__main__':
     # todo play with pathline data for a couple of particles
+    run_model=False
+    if run_model:
 
-    particle_data = flopy.modpath.mpsim.StartingLocationsFile.get_empty_starting_locations_data(2)
-    particle_data['particleid'] =[120,150]
-    particle_data['i0'][:] = [120,150]
-    particle_data['j0'][:] = [120,150]
-    particle_data['particlegroup'][:] = 1
-    particle_data['groupname'][:] = 'part1'
-    particle_data['label'][:] = 'test'
-    model_path = r"C:\Users\MattH\Desktop\NsmcBase_modpath_tester\NsmcBase_modpath_tester.nam"
-    m = flopy.modflow.Modflow.load(model_path,model_ws=os.path.dirname(model_path))
-    mp = create_mp_slf(particle_data,m)
-    mp.write_input()
-    mp.write_name_file()
-    mp.run_model()
+        particle_data = flopy.modpath.mpsim.StartingLocationsFile.get_empty_starting_locations_data(2)
+        particle_data['particleid'] =[120,150]
+        particle_data['i0'][:] = [120,150]
+        particle_data['j0'][:] = [120,150]
+        particle_data['particlegroup'][:] = 1
+        particle_data['groupname'][:] = 'part1'
+        particle_data['label'][:] = 'test'
+        model_path = r"C:\Users\MattH\Desktop\NsmcBase_modpath_tester\NsmcBase_modpath_tester.nam"
+        m = flopy.modflow.Modflow.load(model_path,model_ws=os.path.dirname(model_path))
+        mp = create_mp_slf(particle_data,m)
+        mp.write_input()
+        mp.write_name_file()
+        mp.run_model()
     export_paths_to_shapefile(r"C:\Users\MattH\Desktop\NsmcBase_modpath_tester\NsmcBase_modpath_tester_mp.mppth",
-                              r"C:\Users\MattH\Desktop\NsmcBase_modpath_tester\test_shape.shp")
+                              r"C:\Users\MattH\Desktop\NsmcBase_modpath_tester\test_shape.shp", particle_ids=[119])
     print('done')
