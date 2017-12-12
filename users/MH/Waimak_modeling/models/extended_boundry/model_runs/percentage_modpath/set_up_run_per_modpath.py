@@ -16,7 +16,6 @@ import os
 import pandas as pd
 
 def part_group_cell_mapper(bd_type):
-    ibnd = smt.get_no_flow(0).flatten()
     js, iss = np.meshgrid(range(smt.cols), range(smt.rows)) # zero indexed to agree with python interpretation
     idx = bd_type.flatten() != -1
     out = dict(zip(range(1,idx.sum()+1),list(zip(iss.flatten()[idx],js.flatten()[idx]))))
