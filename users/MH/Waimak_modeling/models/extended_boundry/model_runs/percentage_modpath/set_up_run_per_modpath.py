@@ -90,7 +90,7 @@ def get_cbc(model_id, base_dir): # todo implement nsmcrealisations in import_gns
 
     m = import_gns_model(model_id,'for_modpath',os.path.join(base_dir,'for_modpath'),False)
     m.write_name_file()
-    m.upw.iphdry = 0  # hdry is -888.0
+    m.upw.iphdry = 1  # hdry is -888.0
 
     m.write_input()
     m.run_model()
