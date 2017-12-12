@@ -52,7 +52,6 @@ def define_source(emulator_path, bd_type, index): # todo could make this into a 
     temp *= 1/temp.sum()
 
     # populate array
-    ibnd = smt.get_no_flow(0).flatten()
     idx = bd_type.flatten() != -1
     outdata = outdata.flatten()
     temp_array = outdata[idx]
@@ -62,11 +61,12 @@ def define_source(emulator_path, bd_type, index): # todo could make this into a 
     smt.plt_matrix(outdata!=0)
     range(1, idx.sum() + 1)
 
-    #todo something is wrong with indexing....  work bd type through
     return outdata
 
 if __name__ == '__main__':
+    # this looks good
     from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.cwms_index import get_zone_array_index
-    index = smt.get_empty_model_grid(True)
-    index[:,150:171,290:301] = True
-    define_source(r"T:\Temp\temp_gw_files\first_try.hdf",index.astype(bool))
+    index = smt.shape_file_to_model_array(r"C:\Users\MattH\Downloads\test_area.shp",'Id',True)
+    index = np.isfinite(index)[np.newaxis].repeat(11, axis=0)
+    bd_type = np.loadtxt(r"T:\Temp\temp_gw_files\NsmcBase_first_try_bnd_type.txt")
+    define_source(r"T:\Temp\temp_gw_files\first_try.hdf",bd_type,index.astype(bool))
