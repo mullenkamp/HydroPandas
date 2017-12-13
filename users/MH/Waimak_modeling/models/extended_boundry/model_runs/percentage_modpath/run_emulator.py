@@ -97,7 +97,7 @@ def run_emulator(emulator_path, load_layer, bd_type, index=None):
     outdata[index] = temp_out.loc[ids].values
     print('took {} s to output concentrations'.format(time()-t))
 
-
+    # todo could either gausian blur or run a spline to to account for dispersion
     return outdata
 
 # quickest way to assign is to loop or to use below

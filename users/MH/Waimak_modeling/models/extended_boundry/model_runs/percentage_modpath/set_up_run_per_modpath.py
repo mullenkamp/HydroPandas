@@ -77,7 +77,7 @@ def make_mp_forward_particles(cbc_path): #todo could add a limiting factor e.g. 
         outdata['j0'][start_idx:end_idx] = j
         outdata['xloc0'][start_idx:end_idx] = np.random.uniform(size=num)
         outdata['yloc0'][start_idx:end_idx] = np.random.uniform(size=num)
-        outdata['zloc0'][start_idx:end_idx] = 1 if bt != 1 else np.random.uniform(size=num)
+        outdata['zloc0'][start_idx:end_idx] = 1 if bt == 0 else np.random.uniform(size=num)
         start_idx = end_idx
     return outdata, bd_type
 
