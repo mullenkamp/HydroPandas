@@ -31,7 +31,7 @@ def create_mp_slf(particle_data, m=None, mp_ws=None, hdfile=None, budfile=None, 
     :param prsity: porosity
     :param prsitycb: porosity of the confining layer
     :param mp_name: the name for the modpath model if None then mirrors the modflow model name
-    :param direction: tracking direction forward or backward
+    :param direction: tracking direction 'forward' or 'backward'
     :param simulation_type: one of [endpoint, pathline, timeseries]
     :param capt_weak_s: if True weak sources/sinks capture particles
     :param time_pts:  either int of number of time points to calculate or array of time points see TimePointOption for

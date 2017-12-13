@@ -23,6 +23,7 @@ if __name__ == '__main__':
     outdata = pd.DataFrame(index=list(set(experts.group)),
                            columns=['mean', 'sd', '1st', '5th', '25th', '50th', '75th', '95th', '99th'])
     for group in set(experts.group):
+
         print(group)
         temp = []
         for expert, alpha, beta in experts.loc[experts.group == group, ['expert', 'alpha', 'beta']].itertuples(False,

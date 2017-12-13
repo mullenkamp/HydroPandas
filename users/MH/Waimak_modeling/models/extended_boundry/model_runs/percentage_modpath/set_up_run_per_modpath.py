@@ -23,7 +23,7 @@ def part_group_cell_mapper(bd_type):
 
 
 
-def make_mp_particles(cbc_path):
+def make_mp_forward_particles(cbc_path): #todo could add a limiting factor e.g. a max per cell
     """
     make modpath particle locations from the cbc file.  particles are created in each top layer cell with the number
     relative to the influx
@@ -65,7 +65,7 @@ def make_mp_particles(cbc_path):
     idx = bd_type.flatten() != -1
     group_dict = part_group_cell_mapper(bd_type)
     start_idx = 0
-    print('generating particles') #todo the offset is happening here as my index is where the bd_type !=-1
+    print('generating particles')
     for l, (num, i, j, bt) in enumerate(zip(num_parts.flatten()[idx], iss.flatten()[idx], js.flatten()[idx], bd_type.flatten()[idx])):
         if num == 0:
             raise ValueError('unexpected zero points')
@@ -98,7 +98,7 @@ def get_cbc(model_id, base_dir): # todo implement nsmcrealisations in import_gns
 
 
 def setup_run_modpath(cbc_path, mp_ws, mp_name):
-    particles, bd_type = make_mp_particles(cbc_path)
+    particles, bd_type = make_mp_forward_particles(cbc_path)
     particles = pd.DataFrame(particles)
     np.savetxt(os.path.join(mp_ws,'{}_bnd_type.txt'.format(mp_name)),bd_type)
     temp_particles = flopy.modpath.mpsim.StartingLocationsFile.get_empty_starting_locations_data(0)
