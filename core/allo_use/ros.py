@@ -4,8 +4,8 @@ Reliability of Supply and min flow restrictions functions.
 """
 from numpy import ndarray, in1d, nan, array, where
 from ast import literal_eval, parse
-from pandas import read_csv, DataFrame, merge, concat, Series, MultiIndex, to_datetime, DateOffset
-from datetime import date
+from pandas import read_csv, DataFrame, merge, concat, Series, MultiIndex, to_datetime, DateOffset, to_numeric
+from datetime import date, datetime
 
 from core.misc.misc import printf, select_sites, save_df
 from core.spatial.vector import sel_sites_poly
@@ -145,15 +145,69 @@ def ros_proc(allo_use, date_col='date', allo_col='allo', min_days=150, export_us
     return([use_ros1b, ann_ros1])
 
 
-def min_max_trig(SiteID=None):
+def telem_corr_sites(site_num=None):
+    """
+    Function to determine if sites are telemetered or are correlated from telemetered sites in Hydrotel. Output is a list of correlated sites.
+
+    Parameters
+    ----------
+    site_num: list of str
+        Site numbers for the selection.
+
+    Returns
+    -------
+    List of str
+        List of site numbers that are correlated sites.
+    """
+    ### Parameters
+    server = 'SQL2012PROD05'
+    database = 'Hydrotel'
+    sites_tab = 'Sites'
+    obj_tab = 'Objects'
+
+    sites_fields = ['Site', 'ExtSysID']
+    obj_fields = ['Site', 'Name']
+
+    where_dict = {'Name': ['calculated flow']}
+
+    ### Read in data
+    if isinstance(site_num, list):
+        sites = rd_sql(server, database, sites_tab, sites_fields, {'ExtSysID': site_num})
+        sites['ExtSysID'] = to_numeric(sites['ExtSysID'], 'coerce')
+    else:
+        sites = rd_sql(server, database, sites_tab, sites_fields)
+        sites['ExtSysID'] = to_numeric(sites['ExtSysID'], 'coerce')
+        sites = sites[sites.ExtSysID.notnull()]
+
+    sites['Site'] = sites['Site'].astype('int32')
+
+    where_dict.update({'Site': sites.Site.tolist()})
+
+    obj = rd_sql(server, database, obj_tab, obj_fields, where_dict)
+    corr_sites = sites[sites.Site.isin(obj.Site)]
+
+    return corr_sites.ExtSysID.astype('int32').astype(str).tolist()
+
+
+def min_max_trig(SiteID=None, is_active=True):
     """
     Function to determine the min/max triggers.
+
+    Parameters
+    ----------
+    SiteID: list of str
+        Lowflows internal site numbers for filtering.
+    is_active: bool
+        Should the output only return active sites/bands?
+
+    Returns
+    -------
+    DataFrames
+        Outputs two DataFrames. The first includes the min and max triggger levelsfor all bands per site, while the second has the min and max trigger levels for each site and band.
     """
 
     ######################################
     ### Parameters
-
-    is_active = True
 
     period_fields = ['SiteID', 'BandNo', 'PeriodNo', 'fmDate', 'toDate']
     period_names = ['SiteID', 'band_num', 'period', 'from_date', 'to_date']
@@ -248,16 +302,17 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None):
 
     Notes
     -----
-    This should note be queried for low flows history past the last season as the bands and consents history are not stored. They only reflect active bands and consents.
+    This should not be queried for low flows history past the last season as the bands and consents history are not stored. They only reflect active bands and consents.
     """
 
     ########################################
     ### Parameters
 
     is_active = True
+    hour1 = datetime.now().hour
 
     ## Query fields - Be sure to use single quotes for the names!!!
-    restr_fields = ['SiteID', 'RestrictionDate', 'BandNo', 'BandAllocation', 'TriggerLevel', 'AsmtFlow']
+    restr_fields = ['SiteID', 'RestrictionDate', 'BandNo', 'BandAllocation', 'AsmtFlow']
     sites_fields = ['Siteid', 'RefDBaseKey', 'Waterway', 'Location']
     crc_fields = ['SiteID', 'BandNo', 'RecordNo']
     site_type_fields = ['SiteID', 'BandNo', 'RestrictionType']
@@ -267,6 +322,7 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None):
     sites_names = ['SiteID', 'site', 'Waterway', 'Location']
     crc_names = ['SiteID', 'band_num', 'crc']
     site_type_names = ['SiteID', 'band_num', 'restr_type']
+    ass_names = ['SiteID', 'flow_method', 'applies_date', 'date']
 
     ## Databases
 
@@ -289,6 +345,13 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None):
     # assessments table
     ass_table = 'LowFlowSiteAssessment'
 
+    # Ass stmt
+    ass_stmt = "select SiteID, MethodID, AppliesFromDate, MeasuredDate from LowFlows.dbo.LowFlowSiteAssessment t1 WHERE EXISTS(SELECT 1 FROM LowFlows.dbo.LowFlowSiteAssessment t2 WHERE t2.SiteID = t1.SiteID GROUP BY t2.SiteID HAVING t1.MeasuredDate = MAX(t2.MeasuredDate))"
+
+    ## Method dict
+    method_dict = {1: 'Gauged', 2: 'Visually Gauged', 3: 'Telemetered', 4: 'Manually Calculated', 5: 'Correlated from Telem'}
+
+
     ########################################
     ### Read in data
 
@@ -305,10 +368,23 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None):
 
     site_type = rd_sql(server1, database1, site_type_table, site_type_fields, {'isActive': [is_active]}, rename_cols=site_type_names)
 
-    tel_sites = rd_sql(server1, database1, ass_table, ['SiteID'], {'MethodID': [3], 'MeasuredDate': [to_date]})
+#    yesterday = str(to_datetime(to_date) - DateOffset(days=1))
+
+#    tel_sites_all = rd_sql(server1, database1, ass_table, ['SiteID'], {'MethodID': [3], 'AppliesFromDate': [to_date]})
+#    tel_sites = rd_sql(server1, database1, ass_table, ['SiteID'], {'MethodID': [3, 4], 'AppliesFromDate': [to_date], 'MeasuredDate': [yesterday]}).SiteID
+
+    ass1 = rd_sql(server1, database1, stmt=ass_stmt)
+    ass1.columns = ass_names
 
     #######################################
     ### Process data
+
+    ## Filter sites if needed
+    if isinstance(sites_num, list):
+        if isinstance(sites_num[0], str):
+            sites = sites[sites.site.isin(sites_num)]
+        else:
+            raise ValueError('sites_num must be a list of strings')
 
     ## Periods by month
     p_set_site, p_set = min_max_trig(restr_day.SiteID.tolist())
@@ -328,28 +404,33 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None):
     lowflow_site = site_type[site_type.restr_type == 'LowFlow'].copy().drop('restr_type', axis=1)
     restr_crc = merge(restr_crc, lowflow_site, on=['SiteID', 'band_num'], how='inner')
 
-    ## Add in whether it is currently telemetered
-    tel_sites['flow_from_telem'] = True
-    restr_crc_tel = merge(restr_crc, tel_sites, on='SiteID', how='left')
-    restr_crc_tel.loc[restr_crc_tel['flow_from_telem'].isnull(), 'flow_from_telem'] = False
+    ## Add in how it was measured and when
+    site_type1 = ass1[ass1.SiteID.isin(restr_day.SiteID.unique())].copy()
+    tel_sites1 = site_type1[site_type1.flow_method == 3].SiteID
+    tel_sites2 = sites.loc[sites.SiteID.isin(tel_sites1), 'site']
+    corr_sites1 = telem_corr_sites(tel_sites2.astype('int32').tolist())
+    corr_sites2 = sites.loc[sites.site.isin(corr_sites1), 'SiteID']
+    site_type1.loc[site_type1.SiteID.isin(corr_sites2), 'flow_method'] = 5
+    site_type1['days_since_flow_est'] = (to_datetime(to_date) - site_type1.date).dt.days
+    if (hour1 >= 17) & (hour1 < 14):
+        site_type1['days_since_flow_est'] = site_type1['days_since_flow_est'] - 1
+
+    site_type2 = site_type1.replace({'flow_method': method_dict}).drop(['applies_date', 'date'], axis=1)
+
+    sites1 = merge(sites, site_type2, on='SiteID')
 
     ## Aggregate to site and date
-    grp1 = restr_crc_tel.groupby(['SiteID', 'date'])
+    grp1 = restr_crc.groupby(['SiteID', 'date'])
     crcs1 = grp1['crc_count'].sum()
-    flow_site = grp1[['flow', 'mon', 'flow_from_telem']].first()
+    flow_site = grp1[['flow', 'mon']].first()
     crc_flow = concat([flow_site, crcs1], axis=1).reset_index()
 
     restr_sites1 = merge(crc_flow, p_set_site, on=['SiteID', 'mon'], how='left').drop('mon', axis=1)
     restr_sites1['below_min_trig'] = restr_sites1['flow'] <= restr_sites1['min_trig']
 
     ## Add in site numbers
-    restr_crc_sites = merge(sites, restr_crc_tel.drop('mon', axis=1), on='SiteID').drop('SiteID', axis=1).sort_values(['Waterway', 'date', 'min_trig'])
-    restr_sites = merge(sites, restr_sites1, on='SiteID').drop('SiteID', axis=1).sort_values(['Waterway', 'date', 'min_trig'])
-
-    ## Filter sites if needed
-    if isinstance(sites_num, list):
-        restr_sites = restr_sites[restr_sites.site.isin(sites_num)]
-        restr_crc_sites = restr_crc_sites[restr_crc_sites.site.isin(sites_num)]
+    restr_crc_sites = merge(sites1, restr_crc.drop('mon', axis=1), on='SiteID').drop('SiteID', axis=1).sort_values(['Waterway', 'date', 'min_trig'])
+    restr_sites = merge(sites1, restr_sites1, on='SiteID').drop('SiteID', axis=1).sort_values(['Waterway', 'date', 'min_trig'])
 
     ######################################
     ### Return
@@ -360,6 +441,15 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None):
 def priority_gaugings(num_previous_months=2):
     """
     Function to extract the gauging sites for low flow restrictions that hven't been gauged in a while.
+
+    Parameters
+    ----------
+    num_previous_months: int
+        The number of previous months to query over.
+
+    Returns
+    -------
+    DataFrame
     """
     ########################################
     ### Parameters
@@ -447,9 +537,18 @@ def restr_days(select, period='A-JUN', months=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
     """
     Function to determine the number of days on restriction per period according to the LowFlows database.
 
-    Arguments:\n
-    select -- Can either be a list of gauging site numbers or a shapefile polygon of an area that contains min flow sites.\n
-    period -- Pandas time series code for the time period.
+    Parameters
+    ----------
+    select: list or str
+        Can either be a list of gauging site numbers or a shapefile polygon of an area that contains min flow sites.
+    period: str
+        Pandas time series code for the time period.
+    months: list of int
+        The specific months to include in the query.
+
+    Returns
+    -------
+    DataFrame
     """
 
     ########################################

@@ -1504,6 +1504,7 @@ sites[sites.SiteID == siteid]
 ####################################################
 ### More hydstra
 from pint import UnitRegistry
+from core.ecan_io.hydllp import rd_hydstra_by_mtype
 
 site = 164606
 
@@ -1519,8 +1520,16 @@ ureg = UnitRegistry()
 
 m_s = ureg.meter / ureg.second
 
+mtype = 'lake_wl_rec_qc'
+mtype = 'river_flow_rec_qc'
+
+from_date = '2017-01-01'
+to_date = '2017-01-10'
+interval = 'hour'
+data_type = 'point'
 
 
+data1 = rd_hydstra_by_mtype(mtype, from_date=from_date, interval=interval)
 
 
 
