@@ -7,7 +7,7 @@ Date Created: 7/12/2017 12:43 PM
 from __future__ import division
 from core import env
 
-from set_up_run_per_modpath import make_mp_particles, get_cbc, setup_run_modpath
+from set_up_run_per_modpath import make_mp_forward_particles, get_cbc, setup_run_modpath
 from extract_data import save_emulator
 from con_array import _make_mednload_approx
 from run_emulator import run_emulator

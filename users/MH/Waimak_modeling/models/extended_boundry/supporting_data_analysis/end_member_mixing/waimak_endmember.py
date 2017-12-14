@@ -14,7 +14,7 @@ from scipy.stats import mode
 import matplotlib.pyplot as plt
 
 
-def mc_calc_end_members(outdir, sites, o18_u, o18_s, cl_u, cl_s, n=10000):
+def mc_calc_end_members(outdir, sites, o18_u, o18_s, cl_u, cl_s, n=10000, plot=False):
     percentages = np.array(list(itertools.product(range(101), range(101), range(101))))
     percentages = percentages[percentages.sum(axis=1) == 100] / 100
 
@@ -38,7 +38,9 @@ def mc_calc_end_members(outdir, sites, o18_u, o18_s, cl_u, cl_s, n=10000):
     plot_dir = os.path.join(outdir, 'plots')
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)
-    for site in sites.keys():
+    len_sites = len(sites)
+    for j, site in enumerate(sites.keys()):
+        print('site {} of {}, {}'.format(j,len_sites,site))
         cl_lower = sites[site]['cl_lower'] - 0.5  # these values are for teh analytical error
         cl_upper = sites[site]['cl_upper'] + 0.5
         o18_lower = sites[site]['o18_lower'] - 0.2
@@ -61,18 +63,18 @@ def mc_calc_end_members(outdir, sites, o18_u, o18_s, cl_u, cl_s, n=10000):
         outdata_95th.loc[site] = out_95th
         outdata_mode.loc[site] = mode(temp_out, axis=0).mode[0]
         outdata_mean.loc[site] = temp_out.mean(axis=0)
-
-        fig, ax = plt.subplots(figsize=(18.5, 9.5))
-        ax.hist(temp_out[:, 0], bins=101, color='orange', label='coastal', alpha=0.5)
-        ax.hist(temp_out[:, 1], bins=101, color='r', label='inland', alpha=0.5)
-        ax.hist(temp_out[:, 2], bins=101, color='b', label='river', alpha=0.5)
-        ax.set_title(site)
-        ax.legend()
-        fig.savefig(os.path.join(plot_dir, '{}.png'.format(site.replace('/','_'))))
-        plt.close(fig)
+        if plot:
+            fig, ax = plt.subplots(figsize=(18.5, 9.5))
+            ax.hist(temp_out[:, 0], bins=101, color='orange', label='coastal', alpha=0.5)
+            ax.hist(temp_out[:, 1], bins=101, color='r', label='inland', alpha=0.5)
+            ax.hist(temp_out[:, 2], bins=101, color='b', label='river', alpha=0.5)
+            ax.set_title(site)
+            ax.legend()
+            fig.savefig(os.path.join(plot_dir, '{}.png'.format(site.replace('/','_'))))
+            plt.close(fig)
 
         for i, name in enumerate(['coastal','inland','river']):
-            out = temp_out[:,0]
+            out = temp_out[:, i]
             np.savetxt(os.path.join(outdir,'{}_{}.txt'.format(site.replace('/','_'),name)),out)
 
     outdata_5th.to_csv(os.path.join(outdir, '5th.csv'))

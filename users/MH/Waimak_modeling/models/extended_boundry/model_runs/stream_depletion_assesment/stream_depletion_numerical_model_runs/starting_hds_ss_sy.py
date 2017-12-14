@@ -79,9 +79,9 @@ def _get_no_pumping_ss_hds(model_id, recalc=False):
 
 
 def get_ss_sy():
-    sy = np.zeros(smt.model_array_shape) + 0.1
+    sy = np.zeros(smt.model_array_shape) + 0.1  #todo this should get smaller
     ss = np.zeros(smt.model_array_shape)
-    ss[0, :, :] = 1.6E-3
+    ss[0, :, :] = 1.6E-3 # todo this should go to other ss
     ss[1:, :, :] = 5.6E-5
     return ss, sy
 

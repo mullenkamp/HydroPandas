@@ -16,7 +16,6 @@ import os
 import pandas as pd
 
 def part_group_cell_mapper(bd_type):
-    ibnd = smt.get_no_flow(0).flatten()
     js, iss = np.meshgrid(range(smt.cols), range(smt.rows)) # zero indexed to agree with python interpretation
     idx = bd_type.flatten() != -1
     out = dict(zip(range(1,idx.sum()+1),list(zip(iss.flatten()[idx],js.flatten()[idx]))))
@@ -24,11 +23,13 @@ def part_group_cell_mapper(bd_type):
 
 
 
-def make_mp_particles(cbc_path):
+def make_mp_forward_particles(cbc_path, min_part=1, max_part=None): #todo could add a limiting factor e.g. a max per cell
     """
     make modpath particle locations from the cbc file.  particles are created in each top layer cell with the number
     relative to the influx
     :param cbc_path: path to the cell by cell budget file
+    :param min_part: the minimum number of particles in each cell
+    :param max_part: the number above which particles will be truncated or None (no truncation)
     :return: np.record array
     """
     # particles must have a label as a string otherwise it terminates
@@ -47,9 +48,10 @@ def make_mp_particles(cbc_path):
     flow = rch + well + sfr
     flow[smt.get_no_flow(0) != 1] = 0
 
-    # generate particles (minimum of 1 per cell) #todo how many particles are reasonable? right now 1 per cell
-    num_parts = np.round(flow / flow[flow > 0].min()).astype(int)
-    num_parts[num_parts>0] = 1 #todo delete after debug
+    # generate particles (minimum of 1 per cell)
+    num_parts = np.round(flow / flow[flow > 0].min() * min_part).astype(int)
+    if max_part is not None:
+        num_parts[num_parts > max_part] = int(max_part)
 
     # identify boundary condition types
     bd_type = smt.get_empty_model_grid()  # 0=rch,1=well,2==sfr
@@ -67,7 +69,7 @@ def make_mp_particles(cbc_path):
     idx = bd_type.flatten() != -1
     group_dict = part_group_cell_mapper(bd_type)
     start_idx = 0
-    print('generating particles') #todo the offset is happening here as my index is where the bd_type !=0
+    print('generating particles')
     for l, (num, i, j, bt) in enumerate(zip(num_parts.flatten()[idx], iss.flatten()[idx], js.flatten()[idx], bd_type.flatten()[idx])):
         if num == 0:
             raise ValueError('unexpected zero points')
@@ -79,7 +81,7 @@ def make_mp_particles(cbc_path):
         outdata['j0'][start_idx:end_idx] = j
         outdata['xloc0'][start_idx:end_idx] = np.random.uniform(size=num)
         outdata['yloc0'][start_idx:end_idx] = np.random.uniform(size=num)
-        outdata['zloc0'][start_idx:end_idx] = 1 if bt != 1 else np.random.uniform(size=num)
+        outdata['zloc0'][start_idx:end_idx] = 1 if bt == 0 else np.random.uniform(size=num)
         start_idx = end_idx
     return outdata, bd_type
 
@@ -91,7 +93,7 @@ def get_cbc(model_id, base_dir): # todo implement nsmcrealisations in import_gns
 
     m = import_gns_model(model_id,'for_modpath',os.path.join(base_dir,'for_modpath'),False)
     m.write_name_file()
-    m.upw.iphdry = 0  # hdry is -888.0
+    m.upw.iphdry = 1  # hdry is -888.0
 
     m.write_input()
     m.run_model()
@@ -99,8 +101,8 @@ def get_cbc(model_id, base_dir): # todo implement nsmcrealisations in import_gns
     return cbc_path
 
 
-def setup_run_modpath(cbc_path, mp_ws, mp_name):
-    particles, bd_type = make_mp_particles(cbc_path)
+def setup_run_modpath(cbc_path, mp_ws, mp_name, min_part=1, max_part=None):
+    particles, bd_type = make_mp_forward_particles(cbc_path, min_part=min_part, max_part=max_part)
     particles = pd.DataFrame(particles)
     np.savetxt(os.path.join(mp_ws,'{}_bnd_type.txt'.format(mp_name)),bd_type)
     temp_particles = flopy.modpath.mpsim.StartingLocationsFile.get_empty_starting_locations_data(0)

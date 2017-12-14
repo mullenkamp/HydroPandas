@@ -9,6 +9,7 @@ import geopandas as gpd
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import pandas as pd
 import flopy
+from users.MH.Waimak_modeling.models.extended_boundry.m_packages.wel_packages import _get_wel_spd_v3
 
 def make_con_layer(bnd_type, rch_con_array, well_data, sfr_data):
     """
@@ -53,8 +54,12 @@ def make_inital_sfr_dataframe(ashley, cust, eyre, waimak):
 def _make_mednload_approx(bnd_type):
 
     sfr = make_inital_sfr_dataframe(0.1,0.35,0.35,0.1)
-    well = pd.read_table(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\median_n_load_wells.txt",
-                         delim_whitespace=True)
+    temp_well = pd.read_table(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\median_n_load_wells.txt",
+                         delim_whitespace=True, index_col=0)
+    temp_well.loc[:,['layer','row','col']] += -1
+    well = _get_wel_spd_v3()
+    well.loc[:,'conc'] = 0
+    well.loc[temp_well.index,'conc'] = temp_well.loc[:,'conc']
     rch = flopy.utils.Util2d.load_txt((smt.rows,smt.cols),r"K:\mh_modeling\data_from_gns\run_files\nconc_cmp_200m.ref",float,'(FREE)')
 
     load = make_con_layer(bnd_type,rch,well,sfr)

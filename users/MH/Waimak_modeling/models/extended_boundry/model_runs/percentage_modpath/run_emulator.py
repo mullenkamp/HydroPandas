@@ -14,6 +14,17 @@ from time import time
 # make a function to run the full emulator and to run only certain cells given a load layer.  also function to run as a
 # stocastic simulation
 
+def get_group_number(index, bd_type):
+    assert isinstance(index,np.ndarray)
+    assert index.dtype == bool
+    if index.shape != (smt.rows,smt.cols):
+        raise ValueError('array must have shape of {} not {}'.format((smt.rows,smt.cols),index.shape))
+    idx = bd_type.flatten() != -1
+    temp = np.where(index.flatten()[idx])[0]
+    return temp
+
+
+
 def _convert_data_to_cell_dict(array, bd_type):
     """
     converts the data to a dictionary to replace teh group ids
@@ -86,7 +97,7 @@ def run_emulator(emulator_path, load_layer, bd_type, index=None):
     outdata[index] = temp_out.loc[ids].values
     print('took {} s to output concentrations'.format(time()-t))
 
-
+    # todo could either gausian blur or run a spline to to account for dispersion
     return outdata
 
 # quickest way to assign is to loop or to use below

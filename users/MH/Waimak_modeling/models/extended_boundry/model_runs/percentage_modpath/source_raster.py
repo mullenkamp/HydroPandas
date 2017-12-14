@@ -48,25 +48,26 @@ def define_source(emulator_path, bd_type, index): # todo could make this into a 
 
     # calculate source percentage
     emulator = emulator.reset_index()
-    temp = emulator.groupby('Particle_Group').aggregate({'fraction':np.sum})
+    temp = emulator.groupby('Particle_Group').aggregate({'fraction': np.sum})
     temp *= 1/temp.sum()
 
     # populate array
-    ibnd = smt.get_no_flow(0).flatten()
     idx = bd_type.flatten() != -1
     outdata = outdata.flatten()
     temp_array = outdata[idx]
     temp_array[temp.index.values-1] = temp.fraction.values
     outdata[idx] = temp_array
     outdata = outdata.reshape((smt.rows,smt.cols))
-    smt.plt_matrix(outdata!=0)
-    range(1, idx.sum() + 1)
+    smt.plt_matrix(outdata!=0) #todo delete after debug
 
-    #todo something is wrong with indexing....  work bd type through
     return outdata
 
 if __name__ == '__main__':
+    # this looks good
+    #check layer 7 in the area of no data
     from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.cwms_index import get_zone_array_index
-    index = smt.get_empty_model_grid(True)
-    index[:,150:171,290:301] = True
-    define_source(r"T:\Temp\temp_gw_files\first_try.hdf",index.astype(bool))
+    temp_index = smt.shape_file_to_model_array(r"C:\Users\MattH\Downloads\test_area.shp",'Id',True)
+    index = smt.get_empty_model_grid(True).astype(bool)
+    index[1] = np.isfinite(temp_index)
+    bd_type = np.loadtxt(r"T:\Temp\temp_gw_files\NsmcBase_first_try_bnd_type.txt")
+    define_source(r"T:\Temp\temp_gw_files\first_try.hdf",bd_type,index.astype(bool))
