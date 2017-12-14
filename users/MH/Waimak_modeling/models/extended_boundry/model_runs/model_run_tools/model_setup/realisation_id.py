@@ -11,10 +11,11 @@ import pickle
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import os
 from warnings import warn
-from users.MH.Waimak_modeling.models.extended_boundry.m_packages.wel_packages import _get_wel_spd_v1,_get_wel_spd_v2
+from users.MH.Waimak_modeling.models.extended_boundry.m_packages.wel_packages import _get_wel_spd_v1, _get_wel_spd_v2
 import pandas as pd
 import numpy as np
 import subprocess
+import netCDF4 as nc
 
 temp_pickle_dir = '{}/temp_pickle_dir'.format(smt.pickle_dir)
 if not os.path.exists(temp_pickle_dir):
@@ -33,16 +34,15 @@ def get_base_well(model_id, org_pumping_wells, recalc=False):
         org = 'model_period_pumping'
     else:
         org = '14-15_pumping_waimak'
-    pickle_path = "{}/model_{}_base_wells_{}.p".format(temp_pickle_dir, model_id,org)
+    pickle_path = "{}/model_{}_base_wells_{}.p".format(temp_pickle_dir, model_id, org)
     if (os.path.exists(pickle_path)) and (not recalc):
         outdata = pickle.load(open(pickle_path))
         return outdata
 
     if org_pumping_wells:
-        all_wells = _get_wel_spd_v1() # usage for the model period as passed to the optimisation
+        all_wells = _get_wel_spd_v1()  # usage for the model period as passed to the optimisation
     else:
         all_wells = _get_wel_spd_v2()  # usage for 2014/2015 period in waimak zone
-
 
     all_wells.loc[:, 'nsmc_type'] = ''
 
@@ -74,7 +74,7 @@ def get_base_well(model_id, org_pumping_wells, recalc=False):
     add_groups = ['llrzf', 'ulrzf']
     for group in add_groups:
         all_wells.loc[all_wells.nsmc_type == group, 'flux'] = multipliers.loc[group, 'value'] / (
-        all_wells.nsmc_type == group).sum()
+            all_wells.nsmc_type == group).sum()
     pickle.dump(all_wells, open(pickle_path, 'w'))
     return all_wells
 
@@ -106,11 +106,11 @@ def get_rch_multipler(model_id):
     model_ws = os.path.dirname(get_model_name_path(model_id))
     rch_mult_path = os.path.join(model_ws, 'recharge_mul.ref')
     if not os.path.exists(rch_mult_path):
-        model_ws = os.path.splitunc(model_ws)[1].replace('/SCI','P:/') # for now assuming that SCI is mapped to P drive could fix in future
+        model_ws = os.path.splitunc(model_ws)[1].replace('/SCI',
+                                                         'P:/')  # for now assuming that SCI is mapped to P drive could fix in future
         exe_path = r"P:/Groundwater/Matt_Hanson/model_exes/fac2real.exe"
-        test = subprocess.call(exe_path + ' < fac2real_rech.in',cwd=model_ws,shell=True)
+        test = subprocess.call(exe_path + ' < fac2real_rech.in', cwd=model_ws, shell=True)
         print(test)
-
 
     # to read in the possibly wrapped array use:
     outdata = flopy.utils.Util2d.load_txt((smt.rows, smt.cols), rch_mult_path, float, '(FREE)')
@@ -129,8 +129,9 @@ def get_model_name_path(model_id):
     """
     # new model check the well package, check the sfr package and run new_model_run
 
-    if model_id in ['test', 'opt', 'NsmcBaseB','VertUnstabA', 'VertUnstabB']:
+    if model_id in ['test', 'opt', 'NsmcBaseB', 'VertUnstabA', 'VertUnstabB']:
         warn('model {} is depreciated'.format(model_id))
+
     model_dict = {
         # a place holder to test the scripts
         'test': r"C:\Users\MattH\Desktop\Waimak_modeling\ex_bd_tester\test_import_gns_mod\mf_aw_ex.nam",
@@ -157,23 +158,108 @@ def get_model_name_path(model_id):
         # optimisation revieved on 25/10/2017 which is the previous iteration to NsmcBase.  NsmcBase was quite unstable,
         # which is why we are considering the previous optimisation
         'NsmcBaseB': "{}/from_gns/NsmcBaseB/AW20171024_2_i1_optver/i1/mf_aw_ex.nam".format(smt.sdp)
-    } #todo implement the nsmc realisations in here some how
+    }
     if '_' in model_id:
-        raise ValueError('_ in model id: {}, model_id cannot include an "_" as this is a splitting character'.format(model_id))
+        raise ValueError(
+            '_ in model id: {}, model_id cannot include an "_" as this is a splitting character'.format(model_id))
     if model_id not in model_dict.keys():
         raise NotImplementedError('model {} has not yet been defined'.format(model_id))
     return model_dict[model_id]
 
 
-def get_model(model_id):
+def _get_nsmc_realisation(model_id, save_to_dir=False):
+    """
+    wrapper to get model from a NSMC realisation
+    :param model_id: identifier 'NsmcReal{nsmc_num:06d}'
+    :param save_to_dir: boolean if true save a copy of the model for quicker reteval in the dir specified below
+    :return:
+    """
+    assert 'NsmcReal' in model_id, 'unknown model id: {}, expected NsmcReal(nsmc_num:06d)'.format(model_id)
+    assert len(model_id) == 14, 'unknown model id: {}, expected NsmcReal(nsmc_num:06d)'.format(model_id)
+
+    nsmc_num = int(model_id[-6:])
+    save_dir = None  # todo set up
+    # todo allow the model to be opened from a saved version....
+    converter_dir = "{}/base_for_nsmc_real".format(smt.sdp)
+    param_data = nc.Dataset(env.gw_met_data(r"mh_modeling\netcdfs_of_key_modeling_data\nsmc_params_obs_metadata.nc"))
+    param_idx = np.where(np.array(param_data.variables['nsmc_num']) == nsmc_num)[0][0]
+
+    # write well paraemeters to wel_adj.txt #todo check
+    with open(os.path.join(converter_dir, 'wel_adj.txt'), 'w') as f:
+        for param in ['pump_c', 'pump_s', 'pump_w', 'sriv', 'n_race', 's_race', 'nbndf', 'llrzf', 'ulrzf']:
+            val = param_data.variables[param][param_idx]
+            f.write('{} {}\n'.format(param, val))
+
+    # write rch parameters to rch_ppts.txt #todo check
+    with open(os.path.join(converter_dir, 'rch_ppts.txt'), 'w') as f:
+        keys = np.array(param_data.variables['rch_ppt'])
+        x = np.array(param_data.variables['rch_ppt_x'])
+        y = np.array(param_data.variables['rch_ppt_y'])
+        group = np.array(param_data.variables['rch_ppt_group'])
+        val = np.array(param_data.variables['rch_mult'][param_idx])
+        for k, _x, _y, g, v in zip(keys, x, y, group, val):
+            f.write('{} {} {} {} {}\n'.format(k, _x, _y, g, v))
+
+    # write kh and kv #todo check
+    all_kv = np.array(param_data.variables['kv'][param_idx])  # shape = (11, 178)
+    all_kh = np.array(param_data.variables['kh'][param_idx])  # shape = (11, 178)
+    all_names = np.array(param_data.variables['khv_ppt'])
+    all_x = np.array(param_data.variables['khv_ppt_x'])
+    all_y = np.array(param_data.variables['khv_ppt_y'])
+    for layer in range(smt.layers):
+        khv_idx = np.isfinite(all_kh[layer])
+        layer_names = all_names[khv_idx]
+        layer_x = all_x[khv_idx]
+        layer_y = all_y[khv_idx]
+        layer_kv = all_kv[layer][khv_idx]
+        layer_kh = all_kh[layer][khv_idx]
+
+        # parameters to kh_kkp_{layer one indexed}.txt
+        with open(os.path.join(converter_dir, 'KH_ppk_{:02d}.txt'.format(layer + 1)), 'w') as f:  # one indexed
+            for n, x, y, kh in zip(layer_names, layer_x, layer_y, layer_kh):
+                f.write('{} {} {} {}\n'.format(n, x, y, kh))
+
+        # write kv parameters to kv_ppk_{layer one indexed}.txt
+        with open(os.path.join(converter_dir, 'KV_ppk_{:02d}.txt'.format(layer + 1)), 'w') as f:  # one indexed
+            for n, x, y, kv in zip(layer_names, layer_x, layer_y, layer_kv):
+                f.write('{} {} {} {}\n'.format(n, x, y, kv))
+
+    # write sfr parameters to segfile.txt and/or segfile.tpl #todo
+
+    # write fault parameters to fault_ks.txt #todo check
+    with open(os.path.join(converter_dir, 'fault_ks.txt'), 'w') as f:
+        for param in ['fkh_mult', 'fkv_mult']:
+            val = param_data.variables[param][param_idx]
+            f.write('{}\n'.format(val))
+
+    # write drain package from parameters and mf_aw_ex_drn.tpl #todo
+
+    # run model.bat #todo
+
+    # load model #todo
+
+    # if save then save to a new folder and run the model #todo move up a level, nope
+
+
+
+    raise NotImplementedError
+
+
+def get_model(model_id, save_to_dir=False):
     """
     load a flopy model instance of the model id
     :param model_id:
+    :param save_to_dir: boolean only for nsmc realisations save the model to dir?
     :return: m flopy model instance
     """
     # check well packaged loads appropriately! yep this is a problem because we define the iface value,
     #  but it isn't used, remove iface manually
     # if it doesn't exist I will need to add the options flags to SFR package manually
+
+    if 'NsmcReal' in model_id:  # model id should be 06d
+        assert len(model_id) == 14, 'model id for realsiation is "NsmcReal{nsmc_num:06d}"'
+        m = _get_nsmc_realisation(model_id, save_to_dir)
+        return m
 
     name_file_path = get_model_name_path(model_id)
     well_path = name_file_path.replace('.nam', '.wel')
@@ -183,7 +269,8 @@ def get_model(model_id):
             line = f.readline()
             counter += 1
             if 'aux' in line.lower():
-                raise ValueError('AUX in well package will cause reading error {} please remove manually'.format(well_path))
+                raise ValueError(
+                    'AUX in well package will cause reading error {} please remove manually'.format(well_path))
 
     # check SFR package is correct
     sfr_path = name_file_path.replace('.nam', '.sfr')
