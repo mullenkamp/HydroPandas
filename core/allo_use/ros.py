@@ -412,7 +412,7 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None):
     corr_sites2 = sites.loc[sites.site.isin(corr_sites1), 'SiteID']
     site_type1.loc[site_type1.SiteID.isin(corr_sites2), 'flow_method'] = 5
     site_type1['days_since_flow_est'] = (to_datetime(to_date) - site_type1.date).dt.days
-    if (hour1 >= 17) & (hour1 < 14):
+    if (hour1 >= 17) | (hour1 < 14):
         site_type1['days_since_flow_est'] = site_type1['days_since_flow_est'] - 1
 
     site_type2 = site_type1.replace({'flow_method': method_dict}).drop(['applies_date', 'date'], axis=1)
