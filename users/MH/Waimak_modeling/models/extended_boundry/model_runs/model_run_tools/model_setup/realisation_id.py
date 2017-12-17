@@ -16,6 +16,9 @@ import pandas as pd
 import numpy as np
 import subprocess
 import netCDF4 as nc
+import shutil
+from users.MH.Waimak_modeling.supporting_data_path import sdp
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import converged
 
 temp_pickle_dir = '{}/temp_pickle_dir'.format(smt.pickle_dir)
 if not os.path.exists(temp_pickle_dir):
@@ -177,9 +180,16 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
     assert 'NsmcReal' in model_id, 'unknown model id: {}, expected NsmcReal(nsmc_num:06d)'.format(model_id)
     assert len(model_id) == 14, 'unknown model id: {}, expected NsmcReal(nsmc_num:06d)'.format(model_id)
 
+    # check if the model has previously been saved to the save dir, and if so, load from there
+    save_dir = env.gw_met_data("mh_modeling/nsmc_loaded_realisations_TEMP")
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    if os.path.exists(os.path.join(save_dir, '{}_base.hds'.format(model_id))):
+        name_file_path = os.path.join(save_dir, '{m}_base', '{m}_base.nam'.format(m=model_id))
+        m = flopy.modflow.Modflow.load(name_file_path, model_ws=os.path.dirname(name_file_path), forgive=False)
+        return m
+
     nsmc_num = int(model_id[-6:])
-    save_dir = None  # todo set up
-    # todo allow the model to be opened from a saved version....
     converter_dir = "{}/base_for_nsmc_real".format(smt.sdp)
     param_data = nc.Dataset(env.gw_met_data(r"mh_modeling\netcdfs_of_key_modeling_data\nsmc_params_obs_metadata.nc"))
     param_idx = np.where(np.array(param_data.variables['nsmc_num']) == nsmc_num)[0][0]
@@ -224,7 +234,25 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
             for n, x, y, kv in zip(layer_names, layer_x, layer_y, layer_kv):
                 f.write('{} {} {} {}\n'.format(n, x, y, kv))
 
-    # write sfr parameters to segfile.txt and/or segfile.tpl #todo
+    # write sfr parameters to segfile.txt and/or segfile.tpl #todo check
+    # load template
+    sfr_template = pd.read_table(os.path.join(converter_dir, 'sfr_segdata.tpl'), skiprows=1, sep='\t')
+    # make dictionary of parameters
+    flows = ['$mid_c_flo $', '$top_c_flo $', 'top_e_flo $']
+    replacement = {}
+    # flows
+    for f in flows:
+        replacement[f] = param_data.variables[f.strip('$ ')][param_idx]
+    # ks
+    for k in set(sfr_template.hcond2).union(set(sfr_template.hcond1)):
+        names = param_data.variables['sfr_cond'][:]
+        name_idx = np.where(names == k.strip(' $'))[0, 0]
+        val = param_data.variables['sfr_cond_val'][param_idx][name_idx]
+        replacement[k] = val
+
+    # do the replacement
+    sfr_out = sfr_template.replace(replacement)
+    sfr_out.to_csv(os.path.join(converter_dir, 'sfr_segdata.txt'))
 
     # write fault parameters to fault_ks.txt #todo check
     with open(os.path.join(converter_dir, 'fault_ks.txt'), 'w') as f:
@@ -233,16 +261,65 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
             f.write('{}\n'.format(val))
 
     # write drain package from parameters and mf_aw_ex_drn.tpl #todo
+    drn_tpl_path = os.path.join(converter_dir, "mf_aw_ex_drn.tpl")
+    drn = pd.read_fwf(drn_tpl_path, skiprows=4, names=['Layer', 'Row', 'Column', 'Elevation', 'Condfact'])
+    with open(drn_tpl_path) as f:
+        header = []
+        for i in range(4):
+            if i == 0:  # don't need first line it is a pest flag
+                continue
+            header.append(f.readline)
 
-    # run model.bat #todo
+    # make replacement dictionary
+    names = set(drn.Condfact)
+    param_names = param_data.variables['drns'][:]
+    replacer = {}
+    for nm in names:
+        drn_idx = param_names == nm.strip('$ ')
+        replacer[nm] = param_data.variables['drn_cond'][param_idx][drn_idx]
 
-    # load model #todo
+    # replace data
+    drn_out = drn.replace(replacer)
 
-    # if save then save to a new folder and run the model #todo move up a level, nope
+    # write file
+    out_drn_path = os.path.join(converter_dir, 'mf_aw_ex.drn')
+    with open(out_drn_path, 'w') as f:
+        f.writelines(header)
 
+    # write data with pandas
+    drn_out.to_csv(out_drn_path, sep=' ', mode='a', index=False, header=False)
 
+    # run model.bat
+    cwd = os.path.splitunc(converter_dir)[1].replace('/SCI', 'P:/')
+    # for now assuming that SCI is mapped to P drive could fix in future
 
-    raise NotImplementedError
+    p = subprocess.Popen("model.bat", cwd=cwd)
+    out = p.communicate()
+    print(out)
+
+    # load model
+    name_file_path = os.path.join(converter_dir, 'mf_aw_ex.nam')
+    # this is a bit unnecessary, but I want it to be exactly the same as the other loader
+    m = flopy.modflow.Modflow.load(name_file_path, model_ws=os.path.dirname(name_file_path), forgive=False)
+
+    # if save then save to a new folder and run the model
+    if save_to_dir:
+        name = '{}_base'.format(model_id)
+        dir_path = os.path.join(save_dir, name)
+        shutil.rmtree(dir_path)  # remove old files to prevent file mix ups
+        os.makedirs(dir_path)
+        m._set_name(name)
+        m.change_model_ws(dir_path)
+        m.exe_name = "{}/models_exes/MODFLOW-NWT_1.1.2/MODFLOW-NWT_1.1.2/bin/MODFLOW-NWT_64.exe".format(sdp)
+        m.write_name_file()
+        m.write_input()
+        con = converged(os.path.join(dir_path, m.lst.file_name))
+        if not con:
+            os.remove(os.path.join(dir_path, '{}.hds'.format(m.name)))
+            raise ValueError('the model did not converge: \n'
+                             '{}\n, headfile deleted to prevent running'.format(os.path.join(dir_path, name)))
+
+    return m
 
 
 def get_model(model_id, save_to_dir=False):
