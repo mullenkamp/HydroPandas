@@ -42,7 +42,7 @@ def particle_loc_from_grid(grid_locs, root3_num_part = 2):
     outdata['label'] = 's' # a filler so that the loc file will read properly
     return outdata
 
-def setup_backward_modpath(mp_ws, mp_name, cbc_file, index=None, root3_num_part=1): #todo pathline or endpoint
+def setup_run_backward_modpath(mp_ws, mp_name, cbc_file, index=None, root3_num_part=1, capt_weak_s=False): #todo pathline or endpoint
     """
     set up backward particle tracking
     :param mp_ws: modpath working directory
@@ -52,6 +52,7 @@ def setup_backward_modpath(mp_ws, mp_name, cbc_file, index=None, root3_num_part=
     :param index: a smt.layer,row,col boolean array or None (places particles in every active cell)
     :param root3_num_part: the cubic root of the number of particles (placed evenly in the cell) e.g.
                            root3_num_part of 2 places 8 particles in each cell
+    :param capt_weak_s: bool if True terminate particles at weak sources
     :return:
     """
 

@@ -7,7 +7,7 @@ Date Created: 6/12/2017 1:37 PM
 from __future__ import division
 from core import env
 import pandas as pd
-from set_up_run_per_modpath import part_group_cell_mapper
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.modpath_sims.setup_forward_modpath import part_group_cell_mapper
 import netCDF4 as nc
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import itertools
@@ -51,7 +51,7 @@ def _get_group_num(x):
     return x.iloc[0]
 
 
-def extract_data(path):
+def extract_forward_data(path):
     """
     extract the data and export as pd.DataFrame with index of cell_ref_id, Particle_Group and column of Particle_ID count
     :param path:
@@ -93,52 +93,13 @@ def extract_data(path):
     return outdata
 
 
-def save_emulator(path, outpath):
+def save_forward_data(path, outpath):
     # save the data extracted above to an emulator netcdf
     # keep the group id to locate cells, but make a linker (e.g. pass the dictionary to the dataframe)
-    data = extract_data(path)
+    data = extract_forward_data(path)
     data.to_hdf(outpath, 'emulator', mode='w')
 
-
+# todo extract/save backward data
 if __name__ == '__main__':
     import time
-    t = time.time()
-    test = extract_data("D:\mh_waimak_models\modpath_emulator\NsmcBase_first_try.mppth")
-    print('took {} min to extract data'.format((time.time()-t)/60))
-
-    print('data size is {} gb'.format(test.memory_usage().sum()/1e9))
-    t = time.time()
-
-
-    test.to_csv(r"D:\mh_waimak_models\modpath_emulator\first_try.csv")
-    print('took {} min to write data to csv'.format((time.time()-t)/60))
-    t = time.time()
-
-    test.to_hdf(r"D:\mh_waimak_models\modpath_emulator\first_try.hdf",'em',mode='w')
-    print('took {} min to write data to hdf'.format((time.time()-t)/60))
-    t = time.time()
-
-    pickle.dump(test,open(r"D:\mh_waimak_models\modpath_emulator\first_try.p",'w'))
-    print('took {} min to write data to pickle'.format((time.time()-t)/60))
-    t = time.time()
-
-
-    temp = pd.read_hdf(r"D:\mh_waimak_models\modpath_emulator\first_try.hdf")
-    print('took {} min to read data from hdf'.format((time.time()-t)/60))
-    t = time.time()
-
-    temp = pd.read_csv(r"D:\mh_waimak_models\modpath_emulator\first_try.csv")
-    print('took {} min to read data from csv'.format((time.time()-t)/60))
-    t = time.time()
-
-    temp = pickle.load(open(r"D:\mh_waimak_models\modpath_emulator\first_try.p"))
-    print('took {} min to read data from pickle'.format((time.time()-t)/60))
-    t = time.time()
-
-    _dump_extract_pickle(test,open(r"D:\mh_waimak_models\modpath_emulator\first_try.np",'w'))
-    print('took {} min to write data to numeric pickle'.format((time.time()-t)/60))
-    t = time.time()
-
-    temp = _load_extract_pickle(r"D:\mh_waimak_models\modpath_emulator\first_try.np")
-    print('took {} min to read data from numeric pickle'.format((time.time()-t)/60))
     t = time.time()

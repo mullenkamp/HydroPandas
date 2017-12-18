@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 
-def define_source(emulator_path, bd_type, index): # todo could make this into a list of indexes or dictionary of indexes...
+def define_source_from_forward(emulator_path, bd_type, index): # todo could make this into a list of indexes or dictionary of indexes...
     """
 
     :param emulator_path: path to the emulator (hdf)
@@ -70,4 +70,4 @@ if __name__ == '__main__':
     index = smt.get_empty_model_grid(True).astype(bool)
     index[1] = np.isfinite(temp_index)
     bd_type = np.loadtxt(r"T:\Temp\temp_gw_files\NsmcBase_first_try_bnd_type.txt")
-    define_source(r"T:\Temp\temp_gw_files\first_try.hdf",bd_type,index.astype(bool))
+    define_source_from_forward(r"T:\Temp\temp_gw_files\first_try.hdf", bd_type, index.astype(bool))

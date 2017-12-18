@@ -4,12 +4,15 @@ Date Created: 12/12/2017 3:27 PM
 """
 
 from __future__ import division
-from core import env
-import numpy as np
+
 import flopy
+import numpy as np
 import pandas as pd
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_setup.modpath_percentage import export_paths_to_shapefile
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.percentage_modpath.run_emulator import get_group_number
+
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_setup.modpath_percentage import \
+    export_paths_to_shapefile
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.modpath_sims.percentage_modpath.run_emulator import \
+    get_group_number
 
 if __name__ == '__main__':
     bnd_type = np.loadtxt("D:\mh_waimak_models\modpath_emulator\NsmcBase_first_try_bnd_type.txt")
