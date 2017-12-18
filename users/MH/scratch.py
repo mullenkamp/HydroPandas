@@ -11,6 +11,7 @@ def timeit_test():
     ids = ['{:02d}_{:03d}_{:03d}'.format(k, i, j) for k, i, j in zip(layers.flatten(), rows.flatten(), cols.flatten())]
 
 if __name__ == '__main__':
+    print 'hello world'
     data = nc.Dataset(r"C:\Users\MattH\Downloads\test.nc",'w')
     data.createDimension('bound',2)
     data.createDimension('unbound',2)

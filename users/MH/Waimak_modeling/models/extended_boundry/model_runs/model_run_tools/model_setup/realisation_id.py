@@ -194,6 +194,7 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
     param_data = nc.Dataset(env.gw_met_data(r"mh_modeling\netcdfs_of_key_modeling_data\nsmc_params_obs_metadata.nc"))
     param_idx = np.where(np.array(param_data.variables['nsmc_num']) == nsmc_num)[0][0]
 
+    print('writing data to parameter files')
     # write well paraemeters to wel_adj.txt #todo check
     with open(os.path.join(converter_dir, 'wel_adj.txt'), 'w') as f:
         for param in ['pump_c', 'pump_s', 'pump_w', 'sriv', 'n_race', 's_race', 'nbndf', 'llrzf', 'ulrzf']:
@@ -227,32 +228,32 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
         # parameters to kh_kkp_{layer one indexed}.txt
         with open(os.path.join(converter_dir, 'KH_ppk_{:02d}.txt'.format(layer + 1)), 'w') as f:  # one indexed
             for n, x, y, kh in zip(layer_names, layer_x, layer_y, layer_kh):
-                f.write('{} {} {} {}\n'.format(n, x, y, kh))
+                f.write('{}\t{}\t{}\t1\t{}\n'.format(n, x, y, kh))
 
         # write kv parameters to kv_ppk_{layer one indexed}.txt
         with open(os.path.join(converter_dir, 'KV_ppk_{:02d}.txt'.format(layer + 1)), 'w') as f:  # one indexed
             for n, x, y, kv in zip(layer_names, layer_x, layer_y, layer_kv):
-                f.write('{} {} {} {}\n'.format(n, x, y, kv))
+                f.write('{}\t{}\t{}\t1\t{}\n'.format(n, x, y, kv))
 
     # write sfr parameters to segfile.txt and/or segfile.tpl #todo check
     # load template
     sfr_template = pd.read_table(os.path.join(converter_dir, 'sfr_segdata.tpl'), skiprows=1, sep='\t')
     # make dictionary of parameters
-    flows = ['$mid_c_flo $', '$top_c_flo $', 'top_e_flo $']
+    flows = ['$mid_c_flo $', '$top_c_flo $', '$top_e_flo $']
     replacement = {}
     # flows
     for f in flows:
         replacement[f] = param_data.variables[f.strip('$ ')][param_idx]
     # ks
+    names = param_data.variables['sfr_cond'][:]
     for k in set(sfr_template.hcond2).union(set(sfr_template.hcond1)):
-        names = param_data.variables['sfr_cond'][:]
-        name_idx = np.where(names == k.strip(' $'))[0, 0]
+        name_idx = np.where(names == k.strip(' $').lower())[0][0]
         val = param_data.variables['sfr_cond_val'][param_idx][name_idx]
         replacement[k] = val
 
     # do the replacement
     sfr_out = sfr_template.replace(replacement)
-    sfr_out.to_csv(os.path.join(converter_dir, 'sfr_segdata.txt'))
+    sfr_out.to_csv(os.path.join(converter_dir, 'sfr_segdata.txt'), sep='\t')
 
     # write fault parameters to fault_ks.txt #todo check
     with open(os.path.join(converter_dir, 'fault_ks.txt'), 'w') as f:
@@ -260,15 +261,16 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
             val = param_data.variables[param][param_idx]
             f.write('{}\n'.format(val))
 
-    # write drain package from parameters and mf_aw_ex_drn.tpl #todo
+    # write drain package from parameters and mf_aw_ex_drn.tpl #todo check
     drn_tpl_path = os.path.join(converter_dir, "mf_aw_ex_drn.tpl")
     drn = pd.read_fwf(drn_tpl_path, skiprows=4, names=['Layer', 'Row', 'Column', 'Elevation', 'Condfact'])
     with open(drn_tpl_path) as f:
         header = []
         for i in range(4):
             if i == 0:  # don't need first line it is a pest flag
+                f.readline()
                 continue
-            header.append(f.readline)
+            header.append(f.readline())
 
     # make replacement dictionary
     names = set(drn.Condfact)
@@ -281,7 +283,7 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
     # replace data
     drn_out = drn.replace(replacer)
 
-    # write file
+    # write file header
     out_drn_path = os.path.join(converter_dir, 'mf_aw_ex.drn')
     with open(out_drn_path, 'w') as f:
         f.writelines(header)
@@ -290,13 +292,19 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
     drn_out.to_csv(out_drn_path, sep=' ', mode='a', index=False, header=False)
 
     # run model.bat
+    print('running model.bat')
     cwd = os.path.splitunc(converter_dir)[1].replace('/SCI', 'P:/')
     # for now assuming that SCI is mapped to P drive could fix in future
 
-    p = subprocess.Popen("model.bat", cwd=cwd)
+    p = subprocess.Popen([os.path.join(cwd, "model.bat")], cwd=cwd, shell=True)
     out = p.communicate()
     print(out)
-
+    p = subprocess.Popen(['python', os.path.join(cwd, "aw_gen_faultreal.py")], cwd=cwd)
+    p.communicate()
+    p = subprocess.Popen(['python', os.path.join(cwd, "aw_gen_sfr.py")], cwd=cwd)
+    p.communicate()
+    p = subprocess.Popen(['python', os.path.join(cwd, "well_pkg_adjust.py")], cwd=cwd)
+    p.communicate()
     # load model
     name_file_path = os.path.join(converter_dir, 'mf_aw_ex.nam')
     # this is a bit unnecessary, but I want it to be exactly the same as the other loader
@@ -306,14 +314,17 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
     if save_to_dir:
         name = '{}_base'.format(model_id)
         dir_path = os.path.join(save_dir, name)
-        shutil.rmtree(dir_path)  # remove old files to prevent file mix ups
+        print('saving model to holding dir'.format(dir_path))
+        if os.path.exists(dir_path):
+            shutil.rmtree(dir_path)  # remove old files to prevent file mix ups
         os.makedirs(dir_path)
         m._set_name(name)
         m.change_model_ws(dir_path)
         m.exe_name = "{}/models_exes/MODFLOW-NWT_1.1.2/MODFLOW-NWT_1.1.2/bin/MODFLOW-NWT_64.exe".format(sdp)
         m.write_name_file()
         m.write_input()
-        con = converged(os.path.join(dir_path, m.lst.file_name))
+        m.run_model()
+        con = converged(os.path.join(dir_path, m.lst.file_name[0]))
         if not con:
             os.remove(os.path.join(dir_path, '{}.hds'.format(m.name)))
             raise ValueError('the model did not converge: \n'
@@ -363,7 +374,4 @@ def get_model(model_id, save_to_dir=False):
 
 if __name__ == '__main__':
     # tests
-    test = get_rch_multipler('opt')
-    m = get_model('opt')
-    well = get_base_well('test')
-    print m
+    m = get_model('NsmcReal{:06d}'.format(-2), save_to_dir=True)
