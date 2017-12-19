@@ -54,7 +54,7 @@ def _get_group_num(x):
 def extract_forward_data(path):
     """
     extract the data and export as pd.DataFrame with index of cell_ref_id, Particle_Group and column of Particle_ID count
-    :param path:
+    :param path: path to the pathline file
     :return:
     """
     # for now assume that I can hold the full thing in memory, but watch
@@ -98,6 +98,28 @@ def save_forward_data(path, outpath):
     # keep the group id to locate cells, but make a linker (e.g. pass the dictionary to the dataframe)
     data = extract_forward_data(path)
     data.to_hdf(outpath, 'emulator', mode='w')
+
+def extract_back_data(path):
+    # for now assume that I can hold the full thing in memory, but watch
+    drop_names = [
+     'Time_Point_Index',
+     'Cumulative_Time_Step',
+     'Tracking_Time',
+     'Global_X',
+     'Global_Y',
+     'Global_Z',
+     'Grid',
+     'Local_X',
+     'Local_Y',
+     'Local_Z',
+     'Line_Segment_Index',
+     ]
+    print('reading data')
+    data = open_path_file_as_df(path)
+    print('simplifying data')
+    data.drop(drop_names, 1, inplace=True)
+    # make a ref cell id and make sure it is zero indexed
+    raise NotImplementedError
 
 # todo extract/save backward data
 if __name__ == '__main__':
