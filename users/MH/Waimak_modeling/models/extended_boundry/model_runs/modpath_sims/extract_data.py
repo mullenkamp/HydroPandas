@@ -99,7 +99,13 @@ def save_forward_data(path, outpath):
     data = extract_forward_data(path)
     data.to_hdf(outpath, 'emulator', mode='w')
 
-def extract_back_data(path):
+def extract_back_data(path_path, group_mapper_path):
+    """
+
+    :param path_path: the pathline file
+    :param group_mapper_path: the file to the group mapper produced in set_up_reverse_modpath
+    :return:
+    """
     # for now assume that I can hold the full thing in memory, but watch
     drop_names = [
      'Time_Point_Index',
@@ -115,13 +121,30 @@ def extract_back_data(path):
      'Line_Segment_Index',
      ]
     print('reading data')
-    data = open_path_file_as_df(path)
+
+
+    data = open_path_file_as_df(path_path)
     print('simplifying data')
     data.drop(drop_names, 1, inplace=True)
     # make a ref cell id and make sure it is zero indexed
-    raise NotImplementedError
+    data = data.loc[data.Layer == 1]  # just keep all data in top layer
+    outdata = {}
+    group_mapper = pd.read_csv(group_mapper_path, index_col=0, names=['key','val'])['val'].to_dict()
+    for g in set(data.Particle_Group):
+        temp = data.loc[data.Particle_Group==g,['Row','Column']]
+        temp = temp.reset_index().groupby(['Row','Column']).count().reset_index().values
+        temp_out = smt.get_empty_model_grid().astype(int)
+        temp_out[temp[:,0],temp[:,1]] = temp[:,2]
+        outdata[group_mapper[g]] = temp_out #todo this should be the number of particles that pass through each cell
+
+    return outdata
+
 
 # todo extract/save backward data
 if __name__ == '__main__':
-    import time
-    t = time.time()
+    import matplotlib.pyplot as plt
+    test=extract_back_data(r"C:\Users\MattH\Desktop\test_reverse_modpath_strong\test_reverse.mppth",
+                      r"C:\Users\MattH\Desktop\test_reverse_modpath_strong\test_reverse_group_mapper.csv")
+    smt.plt_matrix(test[1])
+    plt.show()
+    print('done')

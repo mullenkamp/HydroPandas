@@ -13,6 +13,7 @@ import flopy
 import pandas as pd
 import itertools
 import numpy as np
+import os
 
 
 def particle_loc_from_grid(grid_locs, group, root3_num_part=2):
@@ -27,7 +28,9 @@ def particle_loc_from_grid(grid_locs, group, root3_num_part=2):
     # take a list of cell locations (k,i,j) and return a record array for starting location data
     # assume 8 particles per cel for now
     group = np.atleast_1d(group)
-    group_num = range(1, len(group + 1))
+    t = set(group)
+    group_mapper = {key: val for key, val in zip(range(1, len(t)+1), t)}
+    group_num = np.array([group_mapper[e] for e in group])
     grid_locs = list(np.atleast_2d(grid_locs))
     grid_locs = [np.concatenate((grid, [gp, gn])) for grid, gp, gn in zip(grid_locs, group, group_num)]
     print('generating particles for {} cells'.format(len(grid_locs)))
@@ -49,7 +52,7 @@ def particle_loc_from_grid(grid_locs, group, root3_num_part=2):
     outdata['zloc0'] = ploc[:, 7]
     outdata['initialtime'] = 1  # should not matter for now as I am releasing all at once
     outdata['label'] = 's'  # a filler so that the loc file will read properly
-    return outdata
+    return group_mapper, outdata
 
 
 def setup_run_backward_modpath(mp_ws, mp_name, cbc_file, index=None, group=None,
@@ -91,10 +94,16 @@ def setup_run_backward_modpath(mp_ws, mp_name, cbc_file, index=None, group=None,
                                                                                                      smt.rows,
                                                                                                      smt.cols),
                                                                                                     index.shape)
+
+    if not os.path.exists(mp_ws):
+        os.makedirs(mp_ws)
+
     group = group[index]
-    particles = pd.DataFrame(particle_loc_from_grid(smt.model_where(index), group, root3_num_part))
+    group_mapper, particles = particle_loc_from_grid(smt.model_where(index), group, root3_num_part)
     hd_file = cbc_file.replace('.cbc', '.hds')
     dis_file = cbc_file.replace('.cbc', '.dis')
+    group_mapper = pd.Series(group_mapper)
+    group_mapper.to_csv(os.path.join(mp_ws,'{}_group_mapper.csv'.format(mp_name)))
 
     temp_particles = flopy.modpath.mpsim.StartingLocationsFile.get_empty_starting_locations_data(0)
     mp = create_mp_slf(particle_data=temp_particles, mp_ws=mp_ws, hdfile=hd_file, budfile=cbc_file, disfile=dis_file,
@@ -137,7 +146,7 @@ def setup_run_backward_modpath(mp_ws, mp_name, cbc_file, index=None, group=None,
 if __name__ == '__main__':
     index = smt.get_empty_model_grid(True).astype(bool)
     temp = smt.shape_file_to_model_array(r"{}\m_ex_bd_inputs\shp\rough_chch.shp".format(smt.sdp), 'Id', True)
-    index[3][np.isfinite(temp)] = True
-    setup_run_backward_modpath(r"C:\Users\MattH\Desktop\test_reverse_modpath", 'test_reverse',
-                               r"{}\from_gns\NsmcBase\AW20171024_2_i2_optver\i2\mf_aw_ex.cbc".format(smt.sdp),
-                               index)
+    index[5][np.isfinite(temp)] = True
+    setup_run_backward_modpath(r"C:\Users\MattH\Desktop\test_reverse_modpath_strong", 'test_reverse',
+                               r"C:\Users\MattH\Desktop\NsmcBase_simple_modpath\NsmcBase_modpath_base.cbc",
+                               index,capt_weak_s=False)
