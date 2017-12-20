@@ -21,7 +21,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.modpath_sims.se
 if __name__ == '__main__':
     run_model = True
     t = time()
-    mp_ws = r"D:\mh_waimak_models\modpath_emulator"
+    mp_ws = r"D:\mh_waimak_models\modpath_emulator\try_truncation"
     mp_name = 'NsmcBase_first_try'
     path_file = os.path.join(mp_ws, 'NsmcBase_first_try.mppth')
     if run_model:
@@ -31,7 +31,7 @@ if __name__ == '__main__':
         print('{} min to make cbc'.format((time() - t) / 60))
         t = time()
 
-        setup_run_forward_modpath(cbc, mp_ws, mp_name)
+        setup_run_forward_modpath(cbc, mp_ws, mp_name, min_part=2, max_part=500)
         print('{} min to setup and run modpath'.format((time() - t) / 60))
         t = time()
 
