@@ -145,7 +145,7 @@ if __name__ == '__main__':
     #targets = pd.read_csv(r"\\gisdata\projects\SCI\Groundwater\Waimakariri\Groundwater\Groundwater Quality\End member mixing model\Additional target wells\AdditionalTargets_5Tracers_Python.csv", index_col=0)
     # these are for a few more streams
     targets = pd.read_excel(r"\\gisdata\projects\SCI\Groundwater\Waimakariri\Groundwater\Groundwater Quality\End member mixing model\OkokaKaiapoi_3Tracers_EMMAInputs.xlsx", index_col=0)
-    sites = {} # todo add group names
+    sites = {}
     for site in targets.index:
         target = {}
         for trace in tracers:

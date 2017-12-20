@@ -21,7 +21,7 @@ def _log10_t(x,layer,**kwargs):
     return outdata
 
 if __name__ == '__main__':
-    nc_parm = nc.Dataset(r"K:\mh_modeling\netcdfs_of_key_modeling_data\nsmc_params_obs_metadata.nc")#todo
+    nc_parm = nc.Dataset(r"K:\mh_modeling\netcdfs_of_key_modeling_data\nsmc_params_obs_metadata.nc")
     fig, ax = plot_sd_mean_multid(filter_strs=['emma_no_wt', 'run_mt3d'], layer=10, nc_param_data=nc_parm, data_id='kh',
                         title='T for layer 11', basemap=True, contour={'sd': False, 'mean': False},
                         contour_color='g', vmins=None, vmaxes=None, tranform=_log10_t)

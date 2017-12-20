@@ -13,10 +13,21 @@ import os
 import pandas as pd
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 from base_modflow_wrapper import import_gns_model
-
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import modflow_converged
+from traceback import format_exc
 # make something to run modpath simulations with particles in the top most active cells.
 
-def get_cbc(model_id, base_dir): # todo implement nsmcrealisations in import_gns_model
+
+def get_cbc_mp(kwargs):
+    try:
+        get_cbc(**kwargs)
+        success = 'converged'
+    except Exception:
+        success = format_exc()
+    return kwargs['model_id'], success
+
+
+def get_cbc(model_id, base_dir):
     cbc_path = os.path.join(base_dir,'{}_for_modpath'.format(model_id),'{}_for_modpath.cbc'.format(model_id))
 
     if os.path.exists(cbc_path):
@@ -28,7 +39,9 @@ def get_cbc(model_id, base_dir): # todo implement nsmcrealisations in import_gns
 
     m.write_input()
     m.run_model()
-
+    con = modflow_converged(os.path.join(m.model_ws, '{}.list'.format(m.name)))
+    if not con:
+        raise ValueError('model did not converge')
     return cbc_path
 
 
@@ -86,7 +99,7 @@ def create_mp_slf(particle_data, m=None, mp_ws=None, hdfile=None, budfile=None, 
 
 
     mpb = flopy.modpath.ModpathBas(mp,
-                                   hnoflo=hnoflo, #todo sort out
+                                   hnoflo=hnoflo,
                                    hdry=hdry,
                                    bud_label=None,  # what should this be? might be the header it seems to work as None
                                    laytyp=laytype,
@@ -119,7 +132,7 @@ def create_mp_slf(particle_data, m=None, mp_ws=None, hdfile=None, budfile=None, 
 
     if simulation_type == 'endpoint':
         time_pt_o = 1
-        time_ct = 1  # todo this may cause problems
+        time_ct = 1
     else:
         if isinstance(time_pts, int):
             time_pt_o = 2
@@ -204,7 +217,6 @@ def export_paths_to_shapefile(paths_file, shape_file, particle_ids=None):
 
 
 if __name__ == '__main__':
-    # todo play with pathline data for a couple of particles
     run_model=False
     if run_model:
 

@@ -45,5 +45,4 @@ if __name__ == '__main__':
     pickle.dump(outdata, open(os.path.join(os.path.dirname(path_file),'{}_test_med_n.p'.format(mp_name)),'w'))
     print('{} min to run emulator'.format((time() - t) / 60))
 
-    #todo keep checking bdtype vs ibound to create array index
 

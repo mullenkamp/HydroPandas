@@ -9,7 +9,7 @@ import flopy
 import numpy as np
 import pandas as pd
 
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_setup.modpath_percentage import \
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_setup.modpath_wrapper import \
     export_paths_to_shapefile
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.modpath_sims.percentage_modpath.run_emulator import \
     get_group_number

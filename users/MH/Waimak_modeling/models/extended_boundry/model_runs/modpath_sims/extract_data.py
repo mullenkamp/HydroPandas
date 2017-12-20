@@ -82,7 +82,7 @@ def extract_forward_data(path):
     # now for some fancy groupby operations
     print('calculating percentages')
     outdata = data.groupby(['ref_cell_id', 'Particle_ID']).aggregate({'Particle_Group': _get_group_num}).reset_index()
-    outdata = outdata.groupby(['ref_cell_id', 'Particle_Group']).count().astype(float)  # todo check this too...
+    outdata = outdata.groupby(['ref_cell_id', 'Particle_Group']).count().astype(float)
 
     # make this output a fraction
     outdata = outdata.rename(columns={'Particle_ID':'fraction'})
@@ -135,12 +135,10 @@ def extract_back_data(path_path, group_mapper_path):
         temp = temp.reset_index().groupby(['Row','Column']).count().reset_index().values
         temp_out = smt.get_empty_model_grid().astype(int)
         temp_out[temp[:,0],temp[:,1]] = temp[:,2]
-        outdata[group_mapper[g]] = temp_out #todo this should be the number of particles that pass through each cell
+        outdata[group_mapper[g]] = temp_out
 
     return outdata
 
-
-# todo extract/save backward data
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     test=extract_back_data(r"C:\Users\MattH\Desktop\test_reverse_modpath_strong\test_reverse.mppth",

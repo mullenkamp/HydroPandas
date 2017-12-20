@@ -16,12 +16,18 @@ import psutil
 import datetime
 from traceback import format_exc
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.modpath_sims.setup_reverse_modpath import setup_run_backward_modpath
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.modpath_sims.extract_data import extract_back_data, save_forward_data
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.modpath_sims.setup_forward_modpath import setup_run_forward_modpath
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_setup.modpath_percentage import get_cbc
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.modpath_sims.setup_reverse_modpath import \
+    setup_run_backward_modpath
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.modpath_sims.extract_data import extract_back_data, \
+    save_forward_data
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.modpath_sims.setup_forward_modpath import \
+    setup_run_forward_modpath
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_setup.modpath_wrapper import \
+    get_cbc, get_cbc_mp
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import modpath_converged
 
-def define_source_from_forward(emulator_path, bd_type, index): # todo could make this into a list of indexes or dictionary of indexes...
+
+def define_source_from_forward(emulator_path, bd_type, index):
     """
     defines the source area for a given integer array
     :param emulator_path: path to the emulator (hdf)
@@ -29,7 +35,7 @@ def define_source_from_forward(emulator_path, bd_type, index): # todo could make
     :return: array of shape (smt.layers, rows, cols) with a rough percentage of water from source
     """
     # run some checks on inputs
-    assert isinstance(index,np.ndarray), 'index must be a nd array'
+    assert isinstance(index, np.ndarray), 'index must be a nd array'
     assert index.shape == (smt.layers, smt.rows, smt.cols), 'index must be 3d'
     assert issubclass(index.dtype, np.integer), 'index must be some sort of integer array'
     assert index.min() >= 0, 'index should be positive'
@@ -39,18 +45,17 @@ def define_source_from_forward(emulator_path, bd_type, index): # todo could make
     t = time()
     emulator = pd.read_hdf(emulator_path)  # this keeps the structure of everything
 
-    print('took {} s to load emulator'.format(time()-t))
+    print('took {} s to load emulator'.format(time() - t))
     t = time()
-
 
     # get general area of interest
     print('calculating area of interest')
     idx = index > 0
-    layers, rows, cols = np.meshgrid(range(smt.layers),range(smt.rows), range(smt.cols),indexing='ij')
-    ids = ['{:02d}_{:03d}_{:03d}'.format(k, i, j) for k, i, j in zip(layers[idx],rows[idx],cols[idx])]
-    temp = np.in1d(emulator.index.values,ids)
+    layers, rows, cols = np.meshgrid(range(smt.layers), range(smt.rows), range(smt.cols), indexing='ij')
+    ids = ['{:02d}_{:03d}_{:03d}'.format(k, i, j) for k, i, j in zip(layers[idx], rows[idx], cols[idx])]
+    temp = np.in1d(emulator.index.values, ids)
     emulator = emulator.loc[temp]
-    print('took {} s to general identify area'.format(time()-t))
+    print('took {} s to general identify area'.format(time() - t))
 
     # calculate source percentage
     all_outdata = {}
@@ -75,6 +80,7 @@ def define_source_from_forward(emulator_path, bd_type, index): # todo could make
 
     return all_outdata
 
+
 def define_source_from_backward(index, mp_ws, mp_name, cbc_file, root3_num_part=1, capt_weak_s=False, recalc=False):
     """
     define the source area for an integer index
@@ -88,12 +94,12 @@ def define_source_from_backward(index, mp_ws, mp_name, cbc_file, root3_num_part=
     :param recalc: bool if True rerun the model even if it exists
     :return:
     """
-    assert isinstance(index,np.ndarray), 'index must be a nd array'
+    assert isinstance(index, np.ndarray), 'index must be a nd array'
     assert index.shape == (smt.layers, smt.rows, smt.cols), 'index must be 3d'
     assert issubclass(index.dtype, np.integer), 'index must be some sort of integer array'
     assert index.min() >= 0, 'index should be positive'
 
-    path_path = os.path.join(mp_ws,'{}.mppth'.format(mp_name))
+    path_path = os.path.join(mp_ws, '{}.mppth'.format(mp_name))
     if not os.path.exists(path_path) or recalc:
         # set up and run model
         part_index = index > 0
@@ -104,12 +110,14 @@ def define_source_from_backward(index, mp_ws, mp_name, cbc_file, root3_num_part=
     outdata = extract_back_data(path_path, mapper_path)
     return outdata
 
-def _run_forward_em_one_mp(kwargs): #todo debug
+
+def _run_forward_em_one_mp(kwargs):  # todo debug
+    model_id = kwargs['model_id']
     try:
         needed_keys = ['model_id', 'mp_runs_dir', 'emulator_dir', 'modflow_dir', 'min_part', 'max_part', 'capt_weak_s',
-                    'keep_org_files']
-        assert np.in1d(needed_keys, kwargs.keys()).all(), 'missing keys {}'.format(set(needed_keys) - set(kwargs.keys()))
-        model_id = kwargs['model_id']
+                       'keep_org_files']
+        assert np.in1d(needed_keys, kwargs.keys()).all(), 'missing keys {}'.format(
+            set(needed_keys) - set(kwargs.keys()))
         mp_ws = os.path.join(kwargs['mp_runs_dir'], model_id)
         outpath = os.path.join(kwargs['emulator_dir'], model_id)
         mp_name = '{}_forward'.format(model_id)
@@ -117,26 +125,27 @@ def _run_forward_em_one_mp(kwargs): #todo debug
         setup_run_forward_modpath(cbc_path, mp_ws, mp_name,
                                   min_part=kwargs['min_part'], max_part=kwargs['max_part'],
                                   capt_weak_s=kwargs['capt_weak_s'])
-        path_path = os.path.join(mp_ws,'{}.mppth'.format(mp_name))
+        path_path = os.path.join(mp_ws, '{}.mppth'.format(mp_name))
         save_forward_data(path_path, outpath)
 
         if not kwargs['keep_org_files']:
             # delete large files to save memory
             for end in ['.mpend', '.mppth', '.loc', '.mpbas']:  # all others are either needed or really tiny
-                os.remove(os.path.join(mp_ws,'{}{}'.format(mp_name,end)))
-        success = None  # todo write a check modpath converged thing and make metadata
+                os.remove(os.path.join(mp_ws, '{}{}'.format(mp_name, end)))
+        success = 'converge' if modpath_converged(os.path.join(mp_ws, '{}.mplst'.format(mp_name))) else 'did not converge'
     except Exception as val:
         mp_name = '{}_forward'.format(model_id)
         success = format_exc().replace('\n', '')
 
     return mp_name, success
 
+
 def run_forward_emulators(model_ids, results_dir, modflow_dir, keep_org_files=True, min_part=1, max_part=None,
-                          capt_weak_s=False, notes=''): #todo
+                          capt_weak_s=False, notes=''):
     """
 
     :param model_ids: a list of model ids to run
-    :param results_dir: the dir to put the models and the results
+    :param results_dir: the dir to put the modpath models and the results
     :param modflow_dir: the dir to put the necissary modflow models for modpath
     :param keep_org_files: bool if True keep all modpath files else delete the big ones
     :param min_part: the minimum number of particles for each cell
@@ -149,10 +158,10 @@ def run_forward_emulators(model_ids, results_dir, modflow_dir, keep_org_files=Tr
     model_ids = np.atleast_1d(model_ids)
     emulator_dir = os.path.join(results_dir, 'forward_data')
     mp_runs_dir = os.path.join(results_dir, 'forward_runs')
-    with open(os.path.join(results_dir,'README.txt'),'w') as f:
+    with open(os.path.join(results_dir, 'README.txt'), 'w') as f:
         f.write(notes)
 
-    for path in [modflow_dir,results_dir,emulator_dir,mp_runs_dir]:
+    for path in [modflow_dir, results_dir, emulator_dir, mp_runs_dir]:
         if not os.path.exists(path):
             os.makedirs(path)
 
@@ -170,33 +179,59 @@ def run_forward_emulators(model_ids, results_dir, modflow_dir, keep_org_files=Tr
         input_kwargs.append(temp)
     t = time()
     # multiprocess the running of things
-    multiprocessing.log_to_stderr(logging.DEBUG)
-    pool_size = multiprocessing.cpu_count() #todo this is a memory limited thing figure this out or just set to two
-    pool = multiprocessing.Pool(processes=pool_size,
-                                initializer=start_process,
-                                )
-    results = pool.map_async(_run_forward_em_one_mp, input_kwargs)
-    while not results.ready():
-        print('{} runs left of {}'.format(results._number_left, len(input_kwargs)))
-        sleep(60*5)  # sleep 5 min between printing
-    pool_outputs = results.get()
-    pool.close()  # no more tasks
-    pool.join()
+    outputs = []
+    for kwarg in input_kwargs:
+        outputs.append(_run_forward_em_one_mp(kwarg))
     now = datetime.datetime.now()
-    with open("{}/forward_run_log/{}_forward_modpath_{:02d}_{:02d}_{:02d}_{:02d}.txt".format(smt.sdp,now.year,now.month,now.day,now.hour,now.minute), 'w') as f:
+    with open(
+            "{}/forward_run_log/{}_forward_modpath_{:02d}_{:02d}_{:02d}_{:02d}.txt".format(smt.sdp, now.year, now.month,
+                                                                                           now.day, now.hour,
+                                                                                           now.minute), 'w') as f:
         f.write(str(notes) + '\n')
-        wr = ['{}: {}\n'.format(e[0], e[1]) for e in pool_outputs]
+        wr = ['{}: {}\n'.format(e[0], e[1]) for e in outputs]
         f.writelines(wr)
     with open("{}/metadata.txt".format(results_dir), 'w') as f:
         f.write(str(notes) + '\n')
-        wr = ['{}: {}\n'.format(e[0], e[1]) for e in pool_outputs]
+        wr = ['{}: {}\n'.format(e[0], e[1]) for e in outputs]
         f.writelines(wr)
     print('{} runs completed in {} minutes'.format(len(model_ids), ((time() - t) / 60)))
 
-def get_both_source_areas(): #todo
+
+def get_all_cbcs(model_ids, modflow_dir):
+    """
+    a quick multiprocessing wrapper to run all the NSMC realisations I need
+    :param model_ids: list of model ids to pass to the get cbc
+    :param modflow_dir: overall directory to save everything
+    :return:
+    """
+    input_kwargs = []
+    for model_id in model_ids:
+        input_kwargs.append({'model_id': model_id,
+                             'base_dir': modflow_dir})
+
+    multiprocessing.log_to_stderr(logging.DEBUG)
+    pool_size = multiprocessing.cpu_count()
+    pool = multiprocessing.Pool(processes=pool_size,
+                                initializer=start_process,
+                                )
+    results = pool.map_async(get_cbc_mp, input_kwargs)
+    while not results.ready():
+        print('{} runs left of {}'.format(results._number_left, len(input_kwargs)))
+        sleep(60 * 5)  # sleep 5 min between printing
+    pool_outputs = results.get()
+    pool.close()  # no more tasks
+    pool.join()
+    with open(os.path.join(modflow_dir, 'metadata.txt'), 'w') as f:
+        wr = ['{}: {}\n'.format(e[0], e[1]) for e in pool_outputs]
+        f.writelines(wr)
+
+
+def get_both_source_areas():  # todo
+    # todo add weak source/sink so I can interpret all four plots qualativly
     # a wrapper to setup and run all of the source delineation
     # some how save the number data as well as just the boolean data as a netcdf
     raise NotImplementedError
+
 
 def start_process():
     print('Starting', multiprocessing.current_process().name)
@@ -204,13 +239,26 @@ def start_process():
     # set to lowest priority, this is windows only, on Unix use ps.nice(19)
     p.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
 
+def get_modeflow_dir_for_source(version=1):
+    """
+    somethign to keep the modflow dirs for the modpath sernarios straight
+    :param version: which version
+    :return:
+    """
+    if version == 1:
+        path = env.gw_met_data("mh_modeling/modflow_dir_for_source")
+    else:
+        raise NotImplementedError('version {} has not been set up'.format(version))
+    return path
 
 if __name__ == '__main__':
     # this looks good
-    #check layer 7 in the area of no data
+    # check layer 7 in the area of no data
     import matplotlib.pyplot as plt
-    from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.cwms_index import get_zone_array_index
-    temp_index = smt.shape_file_to_model_array(r"C:\Users\MattH\Downloads\test_area.shp",'Id',True)
+    from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.cwms_index import \
+        get_zone_array_index
+
+    temp_index = smt.shape_file_to_model_array(r"C:\Users\MattH\Downloads\test_area.shp", 'Id', True)
     index = smt.get_empty_model_grid(True).astype(bool)
     index[1] = np.isfinite(temp_index)
     index = smt.get_empty_model_grid(True).astype(bool)
@@ -218,5 +266,5 @@ if __name__ == '__main__':
     index[5][np.isfinite(temp)] = True
     bd_type = np.loadtxt(r"T:\Temp\temp_gw_files\NsmcBase_first_try_bnd_type.txt")
     outdata = define_source_from_forward(r"T:\Temp\temp_gw_files\first_try.hdf", bd_type, index.astype(bool))
-    smt.plt_matrix(outdata != 0, base_map=True)  # todo delete after debug
+    smt.plt_matrix(outdata != 0, base_map=True)
     plt.show()

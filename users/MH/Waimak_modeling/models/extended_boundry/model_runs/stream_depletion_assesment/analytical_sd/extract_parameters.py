@@ -145,7 +145,7 @@ def extract_parameters_to_points(outdir, model_id):
     sfr_k = m.sfr.stress_period_data.array['strhc1'][0, 0]
     sfr_cond = sfr_k * sfr_width * sfr_len
     drn_cond[np.isfinite(sfr_cond)] = sfr_cond[np.isfinite(sfr_cond)]
-    # todo export drn_cond
+
     idx = np.isfinite(drn_cond)
     temp = pd.DataFrame({'x': x[idx].flatten(), 'y': y[idx].flatten(),
                          'cond':drn_cond[idx].flatten()})

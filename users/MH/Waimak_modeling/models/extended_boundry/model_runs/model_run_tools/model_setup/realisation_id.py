@@ -18,7 +18,7 @@ import subprocess
 import netCDF4 as nc
 import shutil
 from users.MH.Waimak_modeling.supporting_data_path import sdp
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import converged
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import modflow_converged
 
 temp_pickle_dir = '{}/temp_pickle_dir'.format(smt.pickle_dir)
 if not os.path.exists(temp_pickle_dir):
@@ -324,7 +324,7 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
         m.write_name_file()
         m.write_input()
         m.run_model()
-        con = converged(os.path.join(dir_path, m.lst.file_name[0]))
+        con = modflow_converged(os.path.join(dir_path, m.lst.file_name[0]))
         if not con:
             os.remove(os.path.join(dir_path, '{}.hds'.format(m.name)))
             raise ValueError('the model did not converge: \n'

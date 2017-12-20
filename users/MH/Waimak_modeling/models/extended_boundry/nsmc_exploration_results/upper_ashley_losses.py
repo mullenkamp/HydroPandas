@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import flopy
 
-if __name__ == '__main__': #todo check waimak_con vs ashley losses
+if __name__ == '__main__':
     mask = smt.shape_file_to_model_array(r"{}\m_ex_bd_inputs\raw_sw_samp_points\sfr\other\ashley_garry.shp".format(smt.sdp),'k',True)
     mask = np.isfinite(mask)
     idxs = smt.model_where(mask)
@@ -35,7 +35,7 @@ if __name__ == '__main__': #todo check waimak_con vs ashley losses
     chch_n_average = smt.shape_file_to_model_array(r"{}\m_ex_bd_inputs\shp\rough_chch.shp".format(smt.sdp),'Id',True)
     mask = np.isfinite(chch_n_average)
     idxs = smt.model_where(mask)
-    out_chch_n_average = np.concatenate([np.array(cons.variables['mednload'][:, :, e[0], e[1]])[:,:,np.newaxis] for e in idxs],axis=2) #todo check dim
+    out_chch_n_average = np.concatenate([np.array(cons.variables['mednload'][:, :, e[0], e[1]])[:,:,np.newaxis] for e in idxs],axis=2)
     out_chch_n_average = np.nanmean(out_chch_n_average,axis=2)
     out_chch_n_average = np.nanmean(out_chch_n_average,axis=1)
     out_chch_n_average = pd.Series(out_chch_n_average,index=cons.variables['nsmc_num'[:]])
