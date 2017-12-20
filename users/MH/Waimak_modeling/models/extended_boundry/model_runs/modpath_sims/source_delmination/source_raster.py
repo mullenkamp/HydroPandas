@@ -171,7 +171,7 @@ def run_forward_emulators(model_ids, results_dir, modflow_dir, keep_org_files=Tr
     t = time()
     # multiprocess the running of things
     multiprocessing.log_to_stderr(logging.DEBUG)
-    pool_size = multiprocessing.cpu_count() #todo this is a memory limited thing figure this out
+    pool_size = multiprocessing.cpu_count() #todo this is a memory limited thing figure this out or just set to two
     pool = multiprocessing.Pool(processes=pool_size,
                                 initializer=start_process,
                                 )
