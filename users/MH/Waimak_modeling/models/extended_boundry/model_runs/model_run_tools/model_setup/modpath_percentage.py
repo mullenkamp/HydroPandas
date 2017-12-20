@@ -12,8 +12,24 @@ from users.MH.Waimak_modeling.supporting_data_path import sdp
 import os
 import pandas as pd
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
+from base_modflow_wrapper import import_gns_model
 
 # make something to run modpath simulations with particles in the top most active cells.
+
+def get_cbc(model_id, base_dir): # todo implement nsmcrealisations in import_gns_model
+    cbc_path = os.path.join(base_dir,'{}_for_modpath'.format(model_id),'{}_for_modpath.cbc'.format(model_id))
+
+    if os.path.exists(cbc_path):
+        return cbc_path
+
+    m = import_gns_model(model_id,'for_modpath',os.path.join(base_dir,'for_modpath'),False)
+    m.write_name_file()
+    m.upw.iphdry = 1  # hdry is -888.0
+
+    m.write_input()
+    m.run_model()
+
+    return cbc_path
 
 
 def create_mp_slf(particle_data, m=None, mp_ws=None, hdfile=None, budfile=None, disfile=None,

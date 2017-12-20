@@ -145,6 +145,6 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     test=extract_back_data(r"C:\Users\MattH\Desktop\test_reverse_modpath_strong\test_reverse.mppth",
                       r"C:\Users\MattH\Desktop\test_reverse_modpath_strong\test_reverse_group_mapper.csv")
-    smt.plt_matrix(test[1])
+    smt.plt_matrix(test[1]>0,base_map=True)
     plt.show()
     print('done')

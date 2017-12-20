@@ -13,6 +13,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_too
 import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
+    # this was a quick test... the endpoints are similar for the weak source instance, but for strong source, it's terrible
     strong = pd.DataFrame(flopy.utils.EndpointFile(r"C:\Users\MattH\Desktop\test_reverse_modpath_strong\test_reverse.mpend").get_alldata())
     strong = strong.loc[strong['k'] == 0, ['i', 'j']].values
     weak = pd.DataFrame(flopy.utils.EndpointFile(r"C:\Users\MattH\Desktop\test_reverse_modpath_weak\test_reverse.mpend").get_alldata())

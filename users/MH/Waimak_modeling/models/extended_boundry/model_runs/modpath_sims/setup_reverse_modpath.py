@@ -56,7 +56,7 @@ def particle_loc_from_grid(grid_locs, group, root3_num_part=2):
 
 
 def setup_run_backward_modpath(mp_ws, mp_name, cbc_file, index=None, group=None,
-                               root3_num_part=1, capt_weak_s=False):  # todo add groups?
+                               root3_num_part=1, capt_weak_s=False):
     """
     set up backward particle tracking
     :param mp_ws: modpath working directory
