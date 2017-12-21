@@ -86,7 +86,7 @@ def well_by_well_depletion_sd30(model_id, well_list, base_path, notes, ss_sy_ver
     ss, sy = get_ss_sy(ss_sy_version=ss_sy_version)
     start_heads = get_starting_heads_sd30(model_id)
     runs = setup_runs_sd30(model_id, well_list, base_path, ss, sy, start_heads)
-    pool_size = multiprocessing.cpu_count()
+    pool_size = psutil.cpu_count(logical=False)
     pool = multiprocessing.Pool(processes=pool_size,
                                 initializer=start_process,
                                 )

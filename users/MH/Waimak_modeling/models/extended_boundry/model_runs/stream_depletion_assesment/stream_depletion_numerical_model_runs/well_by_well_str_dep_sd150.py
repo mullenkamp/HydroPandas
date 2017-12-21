@@ -88,7 +88,7 @@ def well_by_well_depletion_sd150(model_id, well_list, base_path, notes, ss_sy_ve
     start_heads = get_starting_heads_sd150(model_id)
     multiprocessing.log_to_stderr(logging.DEBUG)
     runs = setup_runs_sd150(model_id, well_list, base_path, ss, sy, start_heads)
-    pool_size = multiprocessing.cpu_count()
+    pool_size = psutil.cpu_count(logical=False)
     pool = multiprocessing.Pool(processes=pool_size,
                                 initializer=start_process,
                                 )
