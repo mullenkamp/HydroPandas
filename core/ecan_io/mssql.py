@@ -8,6 +8,8 @@ from pandas import to_numeric, to_datetime, Timestamp, read_sql, Series, concat,
 from shapely.wkt import loads
 from pycrs.parser import from_epsg_code
 from pymssql import connect
+import traceback
+from datetime import datetime
 #from core.misc.misc import select_sites
 #from core.spatial.vector import xy_to_gpd, sel_sites_poly
 #from numpy import nan, ceil
@@ -375,10 +377,10 @@ def write_sql(df, server, database, table, dtype_dict, primary_keys=None, foreig
 
         if output_stmt:
             return stmt_dict
-    except:
+    except Exception as err:
         conn.rollback()
         conn.close()
-        raise ValueError('Could not complete SQL import')
+        raise err
 
 
 def sql_where_stmts(where_col=None, where_val=None, where_op='AND', from_date=None, to_date=None, date_col=None):
@@ -596,6 +598,56 @@ def rd_sql_geo(server, database, table, where_lst=None):
     proj4 = from_epsg_code(geo_srid).to_proj4()
 
     return (geo, proj4)
+
+
+#def mssql_logging(log, process):
+#    """
+#    Function to log to ECan's mssql database logger.
+#
+#    Parameters
+#    ----------
+#    log: str
+#        Log string.
+#    process: str
+#        The application process.
+#
+#    Returns
+#    -------
+#    None
+#    """
+#    server = 'SQL2014DEV01'
+#    database = 'Ecan_logger'
+#    table = 'Log'
+#
+#    insert_stmt1 = "insert into " + table + "(Date, Application, Thread, Level, Logger, Message) values "
+#    dt1 = datetime.now().strftime('%Y-%m-%d %H:%M')
+#
+#    conn = connect(server, database=database)
+#    cursor = conn.cursor()
+#
+#    log1 = log.replace('\n', ' ').replace('\'', '')
+#    rows = "(" + ", ".join([dt1, process, '1', "INFO", "Python", log1]) + ")"
+#    insert_stmt2 = insert_stmt1 + rows
+#    cursor.execute(insert_stmt2)
+#
+#    conn.commit()
+#
+#    #### Close everything!
+#    cursor.close()
+#    conn.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #########################################################

@@ -11,14 +11,15 @@ Must be run in a 32bit python!
 
 #### Hydstra export improvement
 
-from core.ecan_io import rd_sql, rd_hydstra_by_var, write_sql, rd_hydstra_db
+from core.ecan_io import rd_sql, write_sql
+from core.ecan_io.hydllp import rd_hydstra_db, rd_hydstra
 from core.ecan_io.mssql import site_stat_stmt, sql_del_rows_stmt
 from pandas import concat, read_hdf, read_csv, merge, Timestamp, to_datetime, DataFrame, to_numeric, DateOffset
 from os.path import join
 from datetime import date, timedelta
 from time import time
-from core.misc import save_df
-from core.ts import grp_ts_agg
+from core.misc.misc import save_df
+from core.ts.ts import grp_ts_agg
 
 ### SQL Parameters
 server = 'SQL2012PROD03'
@@ -166,6 +167,31 @@ write_sql(server1, database1, i + '_data', flow.reset_index(), dtype_dict[i], dr
 ##############################
 ### Testing
 
+
+def interp_resample(df, res_code, level=None):
+    """
+    Function to properly set up a resampling class for discrete data. This assumes a linear interpolation between data points.
+
+    Parameters
+    ----------
+    df: DataFrame
+        DataFrame with a time index.
+    res_code: str
+        Pandas resampling code. e.g. 'D'.
+    level: str or int
+        For a MultiIndex, level (name or number) to use for resampling. Level must be datetime-like.
+
+    Returns
+    -------
+    Resampling class
+    """
+    df1 = (df + df.shift(-1))/2
+    out1 = df1.resample(res_code, level=level)
+    return out1
+
+
+
+
 site = [66401]
 varto = 130
 
@@ -197,6 +223,9 @@ write_sql(server1, database1, i + '_data', lakel.reset_index(), dtype_dict[i], d
 t2 = rd_hydstra_db([67603], start='2016-01-01', end='2016-01-03', data_type='mean', interval='hour', varto=130, varfrom=130)
 t3 = rd_hydstra_db([67603], start='2016-01-01', end='2016-01-03', data_type='point', interval='hour', varto=130, varfrom=130)
 
+
+217810
+
 t2.index = t2.index.droplevel('site')
 t3.index = t3.index.droplevel('site')
 t4 = t3.resample('H', label='right').mean().round(3)
@@ -205,7 +234,8 @@ concat([t2, t4], axis=1)
 
 t2 = rd_hydstra_db([64608], start='2010-04-01', end='2010-05-01', data_type='mean', interval='hour', varfrom=100, varto=140)
 #t5 = rd_hydstra_db([64608], start='2010-04-01', end='2010-05-01', data_type='mean', interval='day', varfrom=100, varto=140)
-t3 = rd_hydstra_db([64608], start='2010-04-01', end='2010-05-01 01:00', data_type='point', interval='hour', varfrom=100, varto=140)
+t3 = rd_hydstra_db([64608], start='2010-04-01', end='2010-05-01 01:00', data_type='point', interval='hour', varfrom=100, varto=140).data
+t7 = rd_hydstra_db([217810], start='2010-04-01', end='2010-05-01 01:00', data_type='point', interval='hour', varfrom=10, varto=10).data
 
 t2.index = t2.index.droplevel('site')
 t3.index = t3.index.droplevel('site')
@@ -219,6 +249,33 @@ t4_agg_d = t4.resample('D').sum()/(60*60*24)
 concat([t3_agg_d, t4_agg_d], axis=1)
 concat([t2, t3_agg_h], axis=1)
 concat([t5, t3_agg_d], axis=1)
+
+t5 = t3.data.resample('H')
+t5a = t5.interpolate('time').round(2)
+t5b = t5.mean().round(2)
+concat([t5a, t5b], axis=1)
+
+t4 = t3[['data']].copy()
+t4['shift'] = t4.data.shift(-1)
+t4['mean'] = (t4.data + t4['shift'])/2
+
+t5c = t4['mean'].resample('H').mean().round(2)
+
+concat([t5b, t5a, t5c], axis=1)
+
+t5e = t5.aggregate('mean').round(2)
+concat([t5b, t5a, t5c, t5e], axis=1)
+
+import pandas as pd
+index = pd.date_range('1/1/2000', periods=9, freq='6H')
+series = pd.Series([2, 3, 6, 9, 5, 1, 3, 9, 4], index=index)
+series_new = (series + series.shift(-1))/2
+res_good = series_new.resample('D').mean()
+res_bad1 = series.resample('D').mean()
+
+
+
+
 
 time1 = time()
 t2 = rd_hydstra_db([68502], start='1980-01-01 23:00', end='2017-10-01', data_type='mean', interval='hour', varfrom=100, varto=140)
@@ -246,6 +303,56 @@ diff = time2 - time1
 diff/len(t2)*1000
 
 ts_traces_request = js1.copy()
+
+
+### Testing
+t2 = rd_hydstra_db([64608], start='2010-04-01', end='2010-05-01', data_type='mean', interval='hour', varfrom=100, varto=140).data
+t3 = rd_hydstra_db([64608], start='2010-04-01', end='2010-05-01 01:00', data_type='point', interval='hour', varfrom=100, varto=140).data
+t7 = rd_hydstra_db([217810], start='2010-04-01', end='2010-05-01 01:00', data_type='tot', interval='hour', varfrom=10, varto=10).data
+t8 = rd_hydstra_db([217810], start='2010-04-01', end='2010-05-01 01:00', data_type='point', interval='hour', varfrom=10, varto=10).data
+
+## flow
+t2.index = t2.index.droplevel('site')
+t3.index = t3.index.droplevel('site')
+
+t4 = interp_resample(t3, 'H').mean().round(3)
+concat([t2, t4, (t2 - t4).round(3)], axis=1)
+
+## Rain
+t7.index = t7.index.droplevel('site')
+t8.index = t8.index.droplevel('site')
+
+t9 = t8.resample('H', closed='right', label='left').sum().round(3)
+concat([t7, t9, (t7 - t9).round(3)], axis=1)
+
+## Full set of data for a site
+t10 = rd_hydstra_db([64608], data_type='mean', interval='hour', varfrom=100, varto=140)
+t11 = rd_hydstra_db([217810], data_type='tot', interval='hour', varfrom=10, varto=10)
+
+
+### Blocklist test
+site_list = ['66612', '70105']
+datasources=['A']
+variables=['100', '140']
+start='1982-01-01'
+end='2017-12-01'
+start_modified='2017-09-01'
+end_modified='2017-12-15'
+fill_gaps=0
+auditinfo=0
+
+t10 = rd_hydstra_db([1071110], data_type='mean', interval='day', varfrom=100, varto=140, start='2016-01-01', end='2017-02-01')
+
+### Example summary data
+cols1 = ['SiteID', 'Feature', 'Mtype', 'MeasurementSource', 'QualityState', 'FromDate', 'ToDate']
+
+list1 = [['71104', 'River', 'Flow', 'Recorder', 'Quality Controlled', '2017-05-01', '2017-05-20'], ['71105', 'River', 'Flow', 'Recorder', 'Quality Controlled', '2017-05-05', '2017-05-25']]
+
+sites = DataFrame(list1, columns=cols1)
+
+lakel = rd_hydstra(130, from_mod_date='2017-10-01')
+flow1 = rd_hydstra(140, from_mod_date='2017-10-01')
+wl1 = rd_hydstra(100, from_mod_date='2017-10-01')
 
 
 

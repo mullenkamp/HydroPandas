@@ -2,6 +2,7 @@
 """
 Misc functions for various small procedures.
 """
+from __future__ import print_function
 from pandas import DataFrame, read_csv, Series, Index, set_option, reset_option
 from numpy import ndarray, array, append, isnan, arange
 from geopandas import read_file
@@ -10,7 +11,7 @@ import patoolib, fnmatch, os
 from os.path import splitext
 from os import path, listdir
 from datetime import datetime
-
+import sys
 
 def df_first_valid(df):
     """Get the time index of the first non-na value"""
@@ -259,7 +260,8 @@ def logging(log_file_path, text):
         file1.write(now1 + ' - ' + text + '\n')
 
 
-
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
 
 
 

@@ -70,46 +70,6 @@ def w_agg(x, fun='sum', axis=1):
     return (agg1)
 
 
-# def grp_ts_agg(df, grp_col, ts_col, freq_code, agg_fun, transform=False):
-#    """
-#    Simple function to aggregate time series with dataframes with a single column of sites and a column of times.
-#
-#    Arguments:\n
-#    df -- dataframe with a datetime column.\n
-#    grp_col -- Column name that contains the sites.\n
-#    ts_col -- The column name of the datetime column.\n
-#    freq_code -- The pandas frequency code for the aggregation (e.g. 'M', 'A-JUN').\n
-#    agg_fun -- Either 'mean' or 'sum'.
-#    """
-#    from pandas import TimeGrouper, Timestamp
-#    from core.ts import pd_grouby_fun
-#
-#    fun1 = pd_grouby_fun(agg_fun)
-#
-#    df1 = df.copy()
-#    if type(df[ts_col].iloc[0]) is Timestamp:
-#        df1.set_index(ts_col, inplace=True)
-#        val_col = df1.columns.drop(grp_col)
-#        if type(grp_col) is list:
-#            grp_col.extend([TimeGrouper(freq_code)])
-#        else:
-#            grp_col = [grp_col, TimeGrouper(freq_code)]
-#        df_grp = df1.groupby(grp_col)
-#        if transform:
-#            df1a = df_grp.transform(agg_fun)
-#            df2 = df1.copy()
-#            df2.loc[:, val_col] = df1a
-#        else:
-#            try:
-#                df2 = fun1(df_grp)
-#            except NotImplementedError:
-#                df2 = df_grp.apply(agg_fun)
-#        df2 = df2.reset_index()
-#        return(df2)
-#    else:
-#        print('Make one column a timeseries!')
-
-
 def grp_ts_agg(df, grp_col, ts_col, freq_code):
     """
     Simple function to aggregate time series with dataframes with a single column of sites and a column of times.
@@ -135,9 +95,32 @@ def grp_ts_agg(df, grp_col, ts_col, freq_code):
         print('Make one column a timeseries!')
 
 
-def w_resample(x, period='water year', n_periods=1, fun='sum', min_ratio=0.75, agg=False, agg_fun='mean', digits=3,
-               interp=False, export=False, export_path='', export_name='precip_stats.csv'):
+def interp_resample(df, res_code, level=None):
     """
+    Function to properly set up a resampling class for discrete data. This assumes a linear interpolation between data points.
+
+    Parameters
+    ----------
+    df: DataFrame
+        DataFrame with a time index.
+    res_code: str
+        Pandas resampling code. e.g. 'D'.
+    level: str or int
+        For a MultiIndex, level (name or number) to use for resampling. Level must be datetime-like.
+
+    Returns
+    -------
+    Resampling class
+    """
+    df1 = (df + df.shift(-1))/2
+    out1 = df1.resample(res_code, level=level)
+    return out1
+
+
+def w_resample(x, period='water year', n_periods=1, fun='sum', min_ratio=0.75, agg=False, agg_fun='mean', digits=3, interp=False, discrete=False, export=False, export_path='', export_name='precip_stats.csv'):
+    """
+    NEED TO UPDATE! CLEAN AND INCLUDE THE discrete PARAMETER USING interp_resample.
+
     Function to resample time series precip or flow data.
 
     Arguments:\n

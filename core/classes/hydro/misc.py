@@ -31,7 +31,3 @@ def _mtype_check(self, name):
     return(cond)
 
 
-### Mtype codes with numeric values
-mtype_codes = {'river_wl_rec_qc': 1, 'river_flow_rec_qc': 2, 'river_temp_rec_qc': 3, 'aq_wl_rec_qc': 4, 'atmos_precip_rec_qc': 5, 'lake_wl_rec_qc': 6}
-
-

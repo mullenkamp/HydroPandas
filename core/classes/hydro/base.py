@@ -7,23 +7,46 @@ Created on Thu Feb 16 15:41:08 2017
 from collections import OrderedDict
 from itertools import product
 
-key_fields = OrderedDict((('feature', ('river', 'aq', 'atmos', 'soil', 'lake')), ('mtype', ('wl', 'flow', 'T', 'precip', 'abstr', 'R_n', 'R_s', 'T_min', 'T_max', 'RH_min', 'RH_max', 'U_z', 'P', 'ET')), ('freq', ('cont', 'disc')), ('qual_state', ('raw', 'qc'))))
+#######################################
+### Dictionaries to relate the long names to the acronyms
+### Need to be kept up-to-date compared to the SQL server
+### If any new keys need to be added, add them to the end of the dictionaries!
 
-list_combo = list(product(*key_fields.values()))
+feature_code_dict = OrderedDict((('River', 'river'), ('Aquifer', 'aq'), ('Atmosphere', 'atmos'), ('Soil', 'soil'), ('Lake', 'lake')))
 
-feature_mtype = OrderedDict((('river', ('wl', 'flow', 'abstr', 'T')), ('aq', ('wl', 'abstr', 'T')), ('atmos', ('precip', 'R_n', 'R_s', 'T_min', 'T_max', 'RH_min', 'RH_max', 'U_z', 'P', 'T')), ('soil', ('T', 'ET')), ('lake', ('wl', 'T'))))
+mtype_code_dict = OrderedDict((('Water Level', 'wl'), ('Flow', 'flow'), ('Temperature', 'T'), ('Temperature Max', 'T_max'), ('Temperature Min', 'T_min'), ('Precipitation', 'precip'), ('Abstraction', 'abstr'), ('Net Radiation', 'R_n'), ('Shortwave Radiation', 'R_s'), ('Relative Humidity Min', 'RH_min'), ('Relative Humidity Max', 'RH_max'), ('Wind Speed', 'U_z'), ('Barometric Pressure', 'P'), ('ET Actual', 'ET'), ('ET Reference', 'ETo'), ('ET Potential', 'PET')))
+
+msource_code_dict = OrderedDict((('Recorder', 'rec'), ('Manual Field', 'mfield'), ('Manual Lab', 'mlab')))
+
+qual_state_code_dict = OrderedDict((('RAW', 'raw'), ('Quality Controlled', 'qc')))
+
+## Resample functions
+resample_mtype_fun = {'flow': 'mean', 'wl': 'mean', 'precip': 'sum', 'R_n': 'sum', 'R_s': 'sum', 'T_min': 'mean', 'T_max': 'mean', 'T': 'mean', 'RH_min': 'mean', 'RH_max': 'mean', 'U_z': 'mean', 'P': 'mean', 'abstr': 'sum', 'PET': 'sum'}
+
+## Mtype codes with numeric values
+#mtype_codes = {'river_wl_rec_qc': 1, 'river_flow_rec_qc': 2, 'river_temp_rec_qc': 3, 'aq_wl_rec_qc': 4, 'atmos_precip_rec_qc': 5, 'lake_wl_rec_qc': 6}
+
+#######################################
+### Reorganisation of the above dictionaries
+
+key_fields = OrderedDict((('Feature', feature_code_dict), ('Mtype', mtype_code_dict), ('MeasurementSource', msource_code_dict), ('QualityState', qual_state_code_dict)))
+
+code_fields = OrderedDict((i, key_fields[i].values()) for i in key_fields)
+list_combo = list(product(*code_fields.values()))
+
+feature_mtype = OrderedDict((('river', ('wl', 'flow', 'abstr', 'T')), ('aq', ('wl', 'abstr', 'T')), ('atmos', ('precip', 'R_n', 'R_s', 'T_min', 'T_max', 'RH_min', 'RH_max', 'U_z', 'P', 'T')), ('soil', ('T', 'PET')), ('lake', ('wl', 'T'))))
 
 list_feature_mtype = [list(product([i], feature_mtype[i])) for i in feature_mtype]
 
 fields_lst = [i for i in list_combo if i[1] in feature_mtype[i[0]]]
-
-resample_mtype_fun = {'flow': 'mean', 'wl': 'mean', 'precip': 'sum', 'R_n': 'sum', 'R_s': 'sum', 'T_min': 'mean', 'T_max': 'mean', 'T': 'mean', 'RH_min': 'mean', 'RH_max': 'mean', 'U_z': 'mean', 'P': 'mean', 'abstr': 'sum', 'ET': 'sum'}
 
 resample_fun = OrderedDict(('_'.join(i), resample_mtype_fun[i[1]]) for i in fields_lst)
 
 legacy_mtypes = {'usage': 'sum'}
 
 resample_fun.update(legacy_mtypes)
+
+all_mtypes = OrderedDict((i, '_'.join(fields_lst[i-1])) for i in range(1, len(fields_lst)))
 
 #river_flow_cont_qc_dict = {'units': 'm3/s', 'resample': 'mean', 'long_name': 'recorder flow', 'description': 'flow rate derrived from corrected surface water level recorders'}
 #river_flow_dis_qc_dict = {'units': 'm3/s', 'resample': 'mean', 'long_name': 'manually gauged flow', 'description': 'flow rate manually measured during gaugings'}
@@ -37,8 +60,10 @@ resample_fun.update(legacy_mtypes)
 #lakel_dict = {'units': 'masl', 'resample': 'mean', 'long_name': 'recorder lake level', 'description': 'lake level measured via a recording device'}
 #usage_dict = {'units': 'm', 'resample': 'mean', 'long_name': 'water meter usage', 'description': 'water meter usage data from consent holders'}
 
-all_mtypes = resample_fun.keys()
 #all_mtypes = {'flow': flow_dict, 'flow_m': flow_m_dict, 'swl': swl_dict, 'swl_m': swl_m_dict, 'gwl': gwl_dict, 'gwl_m': gwl_m_dict, 'precip': precip_dict, 'usage': usage_dict, 'lakel': lakel_dict, 'flow_tel': flow_tel_dict, 'precip_tel': precip_tel_dict}
+
+######################################
+### The main class
 
 class hydro(object):
     """

@@ -1505,6 +1505,8 @@ sites[sites.SiteID == siteid]
 ### More hydstra
 from pint import UnitRegistry
 from core.ecan_io.hydllp import rd_hydstra_by_mtype
+from core.ecan_io import rd_sql
+from pandas import to_numeric
 
 site = 164606
 
@@ -1531,10 +1533,25 @@ data_type = 'point'
 
 data1 = rd_hydstra_by_mtype(mtype, from_date=from_date, interval=interval)
 
+server= 'SQL2012PROD03'
+database = 'Hydstra'
+table = 'RATEPER'
+fields = ['STATION', 'VARFROM', 'VARTO', 'SDATE', 'STIME', 'REFSTN', 'REFTAB', 'PHASE']
+
+sites = [66612]
+from_date = '2017-09-01'
+to_date = '2017-12-01'
 
 
 
+rate1 = rd_sql(server, database, table, fields)
+rate1['STATION'] = rate1['STATION'].str.strip()
+rate1['REFSTN'] = rate1['REFSTN'].str.strip()
+rate1['STATION'] = to_numeric(rate1['STATION'], 'coerce')
+rate1['REFSTN'] = to_numeric(rate1['REFSTN'], 'coerce')
 
+rate2 = rate1[rate1.STATION == site]
+rate2.sort_values('SDATE')
 
 
 
