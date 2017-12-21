@@ -13,7 +13,6 @@ from core.ecan_io import rd_sql
 from pint import UnitRegistry
 ureg = UnitRegistry()
 Q_ = ureg.Quantity
-today1 = Timestamp(date.today())
 
 
 def rating_changes(sites=None, from_mod_date=None, to_mod_date=None):
@@ -97,6 +96,8 @@ def hydstra_data_changes(varto, sites, data_source='A', from_mod_date=None, to_m
     DataFrame
         With site, varfrom, varto, from_date, and to_date
     """
+    today1 = Timestamp(date.today())
+
     ### Get changes for all other parameters
     if isinstance(from_mod_date, str):
         from_mod_date1 = Timestamp(from_mod_date)
@@ -214,7 +215,7 @@ def hydstra_sites_var_periods(varto=None, sites=None, data_source='A', server='S
     return sites_var_period.reset_index(drop=True)
 
 
-def rd_hydstra(varto, sites=None, data_source='A', from_date=None, to_date=None, from_mod_date=None, to_mod_date=None, interval='day', qual_codes=[30, 20, 10, 11, 21, 18], export_path=None):
+def rd_hydstra(varto, sites=None, data_source='A', from_date=None, to_date=None, from_mod_date=None, to_mod_date=None, interval='day', qual_codes=[30, 20, 10, 11, 21, 18], concat_data=True, export=None):
     """
     Function to read in data from Hydstra's database using HYDLLP. This function extracts all sites with a specific variable code (varto).
 
@@ -296,16 +297,17 @@ def rd_hydstra(varto, sites=None, data_source='A', from_date=None, to_date=None,
         if varto == 143:
             df.loc[:, 'data'] = df.loc[:, 'data'] * 0.001
             df['hydstra_var_code'] = 140
-        data = concat([data, df])
+        ### Make sure the data types are correct
+        df.loc[:, 'qual_code'] = df.qual_code.astype('int32')
+        df.loc[:, 'hydstra_var_code'] = df['hydstra_var_code'].astype('int32')
+        if isinstance(export, str):
+            if export.endswith('.h5'):
+                df.to_hdf(export, key='var_' + str(varto), mode='a', format='table', append=True)
+        if concat_data:
+            data = concat([data, df])
 
-    ### Make sure the data types are correct
-    data.loc[:, 'qual_code'] = data.qual_code.astype('int32')
-    data.loc[:, 'hydstra_var_code'] = data['hydstra_var_code'].astype('int32')
-
-    ### Export data
-    if export_path is not None:
-        data.to_csv(export_path)
-    return data
+    if concat_data:
+        return data
 
 
 def rd_blocklist(sites, datasources=['A'], variables=['100', '10', '110', '140', '130', '143', '450'], start='1900-01-01', end='2100-01-01', start_modified='1900-01-01', end_modified='2100-01-01'):

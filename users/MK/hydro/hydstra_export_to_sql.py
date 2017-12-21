@@ -15,6 +15,7 @@ from pandas import concat, read_hdf, read_csv, merge, Timestamp, to_datetime, Da
 from os.path import join
 from datetime import date
 from core.misc.misc import save_df
+from time import time
 
 #############################################
 ### Parameters
@@ -32,14 +33,16 @@ hydstra_code_dict = {130: 'lakel_data', 100: 'swl_data', 140: 'flow_data', 450: 
 
 #############################################
 ### Iterate through hydstra codes and save as hdf files
-
+start1 = time()
 for i in hydstra_code_dict:
-    s1 = rd_hydstra(i, interval='hour')
-    save_df(s1, join(base_dir, hydstra_code_dict[i] + '_' + str(today1) + '.h5'))
+    print(i)
+    s1 = rd_hydstra(i, interval='hour', export=join(base_dir, hydstra_code_dict[i] + '_' + str(today1) + '.h5'), concat_data=False)
+#    save_df(s1, join(base_dir, hydstra_code_dict[i] + '_' + str(today1) + '.h5'))
+
+end1 = time()
+end1 - start1
 
 
-
-
-
+#t6 = read_hdf(join(base_dir, hydstra_code_dict[i] + '_' + str(today1) + '.h5'))
 
 
