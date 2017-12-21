@@ -97,6 +97,8 @@ def setup_run_forward_modpath(cbc_path, mp_ws, mp_name, min_part=1, max_part=Non
     :param capt_weak_s: Bool if True terminate particles in weak source/sinks
     :return:
     """
+    if not os.path.exists(mp_ws):
+        os.makedirs(mp_ws)
     particles, bd_type = make_mp_forward_particles(cbc_path, min_part=min_part, max_part=max_part)
     particles = pd.DataFrame(particles)
     np.savetxt(os.path.join(mp_ws,'{}_bnd_type.txt'.format(mp_name)),bd_type)

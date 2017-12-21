@@ -31,7 +31,7 @@ if __name__ == '__main__':
         print('{} min to make cbc'.format((time() - t) / 60))
         t = time()
 
-        setup_run_forward_modpath(cbc, mp_ws, mp_name, min_part=2, max_part=500)
+        setup_run_forward_modpath(cbc, mp_ws, mp_name, min_part=1, max_part=100)
         print('{} min to setup and run modpath'.format((time() - t) / 60))
         t = time()
 

@@ -188,8 +188,8 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
     converter_dir = os.path.join(os.path.expanduser('~'), 'temp_nsmc_generation{}'.format(os.getpid()))
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-    if os.path.exists(os.path.join(save_dir, '{}_base.hds'.format(model_id))):
-        name_file_path = os.path.join(save_dir, '{m}_base', '{m}_base.nam'.format(m=model_id))
+    if os.path.exists(os.path.join(save_dir, '{}_base'.format(model_id),'{}_base.hds'.format(model_id))):
+        name_file_path = os.path.join(save_dir, '{}_base'.format(model_id), '{m}_base.nam'.format(m=model_id))
         m = flopy.modflow.Modflow.load(name_file_path, model_ws=os.path.dirname(name_file_path), forgive=False)
         return m
 
@@ -259,7 +259,7 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
 
     # do the replacement
     sfr_out = sfr_template.replace(replacement)
-    sfr_out.to_csv(os.path.join(converter_dir, 'sfr_segdata.txt'), sep='\t')
+    sfr_out.to_csv(os.path.join(converter_dir, 'sfr_segdata.txt'), sep='\t', index=False)
 
     # write fault parameters to fault_ks.txt #todo check
     with open(os.path.join(converter_dir, 'fault_ks.txt'), 'w') as f:
