@@ -18,7 +18,9 @@ import subprocess
 import netCDF4 as nc
 import shutil
 from users.MH.Waimak_modeling.supporting_data_path import sdp
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import modflow_converged
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import \
+    modflow_converged
+from copy import deepcopy
 
 temp_pickle_dir = '{}/temp_pickle_dir'.format(smt.pickle_dir)
 if not os.path.exists(temp_pickle_dir):
@@ -183,7 +185,7 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
     base_converter_dir = "{}/base_for_nsmc_real".format(smt.sdp)
     # check if the model has previously been saved to the save dir, and if so, load from there
     save_dir = env.gw_met_data("mh_modeling/nsmc_loaded_realisations_TEMP")
-    converter_dir = os.path.join(os.path.expanduser('~'),'temp_nsmc_generation{}'.format(os.getpid()))
+    converter_dir = os.path.join(os.path.expanduser('~'), 'temp_nsmc_generation{}'.format(os.getpid()))
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     if os.path.exists(os.path.join(save_dir, '{}_base.hds'.format(model_id))):
@@ -192,7 +194,7 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
         return m
 
     # copy the orginal converter dir to the temporary working dir
-    shutil.copytree(base_converter_dir,converter_dir)
+    shutil.copytree(base_converter_dir, converter_dir)
 
     nsmc_num = int(model_id[-6:])
     param_data = nc.Dataset(env.gw_met_data(r"mh_modeling\netcdfs_of_key_modeling_data\nsmc_params_obs_metadata.nc"))
@@ -266,34 +268,35 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
             f.write('{}\n'.format(val))
 
     # write drain package from parameters and mf_aw_ex_drn.tpl #todo check
-    drn_tpl_path = os.path.join(converter_dir, "mf_aw_ex_drn.tpl")
-    drn = pd.read_fwf(drn_tpl_path, skiprows=4, names=['Layer', 'Row', 'Column', 'Elevation', 'Condfact'])
-    with open(drn_tpl_path) as f:
-        header = []
-        for i in range(4):
-            if i == 0:  # don't need first line it is a pest flag
-                f.readline()
-                continue
-            header.append(f.readline())
 
     # make replacement dictionary
-    names = set(drn.Condfact)
+    names = {'$   d_ash_c$', '$   d_ash_s$', '$  d_chch_c$', '$  d_cust_c$', '$  d_dlin_c$', '$  d_dsel_c$',
+             '$  d_smiths$', '$  d_ulin_c$', '$  d_usel_c$', '$ d_ash_est$', '$ d_cam_yng$', '$ d_dwaimak$',
+             '$ d_kairaki$', '$ d_tar_gre$', '$ d_uwaimak$', '$ d_waihora$', '$d_bul_avon$', '$d_bul_styx$',
+             '$d_cam_mrsh$', '$d_cam_revl$', '$d_cour_nrd$', '$d_emd_gard$', '$d_kuku_leg$', '$d_nbk_mrsh$',
+             '$d_oho_btch$', '$d_oho_jefs$', '$d_oho_kpoi$', '$d_oho_misc$', '$d_oho_mlbk$', '$d_oho_whit$',
+             '$d_salt_fct$', '$d_salt_top$', '$d_sbk_mrsh$', '$d_sil_harp$', '$d_sil_heyw$', '$d_sil_ilnd$',
+             '$d_tar_stok$'}
+
     param_names = param_data.variables['drns'][:]
     replacer = {}
     for nm in names:
         drn_idx = param_names == nm.strip('$ ')
-        replacer[nm] = param_data.variables['drn_cond'][param_idx][drn_idx]
+        replacer[nm] = param_data.variables['drn_cond'][param_idx][drn_idx][0]
 
     # replace data
-    drn_out = drn.replace(replacer)
+    drn_tpl_path = os.path.join(converter_dir, "mf_aw_ex_drn.tpl")
+    with open(drn_tpl_path) as f:
+        drns = f.read()
+        for key, val in replacer.items():
+            drns = drns.replace(key,str(val))
+    drns = drns.replace('ptf $\n','') # get rid of the header for pest
 
-    # write file header
+    # write new data
     out_drn_path = os.path.join(converter_dir, 'mf_aw_ex.drn')
-    with open(out_drn_path, 'w') as f:
-        f.writelines(header)
+    with open(out_drn_path,'w') as f:
+        f.write(drns)
 
-    # write data with pandas
-    drn_out.to_csv(out_drn_path, sep=' ', mode='a', index=False, header=False)
 
     # run model.bat
     print('running model.bat')
@@ -325,11 +328,22 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
         m._set_name(name)
         m.change_model_ws(dir_path)
         m.exe_name = "{}/models_exes/MODFLOW-NWT_1.1.2/MODFLOW-NWT_1.1.2/bin/MODFLOW-NWT_64.exe".format(sdp)
+        units = deepcopy(m.output_units)
+        for u in units:
+            m.remove_output(unit=u)
+
+        fnames = [m.name + e for e in ['.hds', '.ddn', '.cbc', '.sfo']]  # output extension
+        funits = [30, 31, 740, 741]  # fortran unit
+        fbinflag = [True, True, True, True, ]  # is binary
+        fpackage = [[], [], ['UPW', 'DRN', 'RCH', 'SFR', 'WEL'], ['SFR']]
+        for fn, fu, fb, fp, in zip(fnames, funits, fbinflag, fpackage):
+            m.add_output(fn, fu, fb, fp)
+
         m.write_name_file()
         m.write_input()
-        m.run_model()
+        success, buff = m.run_model()
         con = modflow_converged(os.path.join(dir_path, m.lst.file_name[0]))
-        if not con:
+        if not con or not success:
             os.remove(os.path.join(dir_path, '{}.hds'.format(m.name)))
             raise ValueError('the model did not converge: \n'
                              '{}\n, headfile deleted to prevent running'.format(os.path.join(dir_path, name)))

@@ -5,10 +5,19 @@ from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_too
 from scipy.interpolate import rbf
 import netCDF4 as nc
 import numpy as np
+from core import env
+import shutil
+import os
 
 def timeit_test():
-    layers, rows, cols = np.meshgrid(range(smt.layers), range(smt.rows), range(smt.cols), indexing='ij')
-    ids = ['{:02d}_{:03d}_{:03d}'.format(k, i, j) for k, i, j in zip(layers.flatten(), rows.flatten(), cols.flatten())]
+    base_converter_dir = "{}/base_for_nsmc_real".format(smt.sdp)
+    # check if the model has previously been saved to the save dir, and if so, load from there
+    converter_dir = os.path.join(os.path.expanduser('~'),'temp_nsmc_generation{}'.format(os.getpid()))
+    shutil.copytree(base_converter_dir,converter_dir)
+    shutil.rmtree(converter_dir)
+
+
+
 
 if __name__ == '__main__':
     print 'hello world'
