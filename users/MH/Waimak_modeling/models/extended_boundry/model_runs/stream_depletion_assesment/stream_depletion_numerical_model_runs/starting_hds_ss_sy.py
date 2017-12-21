@@ -92,7 +92,7 @@ def get_ss_sy(ss_sy_version=1, return_description=False):
         ss[0, :, :] = 1.6E-3
         ss[1:, :, :] = 5.6E-5
         description = ('the first pass storage, created from average storage conditions, but not considering '
-                      'the implication of flooded cells\n sy: 0.1 for all layers\n '
+                      'the implication of flooded cells\n sy: 0.1 for all layers\n'
                       'ss: 1.6E-3 for layer 1 and 5.6 E-5 for all other layers')
     elif ss_sy_version == 2:
         sy = smt.get_empty_model_grid() + 0.01
