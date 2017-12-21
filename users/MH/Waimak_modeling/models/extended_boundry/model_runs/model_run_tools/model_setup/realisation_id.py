@@ -207,7 +207,7 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
             val = param_data.variables[param][param_idx]
             f.write('{} {}\n'.format(param, val))
 
-    # write rch parameters to rch_ppts.txt #todo check
+    # write rch parameters to rch_ppts.txt
     with open(os.path.join(converter_dir, 'rch_ppts.txt'), 'w') as f:
         keys = np.array(param_data.variables['rch_ppt'])
         x = np.array(param_data.variables['rch_ppt_x'])
@@ -217,7 +217,7 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
         for k, _x, _y, g, v in zip(keys, x, y, group, val):
             f.write('{} {} {} {} {}\n'.format(k, _x, _y, g, v))
 
-    # write kh and kv #todo check
+    # write kh and kv
     all_kv = np.array(param_data.variables['kv'][param_idx])  # shape = (11, 178)
     all_kh = np.array(param_data.variables['kh'][param_idx])  # shape = (11, 178)
     all_names = np.array(param_data.variables['khv_ppt'])
@@ -261,13 +261,13 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
     sfr_out = sfr_template.replace(replacement)
     sfr_out.to_csv(os.path.join(converter_dir, 'sfr_segdata.txt'), sep='\t', index=False)
 
-    # write fault parameters to fault_ks.txt #todo check
+    # write fault parameters to fault_ks.txt
     with open(os.path.join(converter_dir, 'fault_ks.txt'), 'w') as f:
         for param in ['fkh_mult', 'fkv_mult']:
             val = param_data.variables[param][param_idx]
             f.write('{}\n'.format(val))
 
-    # write drain package from parameters and mf_aw_ex_drn.tpl #todo check
+    # write drain package from parameters and mf_aw_ex_drn.tpl
 
     # make replacement dictionary
     names = {'$   d_ash_c$', '$   d_ash_s$', '$  d_chch_c$', '$  d_cust_c$', '$  d_dlin_c$', '$  d_dsel_c$',

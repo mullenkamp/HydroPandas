@@ -34,9 +34,9 @@ def get_sd_starting_hds(model_id, sd_version):
     return hds
 
 def get_sd_well_list(model_id):
-    cav = get_full_consent(model_id) # note this is identical to max rate well list
+    cav = get_full_consent(model_id, missing_sd_wells=True) # note this is identical to max rate well list
     cav = cav.loc[(cav.type=='well') & (cav.zone == 'n_wai') & (cav.flux < 0)]
-    well_list = list(cav.index)
+    well_list = list(set(cav.index))
     return well_list
 
 def get_starting_heads_sd150(model_id):
@@ -78,7 +78,7 @@ def _get_no_pumping_ss_hds(model_id, recalc=False):
     return hds
 
 
-def get_ss_sy(ss_sy_version=1, return_description=False): #todo add versioning
+def get_ss_sy(ss_sy_version=1, return_description=False):
     """
     a way of keeping track of the versioning
     :param ss_sy_version: numeric
@@ -116,5 +116,5 @@ def get_ss_sy(ss_sy_version=1, return_description=False): #todo add versioning
 
 
 if __name__ == '__main__':
-    test = get_starting_heads_sd7('NsmcBase')
+    test = get_sd_well_list('NsmcBase')
     print(test)

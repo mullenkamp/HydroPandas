@@ -143,4 +143,5 @@ def get_all_well_row_col(recalc=False):
 
 if __name__ == '__main__':
     # note this takes some time to run
-    get_all_well_row_col()
+    all_well = get_all_well_row_col()
+    print('done')

@@ -23,7 +23,20 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
 from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.well_budget import get_well_budget
 from users.MH.Waimak_modeling.supporting_data_path import sdp
 from copy import deepcopy
+from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.all_well_layer_col_row import \
+    get_all_well_row_col
 
+_missing_well_use_converter = {'Aquaculture': 'other',
+                               'Arable Farming': 'irrigation-sw',
+                               'Dewatering': 'other',
+                               'Intensive Farming': 'irrigation-sw',
+                               'Irrigation': 'irrigation-sw',
+                               'Irrigation and community supply': 'irrigation-sw',
+                               'Irrigation, domestic and Stockwater': 'irrigation-sw',
+                               'Other': 'other',
+                               'Public Water Supply (Municipal/Community)': 'other',
+                               'Recreation': 'other',
+                               'Stockwater': 'irrigation-sw'}
 
 # for stream depletion things
 def get_race_data(model_id):
@@ -32,16 +45,18 @@ def get_race_data(model_id):
     :param model_id: the NSMC realisation
     :return:
     """
-    outdata = get_base_well(model_id,True) #use original pumping wells becasue it doesn't matter
+    outdata = get_base_well(model_id, True)  # use original pumping wells becasue it doesn't matter
     outdata = outdata.loc[outdata.loc[:, 'type'] != 'well']
     return outdata
 
 
-def get_full_consent(model_id, org_pumping_wells=False, recalc=False):
+def get_full_consent(model_id, org_pumping_wells=False, missing_sd_wells=False,
+                     recalc=False):
     """
     EAV/consented annual volume I need to think about this one
     :param model_id: the NSMC realisation
     :param org_pumping_wells: Boolean if true use the model period wells else use the 2014/2015 pumping
+    :param missing_sd_wells: bool if True include the wells that mark found missing
     :param recalc: Boolean, if true recalculate otherwise load from a pickle
     :return: the full dataframe with just the flux converted
     """
@@ -49,8 +64,9 @@ def get_full_consent(model_id, org_pumping_wells=False, recalc=False):
         new = 'mod_period'
     else:
         new = '2014_15'
+    missing_sd = '_inc_missing_sd' if missing_sd_wells else ''
 
-    pickle_path = "{}/model_{}_well_full_abstraction_{}.p".format(temp_pickle_dir, model_id,new)
+    pickle_path = "{}/model_{}_well_full_abstraction_{}{}.p".format(temp_pickle_dir, model_id, new, missing_sd)
     if (os.path.exists(pickle_path)) and (not recalc):
         outdata = pickle.load(open(pickle_path))
         return outdata
@@ -85,15 +101,36 @@ def get_full_consent(model_id, org_pumping_wells=False, recalc=False):
     idx = set(fluxes.index).intersection(outdata.index)
     outdata.loc[idx, 'flux'] = fluxes.loc[idx, 'cav'] / -365
 
+    if missing_sd_wells:
+        # there are a couple of duplicates e.g 1 well on two consents
+        # these will be handled when I amalgamate up to the model grid
+        all_wells = get_all_well_row_col()
+        idx = pd.notnull(all_wells.loc[:, ['layer', 'row', 'col']]).all(axis=1)
+        missing_wells = pd.read_csv("{}/m_ex_bd_inputs/missing_sd_wells.csv".format(smt.sdp),
+                                    skiprows=3, index_col='well_no').loc[:, ['consent', 'max_rate', 'cav', 'use_type']]
+        missing_wells.loc[missing_wells.use_type.isnull(), ['use_type']] = 'other'
+        missing_wells = missing_wells.replace({'use_type':_missing_well_use_converter})
+
+        missing_wells['max_rate'] *= -86.4  # to convert from l/s to m3/day
+        missing_wells = pd.merge(missing_wells, all_wells.loc[idx, ['layer', 'row', 'col']],
+                                 right_index=True, left_index=True)
+        missing_wells.loc[:, 'type'] = 'well'
+        missing_wells.loc[:, 'zone'] = 'n_wai'
+        missing_wells.loc[idx, 'flux'] = missing_wells.loc[idx, 'cav'] / -365
+        idx = ~np.in1d(outdata.index, missing_wells.index)
+        outdata = pd.concat((outdata.loc[idx], missing_wells))
+
     pickle.dump(outdata, open(pickle_path, 'w'))
     return outdata
 
 
-def get_max_rate(model_id, org_pumping_wells=False, recalc=False):
+def get_max_rate(model_id, org_pumping_wells=False, missing_sd_wells=False,
+                 recalc=False):
     """
     replaces the flux value with the full consented volumes for the wells north of the waimakariri
     :param model_id: the NSMC realisation
     :param org_pumping_wells: Boolean if true use the model period wells else use the 2014/2015 pumping
+    :param missing_sd_wells: bool if True include the wells that mark flagged as missing from the waimakariri zone
     :param recalc: Boolean, if true recalculate otherwise load from a pickle
     :return: the full dataframe with just the flux converted
     """
@@ -102,7 +139,9 @@ def get_max_rate(model_id, org_pumping_wells=False, recalc=False):
     else:
         new = '2014_15'
 
-    pickle_path = "{}/model_{}_well_max_rate_{}.p".format(temp_pickle_dir, model_id,new)
+    missing_sd = '_inc_missing_sd' if missing_sd_wells else ''
+
+    pickle_path = "{}/model_{}_well_max_rate_{}{}.p".format(temp_pickle_dir, model_id, new, missing_sd)
     if (os.path.exists(pickle_path)) and (not recalc):
         outdata = pickle.load(open(pickle_path))
         return outdata
@@ -129,12 +168,31 @@ def get_max_rate(model_id, org_pumping_wells=False, recalc=False):
     idx = set(fluxes.index).intersection(outdata.index)
     outdata.loc[idx, 'flux'] = fluxes.loc[idx, 'flux']
 
+    if missing_sd_wells:
+        # there are a couple of duplicates e.g 1 well on two consents
+        # these will be handled when I amalgamate up to the model grid
+
+        all_wells = get_all_well_row_col()
+        idx = pd.notnull(all_wells.loc[:, ['layer', 'row', 'col']]).all(axis=1)
+        missing_wells = pd.read_csv("{}/m_ex_bd_inputs/missing_sd_wells.csv".format(smt.sdp),
+                                    skiprows=3, index_col='well_no').loc[:, ['consent', 'max_rate', 'cav', 'use_type']]
+        missing_wells.loc[missing_wells.use_type.isnull(), ['use_type']] = 'other'
+        missing_wells = missing_wells.replace({'use_type':_missing_well_use_converter})
+
+        missing_wells['flux'] = missing_wells.loc[:, 'max_rate'] * -86.4  # to convert from l/s to m3/day
+        missing_wells = pd.merge(missing_wells, all_wells.loc[idx, ['layer', 'row', 'col']],
+                                 right_index=True, left_index=True)
+        missing_wells.loc[:, 'type'] = 'well'
+        missing_wells.loc[:, 'zone'] = 'n_wai'
+        idx = ~np.in1d(outdata.index, missing_wells.index)
+        outdata = pd.concat((outdata.loc[idx], missing_wells))
+
     pickle.dump(outdata, open(pickle_path, 'w'))
     return outdata
 
 
 def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturalised=False, full_allo=False,
-                      pc5=False,org_pumping_wells=False):
+                      pc5=False, org_pumping_wells=False):
     """
     gets the pumping data for the forward runs
     :param model_id: which NSMC realisation to use
@@ -152,12 +210,12 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
     if full_allo and naturalised:
         raise ValueError('cannot both be fully allocated and naturalised')
 
-    outdata = get_base_well(model_id,org_pumping_wells)
+    outdata = get_base_well(model_id, org_pumping_wells)
     if not org_pumping_wells:
-        max_pumping = get_full_consent(model_id,org_pumping_wells)
+        max_pumping = get_full_consent(model_id, org_pumping_wells)
         idx = outdata.index
         outdata.loc[(outdata.loc[idx, 'flux'] < max_pumping.loc[idx, 'flux']) & (outdata.cwms == 'waimak') & (
-        outdata.type == 'well'), 'flux'] = max_pumping.loc[idx, 'flux']
+            outdata.type == 'well'), 'flux'] = max_pumping.loc[idx, 'flux']
 
     if full_abstraction:
         idx = outdata.loc[(outdata.type == 'well') & (outdata.cwms == 'waimak')].index
@@ -194,7 +252,7 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
                 raise NotImplementedError('model period wells not implemented for cc senarios due to climate change '
                                           'problems around the multiplier and the CAV')
 
-            cc_mult = get_cc_pumping_muliplier(cc_inputs) #only apply cc multiplier to the waimakariri zone
+            cc_mult = get_cc_pumping_muliplier(cc_inputs)  # only apply cc multiplier to the waimakariri zone
             outdata.loc[(outdata.loc[:, 'use_type'] == 'irrigation-sw') & (outdata.cwms == 'waimak'), 'flux'] *= cc_mult
             temp = outdata.loc[:, 'flux'].sum()
             # pumping is truncated at full allocation and abstraction value but only for the waimakariri zone, selwyn/chch noth changed
@@ -206,11 +264,11 @@ def get_forward_wells(model_id, full_abstraction=False, cc_inputs=None, naturali
             max_pumping.loc[idx, 'flux'] *= allo_mult.loc[idx]
 
             idx = outdata.index
-            #less than as the fluxes are negative
-            outdata.loc[(outdata.loc[idx, 'flux'] < max_pumping.loc[idx, 'flux']) & (outdata.cwms =='waimak') &
-                        (outdata.type=='well'), 'flux'] = max_pumping.loc[idx, 'flux']
+            # less than as the fluxes are negative
+            outdata.loc[(outdata.loc[idx, 'flux'] < max_pumping.loc[idx, 'flux']) & (outdata.cwms == 'waimak') &
+                        (outdata.type == 'well'), 'flux'] = max_pumping.loc[idx, 'flux']
             # but may not apply as we'll only do the forward CC runs with 2014/15 pumping
-            new_water_needed = (temp - outdata.loc[:, 'flux'].sum())*-1
+            new_water_needed = (temp - outdata.loc[:, 'flux'].sum()) * -1
 
     return outdata, cc_mult, new_water_needed
 
@@ -225,16 +283,17 @@ def get_cc_pumping_muliplier(cc_inputs):
     amalg_dict = {None: 'mean', 'mean': 'mean', 'tym': 'period_mean', 'low_3_m': '3_lowest_con_mean',
                   'min': 'lowest_year'}
 
-    sen='current' # irrigation demand does not change with irrigation efficiency
-    rcp= cc_inputs['rcp']
-    rcm= cc_inputs['rcm']
-    per= cc_inputs['period']
-    at= amalg_dict[cc_inputs['amag_type']]
+    sen = 'current'  # irrigation demand does not change with irrigation efficiency
+    rcp = cc_inputs['rcp']
+    rcm = cc_inputs['rcm']
+    per = cc_inputs['period']
+    at = amalg_dict[cc_inputs['amag_type']]
     # base period for pumping multiplier is RCPpast period mean for the same senario and rcm
     ird_current_period = get_ird_base_array(*get_lsr_base_period_inputs(sen, rcp, rcm, per, at))
     ird_modeled_period = get_ird_base_array(sen, rcp, rcm, per, at)
-    outdata = ird_modeled_period/ird_current_period
-    w_idx = get_zone_array_index('waimak') # regardless where the cc input are applied only apply ccmul to waimaik so only use that zone
+    outdata = ird_modeled_period / ird_current_period
+    w_idx = get_zone_array_index(
+        'waimak')  # regardless where the cc input are applied only apply ccmul to waimaik so only use that zone
     outdata = outdata[w_idx]
     return np.nanmean(outdata)
 
@@ -261,7 +320,7 @@ def get_full_allo_multipler(org_pumping_wells, recalc=False):
     else:
         new = '2014_15'
 
-    pickle_path = "{}/model_well_allo_mult_{}.p".format(smt.pickle_dir,new)
+    pickle_path = "{}/model_well_allo_mult_{}.p".format(smt.pickle_dir, new)
     if (os.path.exists(pickle_path)) and (not recalc):
         outdata = pickle.load(open(pickle_path))
         return outdata
@@ -287,43 +346,6 @@ def get_full_allo_multipler(org_pumping_wells, recalc=False):
 
 
 if __name__ == '__main__':
-    #tests
-    test_type = 2
-    if test_type == 2:
-        cav = get_full_consent('NsmcBase')
-        max_rate = get_max_rate('opt')
-        max_rate = max_rate.loc[(max_rate.type=='well') & (max_rate.zone=='n_wai')]
-        cav = cav.loc[(cav.type=='well') & (cav.zone == 'n_wai')]
-        org_wells = _get_wel_spd_v2()
-        org_wells = org_wells.loc[(org_wells.type=='well') & (org_wells.zone =='n_wai')]
-        print('done')
-    if test_type == 0:
-        cc_inputs = {'rcm': 'BCC-CSM1.1',
-                     'rcp': 'RCP4.5',
-                     'period': 2090,
-                     'amag_type': 'tym',
-                     'cc_to_waimak_only': False}
-        test = get_cc_pumping_muliplier(cc_inputs)
-        test, ccmult, new_water = get_forward_wells('opt',
-                                        full_abstraction=False,
-                                        cc_inputs=cc_inputs,
-                                        naturalised=False,
-                                        full_allo=False,
-                                        pc5=False,
-                                        org_pumping_wells=False)
-        print(get_well_budget(test)/86400)
-        print('ccmult: ' + str(ccmult))
-        print('new_water: ' + str(new_water))
-    elif test_type == 1:
-        import itertools
-        mults = []
-        periods = range(2010, 2100, 20)
-        rcms = ['BCC-CSM1.1', 'CESM1-CAM5', 'GFDL-CM3', 'GISS-EL-R', 'HadGEM2-ES', 'NorESM1-M']
-        rcps = ['RCP4.5', 'RCP8.5']
-        amalg_types = ['tym', 'low_3_m']  # removed min as most low_3_yr were not converging
-        # cc stuff
-        for per, rcp, rcm, at in itertools.product(periods, rcps, rcms, amalg_types):
-            cc_inputs = {'rcm': rcm, 'rcp': rcp, 'period': per, 'amag_type': at, 'cc_to_waimak_only':True}
-            temp = get_cc_pumping_muliplier(cc_inputs)
-            mults.append(temp)
-        print('done')
+    wells = get_full_consent('NsmcBase', missing_sd_wells=True,recalc=True)
+    wells = get_max_rate('NsmcBase', missing_sd_wells=True,recalc=True)
+    print('done')

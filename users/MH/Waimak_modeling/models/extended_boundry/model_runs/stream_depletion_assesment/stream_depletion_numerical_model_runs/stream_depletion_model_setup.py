@@ -74,10 +74,10 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
         sd_7_150 = 'sd7'  # this effectivly uses the max rate of the consent rather than the CAV for 150 day
 
     if sd_7_150 == 'sd150':
-        full_consent = get_full_consent(model_id)
+        full_consent = get_full_consent(model_id, missing_sd_wells=True)
         full_consent.loc[full_consent.use_type == 'irrigation-sw','flux'] *= 12/5 # scale irrigation wells to CAV over 150 days
     elif sd_7_150 == 'sd7':
-        sd7_flux = get_max_rate(model_id)
+        sd7_flux = get_max_rate(model_id, missing_sd_wells=True)
     for sp in range(nper):
         # set up recharge
         rch[sp] = 0
