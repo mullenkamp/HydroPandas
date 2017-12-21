@@ -52,7 +52,7 @@ def setup_runs_sd150(model_id, well_list, base_path, ss, sy, start_heads):
     out_runs = []
     for well in well_list:
         temp_kwargs = copy(base_kwargs)
-        temp_kwargs['wells_to_turn_on'] = {0:[well]}
+        temp_kwargs['wells_to_turn_on'] = {0: [well]}
         temp_kwargs['name'] = 'turn_on_{}_sd150'.format(well.replace('/', '_'))
         out_runs.append(temp_kwargs)
 
@@ -70,7 +70,7 @@ def start_process():
     p.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
 
 
-def well_by_well_depletion_sd150(model_id, well_list, base_path, notes):
+def well_by_well_depletion_sd150(model_id, well_list, base_path, notes, ss_sy_version=1):
     """
     run the well by well depletion for the 150 day stream depletion
     :param model_id: the NSMC realisation to use
@@ -84,7 +84,7 @@ def well_by_well_depletion_sd150(model_id, well_list, base_path, notes):
             raise KeyboardInterrupt('run  stopped to prevent overwrite of {}'.format(base_path))
 
     t = time.time()
-    ss,sy = get_ss_sy()
+    ss, sy = get_ss_sy(ss_sy_version=ss_sy_version)
     start_heads = get_starting_heads_sd150(model_id)
     multiprocessing.log_to_stderr(logging.DEBUG)
     runs = setup_runs_sd150(model_id, well_list, base_path, ss, sy, start_heads)
@@ -95,12 +95,15 @@ def well_by_well_depletion_sd150(model_id, well_list, base_path, notes):
     results = pool.map_async(setup_and_run_stream_dep_multip, runs)
     while not results.ready():
         print('{} runs left of {}'.format(results._number_left, len(runs)))
-        time.sleep(60*5)  # sleep 5 min between printing
+        time.sleep(60 * 5)  # sleep 5 min between printing
     pool_outputs = results.get()
     pool.close()  # no more tasks
     pool.join()
     now = datetime.datetime.now()
-    with open("{}/forward_run_log/{}_SD150_run_status_{}_{:02d}_{:02d}_{:02d}_{:02d}.txt".format(smt.sdp,model_id,now.year,now.month,now.day,now.hour,now.minute), 'w') as f:
+    with open("{}/forward_run_log/{}_SD150_run_status_{}_{:02d}_{:02d}_{:02d}_{:02d}.txt".format(smt.sdp, model_id,
+                                                                                                 now.year, now.month,
+                                                                                                 now.day, now.hour,
+                                                                                                 now.minute), 'w') as f:
         f.write(str(notes) + '\n')
         wr = ['{}: {}\n'.format(e[0], e[1]) for e in pool_outputs]
         f.writelines(wr)
@@ -112,6 +115,6 @@ if __name__ == '__main__':
     model_id = 'StrOpt'
     well_list = get_sd_well_list(model_id)
     base_path = r"C:\Users\MattH\Desktop\test_sd150_look_at"
-    well_by_well_depletion_sd150(model_id,well_list,base_path,notes)
+    well_by_well_depletion_sd150(model_id, well_list, base_path, notes)
 
     print('done')

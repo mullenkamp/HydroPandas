@@ -78,12 +78,41 @@ def _get_no_pumping_ss_hds(model_id, recalc=False):
     return hds
 
 
-def get_ss_sy():
-    sy = np.zeros(smt.model_array_shape) + 0.1  #todo this should get smaller
-    ss = np.zeros(smt.model_array_shape)
-    ss[0, :, :] = 1.6E-3 # todo this should go to other ss
-    ss[1:, :, :] = 5.6E-5
-    return ss, sy
+def get_ss_sy(ss_sy_version=1, return_description=False): #todo add versioning
+    """
+    a way of keeping track of the versioning
+    :param ss_sy_version: numeric
+    :param return_description: bool if True do not return the ss_sy, but instead return the description for the ss_sy
+                               version for writing into a readme file
+    :return: ss, sy or description
+    """
+    if ss_sy_version == 1:
+        sy = np.zeros(smt.model_array_shape) + 0.1
+        ss = np.zeros(smt.model_array_shape)
+        ss[0, :, :] = 1.6E-3
+        ss[1:, :, :] = 5.6E-5
+        description = ('the first pass storage, created from average storage conditions, but not considering '
+                      'the implication of flooded cells\n sy: 0.1 for all layers\n '
+                      'ss: 1.6E-3 for layer 1 and 5.6 E-5 for all other layers')
+    elif ss_sy_version == 2:
+        sy = smt.get_empty_model_grid() + 0.01
+        ss = smt.get_empty_model_grid() + 1.0E-6
+        description = 'the lower of the sensitivity anlaysis\n ss: 1e-6, sy: 0.01'
+    elif ss_sy_version == 3:
+        sy = smt.get_empty_model_grid() + 0.05
+        ss = smt.get_empty_model_grid() + 1.0E-5
+        description = 'the median values for the sensitivity analysis\n ss: 1e-5, sy: 0.05'
+    elif ss_sy_version == 4:
+        sy = smt.get_empty_model_grid() + 0.1
+        ss = smt.get_empty_model_grid() + 5E-4
+        description = 'the high values for the sensitivity analysis\n ss: 5e-4, sy: 0.1'
+    else:
+        raise ValueError('unexpected ss_sy_version')
+
+    if return_description:
+        return description
+    else:
+        return ss, sy
 
 
 if __name__ == '__main__':
