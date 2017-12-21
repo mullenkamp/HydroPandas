@@ -91,7 +91,8 @@ def gen_sfr_flux_target_array():
                    117: 'sfx_5drn',
                    118: 'sfx_6drn',
                    119: 'sfx_2adrn',
-                   120: 'sfx_7drn'}
+                   120: 'sfx_7drn',
+                   888: 'sfx_a0_gry'}
 
     return target_array.astype(int), num_to_name
 
@@ -194,6 +195,7 @@ def get_target_group_values():
                         'sfo_e_seyr': 0.0,
 
                         # surface water flux #from pervious shapefiles of targets
+                        'sfx_a0_gry': 0.2,  # this was added on 19/12/2017 as we found the optimised model lost heaps of water
                         'sfx_a1_con': 'mid_ash_g',
                         'sfx_a2_gol': 'mid_ash_g',
                         'sfx_a3_tul': 'mid_ash_g',
@@ -389,7 +391,7 @@ def check_non_head_targets():
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-
+    temp = gen_sfr_flux_target_array()
     outdata = get_head_targets()
     outdata2 = get_head_targets(True)
     vert = get_vertical_gradient_targets()

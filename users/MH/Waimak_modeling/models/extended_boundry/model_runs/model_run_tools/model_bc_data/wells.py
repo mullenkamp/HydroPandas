@@ -290,8 +290,8 @@ if __name__ == '__main__':
     #tests
     test_type = 2
     if test_type == 2:
+        cav = get_full_consent('NsmcBase')
         max_rate = get_max_rate('opt')
-        cav = get_full_consent('opt')
         max_rate = max_rate.loc[(max_rate.type=='well') & (max_rate.zone=='n_wai')]
         cav = cav.loc[(cav.type=='well') & (cav.zone == 'n_wai')]
         org_wells = _get_wel_spd_v2()

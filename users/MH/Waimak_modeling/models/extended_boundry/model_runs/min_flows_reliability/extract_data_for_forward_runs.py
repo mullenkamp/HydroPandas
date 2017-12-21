@@ -16,7 +16,7 @@ import datetime
 from copy import deepcopy
 import flopy
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import \
-    zipped_converged
+    zipped_modflow_converged
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import matplotlib.pyplot as plt
 from visualise_data_from_fruns import gw_site_groups
@@ -53,7 +53,7 @@ def extract_forward_metadata(forward_run_dir, outpath):
     model_id = os.path.basename(paths[0]).split('_')[0]
     outpath = os.path.join(os.path.dirname(outpath), '{}_{}'.format(model_id, os.path.basename(outpath)))
     model_names = [os.path.basename(path).replace('.nam', '').replace(model_id + '_', '') for path in paths]
-    converged = [zipped_converged(path, return_nans=True) for path in paths]
+    converged = [zipped_modflow_converged(path, return_nans=True) for path in paths]
     outdata = pd.DataFrame(index=model_names, data={'converged': converged, 'path': paths})
 
     # extract the sen at ect from the path?

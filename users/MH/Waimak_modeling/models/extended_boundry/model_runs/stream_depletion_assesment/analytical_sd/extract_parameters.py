@@ -14,6 +14,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
 from copy import deepcopy
 from users.MH.Waimak_modeling.models.extended_boundry.m_packages.drn_packages import _get_drn_spd
 import pandas as pd
+import os
 
 
 def extract_parameters(outpath, model_id):
@@ -93,7 +94,7 @@ def extract_parameters(outpath, model_id):
     sfr_seg = m.sfr.stress_period_data.array['iseg'][0, 0]
     temp = pd.DataFrame(m.sfr.segment_data[0]).set_index('nseg').loc[:, 'width1'].to_dict()
     temp[np.nan] = np.nan
-    sfr_width = smt.get_empty_model_grid()* np.nan
+    sfr_width = smt.get_empty_model_grid() * np.nan
     sfr_width[np.isfinite(sfr_seg)] = vec_translate(sfr_seg[np.isfinite(sfr_seg)], temp)
     sfr_k = m.sfr.stress_period_data.array['strhc1'][0, 0]
     sfr_cond = sfr_k * sfr_width * sfr_len
@@ -101,10 +102,61 @@ def extract_parameters(outpath, model_id):
     cond[:] = drn_cond
 
 
+def extract_parameters_to_points(outdir, model_id):
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+    ibnd = smt.get_no_flow()
+    m = get_model(model_id)
+    x, y = smt.get_model_x_y()
+    layers = range(smt.layers)
+    elv_db = smt.calc_elv_db()
+    thickness = elv_db[:-1] - elv_db[1:]
+
+    kh = m.upw.hk.array
+    kh[ibnd == 0] = np.nan
+
+    kv = m.upw.vka.array
+    kv[ibnd == 0] = np.nan
+
+    for l in layers:
+        idx = np.isfinite(kv[l])
+        temp = pd.DataFrame({'x': x[idx].flatten(), 'y': y[idx].flatten(),
+                             'kh': kh[l][idx].flatten(), 'kv': kv[l][idx].flatten(),
+                             'thickness': thickness[l][idx].flatten()})
+        temp.to_csv(os.path.join(outdir, 'kh_kv_thick_layer_{:02d}.csv'.format(l + 1)))
+
+    drn = _get_drn_spd(smt.reach_v, smt.wel_version, n_car_dns=False)
+    temp = smt.df_to_array(drn, 'i')
+    idx = np.isfinite(temp)
+    drn_cond = m.drn.stress_period_data.array['cond'][0, 0]
+    drn_width = deepcopy(drn_cond)
+    drn_width[np.isfinite(drn_width)] = 200
+    drn_len = deepcopy(drn_width)
+    drn_cond[~idx] = np.nan
+    drn_width[~idx] = np.nan
+    drn_len[~idx] = np.nan
+
+    sfr_len = m.sfr.stress_period_data.array['rchlen'][0, 0]
+    sfr_seg = m.sfr.stress_period_data.array['iseg'][0, 0]
+    temp = pd.DataFrame(m.sfr.segment_data[0]).set_index('nseg').loc[:, 'width1'].to_dict()
+    temp[np.nan] = np.nan
+    sfr_width = smt.get_empty_model_grid() * np.nan
+    sfr_width[np.isfinite(sfr_seg)] = vec_translate(sfr_seg[np.isfinite(sfr_seg)], temp)
+    sfr_k = m.sfr.stress_period_data.array['strhc1'][0, 0]
+    sfr_cond = sfr_k * sfr_width * sfr_len
+    drn_cond[np.isfinite(sfr_cond)] = sfr_cond[np.isfinite(sfr_cond)]
+
+    idx = np.isfinite(drn_cond)
+    temp = pd.DataFrame({'x': x[idx].flatten(), 'y': y[idx].flatten(),
+                         'cond':drn_cond[idx].flatten()})
+    temp.to_csv(os.path.join(outdir, 'conductance.csv'))
+
+
 def vec_translate(a, d):
     return np.vectorize(d.__getitem__)(a)
 
 
 if __name__ == '__main__':
-    extract_parameters(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\stream_depletion\parameters.nc",
-                       'NsmcBase')
+    extract_parameters_to_points(
+        r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va\stream_depletion\point_parameters",
+        'NsmcBase')

@@ -65,7 +65,7 @@ def _make_mednload_approx(bnd_type):
     load = make_con_layer(bnd_type,rch,well,sfr)
     return load
 
-#todo could try to handle stream flow routing
+# could try to handle stream flow routing, but this didn't work
 
 if __name__ == '__main__':
     import os

@@ -9,11 +9,11 @@ from core import env
 import numpy as np
 import flopy
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_setup.modpath_percentage import \
-    create_mp_slf
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools import import_gns_model
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_setup.modpath_wrapper import \
+    create_mp_slf, get_cbc
 import os
 import pandas as pd
+
 
 def part_group_cell_mapper(bd_type):
     js, iss = np.meshgrid(range(smt.cols), range(smt.rows)) # zero indexed to agree with python interpretation
@@ -23,7 +23,7 @@ def part_group_cell_mapper(bd_type):
 
 
 
-def make_mp_forward_particles(cbc_path, min_part=1, max_part=None): #todo could add a limiting factor e.g. a max per cell
+def make_mp_forward_particles(cbc_path, min_part=1, max_part=None):
     """
     make modpath particle locations from the cbc file.  particles are created in each top layer cell with the number
     relative to the influx
@@ -85,29 +85,24 @@ def make_mp_forward_particles(cbc_path, min_part=1, max_part=None): #todo could 
         start_idx = end_idx
     return outdata, bd_type
 
-def get_cbc(model_id, base_dir): # todo implement nsmcrealisations in import_gns_model
-    cbc_path = os.path.join(base_dir,'{}_for_modpath'.format(model_id),'{}_for_modpath.cbc'.format(model_id))
 
-    if os.path.exists(cbc_path):
-        return cbc_path
-
-    m = import_gns_model(model_id,'for_modpath',os.path.join(base_dir,'for_modpath'),False)
-    m.write_name_file()
-    m.upw.iphdry = 1  # hdry is -888.0
-
-    m.write_input()
-    m.run_model()
-
-    return cbc_path
-
-
-def setup_run_modpath(cbc_path, mp_ws, mp_name, min_part=1, max_part=None):
+def setup_run_forward_modpath(cbc_path, mp_ws, mp_name, min_part=1, max_part=None, capt_weak_s=False):
+    """
+    a wrapper to quickly setup and run a forward modpath simulation for all influx cells
+    :param cbc_path: the path to the cell budget file, it is expected that the same pattern is used for the heads file
+    :param mp_ws: the directory to put the model path into
+    :param mp_name: the name of the model the model id is not passed to the name here
+    :param min_part: the minimum number of particles in a cell
+    :param max_part: the number above which particles will be truncated or None (no truncation)
+    :param capt_weak_s: Bool if True terminate particles in weak source/sinks
+    :return:
+    """
     particles, bd_type = make_mp_forward_particles(cbc_path, min_part=min_part, max_part=max_part)
     particles = pd.DataFrame(particles)
     np.savetxt(os.path.join(mp_ws,'{}_bnd_type.txt'.format(mp_name)),bd_type)
     temp_particles = flopy.modpath.mpsim.StartingLocationsFile.get_empty_starting_locations_data(0)
     mp = create_mp_slf(particle_data=temp_particles, mp_ws=mp_ws, hdfile=cbc_path.replace('cbc','hds'),
-                       budfile=cbc_path, disfile=cbc_path.replace('cbc', 'dis'), mp_name=mp_name)
+                       budfile=cbc_path, disfile=cbc_path.replace('cbc', 'dis'), mp_name=mp_name, capt_weak_s=capt_weak_s)
     print('writing model {}; ignore the "no data to write" comment (this is a hack)'.format(mp_name))
     mp.write_input()
     mp.write_name_file()
@@ -141,6 +136,6 @@ def setup_run_modpath(cbc_path, mp_ws, mp_name, min_part=1, max_part=None):
 if __name__ == '__main__':
     import time
     t = time.time()
-    test = setup_run_modpath(r"C:\Users\MattH\Desktop\NsmcBase_simple_modpath\NsmcBase_modpath_base.cbc", r"C:\Users\MattH\Desktop\test_write\part2",'one_part_per_cell' )
+    test = setup_run_forward_modpath(r"C:\Users\MattH\Desktop\NsmcBase_simple_modpath\NsmcBase_modpath_base.cbc", r"C:\Users\MattH\Desktop\test_write\part2", 'one_part_per_cell')
     print(time.time()-t)
     print('done')

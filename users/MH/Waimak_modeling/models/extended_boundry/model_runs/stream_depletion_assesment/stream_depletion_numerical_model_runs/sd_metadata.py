@@ -6,7 +6,7 @@ Date Created: 25/10/2017 3:17 PM
 
 from __future__ import division
 from core import env
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import converged
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import modflow_converged
 from glob import glob
 import pandas as pd
 import os
@@ -22,7 +22,7 @@ def save_sd_metadata(outpath, data_dir):
             t = 'did not complete run'
         else:
             t = 'converged'
-            temp = converged('{}.list'.format(path))
+            temp = modflow_converged('{}.list'.format(path))
             if not temp:
                 t = 'did not converge'
         status.append(t)

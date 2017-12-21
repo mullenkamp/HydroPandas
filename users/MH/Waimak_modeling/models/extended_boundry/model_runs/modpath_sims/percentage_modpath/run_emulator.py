@@ -97,24 +97,10 @@ def run_emulator(emulator_path, load_layer, bd_type, index=None):
     outdata[index] = temp_out.loc[ids].values
     print('took {} s to output concentrations'.format(time()-t))
 
-    # todo could either gausian blur or run a spline to to account for dispersion
+    # could either gausian blur or run a spline to to account for dispersion
     return outdata
 
 # quickest way to assign is to loop or to use below
 def vec_translate(a, d):
     return np.vectorize(d.__getitem__)(a)
 
-#todo make a stocastic version....
-#todo how to handle stream routing...
-
-def __try_run_emulator():
-    """
-    dummy to test with timit
-    :return:
-    """
-    load = smt.get_empty_model_grid()
-    load.fill(1)
-    outdata = run_emulator(r"T:\Temp\temp_gw_files\first_try.hdf",load) #todo will not run
-
-if __name__ == '__main__':
-    __try_run_emulator()

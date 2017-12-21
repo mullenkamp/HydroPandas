@@ -16,7 +16,7 @@ from users.MH.Waimak_modeling.models.extended_boundry.supporting_data_analysis.a
     get_all_well_row_col
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_bc_data.wells import \
     get_full_consent, get_max_rate
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import converged
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import modflow_converged
 
 def calc_stream_dep(model_path, sd_version='sd150'):
     """
@@ -61,7 +61,7 @@ def calc_stream_dep(model_path, sd_version='sd150'):
 
 
 
-    if not converged('{}.list'.format(model_path)):
+    if not modflow_converged('{}.list'.format(model_path)):
         outdata *= np.nan
 
     if abs_vol == 0:

@@ -10,7 +10,7 @@ import os
 import zipfile
 
 
-def zipped_converged(name_File_path, zipped_file_name = 'non_essential_components.zip',return_nans = False):
+def zipped_modflow_converged(name_File_path, zipped_file_name ='non_essential_components.zip', return_nans = False):
     """
     check if a path converged, if retun nan's then if the path is missing retuns a nan otherwise raises an ioerror
     :param name_File_path: for the model
@@ -34,7 +34,7 @@ def zipped_converged(name_File_path, zipped_file_name = 'non_essential_component
 
     return converg
 
-def converged(list_path):
+def modflow_converged(list_path):
     """
     returned convergence of the model
     :param list_path:
@@ -49,5 +49,12 @@ def converged(list_path):
                 break
     return converg
 
+def modpath_converged(mplist_path):
+    with open(mplist_path) as f:
+        out = 'Normal termination' in f.read()
+    return out
+
 if __name__ == '__main__':
-    print(converged(r"D:\mh_model_runs\forward_runs_2017_09_29\opt_current\opt_current.list"))
+    print(modpath_converged(r"C:\Users\MattH\Desktop\NsmcBase_simple_modpath\modpath_files\chch.mplst"))
+    print('done')
+    print(modflow_converged(r"D:\mh_model_runs\forward_runs_2017_09_29\opt_current\opt_current.list"))

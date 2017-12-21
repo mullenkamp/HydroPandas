@@ -13,7 +13,7 @@ import logging
 import psutil
 import time
 from users.MH.Waimak_modeling.supporting_data_path import sdp
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import converged
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import modflow_converged
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools import zip_non_essential_files
 
 
@@ -23,7 +23,7 @@ def _runnwt_model_forward_runs(path):
         exe_name = "{}/models_exes/MODFLOW-NWT_1.1.2/MODFLOW-NWT_1.1.2/bin/MODFLOW-NWT_64.exe".format(sdp)
         success, buff = flopy.mbase.run_model(exe_name, os.path.basename(path), os.path.dirname(path))
         if success:
-            con = converged(path.replace('.nam', '.list'))
+            con = modflow_converged(path.replace('.nam', '.list'))
             zip_non_essential_files(os.path.dirname(path), include_list=True)
 
     except Exception as val:

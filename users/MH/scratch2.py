@@ -8,6 +8,6 @@ import timeit
 
 
 
-print timeit.timeit('timeit_test()',setup='from users.MH.scratch import timeit_test',number=10)/10
+print(timeit.timeit('timeit_test()',setup='from users.MH.scratch import timeit_test',number=10)/10)
 
 
