@@ -158,12 +158,13 @@ def run_forward_emulators(model_ids, results_dir, modflow_dir, keep_org_files=Tr
     model_ids = np.atleast_1d(model_ids)
     emulator_dir = os.path.join(results_dir, 'forward_data')
     mp_runs_dir = os.path.join(results_dir, 'forward_runs')
-    with open(os.path.join(results_dir, 'README.txt'), 'w') as f:
-        f.write(notes)
 
     for path in [modflow_dir, results_dir, emulator_dir, mp_runs_dir]:
         if not os.path.exists(path):
             os.makedirs(path)
+
+    with open(os.path.join(results_dir, 'README.txt'), 'w') as f:
+        f.write(notes)
 
     input_kwargs = []
     for model_id in model_ids:
@@ -197,11 +198,12 @@ def run_forward_emulators(model_ids, results_dir, modflow_dir, keep_org_files=Tr
     print('{} runs completed in {} minutes'.format(len(model_ids), ((time() - t) / 60)))
 
 
-def get_all_cbcs(model_ids, modflow_dir):
+def get_all_cbcs(model_ids, modflow_dir, sleep_time=5):
     """
     a quick multiprocessing wrapper to run all the NSMC realisations I need
     :param model_ids: list of model ids to pass to the get cbc
     :param modflow_dir: overall directory to save everything
+    :param sleep_time: the sleep time between printing number of runs left (mostly for debugging purposes)
     :return:
     """
     input_kwargs = []
@@ -217,7 +219,7 @@ def get_all_cbcs(model_ids, modflow_dir):
     results = pool.map_async(get_cbc_mp, input_kwargs)
     while not results.ready():
         print('{} runs left of {}'.format(results._number_left, len(input_kwargs)))
-        sleep(60 * 5)  # sleep 5 min between printing
+        sleep(60 * sleep_time)  # sleep 5 min between printing
     pool_outputs = results.get()
     pool.close()  # no more tasks
     pool.join()
@@ -234,10 +236,11 @@ def get_both_source_areas():  # todo
 
 
 def start_process():
-    print('Starting', multiprocessing.current_process().name)
+    print('Starting', multiprocessing.current_process().name, 'pid: {}'.format(os.getpid()))
     p = psutil.Process(os.getpid())
     # set to lowest priority, this is windows only, on Unix use ps.nice(19)
     p.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
+
 
 def get_modeflow_dir_for_source(version=1):
     """

@@ -15,9 +15,12 @@ if __name__ == '__main__':
     notes = 'first try' #todo change
     base_results_dir = r"D:\mh_waimak_models\modpath_test_forward" #todo change
 
-    create_cbcs = True
+    minparts = 1
+    maxparts = 100
+
+    create_cbcs = False
     create_weak_sink_emulators = False
-    create_strong_sink_emulators = False
+    create_strong_sink_emulators = True
     # these items end here
 
     model_ids = ['NsmcReal{:06d}'.format(e) for e in nsmc_nums]
@@ -29,10 +32,11 @@ if __name__ == '__main__':
         get_all_cbcs(model_ids,modflow_dir)
     if create_weak_sink_emulators:
         # 30 minutes for min part 1 max part 100
-        run_forward_emulators(model_ids, weak_results_dir, modflow_dir, keep_org_files=False, min_part=1, max_part=500,
-                          capt_weak_s=True, notes=notes)
+        # 45 minutes for min part 1 max part 500
+        run_forward_emulators(model_ids, weak_results_dir, modflow_dir, keep_org_files=False, min_part=minparts,
+                              max_part=maxparts, capt_weak_s=True, notes=notes)
 
     if create_strong_sink_emulators:
-        run_forward_emulators(model_ids, strong_results_dir, modflow_dir, keep_org_files=False, min_part=1, max_part=500,
-                          capt_weak_s=False, notes=notes)
+        run_forward_emulators(model_ids, strong_results_dir, modflow_dir, keep_org_files=False, min_part=minparts,
+                              max_part=maxparts, capt_weak_s=False, notes=notes)
     #todo debug
