@@ -212,7 +212,7 @@ def get_all_cbcs(model_ids, modflow_dir, sleep_time=5):
                              'base_dir': modflow_dir})
 
     multiprocessing.log_to_stderr(logging.DEBUG)
-    pool_size = multiprocessing.cpu_count()
+    pool_size = psutil.cpu_count(logical=False)
     pool = multiprocessing.Pool(processes=pool_size,
                                 initializer=start_process,
                                 )
