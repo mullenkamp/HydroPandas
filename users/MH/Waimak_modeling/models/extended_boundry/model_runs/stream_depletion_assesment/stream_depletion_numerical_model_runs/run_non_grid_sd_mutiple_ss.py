@@ -74,8 +74,8 @@ def run_full_non_grid_sd(model_id, model_base_path, data_outdir, ss_sy_version, 
 if __name__ == '__main__':
 
     model_id = 'NsmcBase'
-    model_base_path = r"E:\mattH\python_wm_runs\sd_runs\{}_2017_12_21_low".format(model_id)
-    data_outdir = r"E:\mattH\python_wm_runs\sd_runs\data_{}_2017_12_21_low".format(model_id)
+    model_base_path = r"D:\mattH\python_wm_runs\sd_runs\{}_2017_12_21_low".format(model_id)
+    data_outdir = r"D:\mattH\python_wm_runs\sd_runs\data_{}_2017_12_21_low".format(model_id)
     run_full_non_grid_sd(model_id,model_base_path,data_outdir,ss_sy_version=2, notes='a test, not all wells are present, no carpet drains,')
     #todo set up a high, medium, low storage coeffients versions and a running directory
     # #todo the differention in file names is only at the directory level

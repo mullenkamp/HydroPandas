@@ -116,6 +116,5 @@ def get_ss_sy(ss_sy_version=1, return_description=False): #todo add versioning
 
 
 if __name__ == '__main__':
-    test = get_sd_starting_hds('opt','sd150')
-    test2 = get_starting_heads_sd150('opt')
-    print('done')
+    test = get_starting_heads_sd7('NsmcBase')
+    print(test)
