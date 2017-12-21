@@ -175,13 +175,15 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
     wrapper to get model from a NSMC realisation
     :param model_id: identifier 'NsmcReal{nsmc_num:06d}'
     :param save_to_dir: boolean if true save a copy of the model for quicker reteval in the dir specified below
+    :param temp_int: a temp interger to make unique temporaty files only needed to handle multiprocessing applications
     :return:
     """
     assert 'NsmcReal' in model_id, 'unknown model id: {}, expected NsmcReal(nsmc_num:06d)'.format(model_id)
     assert len(model_id) == 14, 'unknown model id: {}, expected NsmcReal(nsmc_num:06d)'.format(model_id)
-
+    base_converter_dir = "{}/base_for_nsmc_real".format(smt.sdp)
     # check if the model has previously been saved to the save dir, and if so, load from there
     save_dir = env.gw_met_data("mh_modeling/nsmc_loaded_realisations_TEMP")
+    converter_dir = os.path.join(os.path.expanduser('~'),'temp_nsmc_generation{}'.format(os.getpid()))
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     if os.path.exists(os.path.join(save_dir, '{}_base.hds'.format(model_id))):
@@ -189,8 +191,10 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
         m = flopy.modflow.Modflow.load(name_file_path, model_ws=os.path.dirname(name_file_path), forgive=False)
         return m
 
+    # copy the orginal converter dir to the temporary working dir
+    shutil.copytree(base_converter_dir,converter_dir)
+
     nsmc_num = int(model_id[-6:])
-    converter_dir = "{}/base_for_nsmc_real".format(smt.sdp)
     param_data = nc.Dataset(env.gw_met_data(r"mh_modeling\netcdfs_of_key_modeling_data\nsmc_params_obs_metadata.nc"))
     param_idx = np.where(np.array(param_data.variables['nsmc_num']) == nsmc_num)[0][0]
 
@@ -330,6 +334,7 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
             raise ValueError('the model did not converge: \n'
                              '{}\n, headfile deleted to prevent running'.format(os.path.join(dir_path, name)))
 
+    shutil.rmtree(converter_dir)
     return m
 
 

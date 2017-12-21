@@ -513,7 +513,7 @@ class ModelTools(object):
         :param attribute: attribute to convert.
         :return:  np array of rasterized data
         """
-        from osgeo import gdal, osr
+        from osgeo import gdal, osr #todo see if I can use tempfile for this
         if not os.path.exists(self.temp_file_dir):
             os.makedirs(self.temp_file_dir)
 
