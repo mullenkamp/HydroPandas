@@ -300,6 +300,7 @@ def rd_hydstra(varto, sites=None, data_source='A', from_date=None, to_date=None,
 
     ### Make sure the data types are correct
     data.loc[:, 'qual_code'] = data.qual_code.astype('int32')
+    data.loc[:, 'hydstra_var_code'] = data['hydstra_var_code'].astype('int32')
 
     ### Export data
     if export_path is not None:
