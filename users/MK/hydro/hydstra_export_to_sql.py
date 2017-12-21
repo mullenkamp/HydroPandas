@@ -9,17 +9,12 @@ Script to extract time series data from Hydstra and save them to sql tables.
 Must be run in a 32bit python!
 """
 
-#### Hydstra export improvement
-
 from core.ecan_io import rd_sql, write_sql
-from core.ecan_io.hydllp import rd_hydstra_db, rd_hydstra
-from core.ecan_io.mssql import site_stat_stmt, sql_del_rows_stmt
+from core.ecan_io.hydllp import rd_hydstra
 from pandas import concat, read_hdf, read_csv, merge, Timestamp, to_datetime, DataFrame, to_numeric, DateOffset
 from os.path import join
-from datetime import date, timedelta
-from time import time
+from datetime import date
 from core.misc.misc import save_df
-from core.ts.ts import grp_ts_agg
 
 #############################################
 ### Parameters
