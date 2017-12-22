@@ -18,11 +18,12 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools
     get_full_consent, get_max_rate
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import modflow_converged
 
-def calc_stream_dep(model_path, sd_version='sd150'):
+def calc_stream_dep(model_path, ss_sy_version, sd_version='sd150'):
     """
     calculate a dataframe for the stream depletion
     :param model_path: path to the modflow model namefile with or without extension
     :param sd_version: either sd150 sd30 sd7,  this defines which base mod path to use.
+    :param ss_sy_version: which storage version to use
     :return: series with index of sites defined below
     """
     model_path = model_path.replace('.nam', '')
@@ -31,7 +32,7 @@ def calc_stream_dep(model_path, sd_version='sd150'):
     if sd_version not in ["sd150", "sd30", "sd7"]:
         raise ValueError(
             'unexpected argument for version {} expected one of ["sd150", "sd30", "sd7"]'.format(sd_version))
-    baseline_path = get_str_dep_base_path(model_id, sd_version)
+    baseline_path = get_str_dep_base_path(model_id, sd_version, ss_sy_version=ss_sy_version)
 
     # id the kstpkpers and the integrater value
     spv = get_sd_spv(sd_version)
@@ -74,12 +75,13 @@ def calc_stream_dep(model_path, sd_version='sd150'):
     return outdata, abs_vol / (spv['perlen'] * spv['nstp'])
 
 
-def calc_str_dep_all_wells(out_path, base_path, sd_version='sd150'):
+def calc_str_dep_all_wells(out_path, base_path, sd_version='sd150', ss_sy_version=1):
     """
 
     :param out_path: the path to save the csv to
     :param base_path: path to the well by well stream depletion folder
     :param sd_version: either sd150 sd30 sd7,  this defines which base mod path to use.
+    :param ss_sy_version: which ss_sy_version to use
     :return: saves dataframe with index fo wells (defined from file names) and columns of sites defined in calc_stream_dep
     """
     all_paths = glob.glob('{}/*/*.nam'.format(base_path))
@@ -92,7 +94,7 @@ def calc_str_dep_all_wells(out_path, base_path, sd_version='sd150'):
     outdata = {}
     out_per_abs_vol = {}
     for well, path in zip(wells, all_paths):
-        sd, per_abs_vol = calc_stream_dep(path, sd_version=sd_version)
+        sd, per_abs_vol = calc_stream_dep(path, sd_version=sd_version, ss_sy_version=ss_sy_version)
         outdata[well] = sd
         out_per_abs_vol[well] = per_abs_vol
     outdata = pd.DataFrame(outdata).transpose()
@@ -103,11 +105,11 @@ def calc_str_dep_all_wells(out_path, base_path, sd_version='sd150'):
     # add additional information
     # add flux
     if sd_version == 'sd150':
-        flux = get_full_consent(model_id)
+        flux = get_full_consent(model_id, missing_sd_wells=True)
         flux.loc[flux.use_type == 'irrigation-sw', 'flux'] *= 12 / 5 # scale irrigation wells to CAV over 150 days
         flux = flux.loc[:, 'flux']
     else:
-        flux = get_max_rate(model_id).loc[:, 'flux']
+        flux = get_max_rate(model_id, missing_sd_wells=True).loc[:, 'flux']
     outdata = pd.merge(outdata, pd.DataFrame(flux), how='left', left_index=True, right_index=True)
 
     all_wells = get_all_well_row_col()
