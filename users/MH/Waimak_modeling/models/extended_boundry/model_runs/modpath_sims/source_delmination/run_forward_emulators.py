@@ -13,7 +13,7 @@ if __name__ == '__main__':
     # items to change for different runs
     nsmc_nums = [-1,-2] #todo change
     notes = 'first try' #todo change
-    base_results_dir = r"D:\mh_waimak_models\modpath_test_forward" #todo change
+    base_results_dir = r"D:\mh_waimak_models\modpath_test_forward" #todo change make sure this is on the C drive as it will be much faster
 
     minparts = 1
     maxparts = 100
