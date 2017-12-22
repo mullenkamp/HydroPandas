@@ -6,7 +6,7 @@ import ctypes
 import os
 import contextlib
 from numpy import array_split, ceil, array
-from pandas import to_numeric, to_datetime, concat, DataFrame, Timestamp, merge, to_timedelta
+from pandas import to_numeric, to_datetime, concat, DataFrame, Timestamp, merge, to_timedelta, HDFStore
 from datetime import date
 from core.misc.misc import select_sites, save_df
 from core.ecan_io import rd_sql
@@ -287,6 +287,11 @@ def rd_hydstra(varto, sites=None, data_source='A', from_date=None, to_date=None,
     sites_var_period2['from_date'] = sites_var_period2['from_date'].dt.date.astype(str)
     sites_var_period2['to_date'] = sites_var_period2['to_date'].dt.date.astype(str)
 
+    site_str_len = sites_var_period2.site.str.len().max()
+
+    if isinstance(export, str):
+            if export.endswith('.h5'):
+                store = HDFStore(export, mode='a')
     data = DataFrame()
     for tup in sites_var_period2.itertuples(index=False):
         varto = tup.varto
@@ -302,10 +307,14 @@ def rd_hydstra(varto, sites=None, data_source='A', from_date=None, to_date=None,
         df.loc[:, 'hydstra_var_code'] = df['hydstra_var_code'].astype('int32')
         if isinstance(export, str):
             if export.endswith('.h5'):
-                df.to_hdf(export, key='var_' + str(varto), mode='a', format='table', append=True)
+                try:
+                    store.append(key='var_' + str(varto), value=df, min_itemsize={'site': site_str_len})
+                except Exception as err:
+                    store.close()
+                    raise err
         if concat_data:
             data = concat([data, df])
-
+    store.close()
     if concat_data:
         return data
 
@@ -775,11 +784,20 @@ class Hydllp(object):
         sites = select_sites(site_list).astype(str)
         site_list_str = ','.join([str(site) for site in sites])
 
-        ### Datetime conversion
+        ### Datetime conversion - with dates < 1900
+        c1900 = Timestamp('1900-01-01')
         if start != 0:
-            start = Timestamp(start).strftime('%Y%m%d%H%M%S')
+            start1 = Timestamp(start)
+            if start1 > c1900:
+                start = start1.strftime('%Y%m%d%H%M%S')
+            else:
+                start = start1.isoformat(' ').replace('-', '').replace(' ', '').replace(':', '')
         if end != 0:
-            end = Timestamp(end).strftime('%Y%m%d%H%M%S')
+            end1 = Timestamp(end)
+            if end1 > c1900:
+                end = end1.strftime('%Y%m%d%H%M%S')
+            else:
+                end = end1.isoformat(' ').replace('-', '').replace(' ', '').replace(':', '')
 
         ts_traces_request = {'function': 'get_ts_traces',
                              'version': 2,

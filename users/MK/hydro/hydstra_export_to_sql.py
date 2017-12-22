@@ -28,7 +28,7 @@ today1 = date.today()
 #dtype_dict = {'wtemp': {'site': 'VARCHAR(19)', 'time': 'DATE', 'data': 'NUMERIC(10, 1)', 'qual_code': 'INT'}, 'flow': {'site': 'VARCHAR(19)', 'time': 'DATE', 'data': 'NUMERIC(10, 3)', 'qual_code': 'INT'}, 'precip': {'site': 'VARCHAR(19)', 'time': 'DATE', 'data': 'NUMERIC(10, 1)', 'qual_code': 'INT'}, 'swl': {'site': 'VARCHAR(19)', 'time': 'DATE', 'data': 'NUMERIC(10, 3)', 'qual_code': 'INT'}, 'gwl': {'site': 'VARCHAR(19)', 'time': 'DATE', 'data': 'NUMERIC(10, 3)', 'qual_code': 'INT'}, 'lakel': {'site': 'VARCHAR(19)', 'time': 'DATE', 'data': 'NUMERIC(10, 3)', 'qual_code': 'INT'}}
 
 #sql_table_dict = {130: 'F_HY_Lakel_data', 100: 'F_HY_SWL_data', 140: 'F_HY_Flow_Data', 143: 'F_HY_Flow_Data'}
-hydstra_code_dict = {130: 'lakel_data', 100: 'swl_data', 140: 'flow_data', 450: 'wtemp_data', 10: 'precip_data', 110: 'gwl_data'}
+hydstra_code_dict = {130: 'lakel_hourly', 100: 'swl_hourly', 140: 'flow_hourly', 450: 'wtemp_hourly', 10: 'precip_hourly', 110: 'gwl_hourly'}
 
 
 #############################################
@@ -43,6 +43,6 @@ end1 = time()
 end1 - start1
 
 
-#t6 = read_hdf(join(base_dir, hydstra_code_dict[i] + '_' + str(today1) + '.h5'))
+#t7 = read_hdf(join(base_dir, hydstra_code_dict[i] + '_' + str(today1) + '.h5'))
 
 
