@@ -201,7 +201,7 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
     param_idx = np.where(np.array(param_data.variables['nsmc_num']) == nsmc_num)[0][0]
 
     print('writing data to parameter files')
-    # write well paraemeters to wel_adj.txt #todo check
+    # write well paraemeters to wel_adj.txt
     with open(os.path.join(converter_dir, 'wel_adj.txt'), 'w') as f:
         for param in ['pump_c', 'pump_s', 'pump_w', 'sriv', 'n_race', 's_race', 'nbndf', 'llrzf', 'ulrzf']:
             val = param_data.variables[param][param_idx]
@@ -241,7 +241,7 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
             for n, x, y, kv in zip(layer_names, layer_x, layer_y, layer_kv):
                 f.write('{}\t{}\t{}\t1\t{}\n'.format(n, x, y, kv))
 
-    # write sfr parameters to segfile.txt and/or segfile.tpl #todo check
+    # write sfr parameters to segfile.txt and/or segfile.tpl
     # load template
     sfr_template = pd.read_table(os.path.join(converter_dir, 'sfr_segdata.tpl'), skiprows=1, sep='\t')
     # make dictionary of parameters
@@ -348,7 +348,7 @@ def _get_nsmc_realisation(model_id, save_to_dir=False):
             raise ValueError('the model did not converge: \n'
                              '{}\n, headfile deleted to prevent running'.format(os.path.join(dir_path, name)))
 
-    shutil.rmtree(converter_dir)
+    shutil.rmtree(converter_dir) # recreating NsmcBaseB worked should work but todo check hds cbc for one of the NSMC realisations
     return m
 
 

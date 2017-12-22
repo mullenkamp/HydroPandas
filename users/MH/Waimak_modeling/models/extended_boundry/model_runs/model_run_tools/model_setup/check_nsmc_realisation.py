@@ -34,7 +34,7 @@ if __name__ == '__main__':
 
     # check sfr reach data
     temp = np.isclose(pd.DataFrame(m_org.sfr.reach_data), pd.DataFrame(m_new.sfr.reach_data)).all()
-    print('are all sfr reach numbers the same: {}'.format(temp)) #todo for some reason the new hc1 is 0
+    print('are all sfr reach numbers the same: {}'.format(temp))
 
     # check sfr seg data
     temp = (m_org.sfr.segment_data[0] == m_new.sfr.segment_data[0]).all()
