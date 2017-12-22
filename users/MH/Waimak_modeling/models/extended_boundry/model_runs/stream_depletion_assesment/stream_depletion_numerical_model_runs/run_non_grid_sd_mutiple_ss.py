@@ -15,6 +15,8 @@ from extract_stream_depletion import calc_str_dep_all_wells
 import shutil
 from sd_metadata import save_sd_metadata
 from starting_hds_ss_sy import get_ss_sy
+import datetime
+
 
 def run_full_non_grid_sd(model_id, model_base_path, data_outdir, ss_sy_version, notes=''):
     """
@@ -37,44 +39,72 @@ def run_full_non_grid_sd(model_id, model_base_path, data_outdir, ss_sy_version, 
     if not os.path.exists(data_outdir):
         os.makedirs(data_outdir)
 
-    with open(os.path.join(data_outdir,'READ_ME.txt'),'w') as f:
+    with open(os.path.join(data_outdir, 'READ_ME.txt'), 'w') as f:
         f.write(sd7_notes)
 
-    well_list = get_sd_well_list(model_id)[0:10] #todo DADB
+    well_list = get_sd_well_list(model_id)[0:10]  # todo DADB
 
-    #### run the models ####
+    #### run the models, extract data, delete model files ####
     sd7_base_path = os.path.join(model_base_path, 'sd7')
     sd30_base_path = os.path.join(model_base_path, 'sd30')
     sd150_base_path = os.path.join(model_base_path, 'sd150')
 
     t = time.time()
     # sd 7
+    print('starting to run SD7 models')  # ~ 25 min for 10
     well_by_well_depletion_sd7(model_id, well_list, sd7_base_path, sd7_notes, ss_sy_version=ss_sy_version)
+
+    print('extracting data from SD7')
     calc_str_dep_all_wells(os.path.join(data_outdir, "extract_sd7.csv"), sd7_base_path, 'sd7')
     save_sd_metadata(os.path.join(data_outdir, "sd7_metadata.csv"), sd7_base_path)
+
+    print('removing model files for SD7')
     shutil.rmtree(sd7_base_path)
 
     # sd 30
+    print('starting to run SD30 models')  # ~ 35 min for 10 models
     well_by_well_depletion_sd30(model_id, well_list, sd30_base_path, sd30_notes, ss_sy_version=ss_sy_version)
+
+    print('extracting data from SD30')
     calc_str_dep_all_wells(os.path.join(data_outdir, "extract_sd30.csv"), sd30_base_path, 'sd30')
     save_sd_metadata(os.path.join(data_outdir, "sd30_metadata.csv"), sd30_base_path)
+
+    print('removing model files for SD30')
     shutil.rmtree(sd30_base_path)
 
     # sd 150
+    print('starting to run SD150 models')  # ~ _min for 10 models #todo add this infor
     well_by_well_depletion_sd150(model_id, well_list, sd150_base_path, sd150_notes, ss_sy_version=ss_sy_version)
+
+    print('extracting data from SD150')
     calc_str_dep_all_wells(os.path.join(data_outdir, "extract_sd150.csv"), sd150_base_path, 'sd150')
     save_sd_metadata(os.path.join(data_outdir, "sd150_metadata.csv"), sd150_base_path)
+
+    print('removing model files for SD150')
     shutil.rmtree(sd150_base_path)
 
-    print('done after {} minutes for {} model runs'.format((time.time() - t) / 60, len(well_list*3)))
-
+    print('all sd  done after {} minutes for {} model runs'.format((time.time() - t) / 60, len(well_list * 3)))
+    print(notes)
+    # todo check really carefully!
 
 
 if __name__ == '__main__':
-
+    # well list is 732 models
     model_id = 'NsmcBase'
-    model_base_path = r"D:\mattH\python_wm_runs\sd_runs\{}_2017_12_21_low".format(model_id)
-    data_outdir = r"D:\mattH\python_wm_runs\sd_runs\data_{}_2017_12_21_low".format(model_id)
-    run_full_non_grid_sd(model_id,model_base_path,data_outdir,ss_sy_version=2, notes='a test, not all wells are present, no carpet drains,')
-    #todo set up a high, medium, low storage coeffients versions and a running directory
-    # #todo the differention in file names is only at the directory level
+    sd_sy_versions = [2, 3, 4]
+    sd_sy_v_names = ['low_s', 'med_s', 'high_s']
+    base_dir = "D:/mh_waimak_models/sd_multi_s"
+    base_notes = 'a test of a couple of wells through the for loop'
+
+    today = str(datetime.date.today()).replace('-', '_')
+    for version, name in zip(sd_sy_versions, sd_sy_v_names):
+        version_dir = os.path.join(base_dir, name)
+
+        if not os.path.exists(version_dir):
+            os.makedirs(version_dir)
+
+        model_base_path = os.path.join(version_dir, "{}_{}_models".format(model_id, today))
+        data_outdir = os.path.join(version_dir, "{}_{}_data".format(model_id, today))
+
+        run_full_non_grid_sd(model_id, model_base_path, data_outdir, ss_sy_version=version,
+                             notes=base_notes)
