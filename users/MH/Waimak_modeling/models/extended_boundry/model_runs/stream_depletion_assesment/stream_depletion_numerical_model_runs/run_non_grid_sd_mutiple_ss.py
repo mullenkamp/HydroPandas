@@ -43,7 +43,7 @@ def run_full_non_grid_sd(model_id, model_base_path, data_outdir, ss_sy_version, 
     with open(os.path.join(data_outdir, 'READ_ME.txt'), 'w') as f:
         f.write(sd7_notes)
 
-    well_list = get_sd_well_list(model_id)[0:5]  # todo DADB
+    well_list = get_sd_well_list(model_id)
 
     #### run the models, extract data, delete model files ####
     sd7_base_path = os.path.join(model_base_path, 'sd7')
@@ -86,7 +86,6 @@ def run_full_non_grid_sd(model_id, model_base_path, data_outdir, ss_sy_version, 
 
     print('all sd  done after {} minutes for {} model runs'.format((time.time() - t) / 60, len(well_list * 3)))
     print(notes)
-    # todo check really carefully!
 
 
 if __name__ == '__main__':
