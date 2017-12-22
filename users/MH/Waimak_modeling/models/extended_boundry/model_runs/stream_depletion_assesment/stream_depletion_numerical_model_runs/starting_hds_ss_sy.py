@@ -117,4 +117,4 @@ def get_ss_sy(ss_sy_version=1, return_description=False):
 
 if __name__ == '__main__':
     test = get_sd_well_list('NsmcBase')
-    print(test)
+    print(len(test))

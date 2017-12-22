@@ -277,6 +277,7 @@ def _add_sfr_cond(param, pst_param, prior_sd_data, postopt_sd_data, nc_file):
     temp_data = np.zeros((nsmc_dim, sfr_dim)) * np.nan
     for i, key in enumerate(hcond_sites):
         temp_data[:, i] = param.loc[key].values
+    sfr_cond_val[:] = temp_data
 
 
 def _add_drain_cond(param, pst_param, prior_sd_data, postopt_sd_data, nc_file):

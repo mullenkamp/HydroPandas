@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     # check well
     temp = np.isclose(pd.DataFrame(m_new.wel.stress_period_data.data[0]), pd.DataFrame(m_org.wel.stress_period_data.data[0])).all()
-    print('are all well numbers the same: {}'.format(temp)) # todo some differences mostly in the LRZF
+    print('are all well numbers the same: {}'.format(temp)) # some differences due to a rounding error in the LRZF
 
     # check rch
     temp = np.isclose(m_org.rch.rech.array, m_new.rch.rech.array).all()
