@@ -95,11 +95,11 @@ if __name__ == '__main__':
     # above based on lowest storage value, which is probably the hardest
     model_id = 'NsmcBase'
     if socket.gethostname() == 'RDSProd03':
-        sd_sy_versions = [2, 3]
+        sd_sy_versions = [2]
         sd_sy_v_names = ['low_s']
     elif socket.gethostname() == 'GWATER02':
-        sd_sy_versions = [4]
-        sd_sy_v_names = ['med_s',] # 'high_s'] # high was also run on gw02, but they also killed RDS prod03
+        sd_sy_versions = [3] #4] # see below
+        sd_sy_v_names = ['med_s'] # 'high_s'] # high was also run on gw02, but they also killed RDS prod03
     else:
         raise ValueError('not set up for {}'.format(socket.gethostname()))
 
