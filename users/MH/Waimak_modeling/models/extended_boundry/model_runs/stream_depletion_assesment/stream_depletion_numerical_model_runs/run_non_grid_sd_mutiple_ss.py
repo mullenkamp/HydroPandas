@@ -96,10 +96,10 @@ if __name__ == '__main__':
     model_id = 'NsmcBase'
     if socket.gethostname() == 'RDSProd03':
         sd_sy_versions = [2, 3]
-        sd_sy_v_names = ['low_s', 'med_s']
+        sd_sy_v_names = ['low_s']
     elif socket.gethostname() == 'GWATER02':
         sd_sy_versions = [4]
-        sd_sy_v_names = ['high_s']
+        sd_sy_v_names = ['med_s',] # 'high_s'] # high was also run on gw02, but they also killed RDS prod03
     else:
         raise ValueError('not set up for {}'.format(socket.gethostname()))
 
