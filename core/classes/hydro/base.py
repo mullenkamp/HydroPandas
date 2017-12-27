@@ -5,62 +5,85 @@ Created on Thu Feb 16 15:41:08 2017
 @author: michaelek
 """
 from collections import OrderedDict
-from itertools import product
+from itertools import product, chain
+from pandas import DataFrame, CategoricalIndex
 
 #######################################
-### Dictionaries to relate the long names to the acronyms
+### Lists and dictionaries for the master tables and associated data
 ### Need to be kept up-to-date compared to the SQL server
-### If any new keys need to be added, add them to the end of the dictionaries!
 
-feature_code_dict = OrderedDict((('River', 'river'), ('Aquifer', 'aq'), ('Atmosphere', 'atmos'), ('Soil', 'soil'), ('Lake', 'lake')))
 
-mtype_code_dict = OrderedDict((('Water Level', 'wl'), ('Flow', 'flow'), ('Temperature', 'T'), ('Temperature Max', 'T_max'), ('Temperature Min', 'T_min'), ('Precipitation', 'precip'), ('Abstraction', 'abstr'), ('Net Radiation', 'R_n'), ('Shortwave Radiation', 'R_s'), ('Relative Humidity Min', 'RH_min'), ('Relative Humidity Max', 'RH_max'), ('Wind Speed', 'U_z'), ('Barometric Pressure', 'P'), ('ET Actual', 'ET'), ('ET Reference', 'ETo'), ('ET Potential', 'PET')))
+feature_list = [['River', 'river', 'A flowing freshwater surface water body'],
+               ['Aquifer', 'aq', 'An underground layer of water-bearing permeable rock, rock fractures or unconsolidated materials'],
+               ['Atmosphere', 'atmos', 'The shpere of vapour surrounding our panet'],
+               ['Soil', 'soil', 'The unsaturated zone of unconsolidated sediment directly below our feet'],
+               ['Lake', 'lake', 'A freshwater body with little flowing movement']]
 
-msource_code_dict = OrderedDict((('Recorder', 'rec'), ('Manual Field', 'mfield'), ('Manual Lab', 'mlab')))
+mtype_list = [['Water Level', 'wl', 'Quantity', 'meter', 'The water level above an arbitrary datum'],
+              ['Flow', 'flow', 'Quantity', 'm**3/s', 'Water flow'],
+              ['Temperature', 'T', 'Quality', 'degC', 'Instantaneous temperature'],
+              ['Temperature Max', 'T_max', 'Quality', 'degC', 'Max temperature'],
+              ['Temperature Min', 'T_min', 'Quality', 'degC', 'Min temperature'],
+              ['Temperature Mean', 'T_mean', 'Quality', 'degC', 'Mean temperature'],
+              ['Temperature dew', 'T_dew', 'Quality', 'degC', 'Dew point temperature'],
+              ['Precipitation', 'precip', 'Quantity', 'mm', 'depth/height of water'],
+              ['Abstraction', 'abstr', 'Quantity', 'l/s', 'Volume of water abstracted'],
+              ['Net Radiation', 'R_n', 'Quantity', 'MJ/m**2', 'Net Radiation'],
+              ['Shortwave Radiation', 'R_s', 'Quantity', 'MJ/m**2', 'Shortwave Radiation'],
+              ['Soil heat flux', 'G', 'Quantity', 'MJ/m**2', 'Net soil heat flux'],
+              ['Relative Humidity Min', 'RH_min', 'Quality', '', 'Min relative humidity'],
+              ['Relative Humidity Max', 'RH_max', 'Quality', '', 'Max relative humidity'],
+              ['Relative Humidity Mean', 'RH_mean', 'Quality', '', 'Mean relative humidity'],
+              ['Wind Speed', 'U_z', 'Quantity', 'm/s', 'Wind speed in length per unit time'],
+              ['Barometric Pressure', 'P', 'Quantity', 'kPa', 'Barometric Pressure'],
+              ['n sun hours', 'n_sun', 'Quantity', 'hour', 'Number of sunshine hours per day'],
+              ['ET Actual', 'ET', 'Quantity', 'mm', 'Actual Evapotranspiration'],
+              ['ET Reference', 'ETo', 'Quantity', 'mm', 'Reference Evapotranspiration']]
 
-qual_state_code_dict = OrderedDict((('RAW', 'raw'), ('Quality Controlled', 'qc')))
+msource_list = [['Recorder', 'rec', 'Data collected and measured via an automatic recording device'],
+                ['Manual Field', 'mfield', 'Data collected and measured manually'],
+                ['Manual Lab', 'mlab', 'Data collected in the field, but measured in the lab'],
+                ['Synthetic', 'synth', 'Synthetic data']]
 
-## Resample functions
-resample_mtype_fun = {'flow': 'mean', 'wl': 'mean', 'precip': 'sum', 'R_n': 'sum', 'R_s': 'sum', 'T_min': 'mean', 'T_max': 'mean', 'T': 'mean', 'RH_min': 'mean', 'RH_max': 'mean', 'U_z': 'mean', 'P': 'mean', 'abstr': 'sum', 'PET': 'sum'}
+qual_state_list = [['RAW', 'raw', 'Unaltered data'],
+                   ['Quality Controlled', 'qc', 'Quality controlled data']]
 
-## Mtype codes with numeric values
-#mtype_codes = {'river_wl_rec_qc': 1, 'river_flow_rec_qc': 2, 'river_temp_rec_qc': 3, 'aq_wl_rec_qc': 4, 'atmos_precip_rec_qc': 5, 'lake_wl_rec_qc': 6}
+feature_mtype_dict = OrderedDict((('river', ('wl', 'flow', 'abstr', 'T')),
+                                  ('aq', ('wl', 'abstr', 'T')),
+                                  ('atmos', ('precip', 'R_n', 'R_s', 'T_min', 'T_max', 'RH_min', 'RH_max', 'RH_mean', 'U_z', 'P', 'T', 'T_mean', 'T_dew', 'n_sun')),
+                                  ('soil', ('T', 'ETo', 'ET', 'G')),
+                                  ('lake', ('wl', 'T', 'abstr'))))
+
+resample_mtype_fun = {'flow': 'mean', 'wl': 'mean', 'precip': 'sum', 'R_n': 'sum', 'R_s': 'sum', 'T_min': 'mean', 'T_max': 'mean', 'T': 'mean', 'RH_min': 'mean', 'RH_max': 'mean', 'U_z': 'mean', 'P': 'mean', 'abstr': 'sum', 'ET': 'sum', 'ETo': 'sum', 'G': 'sum', 'T_mean': 'mean', 'T_dew': 'mean', 'RH_mean': 'mean', 'n_sun': 'sum'}
+
+#####################################
+### Create master tables
+
+feature_df = DataFrame(feature_list, columns=['FeatureLongName', 'FeatureShortName', 'Description'])
+feature_df.set_index('FeatureShortName', inplace=True)
+
+mtype_df = DataFrame(mtype_list, columns=['MTypeLongName', 'MTypeShortName', 'MTypeGroup', 'Units', 'Description'])
+mtype_df.set_index('MtypeShortName', inplace=True)
+
+msource_df = DataFrame(msource_list, columns=['MSourceLongName', 'MSourceShortName', 'Description'])
+msource_df.set_index('MSourceShortName', inplace=True)
+
+qual_state_df = DataFrame(qual_state_list, columns=['QualityStateLongName', 'QualityStateShortName', 'Description'])
+qual_state_df.set_index('QualityStateShortName', inplace=True)
 
 #######################################
-### Reorganisation of the above dictionaries
+### Hydro IDs table and the resampling function dict
 
-key_fields = OrderedDict((('Feature', feature_code_dict), ('Mtype', mtype_code_dict), ('MeasurementSource', msource_code_dict), ('QualityState', qual_state_code_dict)))
+fields_list1 = [list(product([i], feature_mtype_dict[i], msource_df.index.tolist(), qual_state_df.index.tolist())) for i in feature_mtype_dict]
 
-code_fields = OrderedDict((i, key_fields[i].values()) for i in key_fields)
-list_combo = list(product(*code_fields.values()))
+fields_list = list(chain.from_iterable(fields_list1))
 
-feature_mtype = OrderedDict((('river', ('wl', 'flow', 'abstr', 'T')), ('aq', ('wl', 'abstr', 'T')), ('atmos', ('precip', 'R_n', 'R_s', 'T_min', 'T_max', 'RH_min', 'RH_max', 'U_z', 'P', 'T')), ('soil', ('T', 'PET')), ('lake', ('wl', 'T'))))
+hydro_ids = OrderedDict((' / '.join(i), i) for i in fields_list)
 
-list_feature_mtype = [list(product([i], feature_mtype[i])) for i in feature_mtype]
+resample_fun = OrderedDict((' / '.join(i), resample_mtype_fun[i[1]]) for i in fields_list)
 
-fields_lst = [i for i in list_combo if i[1] in feature_mtype[i[0]]]
-
-resample_fun = OrderedDict(('_'.join(i), resample_mtype_fun[i[1]]) for i in fields_lst)
-
-legacy_mtypes = {'usage': 'sum'}
-
-resample_fun.update(legacy_mtypes)
-
-all_mtypes = OrderedDict((i, '_'.join(fields_lst[i-1])) for i in range(1, len(fields_lst)))
-
-#river_flow_cont_qc_dict = {'units': 'm3/s', 'resample': 'mean', 'long_name': 'recorder flow', 'description': 'flow rate derrived from corrected surface water level recorders'}
-#river_flow_dis_qc_dict = {'units': 'm3/s', 'resample': 'mean', 'long_name': 'manually gauged flow', 'description': 'flow rate manually measured during gaugings'}
-#flow_tel_dict = {'units': 'm3/s', 'resample': 'mean', 'long_name': 'Telemetered flow', 'description': 'flow rate derrived from telemetered surface water level'}
-#swl_dict = {'units': 'masl', 'resample': 'mean', 'long_name': 'recorder surface water level', 'description': 'surface water level measured via a recording device'}
-#swl_m_dict = {'units': 'masl', 'resample': 'mean', 'long_name': 'manually gauged surface water level', 'description': 'surface water level manually measured during gaugings'}
-#gwl_dict = {'units': 'masl', 'resample': 'mean', 'long_name': 'recorder groundwater level', 'description': 'groundwater level measured via a recording device'}
-#gwl_m_dict = {'units': 'masl', 'resample': 'mean', 'long_name': 'manually gauged groundwater level', 'description': 'groundwater level manually measured during gaugings'}
-#precip_dict = {'units': 'mm', 'resample': 'sum', 'long_name': 'ECan precipitation', 'description': 'precipitation data from ECan stations'}
-#precip_tel_dict = {'units': 'mm', 'resample': 'sum', 'long_name': 'ECan precipitation', 'description': 'telemetered precipitation data from ECan stations'}
-#lakel_dict = {'units': 'masl', 'resample': 'mean', 'long_name': 'recorder lake level', 'description': 'lake level measured via a recording device'}
-#usage_dict = {'units': 'm', 'resample': 'mean', 'long_name': 'water meter usage', 'description': 'water meter usage data from consent holders'}
-
-#all_mtypes = {'flow': flow_dict, 'flow_m': flow_m_dict, 'swl': swl_dict, 'swl_m': swl_m_dict, 'gwl': gwl_dict, 'gwl_m': gwl_m_dict, 'precip': precip_dict, 'usage': usage_dict, 'lakel': lakel_dict, 'flow_tel': flow_tel_dict, 'precip_tel': precip_tel_dict}
+all_hydro_ids = DataFrame(fields_list, index=CategoricalIndex(hydro_ids.keys()), dtype='category')
+all_hydro_ids.columns = ['feature', 'mtype', 'stype', 'qtype']
 
 ######################################
 ### The main class
