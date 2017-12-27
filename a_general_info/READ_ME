@@ -29,6 +29,8 @@ To install Python:
             to install pygeoprocessing a C++ compiler is need get it here (instructions on that page):
                 https://www.microsoft.com/en-us/download/details.aspx?id=44266
         pip install future # for code compatability packages such as builtins
+        pip install patool
+
         pykrige - another kriging module pip install pykrige
 
     Other helpful packages to install:

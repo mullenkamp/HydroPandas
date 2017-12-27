@@ -21,10 +21,10 @@ def make_n_sheet():
     data.loc[:, 'year'] = [e.year for e in data.loc[:, 'datetime']]
     data.loc[:, 'month'] = [e.month for e in data.loc[:, 'datetime']]
 
-    spring2016 = data.loc[(data.year == 2016) & np.in1d(data.month, [9, 10, 11])].reset_index()  # todo check months
+    spring2016 = data.loc[(data.year == 2016) & np.in1d(data.month, [9, 10, 11])].reset_index()  # check months
     spring2016 = pd.DataFrame(
         spring2016.groupby('Site_ID').aggregate({'no3': np.mean, 'Site_East': np.mean, 'Site_North': np.mean}))
-    spring2017 = data.loc[(data.year == 2017) & np.in1d(data.month, [9, 10, 11])].reset_index()  # todo check months
+    spring2017 = data.loc[(data.year == 2017) & np.in1d(data.month, [9, 10, 11])].reset_index()  # check months
     spring2017 = pd.DataFrame(
         spring2017.groupby('Site_ID').aggregate({'no3': np.mean, 'Site_East': np.mean, 'Site_North': np.mean}))
 

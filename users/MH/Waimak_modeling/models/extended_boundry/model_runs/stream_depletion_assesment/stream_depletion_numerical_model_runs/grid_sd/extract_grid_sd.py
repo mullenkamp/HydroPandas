@@ -15,7 +15,7 @@ import os
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.data_extraction.data_from_streams import \
     get_samp_points_df, get_flux_at_points
 from ss_grid_sd_setup import grid_wells, get_base_grid_sd_path
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import converged
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import modflow_converged
 
 
 def calc_stream_dep_grid(model_path):
@@ -63,7 +63,7 @@ def calc_stream_dep_grid(model_path):
     else:
         outdata *= 1 / abs_vol * 100
 
-    if not converged('{}.list'.format(model_path)):
+    if not modflow_converged('{}.list'.format(model_path)):
         outdata *= np.nan
         abs_vol *= np.nan
 

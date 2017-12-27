@@ -31,5 +31,3 @@ def _mtype_check(self, name):
     return(cond)
 
 
-
-

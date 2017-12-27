@@ -8,10 +8,10 @@ from numpy import nan, isnan, in1d
 from core.ecan_io.mssql import rd_sql, rd_sql_ts
 from numpy import ndarray
 from core.misc.misc import select_sites, save_df, rd_dir
-from core.ts.sw.stats import flow_stats, malf7d, fre_accrual
-from geopandas import read_file, GeoDataFrame
-from os.path import join, dirname
-from core.spatial.vector import sel_sites_poly
+# from core.ts.sw.stats import flow_stats, malf7d, fre_accrual
+# from geopandas import read_file, GeoDataFrame
+# from os.path import join, dirname
+# from core.spatial.vector import sel_sites_poly
 from os import path
 
 
@@ -314,155 +314,155 @@ def rd_hydrotel(sites, mtype='river_flow_cont_raw', from_date=None, to_date=None
     if export_path is not None:
         save_df(data3, export_path)
 
-    return (data3)
+    return data3
 
 
-def flow_import(rec_sites='None', gauge_sites='None', min_flow_only=False, site_ref_csv='hydstra_recorder_numbers.csv',
-                start='1900-01-01', end='2100-01-01', min_days=365, RAW=False, export_flow=False, export_stats=False,
-                export_shp=False, export_rec_path='all_rec_data.csv', export_gauge_path='all_gauge_data.csv',
-                export_stats_path='all_rec_stats.csv', export_rec_shp_path='all_rec_loc.shp',
-                export_gauge_shp_path='all_gauge_loc.shp'):
-    """
-    Function to import recorder and gauging data. Should be the top level import function for this data.
-    """
-
-    script_dir = dirname(flow.__file__)
-
-    #### Additional parameters and imports
-    site_dict = {100: [100, 140, 1], 140: [140, 140, 1], 143: [143, 143, 0.001]}
-    site_ref = read_csv(join(script_dir, site_ref_csv))
-    site_ref.columns = site_ref.columns.astype(int)
-
-    ### Import from databases
-    min_flow_sites = rd_sql('SQL2012PROD05', 'Wells', '"vMinimumFlowSites+Consent+Well"',
-                            col_names=['RefDbase', 'RefDbaseKey', 'restrictionType', 'RecordNo', 'WellNo'],
-                            where_col='RefDbase', where_val=['Gauging', 'Hydrotel'])
-    min_flow_sites.columns = ['type', 'site', 'restr', 'crc', 'wap']
-    min_flow_sites['site'] = min_flow_sites['site'].astype(int)
-    min_flow_sites = min_flow_sites[min_flow_sites.restr == 'LowFlow']
-
-    if export_shp or (type(rec_sites) is str) or (type(rec_sites) is GeoDataFrame):
-        site_geo = rd_site_geo()
-
-    #### prepare sites
-    if (rec_sites is 'None') and (gauge_sites is 'None'):
-        print('You need to define rec_sites or gauge_sites!')
-
-    ### Recorder sites
-    if rec_sites is not 'None':
-        if type(rec_sites) is str:
-            if rec_sites is 'All':
-                r_sites = site_ref
-                r_sites_sel_geo = site_geo[in1d(site_geo.site, site_ref.stack().values)]
-            elif rec_sites.endswith('.shp'):
-                poly = read_file(rec_sites)
-                r_sites_sel_geo = sel_sites_poly(poly, site_geo)
-                r_sites_sel = r_sites_sel_geo.site.values
-                r_sites = site_ref.apply(lambda x: x[in1d(x, r_sites_sel)], axis=0)
-        elif type(rec_sites) is GeoDataFrame:
-            r_sites_sel_geo = sel_sites_poly(rec_sites, site_geo)
-            r_sites_sel = r_sites_sel_geo.site.values
-            r_sites = site_ref.apply(lambda x: x[in1d(x, r_sites_sel)], axis=0)
-        else:
-            r_sites_sel = select_sites(rec_sites)
-            r_sites = site_ref.apply(lambda x: x[in1d(x, r_sites_sel)], axis=0)
-        if min_flow_only:
-            r_sites = r_sites.apply(lambda x: x[in1d(x, min_flow_sites.site.values)], axis=0)
-
-        ## Import required sites
-        lst = []
-        for i in r_sites.dropna(axis=1, how='all').columns:
-            sites_set1 = r_sites[i]
-            sites_set2 = sites_set1[sites_set1.notnull()].astype(int).unique()
-            if RAW:
-                multiplier = site_dict[i][2]
-                flow1 = rd_hydrotel(sites_set2) * multiplier
-                flow = w_resample(flow1, period='day', fun='mean')
-            else:
-                varfrom = site_dict[i][0]
-                varto = site_dict[i][1]
-                multiplier = site_dict[i][2]
-                flow = rd_hydstra_db(sites_set2, start_time=0, end_time=0, varfrom=varfrom, varto=varto) * multiplier
-            lst.append(flow)
-
-        r_flow1 = concat(lst, axis=1)
-
-        # Restrain dates
-        r_flow = r_flow1[r_flow1.first_valid_index():end]
-        r_flow = r_flow[start:end]
-        r_flow.columns = r_flow.columns.astype(int)
-
-    ### Gauging sites
-    if gauge_sites is not 'None':
-        if type(gauge_sites) is str:
-            if gauge_sites.endswith('.shp'):
-                poly = read_file(gauge_sites)
-                g_sites_sel_geo = sel_sites_poly(poly, site_geo)
-                g_sites_sel = g_sites_sel_geo.site.values
-                g_sites = g_sites_sel[~in1d(g_sites_sel, site_ref.stack().values)]
-        elif type(gauge_sites) is GeoDataFrame:
-            g_sites_sel_geo = sel_sites_poly(gauge_sites, site_geo)
-            g_sites_sel = g_sites_sel_geo.site.values
-            g_sites = g_sites_sel[~in1d(g_sites_sel, site_ref.stack().values)]
-        else:
-            g_sites = select_sites(gauge_sites)
-
-        if min_flow_only:
-            g_sites = g_sites[in1d(g_sites, min_flow_sites.site.values)]
-
-        ## Import sites
-        g_flow = rd_henry(g_sites, start=start, end=end, min_filter=5)
-        g_flow['site'] = g_flow.site.astype(int)
-
-    #### Run stats if required
-    if export_stats or export_shp:
-        if rec_sites is not 'None':
-            ### recorder sites
-            stats1 = flow_stats(r_flow)
-            malf, alf, alf_mising = malf7d(r_flow)
-            fre3 = fre_accrual(r_flow).round(3)
-            stats2 = concat([stats1, malf, fre3], axis=1).reset_index()
-        if gauge_sites is not 'None':
-            ### Gauging sites
-            gauge_grp = g_flow.groupby('site')['date']
-            n_gauge = gauge_grp.count()
-            gauge_start = gauge_grp.first().astype(str)
-            gauge_end = gauge_grp.last().astype(str)
-            gauge_stats = concat([gauge_start, gauge_end, n_gauge], axis=1).reset_index()
-            gauge_stats.columns = ['site', 'Start Date', 'End Date', 'n gaugings']
-
-    #### Export stats if desired
-    if export_stats and (rec_sites is not 'None'):
-        stats2.to_csv(export_stats_path, index=False)
-
-    #### Export SHP if desired
-    if export_shp:
-        if rec_sites is not 'None':
-            r_sites_sel2 = r_sites.stack().values
-            r_sites_geo1 = site_geo[in1d(site_geo.site, r_sites_sel2)]
-            r_sites_geo = r_sites_geo1.merge(stats2, on='site')
-            r_sites_geo.to_file(export_rec_shp_path)
-
-        if gauge_sites is not 'None':
-            g_sites_geo1 = site_geo[in1d(site_geo.site, g_sites)]
-            g_sites_geo = g_sites_geo1.merge(gauge_stats, on='site')
-            g_sites_geo.to_file(export_gauge_shp_path)
-
-    #### Export flow data if desired
-    if export_flow:
-        if rec_sites is not 'None':
-            r_flow.to_csv(export_rec_path)
-
-        if gauge_sites is not 'None':
-            g_flow.to_csv(export_gauge_path)
-
-    #### Return data
-    if (rec_sites is not 'None') and (gauge_sites is not 'None'):
-        return ([r_flow, g_flow])
-    if (rec_sites is not 'None'):
-        return (r_flow)
-    if (gauge_sites is not 'None'):
-        return (g_flow)
+# def flow_import(rec_sites='None', gauge_sites='None', min_flow_only=False, site_ref_csv='hydstra_recorder_numbers.csv',
+#                 start='1900-01-01', end='2100-01-01', min_days=365, RAW=False, export_flow=False, export_stats=False,
+#                 export_shp=False, export_rec_path='all_rec_data.csv', export_gauge_path='all_gauge_data.csv',
+#                 export_stats_path='all_rec_stats.csv', export_rec_shp_path='all_rec_loc.shp',
+#                 export_gauge_shp_path='all_gauge_loc.shp'):
+#     """
+#     Function to import recorder and gauging data. Should be the top level import function for this data.
+#     """
+#
+#     script_dir = dirname(flow.__file__)
+#
+#     #### Additional parameters and imports
+#     site_dict = {100: [100, 140, 1], 140: [140, 140, 1], 143: [143, 143, 0.001]}
+#     site_ref = read_csv(join(script_dir, site_ref_csv))
+#     site_ref.columns = site_ref.columns.astype(int)
+#
+#     ### Import from databases
+#     min_flow_sites = rd_sql('SQL2012PROD05', 'Wells', '"vMinimumFlowSites+Consent+Well"',
+#                             col_names=['RefDbase', 'RefDbaseKey', 'restrictionType', 'RecordNo', 'WellNo'],
+#                             where_col='RefDbase', where_val=['Gauging', 'Hydrotel'])
+#     min_flow_sites.columns = ['type', 'site', 'restr', 'crc', 'wap']
+#     min_flow_sites['site'] = min_flow_sites['site'].astype(int)
+#     min_flow_sites = min_flow_sites[min_flow_sites.restr == 'LowFlow']
+#
+#     if export_shp or (type(rec_sites) is str) or (type(rec_sites) is GeoDataFrame):
+#         site_geo = rd_site_geo()
+#
+#     #### prepare sites
+#     if (rec_sites is 'None') and (gauge_sites is 'None'):
+#         print('You need to define rec_sites or gauge_sites!')
+#
+#     ### Recorder sites
+#     if rec_sites is not 'None':
+#         if type(rec_sites) is str:
+#             if rec_sites is 'All':
+#                 r_sites = site_ref
+#                 r_sites_sel_geo = site_geo[in1d(site_geo.site, site_ref.stack().values)]
+#             elif rec_sites.endswith('.shp'):
+#                 poly = read_file(rec_sites)
+#                 r_sites_sel_geo = sel_sites_poly(poly, site_geo)
+#                 r_sites_sel = r_sites_sel_geo.site.values
+#                 r_sites = site_ref.apply(lambda x: x[in1d(x, r_sites_sel)], axis=0)
+#         elif type(rec_sites) is GeoDataFrame:
+#             r_sites_sel_geo = sel_sites_poly(rec_sites, site_geo)
+#             r_sites_sel = r_sites_sel_geo.site.values
+#             r_sites = site_ref.apply(lambda x: x[in1d(x, r_sites_sel)], axis=0)
+#         else:
+#             r_sites_sel = select_sites(rec_sites)
+#             r_sites = site_ref.apply(lambda x: x[in1d(x, r_sites_sel)], axis=0)
+#         if min_flow_only:
+#             r_sites = r_sites.apply(lambda x: x[in1d(x, min_flow_sites.site.values)], axis=0)
+#
+#         ## Import required sites
+#         lst = []
+#         for i in r_sites.dropna(axis=1, how='all').columns:
+#             sites_set1 = r_sites[i]
+#             sites_set2 = sites_set1[sites_set1.notnull()].astype(int).unique()
+#             if RAW:
+#                 multiplier = site_dict[i][2]
+#                 flow1 = rd_hydrotel(sites_set2) * multiplier
+#                 flow = w_resample(flow1, period='day', fun='mean')
+#             else:
+#                 varfrom = site_dict[i][0]
+#                 varto = site_dict[i][1]
+#                 multiplier = site_dict[i][2]
+#                 flow = rd_hydstra_db(sites_set2, start_time=0, end_time=0, varfrom=varfrom, varto=varto) * multiplier
+#             lst.append(flow)
+#
+#         r_flow1 = concat(lst, axis=1)
+#
+#         # Restrain dates
+#         r_flow = r_flow1[r_flow1.first_valid_index():end]
+#         r_flow = r_flow[start:end]
+#         r_flow.columns = r_flow.columns.astype(int)
+#
+#     ### Gauging sites
+#     if gauge_sites is not 'None':
+#         if type(gauge_sites) is str:
+#             if gauge_sites.endswith('.shp'):
+#                 poly = read_file(gauge_sites)
+#                 g_sites_sel_geo = sel_sites_poly(poly, site_geo)
+#                 g_sites_sel = g_sites_sel_geo.site.values
+#                 g_sites = g_sites_sel[~in1d(g_sites_sel, site_ref.stack().values)]
+#         elif type(gauge_sites) is GeoDataFrame:
+#             g_sites_sel_geo = sel_sites_poly(gauge_sites, site_geo)
+#             g_sites_sel = g_sites_sel_geo.site.values
+#             g_sites = g_sites_sel[~in1d(g_sites_sel, site_ref.stack().values)]
+#         else:
+#             g_sites = select_sites(gauge_sites)
+#
+#         if min_flow_only:
+#             g_sites = g_sites[in1d(g_sites, min_flow_sites.site.values)]
+#
+#         ## Import sites
+#         g_flow = rd_henry(g_sites, start=start, end=end, min_filter=5)
+#         g_flow['site'] = g_flow.site.astype(int)
+#
+#     #### Run stats if required
+#     if export_stats or export_shp:
+#         if rec_sites is not 'None':
+#             ### recorder sites
+#             stats1 = flow_stats(r_flow)
+#             malf, alf, alf_mising = malf7d(r_flow)
+#             fre3 = fre_accrual(r_flow).round(3)
+#             stats2 = concat([stats1, malf, fre3], axis=1).reset_index()
+#         if gauge_sites is not 'None':
+#             ### Gauging sites
+#             gauge_grp = g_flow.groupby('site')['date']
+#             n_gauge = gauge_grp.count()
+#             gauge_start = gauge_grp.first().astype(str)
+#             gauge_end = gauge_grp.last().astype(str)
+#             gauge_stats = concat([gauge_start, gauge_end, n_gauge], axis=1).reset_index()
+#             gauge_stats.columns = ['site', 'Start Date', 'End Date', 'n gaugings']
+#
+#     #### Export stats if desired
+#     if export_stats and (rec_sites is not 'None'):
+#         stats2.to_csv(export_stats_path, index=False)
+#
+#     #### Export SHP if desired
+#     if export_shp:
+#         if rec_sites is not 'None':
+#             r_sites_sel2 = r_sites.stack().values
+#             r_sites_geo1 = site_geo[in1d(site_geo.site, r_sites_sel2)]
+#             r_sites_geo = r_sites_geo1.merge(stats2, on='site')
+#             r_sites_geo.to_file(export_rec_shp_path)
+#
+#         if gauge_sites is not 'None':
+#             g_sites_geo1 = site_geo[in1d(site_geo.site, g_sites)]
+#             g_sites_geo = g_sites_geo1.merge(gauge_stats, on='site')
+#             g_sites_geo.to_file(export_gauge_shp_path)
+#
+#     #### Export flow data if desired
+#     if export_flow:
+#         if rec_sites is not 'None':
+#             r_flow.to_csv(export_rec_path)
+#
+#         if gauge_sites is not 'None':
+#             g_flow.to_csv(export_gauge_path)
+#
+#     #### Return data
+#     if (rec_sites is not 'None') and (gauge_sites is not 'None'):
+#         return ([r_flow, g_flow])
+#     if (rec_sites is not 'None'):
+#         return (r_flow)
+#     if (gauge_sites is not 'None'):
+#         return (g_flow)
 
 
 def hydstra_site_mod_time(sites=None):
@@ -493,4 +493,4 @@ def hydstra_site_mod_time(sites=None):
     mod_times = to_datetime([round(path.getmtime(path.join(site_files_path, i + '.A'))) for i in file_sites1], unit='s')
 
     df = DataFrame({'site': file_sites1, 'mod_time': mod_times})
-    return (df)
+    return df

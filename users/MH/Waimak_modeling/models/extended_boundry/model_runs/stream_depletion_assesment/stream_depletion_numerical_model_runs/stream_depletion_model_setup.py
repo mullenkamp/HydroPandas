@@ -12,7 +12,7 @@ import sys
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools import mod_gns_model, get_max_rate, \
     get_full_consent, get_race_data, zip_non_essential_files
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import converged
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import modflow_converged
 from traceback import format_exc
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.stream_depletion_assesment.raising_heads_no_carpet import get_drn_no_ncarpet_spd
 
@@ -74,10 +74,10 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
         sd_7_150 = 'sd7'  # this effectivly uses the max rate of the consent rather than the CAV for 150 day
 
     if sd_7_150 == 'sd150':
-        full_consent = get_full_consent(model_id)
+        full_consent = get_full_consent(model_id, missing_sd_wells=True)
         full_consent.loc[full_consent.use_type == 'irrigation-sw','flux'] *= 12/5 # scale irrigation wells to CAV over 150 days
     elif sd_7_150 == 'sd7':
-        sd7_flux = get_max_rate(model_id)
+        sd7_flux = get_max_rate(model_id, missing_sd_wells=True)
     for sp in range(nper):
         # set up recharge
         rch[sp] = 0
@@ -175,7 +175,7 @@ def setup_and_run_stream_dep(model_id, name, base_dir, stress_vals, wells_to_tur
     # get success and zip files I don't need for this analysis
     con = None
     if success:
-        con = converged(os.path.join(m.model_ws,m.namefile.replace('.nam', '.list')))
+        con = modflow_converged(os.path.join(m.model_ws, m.namefile.replace('.nam', '.list')))
         zip_non_essential_files(m.model_ws, include_list=False, other_files=['.sfo','.ddn','.hds'])
     if con is None:
         success = 'convergence unknown'

@@ -3,12 +3,16 @@
 Functions for importing mssql data.
 """
 from geopandas import GeoDataFrame
-from core.misc import save_df
-#from core.spatial import xy_to_gpd
-from pandas import to_numeric, to_datetime, Timestamp, read_sql
+from core.misc.misc import save_df
+from pandas import to_numeric, to_datetime, Timestamp, read_sql, Series, concat, merge, DataFrame
 from shapely.wkt import loads
 from pycrs.parser import from_epsg_code
 from pymssql import connect
+import traceback
+from datetime import datetime
+#from core.misc.misc import select_sites
+#from core.spatial.vector import xy_to_gpd, sel_sites_poly
+#from numpy import nan, ceil
 
 
 def rd_sql(server, database, table=None, col_names=None, where_col=None, where_val=None, where_op='AND', geo_col=False,
@@ -234,7 +238,7 @@ def rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resa
 #    return (site_geo3.set_index('site'))
 
 
-def write_sql(df, server, database, table, dtype_dict, primary_keys=None, create_table=True, drop_table=False):
+def write_sql(df, server, database, table, dtype_dict, primary_keys=None, foreign_keys=None, foreign_table=None, create_table=True, drop_table=False, output_stmt=False):
     """
     Function to write pandas dataframes to mssql server tables. Must have write permissions to database!
 
@@ -252,14 +256,20 @@ def write_sql(df, server, database, table, dtype_dict, primary_keys=None, create
         Dictionary of df columns to the associated sql data type. Examples below.
     primary_keys : str or list of str
         Index columns to define uniqueness in the data structure.
+    foreign_keys : str or list of str
+        Columns to link to another table in the same database.
+    foreign_table: str
+        The table in the same database with the identical foreign key(s).
     create_table : bool
         Should a new table be created or should it be appended to an existing table?
     drop_table : bool
         If the table already exists, should it be dropped?
+    output_stmt : bool
+        Should the SQL statements be outputted to a dictionary?
 
     Returns
     -------
-    None
+    if output_stmt is True then dict else None
 
     dtype strings for matching python data types to SQL
     ---------------------------------------------------
@@ -287,24 +297,29 @@ def write_sql(df, server, database, table, dtype_dict, primary_keys=None, create
     if not all(df.columns.isin(dtype_dict.keys())):
         raise ValueError('dtype_dict must have the same column names as the columns in the df.')
 
+    df1 = df.copy()
+
     for i in df.columns:
         dtype1 = dtype_dict[i]
         if (dtype1 == 'DATE') | (dtype1 == 'DATETIME'):
             time1 = to_datetime(df[i]).astype(str)
-            df.loc[:, i] = time1
+            df1.loc[:, i] = time1
         elif 'VARCHAR' in dtype1:
-            df.loc[:, i] = df.loc[:, i].astype(str).str.replace('\'', ' ')
+            try:
+                df1.loc[:, i] = df.loc[:, i].astype(str).str.replace('\'', '')
+            except:
+                df1.loc[:, i] = df.loc[:, i].str.encode('utf-8', 'ignore').str.replace('\'', '')
         elif 'NUMERIC' in dtype1:
-            df.loc[:, i] = df.loc[:, i].astype(float)
+            df1.loc[:, i] = df.loc[:, i].astype(float)
         elif 'decimal' in dtype1:
-            df.loc[:, i] = df.loc[:, i].astype(float)
+            df1.loc[:, i] = df.loc[:, i].astype(float)
         elif not dtype1 in py_sql.keys():
             raise ValueError('dtype must be one of ' + str(py_sql.keys()))
         else:
-            df.loc[:, i] = df.loc[:, i].astype(py_sql[dtype1])
+            df1.loc[:, i] = df.loc[:, i].astype(py_sql[dtype1])
 
     #### Convert df to set of tuples to be ingested by sql
-    list1 = df.values.tolist()
+    list1 = df1.values.tolist()
     tup1 = [str(tuple(i)) for i in list1]
     tup2 = chunker(tup1, 1000)
 
@@ -316,39 +331,56 @@ def write_sql(df, server, database, table, dtype_dict, primary_keys=None, create
     else:
         key_stmt = ""
 
+    #### Foreign keys
+    if isinstance(foreign_keys, str):
+        foreign_keys = [foreign_keys]
+    if isinstance(foreign_keys, list):
+        fkey_stmt = ", Foreign key (" + ", ".join(foreign_keys) + ") " + "References " + foreign_table + "(" + ", ".join(foreign_keys) + ")"
+    else:
+        fkey_stmt = ""
+
     #### Initial create table and insert statements
     d1 = [str(i) + ' ' + dtype_dict[i] for i in df.columns]
     d2 = ', '.join(d1)
-    tab_create_stmt = "create table " + table + " (" + d2 + key_stmt + ")"
+    tab_create_stmt = "create table " + table + " (" + d2 + key_stmt + fkey_stmt + ")"
     insert_stmt1 = "insert into " + table + " values "
 
+    conn = connect(server, database=database)
+    cursor = conn.cursor()
+    stmt_dict = {}
     try:
-        conn = connect(server, database=database)
-        cursor = conn.cursor()
 
         #### Drop table if it exists
         if drop_table:
             drop_stmt = "IF OBJECT_ID(" + str([str(table)])[1:-1] + ", 'U') IS NOT NULL DROP TABLE " + table
             cursor.execute(drop_stmt)
             conn.commit()
+            stmt_dict.update({'drop_stmt': drop_stmt})
 
         #### Create table in database
         if create_table:
             cursor.execute(tab_create_stmt)
             conn.commit()
+            stmt_dict.update({'tab_create_stmt': tab_create_stmt})
 
         #### Insert data into table
-        for i in tup2:
-            rows = ",".join(i)
+        for i in range(len(tup2)):
+            rows = ",".join(tup2[i])
             insert_stmt2 = insert_stmt1 + rows
             cursor.execute(insert_stmt2)
+            stmt_dict.update({'insert' + str(i+1): insert_stmt2})
         conn.commit()
 
         #### Close everything!
         cursor.close()
         conn.close()
-    except:
-        raise ValueError('Could not complete SQL import')
+
+        if output_stmt:
+            return stmt_dict
+    except Exception as err:
+        conn.rollback()
+        conn.close()
+        raise err
 
 
 def sql_where_stmts(where_col=None, where_val=None, where_op='AND', from_date=None, to_date=None, date_col=None):
@@ -568,138 +600,57 @@ def rd_sql_geo(server, database, table, where_lst=None):
     return (geo, proj4)
 
 
+#def mssql_logging(log, process):
+#    """
+#    Function to log to ECan's mssql database logger.
+#
+#    Parameters
+#    ----------
+#    log: str
+#        Log string.
+#    process: str
+#        The application process.
+#
+#    Returns
+#    -------
+#    None
+#    """
+#    server = 'SQL2014DEV01'
+#    database = 'Ecan_logger'
+#    table = 'Log'
+#
+#    insert_stmt1 = "insert into " + table + "(Date, Application, Thread, Level, Logger, Message) values "
+#    dt1 = datetime.now().strftime('%Y-%m-%d %H:%M')
+#
+#    conn = connect(server, database=database)
+#    cursor = conn.cursor()
+#
+#    log1 = log.replace('\n', ' ').replace('\'', '')
+#    rows = "(" + ", ".join([dt1, process, '1', "INFO", "Python", log1]) + ")"
+#    insert_stmt2 = insert_stmt1 + rows
+#    cursor.execute(insert_stmt2)
+#
+#    conn.commit()
+#
+#    #### Close everything!
+#    cursor.close()
+#    conn.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #########################################################
 ## Archive
 
 
-#def rd_squalarc(sites, mtypes=None, from_date=None, to_date=None, convert_dtl=False, dtl_method=None, export_path=None):
-#    """
-#    Function to read in "squalarc" data. Which is atually stored in the mssql db.
-#
-#    Arguments:\n
-#    sites -- The site names as a list, array, csv with the first column as the site names, or a polygon shapefile of the area of interest.\n
-#    mtypes -- A list of measurement type names to be in the output. Leaving it empty returns all mtypes.\n
-#    from_date -- A start date string in of '2010-01-01'.\n
-#    to_date -- A end date string in of '2011-01-01'.\n
-#    convert_dtl -- Should values under the detection limit be converted to numeric?\n
-#    dtl_method -- The method to use to convert values under a detection limit to numeric. None or 'standard' takes half of the detection limit. 'trend' is meant as an output for trend analysis with includes an additional column dtl_ratio referring to the ratio of values under the detection limit.
-#    """
-#    from core.ecan_io import rd_sql
-#    from core.misc import select_sites
-#    from geopandas import GeoDataFrame
-#    from core.spatial import xy_to_gpd, sel_sites_poly
-#    from pandas import Series, to_datetime, to_numeric, Timestamp, concat, merge, DataFrame
-#    from numpy import nan, ceil
-#
-#    #### Read in sites
-#    sites1 = select_sites(sites)
-#
-#    #### Extract by polygon
-#    if isinstance(sites1, GeoDataFrame):
-#        ## Surface water sites
-#        sw_sites_tab = rd_sql('SQL2012PROD05', 'Squalarc', 'SITES', col_names=['SITE_ID', 'NZTMX', 'NZTMY'])
-#        sw_sites_tab.columns = ['site', 'NZTMX', 'NZTMY']
-#        gdf_sw_sites = xy_to_gpd('site', 'NZTMX', 'NZTMY', sw_sites_tab)
-#        sites1a = sites1.to_crs(gdf_sw_sites.crs)
-#        sw_sites2 = sel_sites_poly(gdf_sw_sites, sites1a).drop('geometry', axis=1)
-#
-#        ## Groundwater sites
-#        gw_sites_tab = rd_sql('SQL2012PROD05', 'Wells', 'WELL_DETAILS', col_names=['WELL_NO', 'NZTMX', 'NZTMY'])
-#        gw_sites_tab.columns = ['site', 'NZTMX', 'NZTMY']
-#        gdf_gw_sites = xy_to_gpd('site', 'NZTMX', 'NZTMY', gw_sites_tab)
-#        gw_sites2 = sel_sites_poly(gdf_gw_sites, sites1a).drop('geometry', axis=1)
-#
-#        sites2 = sw_sites2.site.append(gw_sites2.site).astype(str).tolist()
-#    else:
-#        sites2 = Series(sites1, name='site').astype(str).tolist()
-#
-#    #### Extract the rest of the data
-#    if len(sites2) > 10000:
-#        n_chunks = int(ceil(len(sites2) * 0.0001))
-#        sites3 = [sites2[i::n_chunks] for i in xrange(n_chunks)]
-#        samples_tab = DataFrame()
-#        for i in sites3:
-#            samples_tab1 = rd_sql('SQL2012PROD05', 'Squalarc', '"SQL_SAMPLE_METHODS+"',
-#                                  col_names=['Site_ID', 'SAMPLE_NO', 'ME_TYP', 'Collect_Date', 'Collect_Time',
-#                                             'PA_NAME', 'PARAM_UNITS', 'SRESULT'], where_col='Site_ID', where_val=i)
-#            samples_tab1.columns = ['site', 'sample_id', 'source', 'date', 'time', 'parameter', 'units', 'val']
-#            samples_tab1.loc[:, 'source'] = samples_tab1.loc[:, 'source'].str.lower()
-#            samples_tab = concat([samples_tab, samples_tab1])
-#    else:
-#        samples_tab = rd_sql('SQL2012PROD05', 'Squalarc', '"SQL_SAMPLE_METHODS+"',
-#                             col_names=['Site_ID', 'SAMPLE_NO', 'ME_TYP', 'Collect_Date', 'Collect_Time', 'PA_NAME',
-#                                        'PARAM_UNITS', 'SRESULT'], where_col='Site_ID', where_val=sites2)
-#        samples_tab.columns = ['site', 'sample_id', 'source', 'date', 'time', 'parameter', 'units', 'val']
-#        samples_tab.loc[:, 'source'] = samples_tab.loc[:, 'source'].str.lower()
-#
-#    samples_tab2 = samples_tab.copy()
-#    num_test = to_numeric(samples_tab2.loc[:, 'time'], 'coerce')
-#    samples_tab2.loc[num_test.isnull(), 'time'] = '0000'
-#    samples_tab2.loc[:, 'time'] = samples_tab2.loc[:, 'time'].str.replace('.', '')
-#    samples_tab2 = samples_tab2[samples_tab2.date.notnull()]
-#    #    samples_tab2.loc[:, 'time'] = samples_tab2.loc[:, 'time'].str.replace('9999', '0000')
-#    time1 = to_datetime(samples_tab2.time, format='%H%M', errors='coerce')
-#    time1[time1.isnull()] = Timestamp('2000-01-01 00:00:00')
-#    datetime1 = to_datetime(samples_tab2.date.dt.date.astype(str) + ' ' + time1.dt.time.astype(str))
-#    samples_tab2.loc[:, 'date'] = datetime1
-#    samples_tab2 = samples_tab2.drop('time', axis=1)
-#    samples_tab2.loc[samples_tab2.val.isnull(), 'val'] = nan
-#    samples_tab2.loc[samples_tab2.val == 'N/A', 'val'] = nan
-#
-#    #### Select within time range
-#    if isinstance(from_date, str):
-#        samples_tab2 = samples_tab2[samples_tab2['date'] >= from_date]
-#    if isinstance(to_date, str):
-#        samples_tab2 = samples_tab2[samples_tab2['date'] <= to_date]
-#
-#    if mtypes is not None:
-#        mtypes1 = select_sites(mtypes)
-#        data = samples_tab2[samples_tab2.parameter.isin(mtypes1)].reset_index(drop=True)
-#    else:
-#        data = samples_tab2.reset_index(drop=True)
-#
-#    #### Correct poorly typed in site names
-#    data.loc[:, 'site'] = data.loc[:, 'site'].str.upper().str.replace(' ', '')
-#
-#    #### Convert detection limit values
-#    if convert_dtl:
-#        less1 = data['val'].str.match('<')
-#        if less1.sum() > 0:
-#            less1.loc[less1.isnull()] = False
-#            data2 = data.copy()
-#            data2.loc[less1, 'val'] = to_numeric(data.loc[less1, 'val'].str.replace('<', ''), errors='coerce') * 0.5
-#            if dtl_method in (None, 'standard'):
-#                data3 = data2
-#            if dtl_method == 'trend':
-#                df1 = data2.loc[less1]
-#                count1 = data.groupby('parameter')['val'].count()
-#                count1.name = 'tot_count'
-#                count_dtl = df1.groupby('parameter')['val'].count()
-#                count_dtl.name = 'dtl_count'
-#                count_dtl_val = df1.groupby('parameter')['val'].nunique()
-#                count_dtl_val.name = 'dtl_val_count'
-#                combo1 = concat([count1, count_dtl, count_dtl_val], axis=1, join='inner')
-#                combo1['dtl_ratio'] = (combo1['dtl_count'] / combo1['tot_count']).round(2)
-#
-#                ## conditionals
-#                #            param1 = combo1[(combo1['dtl_ratio'] <= 0.4) | (combo1['dtl_ratio'] == 1)]
-#                #            under_40 = data['parameter'].isin(param1.index)
-#                param2 = combo1[(combo1['dtl_ratio'] > 0.4) & (combo1['dtl_val_count'] != 1)]
-#                over_40 = data['parameter'].isin(param2.index)
-#
-#                ## Calc detection limit values
-#                data3 = merge(data, combo1['dtl_ratio'].reset_index(), on='parameter', how='left')
-#                data3.loc[:, 'val_dtl'] = data2['val']
-#
-#                max_dtl_val = data2[over_40 & less1].groupby('parameter')['val'].transform('max')
-#                max_dtl_val.name = 'dtl_val_max'
-#                data3.loc[over_40 & less1, 'val_dtl'] = max_dtl_val
-#        else:
-#            data3 = data
-#    else:
-#        data3 = data
-#
-#    #### Return and export
-#    if isinstance(export_path, str):
-#        data3.to_csv(export_path, encoding='utf-8', index=False)
-#    return (data3)

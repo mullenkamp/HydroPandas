@@ -22,7 +22,7 @@ if __name__ == '__main__':
         get_str_dep_base_path
     from users.MH.Waimak_modeling.models.extended_boundry.model_runs.stream_depletion_assesment.stream_depletion_numerical_model_runs.starting_hds_ss_sy import \
         _get_no_pumping_ss_hds
-    from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import converged
+    from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import modflow_converged
     from users.MH.Waimak_modeling.models.extended_boundry.model_runs.stream_depletion_assesment.raising_heads_no_carpet import \
         get_drn_no_ncarpet_spd
 
@@ -37,7 +37,7 @@ if __name__ == '__main__':
     m.write_name_file()
     m.run_model()
     print('{} at least loaded'.format(model_id))
-    con = converged(os.path.join(m.model_ws, '{}.list'.format(m.name)))
+    con = modflow_converged(os.path.join(m.model_ws, '{}.list'.format(m.name)))
     if not con:
         raise ValueError('model did not converge')
 

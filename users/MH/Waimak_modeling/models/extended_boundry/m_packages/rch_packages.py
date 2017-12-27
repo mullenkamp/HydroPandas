@@ -235,7 +235,12 @@ if __name__ == '__main__':
 
 
     if test_type ==1:
-        rch=_get_rch(version=2,recalc=False)*1000*365
+        rch=_get_rch(version=2,recalc=False)
+        x,y = smt.get_model_x_y()
+        idx = np.isfinite(rch)
+        outdata = pd.DataFrame({'x':x[idx],'y':y[idx],'rch_mm_yr':rch[idx]*1000*365,'rch_m3_s':rch[idx]*200*200/86400})
+        outdata.to_csv(os.path.join(r"P:\Groundwater\Waimakariri\Groundwater\Numerical GW model\Model simulations and results\ex_bd_va",'rch_points.csv'))
+        raise
         _get_rch_comparison()
         rchold=_get_rch(version=1,recalc=False)
 

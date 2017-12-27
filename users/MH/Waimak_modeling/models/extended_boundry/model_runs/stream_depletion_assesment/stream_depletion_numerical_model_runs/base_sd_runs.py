@@ -10,13 +10,23 @@ from users.MH.Waimak_modeling.models.extended_boundry.model_runs.stream_depletio
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.stream_depletion_assesment.stream_depletion_numerical_model_runs.starting_hds_ss_sy import get_ss_sy, get_sd_starting_hds
 import os
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.model_setup.realisation_id import temp_pickle_dir
+import multiprocessing
+import time
+import psutil
+import logging
+import itertools
 
-def get_str_dep_base_path(model_id, sd_version, recalc=False):
+
+def _get_str_dep_base_path_mp(kwargs):
+    return get_str_dep_base_path(**kwargs)
+
+def get_str_dep_base_path(model_id, sd_version, ss_sy_version=1, recalc=False):
     """
     function to return the model path for the fully naturalized fully transient run and ensure that the model has been
     run this run has a ss and then full year run from july to end of june  ## for SD 7
     :param model_id: which NSMC realisation to use
     :param sd_version: one of ["sd150", "sd30", "sd7"]
+    :param ss_sy_version: which storage version to use
     :param recalc: if True recreate and run the base model
     :return: path to the model (without an extension)
     """
@@ -24,7 +34,7 @@ def get_str_dep_base_path(model_id, sd_version, recalc=False):
         raise ValueError('unexpected argument for version {} expected one of ["sd150", "sd30", "sd7"]'.format(sd_version))
 
     base_path = os.path.join(temp_pickle_dir,'base_sd_runs')
-    name = '{}_base_run'.format(sd_version)
+    name = '{}_base_run_sv_{}'.format(sd_version,ss_sy_version)
     if not os.path.exists(base_path):
         os.makedirs(base_path)
 
@@ -33,7 +43,7 @@ def get_str_dep_base_path(model_id, sd_version, recalc=False):
         return cbc_path.replace('.cbc', '')
 
 
-    ss,sy = get_ss_sy()
+    ss,sy = get_ss_sy(ss_sy_version=ss_sy_version)
     start_heads = get_sd_starting_hds(model_id,sd_version)
 
     spv = get_sd_spv(sd_version)
@@ -91,3 +101,33 @@ def get_sd_spv(sd_version):
         raise ValueError('unexpected argument for version {} expected one of ["sd150", "sd30", "sd7"]'.format(sd_version))
 
     return spv
+
+def start_process():
+    print('Starting', multiprocessing.current_process().name)
+    p = psutil.Process(os.getpid())
+    # set to lowest priority, this is windows only, on Unix use ps.nice(19)
+    p.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
+
+def gen_all_sd_base(model_id):
+    input_kwargs = []
+    for sv, sdv in itertools.product([2,3,4],['sd7','sd30','sd150']):
+        input_kwargs.append({'model_id':model_id, 'sd_version':sdv, 'ss_sy_version':sv})
+
+    t = time.time()
+    multiprocessing.log_to_stderr(logging.DEBUG)
+    pool_size = psutil.cpu_count(logical=False)
+    pool = multiprocessing.Pool(processes=pool_size,
+                                initializer=start_process,
+                                )
+    results = pool.map_async(_get_str_dep_base_path_mp, input_kwargs)
+    while not results.ready():
+        print('{} runs left of {}'.format(results._number_left, len(input_kwargs)))
+        time.sleep(60 * 5)  # sleep 5 min between printing
+    pool_outputs = results.get()
+    pool.close()  # no more tasks
+    pool.join()
+    print(pool_outputs)
+
+
+if __name__ == '__main__':
+    gen_all_sd_base('NsmcBase')
