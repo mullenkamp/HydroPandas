@@ -6,13 +6,18 @@ Created on Wed Jul 19 08:03:19 2017
 
 Functions for the land surface recharge model.
 """
+from core.ecan_io.mssql import rd_sql
+from core.ts.met.interp import poly_interp_agg
+from pandas import merge, concat
+from geopandas import read_file
+from core.spatial.vector import xy_to_gpd, points_grid_to_poly, spatial_overlays
+from numpy import nan, full, arange, seterr, tile, exp
 
 
 def AET(pet, A, paw_now, paw_max):
     """
     Minhas et al. (1974) function used by David Scott to estimate 'actual ET' from PET and PAW. All inputs must be as floats.
     """
-    from numpy import exp
 
     aet = pet * ((1 - exp(-A*paw_now/paw_max))/(1 - 2*exp(-A) + exp(-A*paw_now/paw_max)))
     return(aet)
@@ -22,8 +27,6 @@ def poly_import(irr_type_dict, paw_dict, paw_ratio=0.67):
     """
     Function to import polygon input data. At the moment, these include irrigation type and PAW. Inputs are dictionaries that reference either an MSSQL table with a geometry column or a shapefile. If the dictionary references an sql table then the keys should be 'server', 'database', 'table', and 'column'. If the dictionary references a shapefile, then the keys should be 'shp' and 'column'. All values should be strings.
     """
-    from geopandas import read_file
-    from core.ecan_io import rd_sql
 
     if not all([isinstance(irr_type_dict, dict), isinstance(paw_dict, dict)]):
         raise TypeError("'irr_type_dict' and 'paw_dict' must be dictionaries.")
@@ -58,11 +61,6 @@ def input_processing(precip_et, crs, irr1, paw1, bound_shp, rain_name, pet_name,
     """
     Function to process the input data for the lsrm. Outputs a DataFrame of the variables for the lsrm.
     """
-    from core.ts.met.interp import poly_interp_agg
-    from pandas import merge, concat
-    from geopandas import read_file, overlay
-    from core.spatial.vector import xy_to_gpd, points_grid_to_poly, spatial_overlays
-    from numpy import tile, nan, seterr
     seterr(invalid='ignore')
 
     ## Load and resample precip and et
@@ -206,8 +204,6 @@ def lsrm(model_var, A, include_irr=True):
     """
     The lsrm.
     """
-    from numpy import nan, full, arange, seterr
-    from core.ts.gw.lsrm import AET
     seterr(invalid='ignore')
 
     ## Make initial variables

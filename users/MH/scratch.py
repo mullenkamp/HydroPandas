@@ -1,30 +1,32 @@
 from __future__ import division
-import numpy as np
-import pandas as pd
-import geopandas as gpd
+from users.MH.Waimak_modeling.models.extended_boundry.m_packages import create_wel_package
+from users.MH.Waimak_modeling.models.extended_boundry.m_packages.wel_packages import create_wel_package
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
-import matplotlib.pyplot as plt
-from copy import deepcopy
-from glob import glob
-from core.classes.hydro import hydro, all_mtypes
-from matplotlib.colors import from_levels_and_colors
-import statsmodels.formula.api as sm
-from scipy.stats import skewnorm
-from users.MH.Waimak_modeling.models.extended_boundry.m_packages.drn_packages import _get_drn_spd
-import flopy
+from scipy.interpolate import rbf
 import netCDF4 as nc
+import numpy as np
+from core import env
+import shutil
 import os
-import traceback
-from scipy.interpolate import griddata
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.stream_depletion_assesment.stream_depletion_numerical_model_runs.grid_sd.visualise_grid_sd import get_mask
 
-base_dir = r"K:\mh_modeling\nsmc_plots"
+def timeit_test():
+    base_converter_dir = "{}/base_for_nsmc_real".format(smt.sdp)
+    # check if the model has previously been saved to the save dir, and if so, load from there
+    converter_dir = os.path.join(os.path.expanduser('~'),'temp_nsmc_generation{}'.format(os.getpid()))
+    shutil.copytree(base_converter_dir,converter_dir)
+    shutil.rmtree(converter_dir)
 
-f = open(r"C:\Users\MattH\Downloads\check_plots.txt",'w')
 
-for dirs in os.listdir(base_dir):
-    f.write('{}\n'.format(dirs))
-    for sub in os.listdir(os.path.join(base_dir,dirs)):
-        f.write('{}\n'.format(sub))
-    f.write('\n')
-f.close()
+
+
+if __name__ == '__main__':
+    print 'hello world'
+    data = nc.Dataset(r"C:\Users\MattH\Downloads\test.nc",'w')
+    data.createDimension('bound',2)
+    data.createDimension('unbound',2)
+
+    temp = data.createVariable('test',float,('bound','unbound'),fill_value=np.nan)
+    temp[0,:] = [1,2,3]
+    temp[1] = [4,5,6,7,8,9]
+
+    print 'done'

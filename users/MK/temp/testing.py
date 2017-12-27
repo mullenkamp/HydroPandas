@@ -1472,34 +1472,86 @@ h1 = hydro().get_data(mtypes='river_wl_cont_qc', sites=sites, qual_codes=[10, 18
 
 t1 = rd_hydrotel([66204], mtype='river_flow_cont_raw', from_date=start_date.strftime('%Y-%m-%d'), to_date=end_date.strftime('%Y-%m-%d'))
 
+##################################################
+### Add MetConnect sites table
+
+from pandas import read_csv, to_datetime
+from core.ecan_io import write_sql
+
+server = 'SQL2012DEV01'
+database = 'Hydro'
+database = 'MetConnect'
+table = 'RainFallPredictionSitesGrid'
+
+dtype_dict = {'MetConnectID': 'INT', 'SiteString': 'VARCHAR(34)', 'Office': 'VARCHAR(2)', 'HydroTelPointNo': 'INT', 'TidedaID': 'INT', 'StartDate': 'DATE'}
+
+sites_csv = r'E:\ecan\shared\projects\metservice_processing\RainFallPredictionSites.csv'
+
+sites = read_csv(sites_csv)
+sites['StartDate'] = to_datetime(sites['StartDate'], dayfirst=True, format='%d/%m/%Y')
+
+stmt_dict = write_sql(sites, server, database, table, dtype_dict, primary_keys=['MetConnectID'])
+
+
+####################################################
+### Low flows
+
+siteid = 12
+
+restr_val[restr_val.SiteID == siteid]
+sites[sites.SiteID == siteid]
+
+####################################################
+### More hydstra
+from pint import UnitRegistry
+from core.ecan_io.hydllp import rd_hydstra_by_mtype
+from core.ecan_io import rd_sql
+from pandas import to_numeric
+
+site = 164606
+
+from_date = '2017-10-01'
+to_date = '2017-12-06'
+
+period2.varto.sort_values().unique().tolist()
+
+(period2.varto == 500).sum()
+period2[(period2.varto == 101)]
+
+ureg = UnitRegistry()
+
+m_s = ureg.meter / ureg.second
+
+mtype = 'lake_wl_rec_qc'
+mtype = 'river_flow_rec_qc'
+
+from_date = '2017-01-01'
+to_date = '2017-01-10'
+interval = 'hour'
+data_type = 'point'
+
+
+data1 = rd_hydstra_by_mtype(mtype, from_date=from_date, interval=interval)
+
+server= 'SQL2012PROD03'
+database = 'Hydstra'
+table = 'RATEPER'
+fields = ['STATION', 'VARFROM', 'VARTO', 'SDATE', 'STIME', 'REFSTN', 'REFTAB', 'PHASE']
+
+sites = [66612]
+from_date = '2017-09-01'
+to_date = '2017-12-01'
 
 
 
+rate1 = rd_sql(server, database, table, fields)
+rate1['STATION'] = rate1['STATION'].str.strip()
+rate1['REFSTN'] = rate1['REFSTN'].str.strip()
+rate1['STATION'] = to_numeric(rate1['STATION'], 'coerce')
+rate1['REFSTN'] = to_numeric(rate1['REFSTN'], 'coerce')
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+rate2 = rate1[rate1.STATION == site]
+rate2.sort_values('SDATE')
 
 
 

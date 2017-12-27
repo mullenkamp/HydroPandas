@@ -127,7 +127,7 @@ def _get_drn_spd(reach_v, wel_version, recalc=False, n_car_dns=True):
     # add a carpet drain south of the waimakariri to loosely represent the low land streams
     # only add drains where there are not other model conditions
     drain_to_add = smt.shape_file_to_model_array("{}/m_ex_bd_inputs/shp/s_carpet_drns.shp".format(smt.sdp), 'group',
-                                                 alltouched=True) #todo update with backup when I get it
+                                                 alltouched=True)
     index = np.zeros((smt.rows, smt.cols))
 
     # wel

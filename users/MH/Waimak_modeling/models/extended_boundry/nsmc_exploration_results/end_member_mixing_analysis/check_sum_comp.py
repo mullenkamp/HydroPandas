@@ -11,12 +11,11 @@ import numpy as np
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 import matplotlib.pyplot as plt
 
-alpine = flopy.utils.UcnFile(env.gw_met_data(r"mh_modeling\data_from_gns\alpine\mt_aw_ex_alpine_philow.ucn")).get_data(kstpkper=(0,0))
+alpine = flopy.utils.UcnFile(env.gw_met_data(r"mh_modeling\data_from_gns\mt_aw_ex_alpine_philow\mt_aw_ex_alpine_philow.ucn")).get_data(kstpkper=(0,0))
 inland = flopy.utils.UcnFile(env.gw_met_data(r"mh_modeling\data_from_gns\EM_inland_ucnrepo\mt_aw_ex_inland_philow.ucn")).get_data(kstpkper=(0,0))
 coastal = flopy.utils.UcnFile(env.gw_met_data(r"mh_modeling\data_from_gns\EM_coast_ucnrepo\mt_aw_ex_coastal_philow.ucn")).get_data(kstpkper=(0,0))
 
 alpine[alpine==-1] = np.nan
-alpine *= 1/10
 inland[inland==-1] = np.nan
 coastal[coastal==-1] = np.nan
 

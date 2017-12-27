@@ -407,7 +407,14 @@ def zip_non_essential_files(model_dir, include_list=False, other_files=None):
 
 
 if __name__ == '__main__':
-    testtype = 3
+    testtype = 5
+    if testtype ==5:
+        m = import_gns_model('NsmcBase', 'modpath_tester', r"C:\Users\MattH\Desktop\modpath_tester2", False)
+        m.write_name_file()
+        m.upw.iphdry = 0 # hdry is -888.0
+
+        m.write_input()
+        m.run_model()
     if testtype == 4:
         zip_non_essential_files(r"C:\Users\MattH\Desktop\test_sd30\opt_turn_on_M35_0122_sd30 - Copy",other_files='.hds')
     if testtype == 3:
@@ -443,3 +450,5 @@ if __name__ == '__main__':
         m.write_input()
         m.run_model()
         print('done')
+
+

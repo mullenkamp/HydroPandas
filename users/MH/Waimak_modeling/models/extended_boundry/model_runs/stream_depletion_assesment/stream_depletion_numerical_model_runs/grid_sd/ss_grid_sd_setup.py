@@ -14,7 +14,7 @@ import sys
 from users.MH.Waimak_modeling.models.extended_boundry.extended_boundry_model_tools import smt
 from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools import mod_gns_model, get_max_rate, \
     get_full_consent, get_race_data, zip_non_essential_files
-from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import converged
+from users.MH.Waimak_modeling.models.extended_boundry.model_runs.model_run_tools.convergance_check import modflow_converged
 from traceback import format_exc
 import pandas as pd
 import pickle
@@ -130,7 +130,7 @@ def setup_and_run_ss_grid_stream_dep(model_id, name, base_dir, wells_to_turn_on,
     # get success and zip files I don't need for this analysis
     con = None
     if success:
-        con = converged(os.path.join(m.model_ws, m.namefile.replace('.nam', '.list')))
+        con = modflow_converged(os.path.join(m.model_ws, m.namefile.replace('.nam', '.list')))
         zip_non_essential_files(m.model_ws, include_list=False, other_files=['.sfo', '.ddn', '.hds'])
     if con is None:
         success = 'convergence unknown'

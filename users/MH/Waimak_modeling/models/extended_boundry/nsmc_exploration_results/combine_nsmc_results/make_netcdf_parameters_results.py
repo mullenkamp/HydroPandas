@@ -277,6 +277,7 @@ def _add_sfr_cond(param, pst_param, prior_sd_data, postopt_sd_data, nc_file):
     temp_data = np.zeros((nsmc_dim, sfr_dim)) * np.nan
     for i, key in enumerate(hcond_sites):
         temp_data[:, i] = param.loc[key].values
+    sfr_cond_val[:] = temp_data
 
 
 def _add_drain_cond(param, pst_param, prior_sd_data, postopt_sd_data, nc_file):
@@ -805,26 +806,33 @@ def _add_filter_emma(f5txt, nconv, nc_file):
         'run_mt3d': {'long_name': 'run mt3d',
                      'comments': 'the models which we ran mt3d on'},
         'emma_converge': {'long_name': 'End member mixing converged',
-                     'comments': 'there were some random models which did not converge in mt3d denoted as True'},
+                          'comments': 'there were some random models which did not converge in mt3d denoted as True'},
         'n_converge': {'long_name': 'median nitrate converged',
-                     'comments': 'there were some random models which did not converge in mt3d denoted as True'},
-        'emma_no_wt': {'long_name': 'EMMA with no group weighting',
-                     'comments': 'the bottom 10% of data measured by the EMMA phi with no intergroup weights'},
+                       'comments': 'there were some random models which did not converge in mt3d denoted as True'},
+        'emma_no_wt': {
+            'long_name': 'EMMA with no group weighting individual targets weighted by 1/sd of the EMMA analysis',
+            'comments': 'the bottom 10% of data measured by the EMMA phi with no intergroup weights individual targets'
+                        ' weighted by 1/sd of the EMMA analysis'},
         'emma_eq_wt': {'long_name': 'EMMA with numerically equally weighting',
-                     'comments': 'the bottom 10 of the realisation measured by the emma phi where the inter group weighting was set by 1/ number of obs in each group'},
+                       'comments': 'the bottom 10 of the realisation measured by the emma phi where the inter group '
+                                   'weighting was set by 1/ number of obs in each group individual targets weighted by'
+                                   ' 1/sd of the EMMA analysis'},
         'emma_chch_wt': {'long_name': 'EMMA with CHCH weighted',
-                     'comments': 'bottom 10% with chch groups weighted up by 2 orders of magnitude'},
+                         'comments': 'bottom 10% with chch groups weighted up by 2 orders of magnitude '
+                                     'individual targets weighted by 1/sd of the EMMA analysis'},
         'emma_str_wt': {'long_name': 'EMMA with streams weighted',
-                     'comments': 'bottom 10% with stream groups weighted up by 2 orders of magnitude'},
+                        'comments': 'bottom 10% with stream groups weighted up by 2 orders of magnitude'
+                                    ' individual targets weighted by 1/sd of the EMMA analysis'},
         'emma_ewf_wt': {'long_name': 'EMMA with eyrewell forest weighted',
-                     'comments': 'bottom 10% with eyrewell forest groups weighted up by 2 orders of magnitude'},
+                        'comments': 'bottom 10% with eyrewell forest groups weighted up by 2 orders of magnitude '
+                                    'individual targets weighted by 1/sd of the EMMA analysis'},
     }
     # ran mt3d
     ran = np.in1d(nsmc_nums, emma_data.index)
     filters['run_mt3d'] = ran.astype(int)
 
     # emma converged
-    emmaconverged = np.in1d(nsmc_nums,emma_data.loc[emma_data.notnull().any(axis=1)].index)
+    emmaconverged = np.in1d(nsmc_nums, emma_data.loc[emma_data.notnull().any(axis=1)].index)
     f = emmaconverged.astype(int)
     f[~ran] = -1
     filters['emma_converge'] = f
@@ -833,40 +841,37 @@ def _add_filter_emma(f5txt, nconv, nc_file):
     with open(nconv) as f:
         nums = [int(e) for e in f.readlines()]
 
-    f = np.in1d(nsmc_nums,nums).astype(int)
+    f = np.in1d(nsmc_nums, nums).astype(int)
     f[~ran] = -1
     filters['n_converge'] = f
 
     # emma no weighting
     temp_data = emma_data['no_weighting']
-    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)].index).astype(int)
+    f = np.in1d(nsmc_nums, emma_data[temp_data <= temp_data.quantile(0.1)].index).astype(int)
     f[~emmaconverged] = -1
     filters['emma_no_wt'] = f
 
     # emma equal weighting
     temp_data = emma_data['equal_num']
-    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)].index).astype(int)
+    f = np.in1d(nsmc_nums, emma_data[temp_data <= temp_data.quantile(0.1)].index).astype(int)
     f[~emmaconverged] = -1
     filters['emma_eq_wt'] = f
 
-
     # emma chch weighting
     temp_data = emma_data['chch_weighted']
-    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)].index).astype(int)
+    f = np.in1d(nsmc_nums, emma_data[temp_data <= temp_data.quantile(0.1)].index).astype(int)
     f[~emmaconverged] = -1
     filters['emma_chch_wt'] = f
 
-
     # emma stream weighting
     temp_data = emma_data['stream_weighted']
-    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)].index).astype(int)
+    f = np.in1d(nsmc_nums, emma_data[temp_data <= temp_data.quantile(0.1)].index).astype(int)
     f[~emmaconverged] = -1
     filters['emma_str_wt'] = f
 
-
     # emma ewf weighting
     temp_data = emma_data['ewf_weighted']
-    f = np.in1d(nsmc_nums, emma_data[temp_data<=temp_data.quantile(0.1)].index).astype(int)
+    f = np.in1d(nsmc_nums, emma_data[temp_data <= temp_data.quantile(0.1)].index).astype(int)
     f[~emmaconverged] = -1
     filters['emma_ewf_wt'] = f
 

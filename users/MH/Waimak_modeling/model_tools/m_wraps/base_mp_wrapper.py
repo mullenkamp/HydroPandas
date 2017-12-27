@@ -257,7 +257,7 @@ def particle_loc_from_grid(grid_locs, root3_num_part = 2):
     outdata['yloc0'] = ploc[:, 4]
     outdata['zloc0'] = ploc[:, 5]
     outdata['initialtime'] = 1 # should not matter for now as I am releasing all at once
-
+    # for future note that this needs a lable string
     return outdata
 
 def particle_ring_around_screens(radius, n_pts, xs, ys, screen_zs, labels=None, forgive=False):

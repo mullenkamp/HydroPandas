@@ -3,11 +3,13 @@
 Input and output functions specific to ECan systems.
 """
 
-from pandas import DataFrame, Series, DatetimeIndex, to_datetime, MultiIndex, concat, to_numeric
-from numpy import array, ndarray, in1d, unique, append, nan, argmax, where, dtype
-from geopandas import GeoDataFrame, GeoSeries, read_file
-from core.ecan_io import rd_sql
-from core.spatial.vector import xy_to_gpd, sel_sites_poly
+from numpy import ndarray, in1d, dtype
+from geopandas import read_file
+from core.ecan_io.mssql import rd_sql
+from core.spatial.vector import xy_to_gpd
+from core.ecan_io.hydllp import rd_hydstra_db
+from core.ecan_io.flow import rd_hydrotel, rd_henry
+from pandas import Series, concat, to_numeric
 
 ############################################
 #### Database parameters
@@ -181,8 +183,6 @@ def rd_niwa_geo():
 
 
 def _rd_hydstra(self, sites, start_time=0, end_time=0, datasource='A', data_type='mean', varfrom=100, varto=140, interval='day', multiplier=1, min_qual=30):
-    from core.ecan_io import rd_hydstra_db
-    from core.classes.hydro import hydro
 
     ### Create dict to map the mtype to a hydstra variable
     mtypes_dict = {140: 'flow', 100: 'swl'}
@@ -203,7 +203,6 @@ def _rd_hydrotel(self, sites, mtype, from_date=None, to_date=None, resample_code
     """
     Function for the Hydro class to read Hydrotel data.
     """
-    from core.ecan_io.flow import rd_hydrotel
 
     ### Load in hydrotel data
     data = rd_hydrotel(sites=sites, mtype=mtype, resample_code=resample_code, fun=fun, from_date=from_date, to_date=to_date, min_count=None)
@@ -216,7 +215,6 @@ def _rd_hydrotel(self, sites, mtype, from_date=None, to_date=None, resample_code
 
 
 def _rd_henry(self, sites, mtype='river_flow_disc_qc', from_date=None, to_date=None, resample_code='D', period=1, fun='mean', min_count=4):
-    from core.ecan_io.flow import rd_henry
 
     ### Load in gaugings data
     data = rd_henry(sites, from_date=from_date, to_date=to_date, agg_day=True, min_filter=min_count)
@@ -297,7 +295,6 @@ def get_data(self, mtypes, sites=None, qual_codes=None, from_date=None, to_date=
     min_count : int
         The minimum number of values per site for data extraction.
     """
-    from pandas import Series
 
     if not isinstance(mtypes, list):
         if isinstance(mtypes, str):

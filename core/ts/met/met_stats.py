@@ -4,6 +4,8 @@ Created on Tue Jul 18 09:33:42 2017
 
 @author: MichaelEK
 """
+from pandas import Series, MultiIndex, DatetimeIndex, to_datetime, concat
+from numpy import in1d
 
 
 def precip_stats(df):
@@ -12,8 +14,6 @@ def precip_stats(df):
 
     df -- A Pandas Series in long format with 'site' and 'time' as the multiindex.
     """
-    from pandas import Series, MultiIndex, DatetimeIndex, to_datetime, concat
-    from numpy import in1d
 
     ### Check data structure
     if not isinstance(df, Series):

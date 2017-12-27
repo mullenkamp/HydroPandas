@@ -2,9 +2,8 @@
 """
 Functions to index and select data within the hydro class.
 """
-from pandas import DataFrame, Series, DatetimeIndex, to_datetime, MultiIndex, concat, Grouper
-from numpy import array, ndarray, in1d, unique, append, nan, argmax
-from geopandas import GeoDataFrame, read_file
+from pandas import DataFrame, Series, concat, Grouper
+from numpy import ndarray, in1d
 from core.classes.hydro.base import resample_fun
 
 #########################################################

@@ -301,7 +301,7 @@ def run_forward_runs(runs, forward_run_dir, notes=None):
     model_id = runs[0]['model_id']
     t = time.time()
     multiprocessing.log_to_stderr(logging.DEBUG)
-    pool_size = multiprocessing.cpu_count()
+    pool_size = psutil.cpu_count(logical=False)
     pool = multiprocessing.Pool(processes=pool_size,
                                 initializer=start_process,
                                 )

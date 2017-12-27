@@ -11,7 +11,7 @@ import numpy as np
 import netCDF4 as nc
 import os
 import gc
-
+# quick check for the netcdf
 def check_missing(nc_path):
     print(nc_path)
     data = nc.Dataset(nc_path)

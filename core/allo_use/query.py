@@ -10,9 +10,9 @@ def allo_query(shp=None, grp_by=['date', 'take_type', 'use_type'], allo_col=['al
     """
     from pandas import concat, read_csv, read_hdf, merge, to_numeric, to_datetime
     from numpy import floor
-    from core.ts import grp_ts_agg
+    from core.ts.ts import grp_ts_agg
     from geopandas import read_file
-    from core.spatial import sel_sites_poly
+    from core.spatial.vector import sel_sites_poly
 
     ### Read in the data
 #    data = read_hdf(allo_use_file)[['crc', 'dates', 'take_type', 'use_type', 'mon_vol', 'up_allo_m3', 'usage', 'usage_est']]

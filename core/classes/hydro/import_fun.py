@@ -3,12 +3,17 @@
 Functions for the hydro class for importing data.
 """
 
-from pandas import DataFrame, Series, DatetimeIndex, to_datetime, MultiIndex, concat, to_numeric, infer_freq, read_sql, Timestamp
-from numpy import array, ndarray, in1d, unique, append, nan, argmax, where, dtype
+from pandas import DataFrame, Series, DatetimeIndex, to_datetime, MultiIndex, concat, to_numeric, read_csv
+from numpy import in1d, where
 from geopandas import GeoDataFrame, GeoSeries, read_file
 from collections import defaultdict
-from pymssql import connect
-from core.ecan_io import rd_sql, rd_sql_ts
+from core.classes.hydro.base import all_mtypes
+from xarray import open_dataset
+from shapely.wkt import loads
+from shapely.geometry import Point
+from core.ecan_io.mssql import rd_sql_ts, rd_sql
+from core.spatial.vector import sel_sites_poly
+
 
 ########################################################
 #### Time series data
@@ -47,7 +52,6 @@ def add_data(self, data, time=None, sites=None, mtypes=None, values=None, dforma
     -------
     HydroPandas
     """
-    from core.classes.hydro.base import all_mtypes
 
     ### Convert input data to long format for consumption
 
@@ -324,7 +328,6 @@ def rd_csv(self, csv_path, time=None, sites=None, mtypes=None, values=None, dfor
     """
     Simple function to read in time series data and make it regular if needed.
     """
-    from pandas import read_csv
 
     if multiindex:
         ts = read_csv(csv_path, parse_dates=True, infer_datetime_format=True, dayfirst=True, skiprows=skiprows, header=[0, 1], index_col=0)
@@ -340,11 +343,6 @@ def rd_netcdf(self, nc_path):
     """
     Function to read a netcdf file (.nc) that was an export from a hydro class.
     """
-    from xarray import open_dataset
-    from numpy import in1d
-    from shapely.wkt import loads
-    from shapely.geometry import Point
-    from geopandas import GeoDataFrame
 
     with open_dataset(nc_path) as ds1:
 
@@ -448,7 +446,6 @@ def _rd_hydro_mssql(self, server, database, table, mtype, date_col, site_col, da
     ------
     Hydro
     """
-    from core.ecan_io.mssql import rd_sql_ts
 
     ## Prepare sql_dict for sites and qual_cdes
     site_qual_dict = {}
@@ -491,8 +488,6 @@ def _proc_hydro_sql(self, sites_sql_fun, mtype_dict, mtype, sites=None, from_dat
     """
     Convenience function for reading in mssql data from standardized hydro tables.
     """
-    from core.spatial import sel_sites_poly
-    from geopandas import GeoDataFrame
 
     if isinstance(sites, GeoDataFrame):
         loc1 = sites_sql_fun()
