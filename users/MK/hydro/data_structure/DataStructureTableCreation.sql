@@ -179,6 +179,27 @@ CREATE TABLE Hydro.dbo.TSDataModDate (
 )
 */
 
+CREATE TABLE Hydro.dbo.HydstraTSDataDaily (
+	   Site varchar(19) NOT NULL,
+	   HydstraCode smallint NOT NULL,
+	   Time DATE NOT NULL,
+	   Value float,
+	   QualityCode smallint,
+	   ModDate DATE NOT NULL,
+	   PRIMARY KEY (Site, HydstraCode, Time)
+)
+
+CREATE TABLE Hydro.dbo.HydstraTSDataHourly (
+	   Site varchar(19) NOT NULL,
+	   HydstraCode smallint NOT NULL,
+	   Time DATETIME NOT NULL,
+	   Value float,
+	   QualityCode smallint,
+	   ModDate DATE NOT NULL,
+	   PRIMARY KEY (Site, HydstraCode, Time)
+)
+
+
 COMMIT
 
 

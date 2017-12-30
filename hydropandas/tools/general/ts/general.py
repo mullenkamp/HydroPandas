@@ -6,6 +6,28 @@ General time series tools.
 #from pandas.core.groupby import GroupBy
 
 
+def df_first_valid(df):
+    """Get the time index of the first non-na value"""
+    def func(x):
+        if x.first_valid_index() is None:
+            return None
+        else:
+            return x.first_valid_index()
+    df2 = df.apply(func, axis=0)
+    return df2
+
+
+def df_last_valid(df):
+    """Get the time index of the last non-na value"""
+    def func(x):
+        if x.last_valid_index() is None:
+            return None
+        else:
+            return x.last_valid_index()
+    df2 = df.apply(func, axis=0)
+    return df2
+
+
 def resample(self, resample_code='A-JUN', fun='mean'):
     """
     Time series resampling function. Returns a Hydro class object with resampled data.
