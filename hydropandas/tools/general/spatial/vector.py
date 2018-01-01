@@ -38,10 +38,19 @@ def sel_sites_poly(pts, poly, buffer_dis=0):
     """
     Simple function to select points within a single polygon. Optional buffer.
 
-    Aguments:\n
-    pts -- A GeoDataFrame of pounts with the site names as the index. Or a shapefile with the first column as the site names.\n
-    poly -- A GeoDataFrame of polygons with the site names as the index. Or a shapefile with the first column as the site names.\n
-    buffer_dis -- Distance in coordinate system units for a buffer around the polygon.
+    Parameters
+    ----------
+    pts: GeoDataFrame or str
+        A GeoDataFrame of points with the site names as the index. Or a shapefile with the first column as the site names.
+    poly: GeoDataFrame or str
+        A GeoDataFrame of polygons with the site names as the index. Or a shapefile with the first column as the site names.
+    buffer_dis: int
+        Distance in coordinate system units for a buffer around the polygon.
+
+    Returns
+    -------
+    GeoDataFrame
+        Of points.
     """
 
     #### Read in data
@@ -84,6 +93,19 @@ def sel_sites_poly(pts, poly, buffer_dis=0):
 def pts_poly_join(pts, poly, poly_id_col):
     """
     Simple function to join the attributes of the polygon to the points. Specifically for an ID field in the polygon.
+
+    Parameters
+    ----------
+    pts: GeoDataFrame
+        A GeoDataFrame of points with the site names as the index.
+    poly: GeoDataFrame
+        A GeoDataFrame of polygons with the site names as the index.
+    poly_id_col: str or list of str
+        The names of the columns to join.
+
+    Returns
+    -------
+    GeoDataFrame
     """
 
     poly2 = poly[[poly_id_col, 'geometry']]
@@ -137,12 +159,23 @@ def xy_to_gpd(id_col, x_col, y_col, df=None, crs=2193):
     """
     Function to convert a DataFrame with x and y coordinates to a GeoDataFrame.
 
-    Arguments:\n
-    df -- Dataframe
-    id_col -- the column(s) from the dataframe to be returned. Either a one name string or a list of column names.\n
-    xcol -- Either the column name that has the x values within the df or an array of x values.\n
-    ycol -- Same as xcol.\n
-    crs -- The projection of the data.
+    Parameters
+    ----------
+    df: Dataframe
+        The DataFrame with the location data.
+    id_col: str or list of str
+        The column(s) from the dataframe to be returned. Either a one name string or a list of column names.
+    xcol: str or ndarray
+        Either the column name that has the x values within the df or an array of x values.
+    ycol: str or ndarray
+        Same as xcol except for y.
+    crs: int
+        The projection of the data.
+
+    Returns
+    -------
+    GeoDataFrame
+        Of points.
     """
 
     if type(x_col) is str:
@@ -172,57 +205,66 @@ def xy_to_gpd(id_col, x_col, y_col, df=None, crs=2193):
     return gpd1
 
 
-def flow_sites_to_shp(sites='All', min_flow_only=False, export=False, export_path='sites.shp'):
-    """
-    Function to create a geopandas/shapefile from flow sites.
-    """
-
-    ### Import from databases
-    if min_flow_only:
-        min_flow_sites = rd_sql('SQL2012PROD05', 'Wells', '"vMinimumFlowSites+Consent+Well_classes"',
-                                col_names=['RefDbase', 'RefDbaseKey', 'restrictionType', 'RecordNo', 'WellNo'],
-                                where_col='RefDbase', where_val=['Gauging', 'Hydrotel'])
-        min_flow_sites.columns = ['type', 'site', 'restr', 'crc', 'wap']
-        min_flow_sites['site'] = min_flow_sites['site'].astype(int)
-        min_flow_sites = min_flow_sites[min_flow_sites.restr == 'LowFlow']
-
-    site_geo = rd_sql('SQL2012PROD05', 'GIS', 'vGAUGING_NZTM', col_names=['SiteNumber', 'RIVER', 'SITENAME'],
-                      geo_col=True)
-    site_geo.columns = ['site', 'river', 'site_name', 'geometry']
-    site_geo['river'] = site_geo.river.apply(lambda x: x.title())
-    site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.title())
-    site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.replace(' (Recorder)', ''))
-    site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.replace('Sh', 'SH'))
-    site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.replace('Ecs', 'ECS'))
-
-    ### Select sites
-    if type(sites) is str:
-        if sites is 'All':
-            sites_sel_geo = site_geo
-        elif sites.endswith('.shp'):
-            poly = gpd.read_file(sites)
-            sites_sel_geo = sel_sites_poly(poly, site_geo)
-        else:
-            raise ValueError('If sites is a str, then it must be a shapefile.')
-    else:
-        sites_sel = select_sites(sites).astype('int32')
-        sites_sel_geo = site_geo[np.in1d(site_geo.site, sites_sel)]
-    if min_flow_only:
-        sites_sel_geo = sites_sel_geo[np.in1d(sites_sel_geo.site, min_flow_sites.site.values)]
-
-    ### Export and return
-    if export:
-        sites_sel_geo.to_file(export_path)
-    return sites_sel_geo
+# def flow_sites_to_shp(sites='All', min_flow_only=False, export=False, export_path='sites.shp'):
+#     """
+#     Function to create a geopandas/shapefile from flow sites.
+#     """
+#
+#     ### Import from databases
+#     if min_flow_only:
+#         min_flow_sites = rd_sql('SQL2012PROD05', 'Wells', '"vMinimumFlowSites+Consent+Well_classes"',
+#                                 col_names=['RefDbase', 'RefDbaseKey', 'restrictionType', 'RecordNo', 'WellNo'],
+#                                 where_col='RefDbase', where_val=['Gauging', 'Hydrotel'])
+#         min_flow_sites.columns = ['type', 'site', 'restr', 'crc', 'wap']
+#         min_flow_sites['site'] = min_flow_sites['site'].astype(int)
+#         min_flow_sites = min_flow_sites[min_flow_sites.restr == 'LowFlow']
+#
+#     site_geo = rd_sql('SQL2012PROD05', 'GIS', 'vGAUGING_NZTM', col_names=['SiteNumber', 'RIVER', 'SITENAME'],
+#                       geo_col=True)
+#     site_geo.columns = ['site', 'river', 'site_name', 'geometry']
+#     site_geo['river'] = site_geo.river.apply(lambda x: x.title())
+#     site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.title())
+#     site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.replace(' (Recorder)', ''))
+#     site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.replace('Sh', 'SH'))
+#     site_geo['site_name'] = site_geo.site_name.apply(lambda x: x.replace('Ecs', 'ECS'))
+#
+#     ### Select sites
+#     if type(sites) is str:
+#         if sites is 'All':
+#             sites_sel_geo = site_geo
+#         elif sites.endswith('.shp'):
+#             poly = gpd.read_file(sites)
+#             sites_sel_geo = sel_sites_poly(poly, site_geo)
+#         else:
+#             raise ValueError('If sites is a str, then it must be a shapefile.')
+#     else:
+#         sites_sel = select_sites(sites).astype('int32')
+#         sites_sel_geo = site_geo[np.in1d(site_geo.site, sites_sel)]
+#     if min_flow_only:
+#         sites_sel_geo = sites_sel_geo[np.in1d(sites_sel_geo.site, min_flow_sites.site.values)]
+#
+#     ### Export and return
+#     if export:
+#         sites_sel_geo.to_file(export_path)
+#     return sites_sel_geo
 
 
 def convert_crs(from_crs, crs_type='proj4', pass_str=False):
     """
     Function to convert one crs format to another.
 
-    from_crs -- The crs as either an epsg number or a str in a common crs format (e.g. proj4 or wkt).\n
-    crs_type -- Output format type of the crs ('proj4', 'wkt', 'proj4_dict', or 'netcdf_dict').\n
-    pass_str -- If input is a str, should it be passed though without conversion?
+    Parameters
+    ----------
+    from_crs: int or str
+        The crs as either an epsg number or a str in a common crs format (e.g. proj4 or wkt).
+    crs_type: str
+        Output format type of the crs ('proj4', 'wkt', 'proj4_dict', or 'netcdf_dict').
+    pass_str: str
+        If input is a str, should it be passed though without conversion?
+
+    Returns
+    -------
+    str or dict
     """
 
     ### Load in crs
@@ -270,10 +312,18 @@ def convert_crs(from_crs, crs_type='proj4', pass_str=False):
 
 def point_to_poly_apply(geo, side_len):
     """
-    Function to convert a point to a square polygon. Input is a shapely point. Output is a shapely polygon.
+    Apply function for a GeoDataFrame to convert a point to a square polygon. Input is a shapely point. Output is a shapely polygon.
 
-    geo -- A shapely point.\n
-    side_len -- The side length of the square (in the units of geo).
+    Parameters
+    ----------
+    geo: Point
+        A shapely point.
+    side_len: int
+        The side length of the square (in the units of geo).
+
+    Returns
+    -------
+    Shpaely Polygon
     """
 
     half_side = side_len * 0.5
@@ -282,31 +332,48 @@ def point_to_poly_apply(geo, side_len):
     return l1
 
 
-def points_grid_to_poly(gpd, id_col):
+def points_grid_to_poly(geodataframe, id_col):
     """
     Function to convert a GeoDataFrame of evenly spaced gridded points to square polygons. Output is a GeoDataFrame of the same length as input.
 
-    gpd -- GeoDataFrame of gridded points with an id column.\n
-    id_col -- The id column name.
+    geodataframe: GeoDataFrame
+        GeoDataFrame of gridded points with an id column.
+    id_col: str or list of str
+        The id column(s) name(s).
+
+    Returns
+    -------
+    GeoDataFrame
     """
 
-    geo1a = pd.Series(gpd.geometry.apply(lambda j: j.x))
+    geo1a = pd.Series(geodataframe.geometry.apply(lambda j: j.x))
     geo1b = geo1a.shift()
 
     side_len1 = (geo1b - geo1a).abs()
     side_len = side_len1[side_len1 > 0].min()
-    gpd1 = gpd.apply(lambda j: point_to_poly_apply(j.geometry, side_len=side_len), axis=1)
-    gpd2 = gpd.GeoDataFrame(gpd[id_col], geometry=gpd1, crs=gpd.crs)
+    gpd1 = geodataframe.apply(lambda j: point_to_poly_apply(j.geometry, side_len=side_len), axis=1)
+    gpd2 = gpd.GeoDataFrame(gpd1[id_col], geometry=gpd1, crs=gpd1.crs)
     return gpd2
 
 
-def spatial_overlays(df1, df2, how='intersection'):
-    '''Compute overlay intersection of two
-        GeoPandasDataFrames df1 and df2
-    '''
+def spatial_overlays(gpd1, gpd2, how='intersection'):
+    """
+    Much faster overlay operation as compared to the stock GeoPandas overlay.
 
-    df1 = df1.copy()
-    df2 = df2.copy()
+    gpd1: GeoDataFrame
+        First GeoDataFrame
+    df2: GeoDataFrame
+        Second GeoDataFrame
+    how: str
+        The associated operation. Either 'intersection' or 'difference'.
+
+    Returns
+    -------
+    GeoDataFrame
+    """
+
+    df1 = gpd1.copy()
+    df2 = gpd2.copy()
 
     if how == 'intersection':
         # Spatial Index to create intersections
@@ -334,7 +401,7 @@ def spatial_overlays(df1, df2, how='intersection'):
         dfinter.rename(columns={'Intersection': 'geometry'}, inplace=True)
         dfinter = gpd.GeoDataFrame(dfinter, columns=dfinter.columns, crs=pairs.crs)
         dfinter = dfinter.loc[dfinter.geometry.is_empty == False]
-        return (dfinter)
+        return dfinter
     elif how == 'difference':
         spatial_index = df2.sindex
         df1['bbox'] = df1.geometry.apply(lambda x: x.bounds)
@@ -348,16 +415,31 @@ def spatial_overlays(df1, df2, how='intersection'):
         return df1
 
 
-def closest_line_to_pts(pts, lines, line_site_col, dis=None):
+def closest_line_to_pts(pts, lines, line_site_col, buffer_dis=None):
     """
     Function to determine the line closest to each point. Inputs must be GeoDataframes.
+
+    Parameters
+    ----------
+    pts: GeoDataFrame
+        The points input.
+    lines: GeoDataFrame
+        The lines input.
+    line_site_col: str
+        The site column from the 'lines' that should be retained at the output.
+    buffer_dis: int
+        The max distance from each point to search for a line. Try to use the shortest buffer_dis that will cover all of your points as a larger buffer_dis will significantly slow down the operation.
+
+    Returns
+    -------
+    GeoDataFrame
     """
 
     pts_line_seg = gpd.GeoDataFrame()
     for i in pts.index:
         pts_seg = pts.loc[[i]]
-        if isinstance(dis, int):
-            bound = pts_seg.buffer(dis).unary_union
+        if isinstance(buffer_dis, int):
+            bound = pts_seg.buffer(buffer_dis).unary_union
             lines1 = lines[lines.intersects(bound)]
         else:
             lines1 = lines.copy()
@@ -378,14 +460,22 @@ def closest_line_to_pts(pts, lines, line_site_col, dis=None):
     return pts_line_seg
 
 
-def multipoly_to_poly(gpd):
+def multipoly_to_poly(geodataframe):
     """
     Function to convert a GeoDataFrame with some MultiPolygons to only polygons. Creates additional rows in the GeoDataFrame.
+
+    Parameters
+    ----------
+    geodataframe: GeoDataFrame
+
+    Returns
+    -------
+    GeoDataFrame
     """
 
     gpd2 = gpd.GeoDataFrame()
-    for i in gpd.index:
-        geom1 = gpd.loc[[i]]
+    for i in geodataframe.index:
+        geom1 = geodataframe.loc[[i]]
         geom2 = geom1.loc[i, 'geometry']
         if geom2.type == 'MultiPolygon':
             polys = [j for j in geom2]
