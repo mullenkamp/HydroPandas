@@ -13,7 +13,7 @@ from core.allo_use import flow_ros, ros_freq
 from numpy import in1d, nan, log, exp, argmax, max, where, mean, nanpercentile, round, floor
 
 
-def flow_stats(x, below_median=False, export_path=None):
+def flow_stats(df, below_median=False, export_path=None):
     """
     Function to run summary stats on time series flow data.
 
@@ -32,8 +32,9 @@ def flow_stats(x, below_median=False, export_path=None):
     """
 
     # Make sure the object is a data frame
-    df_temp = DataFrame(x)
-    df = df_temp.dropna(axis=1, how='all')
+    if not isinstance(df, DataFrame):
+        raise TypeError('df must be a DataFrame')
+    df = df.dropna(axis=1, how='all')
 
     # Run the stats
     zero_count = df[df == 0].count()
@@ -52,18 +53,14 @@ def flow_stats(x, below_median=False, export_path=None):
     periods = (last_time - first_time).astype('timedelta64[D]').astype('int') + 1
     mis_days = periods - d_count
     mis_days_ratio = mis_days / periods
-    #    df2 = df[first_time.astype('str').values[0]:last_time.astype('str').values[0]]
     years = d_count / 365.25
 
     # prepare output
-    #    df_names = df.columns.values
     row_names = ["Min", '25%', "Median", "Mean", '75%', "Max", "Start Date",
                  "End date", "Min date", "Max Date", "Zero days", "Missing days",
                  "Missing ratio", "Tot data yrs"]
     temp1 = concat([min1, quarter1, median1, mean1, quarter3, max1], axis=1).round(3)
-    temp2 = concat(
-        [first_time.astype('string'), last_time.astype('string'), min_time.astype('string'), max_time.astype('string'),
-         zero_count, mis_days, mis_days_ratio.round(3), years.round(1)], axis=1)
+    temp2 = concat([first_time.astype('string'), last_time.astype('string'), min_time.astype('string'), max_time.astype('string'), zero_count, mis_days, mis_days_ratio.round(3), years.round(1)], axis=1)
     df2 = concat([temp1, temp2], axis=1)
 
     ### Add in the average number of days below median if specified
@@ -81,7 +78,7 @@ def flow_stats(x, below_median=False, export_path=None):
     # Export data and return dataframe
     if isinstance(export_path, str):
         df2.to_csv(export_path)
-    return (df2)
+    return df2
 
 
 def malf7d(x, w_month='JUN', max_missing=90, malf_min=0.9, intervals=[10, 20, 30, 40], return_alfs=False,

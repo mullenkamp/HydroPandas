@@ -6,7 +6,7 @@ Created on Thu Feb 16 15:41:08 2017
 """
 from collections import OrderedDict
 from itertools import product, chain
-from pandas import DataFrame, CategoricalIndex
+from pandas import DataFrame, CategoricalIndex, concat
 
 #######################################
 ### Lists and dictionaries for the master tables and associated data
@@ -14,10 +14,10 @@ from pandas import DataFrame, CategoricalIndex
 
 
 feature_list = [['River', 'river', 'A flowing freshwater surface water body'],
-               ['Aquifer', 'aq', 'An underground layer of water-bearing permeable rock, rock fractures or unconsolidated materials'],
-               ['Atmosphere', 'atmos', 'The shpere of vapour surrounding our panet'],
-               ['Soil', 'soil', 'The unsaturated zone of unconsolidated sediment directly below our feet'],
-               ['Lake', 'lake', 'A freshwater body with little flowing movement']]
+                ['Aquifer', 'aq', 'An underground layer of water-bearing permeable rock, rock fractures or unconsolidated materials'],
+                ['Atmosphere', 'atmos', 'The shpere of vapour surrounding our panet'],
+                ['Soil', 'soil', 'The unsaturated zone of unconsolidated sediment directly below our feet'],
+                ['Lake', 'lake', 'A freshwater body with little flowing movement']]
 
 mtype_list = [['Water Level', 'wl', 'Quantity', 'meter', 'The water level above an arbitrary datum'],
               ['Flow', 'flow', 'Quantity', 'm**3/s', 'Water flow'],
@@ -82,7 +82,7 @@ hydro_ids = OrderedDict((' / '.join(i), i) for i in fields_list)
 
 resample_fun = OrderedDict((' / '.join(i), resample_mtype_fun[i[1]]) for i in fields_list)
 
-all_hydro_ids = DataFrame(fields_list, index=CategoricalIndex(hydro_ids.keys()), dtype='category')
+all_hydro_ids = DataFrame(fields_list, index=hydro_ids.keys(), dtype='category')
 all_hydro_ids.columns = ['feature', 'mtype', 'stype', 'qtype']
 
 ######################################
@@ -94,7 +94,7 @@ class hydro(object):
     """
     from core.classes.hydro.import_fun import add_geo_loc, missing_geo_loc_sites, add_data, _import_attr, add_geo_catch, _add_geo_data, rd_csv, rd_netcdf, _rd_hydro_mssql, combine, _rd_hydro_geo_mssql, _proc_hydro_sql
     from core.classes.hydro.indexing import sel_ts, sel_sites_by_poly, sel_ts_by_poly, sel, sel_by_poly, __getitem__, _comp_by_buffer, _comp_by_catch, sel_by_geo_attr
-    from core.classes.hydro.misc import _check_mtypes_sites, _base_stats_fun, _mtype_check
+    from core.classes.hydro.misc import _check_mtypes_sites, _mtype_check
     from core.classes.hydro.export_fun import to_csv, to_netcdf, to_shp
     from core.classes.hydro.ecan_import import get_geo_loc, _rd_hydstra, _rd_hydrotel, _rd_henry, get_data, get_site_geo_attr
     from copy import copy
@@ -130,5 +130,16 @@ class hydro(object):
             print("There's no data here. Add some in.")
 
 
+    ### Base stats for the default view of the class (once data has been loaded)
+
+    def _base_stats_fun(self):
+        grp1 = self.data.groupby(level=['mtype', 'site'])
+        start = grp1.apply(lambda x: x.first_valid_index()[2])
+        start.name = 'start_time'
+        end = grp1.apply(lambda x: x.last_valid_index()[2])
+        end.name = 'end_time'
+        stats1 = grp1.describe()[['min', '25%', '50%', '75%', 'mean', 'max', 'count']].round(2)
+        out1 = concat([stats1, start, end], axis=1)
+        setattr(self, '_base_stats', out1)
 
 
