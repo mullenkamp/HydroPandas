@@ -1,7 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-Functions for importing meteorological data.
+Created on Tue Jan 02 11:00:24 2018
+
+@author: MichaelEK
+Functions to read in data provided by NIWA.
 """
+import os
+import pandas as pd
+import numpy as np
+import xarray as xr
+import geopandas as gpd
+from hydropandas.util.misc import rd_dir
+from hydropandas.tools.general.spatial.vector import xy_to_gpd, sel_sites_poly, convert_crs
 
 
 def rd_niwa_rcp(base_path, mtypes, poly,
@@ -10,20 +20,15 @@ def rd_niwa_rcp(base_path, mtypes, poly,
     """
     Function to read in the NIWA RCP netcdf files and output the data in a specified format.
     """
-    from pandas import read_csv
-    from core.spatial import xy_to_gpd, sel_sites_poly
-    from geopandas import read_file
-    from os import path, walk, makedirs
-    from core.ecan_io.met import rd_niwa_rcp_dir
 
     mtype_name = {'precip': 'TotalPrecipCorr', 'T_max': 'MaxTempCorr', 'T_min': 'MinTempCorr', 'P_atmos': 'MSLP',
                   'PET': 'PE', 'RH_mean': 'RelHum', 'R_s': 'SurfRad', 'U_z': 'WindSpeed'}
 
     ### Import and reorganize data
-    vcsn_sites = read_csv(vcsn_sites_csv)[[id_col, x_col, y_col]]
+    vcsn_sites = pd.read_csv(vcsn_sites_csv)[[id_col, x_col, y_col]]
 
     sites_gpd = xy_to_gpd(id_col, x_col, y_col, vcsn_sites, 4326)
-    poly1 = read_file(poly)
+    poly1 = gpd.read_file(poly)
 
     sites_gpd2 = sites_gpd.to_crs(poly1.crs)
 
@@ -36,17 +41,17 @@ def rd_niwa_rcp(base_path, mtypes, poly,
 
     ### Read and extract data from netcdf files
 
-    for root, dirs, files in walk(base_path):
+    for root, dirs, files in os.walk(base_path):
         files2 = [i for i in files if i.endswith('.nc')]
         files3 = [j for j in files2 if any(j.startswith(i) for i in mtypes1)]
-        file_paths1 = [path.join(root, i) for i in files3]
+        file_paths1 = [os.path.join(root, i) for i in files3]
         if len(file_paths1) > 0:
             ds = rd_niwa_rcp_dir(file_paths1, site_loc1, mtypes)
             if callable(output_fun):
                 new_base_path = root.replace(base_path, export_path)
                 base_file_name = file_paths1[0].split('VCSN_')[1]
-                if not path.exists(new_base_path):
-                    makedirs(new_base_path)
+                if not os.path.exists(new_base_path):
+                    os.makedirs(new_base_path)
                 output_fun(ds, new_base_path, base_file_name)
                 print(base_file_name)
             else:
@@ -63,9 +68,6 @@ def rd_niwa_rcp_dir(file_paths, site_loc, mtypes):
     site_loc -- A dataframe with id and x and y in decimal degrees WGS84.\n
     mtypes -- The measurement types to extract.
     """
-    from xarray import open_dataset, Dataset, DataArray
-    from numpy import in1d
-    from os.path import basename
 
     ### Parameters
     mtype_param = {'precip': 'rain', 'T_max': 'tmax', 'T_min': 'tmin', 'P_atmos': 'mslp', 'PET': 'pe', 'RH_mean': 'rh',
@@ -80,17 +82,17 @@ def rd_niwa_rcp_dir(file_paths, site_loc, mtypes):
                  'long_name': 'time (end of reporting period)'}
 
     ### Extract the proper time coordinate to fix the problem parameters if needed
-    if any(in1d(prob_mtypes, mtypes)):
-        tmax_file = [j for j in file_paths if 'MaxTempCorr' in basename(j)][0]
-        tmax_ds = open_dataset(tmax_file)
+    if any(np.in1d(prob_mtypes, mtypes)):
+        tmax_file = [j for j in file_paths if 'MaxTempCorr' in os.path.basename(j)][0]
+        tmax_ds = xr.open_dataset(tmax_file)
         time_da = tmax_ds['time'].copy()
         tmax_ds.close()
 
     ### Open data files and Extract the data
-    ds10 = Dataset()
+    ds10 = xr.Dataset()
     for i in file_paths:
-        ds5 = open_dataset(i)
-        if any(in1d(bad_names.keys(), ds5.data_vars.keys())):
+        ds5 = xr.open_dataset(i)
+        if any(np.in1d(bad_names.keys(), ds5.data_vars.keys())):
             ds5 = ds5.rename(bad_names)
         mtype2 = [j for j in ds5.data_vars.keys() if j in mtype_param.values()][0]
         mtype0 = mtype_param1[mtype2]
@@ -102,8 +104,8 @@ def rd_niwa_rcp_dir(file_paths, site_loc, mtypes):
             site_lat = (site_loc['y'] * 1000).astype('int32').unique()
             site_lon = (site_loc['x'] * 1000).astype('int32').unique()
 
-            bool_lat = in1d(lat1, site_lat)
-            bool_lon = in1d(lon1, site_lon)
+            bool_lat = np.in1d(lat1, site_lat)
+            bool_lon = np.in1d(lon1, site_lon)
 
         ## Extract the data based on criteria from earlier
         ds6 = ds5.sel(latitude=bool_lat, longitude=bool_lon)
@@ -123,11 +125,11 @@ def rd_niwa_rcp_dir(file_paths, site_loc, mtypes):
         print(mtype0)
 
     ### Add in dummy GIS variable
-    ds_crs = DataArray(4326, attrs=nc_crs, name='crs').to_dataset()
+    ds_crs = xr.DataArray(4326, attrs=nc_crs, name='crs').to_dataset()
     ds11 = ds10.merge(ds_crs).copy()
     ds11.attrs = da1.attrs
 
-    return (ds11)
+    return ds11
 
 
 # def export_rcp_lst(ds, export_path):
@@ -152,10 +154,9 @@ def export_rcp_nc(ds, export_path, file_name):
     """
     Function to take the output of rd_niwa_rcp_dir and save the data as a standard nc file.
     """
-    from os.path import join
 
     ### Save to nc file based on directory names
-    ds.to_netcdf(join(export_path, 'VCSN_' + file_name))
+    ds.to_netcdf(os.path.join(export_path, 'VCSN_' + file_name))
     ds.close()
 
 
@@ -167,8 +168,6 @@ def nc_add_gis(nc, x_coord, y_coord):
     x_coord -- The x coordinate name (str).\n
     y_coord -- The y coordinate name (str).
     """
-    from xarray import open_dataset, DataArray
-    from os.path import splitext
 
     ### Attributes for the various datasets
     nc_crs = {'inverse_flattening': 298.257223563, 'longitude_of_prime_meridian': 0, 'semi_major_axis': 6378137,
@@ -179,7 +178,7 @@ def nc_add_gis(nc, x_coord, y_coord):
     data_attr = {'grid_mapping': 'crs'}
 
     ### Read in the nc
-    ds1 = open_dataset(nc)
+    ds1 = xr.open_dataset(nc)
 
     ### Determine the variables with x and y coordinates
     vars1 = ds1.data_vars
@@ -195,11 +194,11 @@ def nc_add_gis(nc, x_coord, y_coord):
         ds1[i].attrs = attr1
 
     ### Add crs dummy dataset
-    ds_crs = DataArray(4326, attrs=nc_crs, name='crs').to_dataset()
+    ds_crs = xr.DataArray(4326, attrs=nc_crs, name='crs').to_dataset()
     ds2 = ds1.merge(ds_crs)
 
     ### Resave nc file
-    new_path = splitext(nc)[0] + '_gis.nc'
+    new_path = os.path.splitext(nc)[0] + '_gis.nc'
     ds2.to_netcdf(new_path)
     ds1.close()
     ds2.close()
@@ -223,27 +222,22 @@ def rd_niwa_vcsn(mtypes, sites,
     include_sites -- Should the site names be added to the output?\n
     out_crs -- The crs epsg number for the output coordinates if different than the default WGS85 (e.g. 2193 for NZTM).
     """
-    from pandas import read_csv, Series, merge, to_datetime
-    from core.spatial import xy_to_gpd, sel_sites_poly, convert_crs
-    from geopandas import read_file
-    from numpy import ndarray, in1d
-    from xarray import open_dataset
 
     mtype_name = {'precip': 'rain', 'PET': 'pe'}
 
     ### Import and reorganize data
-    vcsn_sites = read_csv(vcsn_sites_csv)[[id_col, x_col, y_col]]
+    vcsn_sites = pd.read_csv(vcsn_sites_csv)[[id_col, x_col, y_col]]
 
     if isinstance(sites, str):
         if sites.endswith('.shp'):
             sites_gpd = xy_to_gpd(id_col, x_col, y_col, vcsn_sites, 4326)
-            poly1 = read_file(sites)
+            poly1 = gpd.read_file(sites)
 
             sites_gpd2 = sites_gpd.to_crs(poly1.crs)
 
             ### Select sites
             sites2 = sel_sites_poly(sites_gpd2, poly1, buffer_dis)[id_col]
-    elif isinstance(sites, (list, Series, ndarray)):
+    elif isinstance(sites, (list, pd.Series, np.ndarray)):
         sites2 = sites
 
     ### Select locations
@@ -260,16 +254,16 @@ def rd_niwa_vcsn(mtypes, sites,
         mtypes1.extend(['site'])
 
     ### Read and extract data from netcdf files
-    ds1 = open_dataset(nc_path)
-    time1 = to_datetime(ds1.time.values)
+    ds1 = xr.open_dataset(nc_path)
+    time1 = pd.to_datetime(ds1.time.values)
     if isinstance(from_date, str):
         time1 = time1[time1 >= from_date]
     if isinstance(to_date, str):
         time1 = time1[time1 <= to_date]
     lat1 = ds1.latitude.values
     lon1 = ds1.longitude.values
-    lat2 = lat1[in1d(lat1, site_loc1.y.unique())]
-    lon2 = lon1[in1d(lon1, site_loc1.x.unique())]
+    lat2 = lat1[np.in1d(lat1, site_loc1.y.unique())]
+    lon2 = lon1[np.in1d(lon1, site_loc1.x.unique())]
     ds2 = ds1.loc[{'longitude': lon2, 'time': time1.values, 'latitude': lat2}]
     ds3 = ds2[mtypes1]
 
@@ -287,7 +281,7 @@ def rd_niwa_vcsn(mtypes, sites,
         site_loc2['x_new'] = new_gpd2.geometry.apply(lambda j: j.x)
         site_loc2['y_new'] = new_gpd2.geometry.apply(lambda j: j.y)
 
-        df2 = merge(df1, site_loc2[['x', 'y', 'x_new', 'y_new']], on=['x', 'y'])
+        df2 = pd.merge(df1, site_loc2[['x', 'y', 'x_new', 'y_new']], on=['x', 'y'])
         df3 = df2.drop(['x', 'y'], axis=1).rename(columns={'x_new': 'x', 'y_new': 'y'})
         col_order = ['y', 'x', 'time']
         col_order.extend(mtypes1)
@@ -301,7 +295,7 @@ def rd_niwa_vcsn(mtypes, sites,
     ### Return
     if isinstance(netcdf_out, str):
         ds3.to_netcdf(netcdf_out)
-    return (df4)
+    return df4
 
 
 def rd_niwa_climate_proj(mtypes, bound_shp, nc_dir, buffer_dis=0, from_date=None, to_date=None, out_crs=None,
@@ -319,9 +313,6 @@ def rd_niwa_climate_proj(mtypes, bound_shp, nc_dir, buffer_dis=0, from_date=None
     include_sites -- Should the site names be added to the output?\n
     out_crs -- The crs epsg number for the output coordinates if different than the default WGS85 (e.g. 2193 for NZTM).
     """
-    from core.misc import rd_dir
-    from os.path import join
-    from core.ecan_io.met import sel_xy_nc
 
     file_name = {'precip': 'TotalPrecipCorr', 'PET': 'PE'}
     mtype_name = {'precip': 'rain', 'PET': 'pe'}
@@ -340,7 +331,7 @@ def rd_niwa_climate_proj(mtypes, bound_shp, nc_dir, buffer_dis=0, from_date=None
         niwa_file_name = file_name[mt]
         file1 = [i for i in files1 if niwa_file_name in i][0]
 
-        ds3 = sel_xy_nc(bound_shp, join(nc_dir, file1), nc_vars=[niwa_mtype], buffer_dis=buffer_dis,
+        ds3 = sel_xy_nc(bound_shp, os.join(nc_dir, file1), nc_vars=[niwa_mtype], buffer_dis=buffer_dis,
                         from_date=from_date, to_date=to_date, out_type='xarray')
 
         if 'ds4' in locals():
@@ -360,31 +351,31 @@ def rd_niwa_climate_proj(mtypes, bound_shp, nc_dir, buffer_dis=0, from_date=None
     if isinstance(netcdf_out, str):
         ds4.to_netcdf(netcdf_out)
     ds4.close()
-    return (df2)
+    return df2
 
 
-def rd_niwa_data_lsrm(bound_shp, nc_dir,
-                      vcsn_sites_csv=r'\\fileservices02\ManagedShares\Data\VirtualClimate\GIS\niwa_vcsn_wgs84.csv',
-                      id_col='Network', x_col='deg_x', y_col='deg_y', buffer_dis=0, from_date=None, to_date=None,
-                      out_crs=None, netcdf_out=None):
-    """
-    Convienence function to read in either the past VCSN data or the projections.
-    """
-    from core.ecan_io.met import rd_niwa_climate_proj, rd_niwa_vcsn
-    from os import path
-
-    ### Determine whether the input is past data or projections
-    past_vcsn = 'vcsn_precip_et_2016-06-06.nc'
-    name_split = path.split(nc_dir)[1]
-
-    ### Run function to get data
-    if name_split == past_vcsn:
-        ds5 = rd_niwa_vcsn(['precip', 'PET'], bound_shp, buffer_dis=buffer_dis, from_date=from_date, to_date=to_date,
-                           out_crs=out_crs, netcdf_out=netcdf_out)
-    else:
-        ds5 = rd_niwa_climate_proj(['precip', 'PET'], bound_shp, nc_dir=nc_dir, buffer_dis=buffer_dis,
-                                   from_date=from_date, to_date=to_date, out_crs=out_crs, netcdf_out=netcdf_out)
-    return (ds5)
+# def rd_niwa_data_lsrm(bound_shp, nc_dir,
+#                       vcsn_sites_csv=r'\\fileservices02\ManagedShares\Data\VirtualClimate\GIS\niwa_vcsn_wgs84.csv',
+#                       id_col='Network', x_col='deg_x', y_col='deg_y', buffer_dis=0, from_date=None, to_date=None,
+#                       out_crs=None, netcdf_out=None):
+#     """
+#     Convienence function to read in either the past VCSN data or the projections.
+#     """
+#     from core.ecan_io.met import rd_niwa_climate_proj, rd_niwa_vcsn
+#     from os import path
+#
+#     ### Determine whether the input is past data or projections
+#     past_vcsn = 'vcsn_precip_et_2016-06-06.nc'
+#     name_split = path.split(nc_dir)[1]
+#
+#     ### Run function to get data
+#     if name_split == past_vcsn:
+#         ds5 = rd_niwa_vcsn(['precip', 'PET'], bound_shp, buffer_dis=buffer_dis, from_date=from_date, to_date=to_date,
+#                            out_crs=out_crs, netcdf_out=netcdf_out)
+#     else:
+#         ds5 = rd_niwa_climate_proj(['precip', 'PET'], bound_shp, nc_dir=nc_dir, buffer_dis=buffer_dis,
+#                                    from_date=from_date, to_date=to_date, out_crs=out_crs, netcdf_out=netcdf_out)
+#     return (ds5)
 
 
 def sel_xy_nc(bound_shp, nc_path, x_col='longitude', y_col='latitude', time_col='time', nc_vars=None, buffer_dis=0,
@@ -392,19 +383,14 @@ def sel_xy_nc(bound_shp, nc_path, x_col='longitude', y_col='latitude', time_col=
     """
     Function to select space and time data from a netcdf file using a polygon shapefile.
     """
-    from pandas import Series, merge, to_datetime
-    from core.spatial import xy_to_gpd, convert_crs
-    from geopandas import read_file
-    from numpy import ndarray
-    from xarray import open_dataset
 
     ### Process the boundary layer
-    bound = read_file(bound_shp).buffer(buffer_dis).to_crs(convert_crs(nc_crs))
+    bound = gpd.read_file(bound_shp).buffer(buffer_dis).to_crs(convert_crs(nc_crs))
     x_min, y_min, x_max, y_max = bound.unary_union.bounds
 
     ### Read and extract data from netcdf files
-    ds1 = open_dataset(nc_path)
-    time1 = to_datetime(ds1[time_col].values)
+    ds1 = xr.open_dataset(nc_path)
+    time1 = pd.to_datetime(ds1[time_col].values)
     if isinstance(from_date, str):
         time1 = time1[time1 >= from_date]
     if isinstance(to_date, str):
@@ -421,7 +407,7 @@ def sel_xy_nc(bound_shp, nc_path, x_col='longitude', y_col='latitude', time_col=
     ## Select mtypes
     if isinstance(nc_vars, str):
         ds3 = ds2[[nc_vars]]
-    elif isinstance(nc_vars, (list, ndarray, Series)):
+    elif isinstance(nc_vars, (list, np.ndarray, pd.Series)):
         ds3 = ds2[nc_vars]
     elif nc_vars is None:
         ds3 = ds2
@@ -438,7 +424,7 @@ def sel_xy_nc(bound_shp, nc_path, x_col='longitude', y_col='latitude', time_col=
         site_loc2['x_new'] = new_gpd2.geometry.apply(lambda j: j.x)
         site_loc2['y_new'] = new_gpd2.geometry.apply(lambda j: j.y)
 
-        df2 = merge(df1, site_loc2[[x_col, y_col, 'x_new', 'y_new']], on=[x_col, y_col], how='left')
+        df2 = pd.merge(df1, site_loc2[[x_col, y_col, 'x_new', 'y_new']], on=[x_col, y_col], how='left')
         df3 = df2.drop([x_col, y_col], axis=1).rename(columns={'x_new': x_col, 'y_new': y_col})
         ds1.close()
         return (df3)
@@ -447,4 +433,4 @@ def sel_xy_nc(bound_shp, nc_path, x_col='longitude', y_col='latitude', time_col=
         ds1.close()
         return (df1)
     elif out_type == 'xarray':
-        return (ds3)
+        return ds3

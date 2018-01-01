@@ -3,16 +3,17 @@
 Misc functions.
 """
 from __future__ import print_function
-from pandas import DataFrame, Series, concat, read_csv, Index, set_option, reset_option
-from numpy import array, ndarray, in1d
-from geopandas import read_file
 from re import search, IGNORECASE, findall
 import patoolib, fnmatch, os
 from os import path, listdir
 from datetime import datetime
+import pandas as pd
+import numpy as np
+# import geopandas as gpd
 
-
+##########################################
 ### Base stats for the default view of the class (once data has been loaded)
+
 
 def _base_stats_fun(self):
     grp1 = self.data.groupby(level=['mtype', 'site'])
@@ -21,9 +22,8 @@ def _base_stats_fun(self):
     end = grp1.apply(lambda x: x.last_valid_index()[2])
     end.name = 'end_time'
     stats1 = grp1.describe()[['min', '25%', '50%', '75%', 'mean', 'max', 'count']].round(2)
-    out1 = concat([stats1, start, end], axis=1)
+    out1 = pd.concat([stats1, start, end], axis=1)
     setattr(self, '_base_stats', out1)
-
 
 
 #########################################
@@ -81,7 +81,7 @@ def pytime_to_datetime(pytime):
     """
 
     dt1 = datetime(year=pytime.year, month=pytime.month, day=pytime.day, hour=pytime.hour, minute=pytime.minute)
-    return(dt1)
+    return dt1
 
 
 def lst_rem_files(path, pattern, rem=False):
@@ -96,13 +96,12 @@ def lst_rem_files(path, pattern, rem=False):
              if f.endswith(pattern):
                 yield os.path.join(dirname, f)
 
-
     t1 = gen_files(path, pattern)
     # Remove all files matching pattern in the current dir
     if rem:
         for f in t1:
            os.remove(f)
-    return(t1)
+    return t1
 
 
 def select_sites(x):
@@ -110,23 +109,23 @@ def select_sites(x):
     Function to check for different object types and create an array of values.
     """
 
-    if isinstance(x, ndarray):
+    if isinstance(x, np.ndarray):
         x1 = x.copy()
     elif isinstance(x, (list, tuple)):
-        x1 = array(x).copy()
-    elif isinstance(x, (Series, Index)):
+        x1 = np.array(x).copy()
+    elif isinstance(x, (pd.Series, pd.Index)):
         x1 = x.values.copy()
-    elif isinstance(x, DataFrame):
-        x1 = x1.iloc[:, 0].values.copy()
+    elif isinstance(x, pd.DataFrame):
+        x1 = x.iloc[:, 0].values.copy()
     elif isinstance(x, str):
         if x.endswith('.shp'):
-            x1 = read_file(x).copy()
+            x1 = pd.read_file(x).copy()
         else:
-            x1 = read_csv(x).iloc[:, 0].values.copy()
+            x1 = pd.read_csv(x).iloc[:, 0].values.copy()
     elif x is None:
         x1 = x
 
-    return(x1)
+    return x1
 
 
 def rd_dir(data_dir, ext, file_num_names=False, ignore_case=True):
@@ -135,30 +134,13 @@ def rd_dir(data_dir, ext, file_num_names=False, ignore_case=True):
     """
 
     if ignore_case:
-        files = array([filename for filename in listdir(data_dir) if search('.' + ext + '$', filename, IGNORECASE)])
+        files = np.array([filename for filename in listdir(data_dir) if search('.' + ext + '$', filename, IGNORECASE)])
     else:
-        files = array([filename for filename in listdir(data_dir) if search('.' + ext + '$', filename)])
+        files = np.array([filename for filename in listdir(data_dir) if search('.' + ext + '$', filename)])
 
     if file_num_names:
-        site_names = array([int(findall("\d+", fi)[0]) for fi in files])
-        return([files, site_names])
+        site_names = np.array([int(findall("\d+", fi)[0]) for fi in files])
+        return files, site_names
     else:
-        return(files)
-
-
-def printf(x):
-    """Print the full rows of a series or dataframe"""
-    set_option('display.max_rows', len(x))
-    print(x)
-    reset_option('display.max_rows')
-
-
-
-
-
-
-
-
-
-
+        return files
 

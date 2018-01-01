@@ -2,15 +2,15 @@
 """
 Vector processing functions.
 """
-from geopandas import read_file, GeoDataFrame, GeoSeries
+import numpy as np
+import pandas as pd
+import geopandas as gpd
 from geopandas.tools import sjoin
-from core.ecan_io.SQL_databases import sql_arg
-from numpy import insert, in1d, ndarray
-from pandas import concat, Series, Index, to_numeric
-from shapely.geometry import Point, Polygon
-from core.misc.misc import select_sites
-from core.ecan_io.mssql import rd_sql
 from pycrs import parser
+from shapely.geometry import Point, Polygon
+from hydropandas.util.misc import select_sites
+from hydropandas.io.tools.mssql import rd_sql
+
 
 #########################################
 ### Dictionaries
@@ -45,22 +45,22 @@ def sel_sites_poly(pts, poly, buffer_dis=0):
     """
 
     #### Read in data
-    if isinstance(pts, (GeoDataFrame, GeoSeries)):
+    if isinstance(pts, (gpd.GeoDataFrame, gpd.GeoSeries)):
         gdf_pts = pts.copy()
     elif isinstance(pts, str):
         if pts.endswith('.shp'):
-            gdf_pts = read_file(pts).copy()
+            gdf_pts = gpd.read_file(pts).copy()
             col1 = gdf_pts.columns.drop('geometry')[0]
             gdf_pts.set_index(col1, inplace=True)
         else:
             raise ValueError('pts must be a GeoDataFrame, GeoSeries, or a str path to a shapefile')
     else:
         raise ValueError('pts must be a GeoDataFrame, GeoSeries, or a str path to a shapefile')
-    if isinstance(poly, (GeoDataFrame, GeoSeries)):
+    if isinstance(poly, (gpd.GeoDataFrame, gpd.GeoSeries)):
         gdf_poly = poly.copy()
     elif isinstance(poly, str):
         if poly.endswith('.shp'):
-            gdf_poly = read_file(poly).copy()
+            gdf_poly = gpd.read_file(poly).copy()
             col2 = gdf_poly.columns.drop('geometry')[0]
             gdf_poly.set_index(col2, inplace=True)
         else:
@@ -78,7 +78,7 @@ def sel_sites_poly(pts, poly, buffer_dis=0):
     ## Select only the vcn sites within the buffer
     points2 = gdf_pts[gdf_pts.within(poly_buff)]
 
-    return (points2)
+    return points2
 
 
 def pts_poly_join(pts, poly, poly_id_col):
@@ -92,21 +92,21 @@ def pts_poly_join(pts, poly, poly_id_col):
     join1 = sjoin(pts, poly3, how='inner', op='within')
     join1.rename(columns={join1.columns[-1]: poly_id_col}, inplace=True)
 
-    return ([join1, poly3])
+    return join1, poly3
 
 
-def pts_sql_join(pts, sql_codes):
-    """
-    Function to perform spatial joins on sql tables that are polygon layers.
-    """
-
-    sql1 = sql_arg()
-
-    for i in sql_codes:
-        poly = rd_sql(**sql1.get_dict(i))
-        pts = sjoin(pts, poly, how='left', op='within').drop('index_right', axis=1)
-
-    return (pts)
+# def pts_sql_join(pts, sql_codes):
+#     """
+#     Function to perform spatial joins on sql tables that are polygon layers.
+#     """
+#
+#     sql1 = sql_arg()
+#
+#     for i in sql_codes:
+#         poly = rd_sql(**sql1.get_dict(i))
+#         pts = sjoin(pts, poly, how='left', op='within').drop('index_right', axis=1)
+#
+#     return pts
 
 
 def precip_catch_agg(sites, site_precip, id_area):
@@ -120,17 +120,17 @@ def precip_catch_agg(sites, site_precip, id_area):
     output = site_precip.copy()
 
     id_area2 = id_area.area
-    area_out = concat([id_area2, id_area2], axis=1)
+    area_out = pd.concat([id_area2, id_area2], axis=1)
     area_out.columns = ['id_area', 'tot_area']
     site_precip2 = site_precip.mul(id_area2.values.flatten(), axis=1)
 
     for i in sites.index:
-        set1 = insert(sites.loc[i, :].dropna().values, 0, i).astype(int)
-        tot_area = int(id_area2[in1d(id_area2.index, set1)].sum())
+        set1 = np.insert(sites.loc[i, :].dropna().values, 0, i).astype(int)
+        tot_area = int(id_area2[np.in1d(id_area2.index, set1)].sum())
         output.loc[:, i] = (site_precip2[set1].sum(axis=1) / tot_area).values
         area_out.loc[i, 'tot_area'] = tot_area
 
-    return ([output.round(2), area_out.round()])
+    return output.round(2), area_out.round()
 
 
 def xy_to_gpd(id_col, x_col, y_col, df=None, crs=2193):
@@ -158,7 +158,7 @@ def xy_to_gpd(id_col, x_col, y_col, df=None, crs=2193):
             id_data = df[id_col]
         else:
             id_data = id_col
-    elif isinstance(id_col, (ndarray, Series, Index)):
+    elif isinstance(id_col, (np.ndarray, pd.Series, pd.Index)):
         id_data = id_col
     else:
         raise ValueError('id_data could not be determined')
@@ -168,8 +168,8 @@ def xy_to_gpd(id_col, x_col, y_col, df=None, crs=2193):
         crs1 = crs
     else:
         raise ValueError('crs must be an int, str, or dict')
-    gpd = GeoDataFrame(id_data, geometry=geometry, crs=crs1)
-    return (gpd)
+    gpd1 = gpd.GeoDataFrame(id_data, geometry=geometry, crs=crs1)
+    return gpd1
 
 
 def flow_sites_to_shp(sites='All', min_flow_only=False, export=False, export_path='sites.shp'):
@@ -200,20 +200,20 @@ def flow_sites_to_shp(sites='All', min_flow_only=False, export=False, export_pat
         if sites is 'All':
             sites_sel_geo = site_geo
         elif sites.endswith('.shp'):
-            poly = read_file(sites)
+            poly = gpd.read_file(sites)
             sites_sel_geo = sel_sites_poly(poly, site_geo)
         else:
             raise ValueError('If sites is a str, then it must be a shapefile.')
     else:
         sites_sel = select_sites(sites).astype('int32')
-        sites_sel_geo = site_geo[in1d(site_geo.site, sites_sel)]
+        sites_sel_geo = site_geo[np.in1d(site_geo.site, sites_sel)]
     if min_flow_only:
-        sites_sel_geo = sites_sel_geo[in1d(sites_sel_geo.site, min_flow_sites.site.values)]
+        sites_sel_geo = sites_sel_geo[np.in1d(sites_sel_geo.site, min_flow_sites.site.values)]
 
     ### Export and return
     if export:
         sites_sel_geo.to_file(export_path)
-    return (sites_sel_geo)
+    return sites_sel_geo
 
 
 def convert_crs(from_crs, crs_type='proj4', pass_str=False):
@@ -245,7 +245,7 @@ def convert_crs(from_crs, crs_type='proj4', pass_str=False):
             crs1a = crs1.to_proj4()
             crs1b = crs1a.replace('+', '').split()[:-1]
             crs1c = dict(i.split('=') for i in crs1b)
-            crs2 = dict((i, to_numeric(crs1c[i], 'ignore')) for i in crs1c)
+            crs2 = dict((i, pd.to_numeric(crs1c[i], 'ignore')) for i in crs1c)
         else:
             raise ValueError('Select one of "proj4", "wkt", "proj4_dict", or "netcdf_dict"')
         if crs_type == 'netcdf_dict':
@@ -265,7 +265,7 @@ def convert_crs(from_crs, crs_type='proj4', pass_str=False):
                 raise ValueError('No appropriate netcdf projection.')
             crs2 = crs3
 
-    return (crs2)
+    return crs2
 
 
 def point_to_poly_apply(geo, side_len):
@@ -279,7 +279,7 @@ def point_to_poly_apply(geo, side_len):
     half_side = side_len * 0.5
     l1 = Polygon([[geo.x + half_side, geo.y + half_side], [geo.x + half_side, geo.y - half_side],
                   [geo.x - half_side, geo.y - half_side], [geo.x - half_side, geo.y + half_side]])
-    return (l1)
+    return l1
 
 
 def points_grid_to_poly(gpd, id_col):
@@ -290,14 +290,14 @@ def points_grid_to_poly(gpd, id_col):
     id_col -- The id column name.
     """
 
-    geo1a = Series(gpd.geometry.apply(lambda j: j.x))
+    geo1a = pd.Series(gpd.geometry.apply(lambda j: j.x))
     geo1b = geo1a.shift()
 
     side_len1 = (geo1b - geo1a).abs()
     side_len = side_len1[side_len1 > 0].min()
     gpd1 = gpd.apply(lambda j: point_to_poly_apply(j.geometry, side_len=side_len), axis=1)
-    gpd2 = GeoDataFrame(gpd[id_col], geometry=gpd1, crs=gpd.crs)
-    return (gpd2)
+    gpd2 = gpd.GeoDataFrame(gpd[id_col], geometry=gpd1, crs=gpd.crs)
+    return gpd2
 
 
 def spatial_overlays(df1, df2, how='intersection'):
@@ -319,11 +319,11 @@ def spatial_overlays(df1, df2, how='intersection'):
             for k in j:
                 nei.append([i, k])
 
-        pairs = GeoDataFrame(nei, columns=['idx1', 'idx2'], crs=df1.crs)
+        pairs = gpd.GeoDataFrame(nei, columns=['idx1', 'idx2'], crs=df1.crs)
         pairs = pairs.merge(df1, left_on='idx1', right_index=True)
         pairs = pairs.merge(df2, left_on='idx2', right_index=True, suffixes=['_1', '_2'])
         pairs['Intersection'] = pairs.apply(lambda x: (x['geometry_1'].intersection(x['geometry_2'])).buffer(0), axis=1)
-        pairs = GeoDataFrame(pairs, columns=pairs.columns, crs=df1.crs)
+        pairs = gpd.GeoDataFrame(pairs, columns=pairs.columns, crs=df1.crs)
         cols = pairs.columns.tolist()
         cols.remove('geometry_1')
         cols.remove('geometry_2')
@@ -332,7 +332,7 @@ def spatial_overlays(df1, df2, how='intersection'):
         cols.remove('Intersection')
         dfinter = pairs[cols + ['Intersection']].copy()
         dfinter.rename(columns={'Intersection': 'geometry'}, inplace=True)
-        dfinter = GeoDataFrame(dfinter, columns=dfinter.columns, crs=pairs.crs)
+        dfinter = gpd.GeoDataFrame(dfinter, columns=dfinter.columns, crs=pairs.crs)
         dfinter = dfinter.loc[dfinter.geometry.is_empty == False]
         return (dfinter)
     elif how == 'difference':
@@ -345,7 +345,7 @@ def spatial_overlays(df1, df2, how='intersection'):
         df1.geometry = df1.new_g
         df1 = df1.loc[df1.geometry.is_empty == False].copy()
         df1.drop(['bbox', 'histreg', 'new_g'], axis=1, inplace=True)
-        return (df1)
+        return df1
 
 
 def closest_line_to_pts(pts, lines, line_site_col, dis=None):
@@ -353,7 +353,7 @@ def closest_line_to_pts(pts, lines, line_site_col, dis=None):
     Function to determine the line closest to each point. Inputs must be GeoDataframes.
     """
 
-    pts_line_seg = GeoDataFrame()
+    pts_line_seg = gpd.GeoDataFrame()
     for i in pts.index:
         pts_seg = pts.loc[[i]]
         if isinstance(dis, int):
@@ -366,7 +366,7 @@ def closest_line_to_pts(pts, lines, line_site_col, dis=None):
         near1 = lines1.distance(pts.geometry[i]).idxmin()
         line_seg1 = lines1.loc[near1, line_site_col]
         pts_seg[line_site_col] = line_seg1
-        pts_line_seg = concat([pts_line_seg, pts_seg])
+        pts_line_seg = pd.concat([pts_line_seg, pts_seg])
     #        print(i)
 
     ### Determine points that did not find a line
@@ -375,7 +375,7 @@ def closest_line_to_pts(pts, lines, line_site_col, dis=None):
         print(mis_pts)
         print('Did not find a line segment for these sites')
 
-    return (pts_line_seg)
+    return pts_line_seg
 
 
 def multipoly_to_poly(gpd):
@@ -383,7 +383,7 @@ def multipoly_to_poly(gpd):
     Function to convert a GeoDataFrame with some MultiPolygons to only polygons. Creates additional rows in the GeoDataFrame.
     """
 
-    gpd2 = GeoDataFrame()
+    gpd2 = gpd.GeoDataFrame()
     for i in gpd.index:
         geom1 = gpd.loc[[i]]
         geom2 = geom1.loc[i, 'geometry']
@@ -393,5 +393,5 @@ def multipoly_to_poly(gpd):
             new1.loc[:, 'geometry'] = polys
         else:
             new1 = geom1.copy()
-        gpd2 = concat([gpd2, new1])
-    return (gpd2.reset_index(drop=True))
+        gpd2 = pd.concat([gpd2, new1])
+    return gpd2.reset_index(drop=True)

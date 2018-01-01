@@ -5,14 +5,11 @@ Functions to read in Hydstra data. Requires a 32bit python environment.
 import ctypes
 import os
 import contextlib
-from numpy import array_split, ceil, array
-from pandas import to_numeric, to_datetime, concat, DataFrame, Timestamp, merge, to_timedelta, HDFStore, DateOffset
+import numpy as np
+import pandas as pd
 from datetime import date
-from core.misc.misc import select_sites, save_df
-from core.ecan_io import rd_sql, write_sql
-from pint import UnitRegistry
-ureg = UnitRegistry()
-Q_ = ureg.Quantity
+from hydropandas.util.misc import select_sites, save_df, rd_dir
+from hydropandas.io.tools.mssql import rd_sql, write_sql
 
 
 def rd_hydstra(varto, sites=None, data_source='A', from_date=None, to_date=None, from_mod_date=None, to_mod_date=None, interval='day', qual_codes=[30, 20, 10, 11, 21, 18], concat_data=True, export=None):
@@ -60,11 +57,11 @@ def rd_hydstra(varto, sites=None, data_source='A', from_date=None, to_date=None,
 
     ### Restrict period ranges - optional
     if isinstance(from_date, str):
-        from_date1 = Timestamp(from_date)
+        from_date1 = pd.Timestamp(from_date)
         from_date_df = sites_var_period.from_date.apply(lambda x: x if x > from_date1 else from_date1)
         sites_var_period['from_date'] = from_date_df
     if isinstance(to_date, str):
-        to_date1 = Timestamp(to_date)
+        to_date1 = pd.Timestamp(to_date)
         to_date_df = sites_var_period.to_date.apply(lambda x: x if x > to_date1 else to_date1)
         sites_var_period['to_date'] = to_date_df
 
@@ -77,10 +74,10 @@ def rd_hydstra(varto, sites=None, data_source='A', from_date=None, to_date=None,
         if 140 in varto_list:
             sites_flow = sites_var_period[(sites_var_period.varfrom != sites_var_period.varto) & (sites_var_period.varto == 140)]
             chg2 = rating_changes(sites_flow.site.unique().tolist(), from_mod_date=from_mod_date, to_mod_date=to_mod_date)
-            chg1 = concat([chg1, chg2])
+            chg1 = pd.concat([chg1, chg2])
 
         chg1.rename(columns={'from_date': 'mod_date'}, inplace=True)
-        chg3 = merge(sites_var_period, chg1, on=['site', 'varfrom', 'varto'])
+        chg3 = pd.merge(sites_var_period, chg1, on=['site', 'varfrom', 'varto'])
         chg4 = chg3[chg3.to_date > chg3.mod_date].copy()
         chg4['from_date'] = chg4['mod_date']
         sites_var_period = chg4.drop('mod_date', axis=1).copy()
@@ -94,9 +91,9 @@ def rd_hydstra(varto, sites=None, data_source='A', from_date=None, to_date=None,
 
     if isinstance(export, str):
             if export.endswith('.h5'):
-                store = HDFStore(export, mode='a')
+                store = pd.HDFStore(export, mode='a')
 
-    data = DataFrame()
+    data = pd.DataFrame()
     for tup in sites_var_period2.itertuples(index=False):
         print('Processing site: ' + str(tup.site))
         varto = tup.varto
@@ -129,7 +126,7 @@ def rd_hydstra(varto, sites=None, data_source='A', from_date=None, to_date=None,
                     store.close()
                     raise err
         if concat_data:
-            data = concat([data, df])
+            data = pd.concat([data, df])
     if isinstance(export, str):
         store.close()
     if concat_data:
@@ -181,11 +178,11 @@ def rating_changes(sites=None, from_mod_date=None, to_mod_date=None):
 
     rate_per = rd_sql(server, database, table_per, fields_per, where_per, rename_cols=names_per, where_op='OR')
     rate_per['site'] = rate_per['site'].str.strip()
-    time1 = to_timedelta(rate_per['stime'] // 100, unit='H') + to_timedelta(rate_per['stime'] % 100, unit='m')
+    time1 = pd.to_timedelta(rate_per['stime'] // 100, unit='H') + pd.to_timedelta(rate_per['stime'] % 100, unit='m')
     rate_per['sdate'] = rate_per['sdate'] + time1
     rate_per = rate_per.sort_values(['site', 'sdate']).reset_index(drop=True).drop('stime', axis=1)
 
-    rate_per1 = merge(rate_per, rate_hed[['site', 'reftab']], on=['site', 'reftab'])
+    rate_per1 = pd.merge(rate_per, rate_hed[['site', 'reftab']], on=['site', 'reftab'])
     rate_per2 = rate_per1.groupby('site')['sdate'].min().reset_index()
     rate_per2.columns = ['site', 'from_date']
 
@@ -217,13 +214,13 @@ def hydstra_data_changes(varto, sites, data_source='A', from_mod_date=None, to_m
     DataFrame
         With site, varfrom, varto, from_date, and to_date
     """
-    today1 = Timestamp(date.today())
+    today1 = pd.Timestamp(date.today())
 
     ### Get changes for all other parameters
     if isinstance(from_mod_date, str):
-        from_mod_date1 = Timestamp(from_mod_date)
+        from_mod_date1 = pd.Timestamp(from_mod_date)
         if isinstance(to_mod_date, str):
-            to_mod_date1 = Timestamp(to_mod_date)
+            to_mod_date1 = pd.Timestamp(to_mod_date)
         else:
             to_mod_date1 = today1
         blocklist = rd_blocklist(sites, [data_source], variables=varto, start_modified=from_mod_date1, end_modified=to_mod_date1)
@@ -233,7 +230,7 @@ def hydstra_data_changes(varto, sites, data_source='A', from_mod_date=None, to_m
             block_grp = blocklist.groupby(['site', 'varto'])
             min_date1 = block_grp['from_mod_date'].min()
             max_date1 = block_grp['to_mod_date'].max()
-            min_max_date1 = concat([min_date1, max_date1], axis=1)
+            min_max_date1 = pd.concat([min_date1, max_date1], axis=1)
             min_max_date1.columns = ['from_date', 'to_date']
             min_max_date2 = min_max_date1.reset_index()
             min_max_date2['varfrom'] = min_max_date2['varto']
@@ -274,6 +271,8 @@ def hydstra_sites_var(varto=None, data_source='A', server='SQL2012PROD03', datab
         period_where = {'DATASOURCE': data_source, 'VARIABLE': [varto]}
     elif isinstance(varto, list):
         period_where = {'DATASOURCE': data_source, 'VARIABLE': varto}
+    else:
+        raise TypeError('period_where must be None, int, or list')
 
     period1 = rd_sql(server, database, period_tab, period_cols, where_col=period_where, rename_cols=period_names)
     period1.loc[:, 'site'] = period1.site.str.strip()
@@ -323,11 +322,11 @@ def hydstra_sites_var_periods(varto=None, sites=None, data_source='A', server='S
     if 140 in varto_list:
         flow_rate_sites = sites_var[(sites_var.varfrom == 100) & (sites_var.varto == 140)]
         wl_sites = sites_period[(sites_period.site.isin(flow_rate_sites.site)) & (sites_period.varto == 100)]
-        flow_rate_sites_period = merge(flow_rate_sites, wl_sites[['site', 'from_date', 'to_date']], on='site')
+        flow_rate_sites_period = pd.merge(flow_rate_sites, wl_sites[['site', 'from_date', 'to_date']], on='site')
 
         flow_sites_period = sites_period[sites_period.varto.isin(varto_list)].copy().drop(['var_name', 'units'], axis=1)
 
-        sites_var_period = concat([flow_rate_sites_period, flow_sites_period])
+        sites_var_period = pd.concat([flow_rate_sites_period, flow_sites_period])
         sites_var_period = sites_var_period[['site', 'varfrom', 'varto', 'from_date', 'to_date']]
     else:
         sites_var_period = sites_period[sites_period.varto.isin(varto_list)].copy().drop(['var_name', 'units'], axis=1)
@@ -420,11 +419,11 @@ def rd_hydstra_db(sites, start=0, end=0, datasource='A', data_type='mean', varfr
 
     ### Process sites into workable chunks
     sites1 = select_sites(sites)
-    n_chunks = ceil(len(sites1) / float(sites_chunk))
-    sites2 = array_split(sites1, n_chunks)
+    n_chunks = np.ceil(len(sites1) / float(sites_chunk))
+    sites2 = np.array_split(sites1, n_chunks)
 
     ### Run instance of hydllp
-    data = DataFrame()
+    data = pd.DataFrame()
     for i in sites2:
         if print_sites:
             print(i)
@@ -432,12 +431,43 @@ def rd_hydstra_db(sites, start=0, end=0, datasource='A', data_type='mean', varfr
         hyd = openHyDb()
         with hyd as h:
             df = h.get_ts_traces(i, start=start, end=end, datasource=datasource, data_type=data_type, varfrom=varfrom, varto=varto, interval=interval, multiplier=multiplier, qual_codes=qual_codes, report_time=report_time)
-        data = concat([data, df])
+        data = pd.concat([data, df])
 
     if isinstance(export_path, str):
         save_df(data, export_path)
 
-    return (data)
+    return data
+
+
+def hydstra_site_mod_time(sites=None):
+    """
+    Function to extract modification times from Hydstra data archive files. Returns a DataFrame of sites by modification date. The modification date is in GMT.
+
+    Parameters
+    ----------
+    sites : list, array, Series, or None
+        If sites is not None, then return only the given sites.
+
+    Returns
+    -------
+    DataFrame
+    """
+
+    site_files_path = r'\\fileservices02\ManagedShares\Data\Hydstra\prod\hyd\dat\hyd'
+    files1 = rd_dir(site_files_path, 'A')
+    file_sites = [os.path.splitext(i)[0] for i in files1]
+
+    if sites is not None:
+        sites1 = select_sites(sites).astype(str)
+        sites2 = [i.replace('/', '_') for i in sites1]
+        file_sites1 = [i for i in file_sites if i in sites2]
+    else:
+        file_sites1 = file_sites
+
+    mod_times = pd.to_datetime([round(os.path.getmtime(os.path.join(site_files_path, i + '.A'))) for i in file_sites1], unit='s')
+
+    df = pd.DataFrame({'site': file_sites1, 'mod_time': mod_times})
+    return df
 
 
 # Define a context manager generator
@@ -692,17 +722,17 @@ class Hydllp(object):
 
         var_list_result = self.query_by_dict(var_list_request)
         list1 = var_list_result["return"]["sites"]
-        df1 = DataFrame()
+        df1 = pd.DataFrame()
         for i in list1:
             site = i['site']
-            df_temp = DataFrame(i['variables'])
+            df_temp = pd.DataFrame(i['variables'])
             df_temp['site'] = site
-            df1 = concat([df1, df_temp])
+            df1 = pd.concat([df1, df_temp])
 
         ## Mangling
         df2 = df1.copy().drop('subdesc', axis=1)
-        df2['period_end'] = to_datetime(df2['period_end'], format='%Y%m%d%H%M%S')
-        df2['period_start'] = to_datetime(df2['period_start'], format='%Y%m%d%H%M%S')
+        df2['period_end'] = pd.to_datetime(df2['period_end'], format='%Y%m%d%H%M%S')
+        df2['period_start'] = pd.to_datetime(df2['period_start'], format='%Y%m%d%H%M%S')
         df2['site'] = df2['site'].str.strip().astype(str)
         df2['variable'] = df2['variable'].astype(float)
         df2 = df2[df2['variable'].isin(df2['variable'].astype('int32'))]
@@ -761,10 +791,10 @@ class Hydllp(object):
         site_list_str = ','.join([str(site) for site in sites])
 
         ### Datetime conversion
-        start = Timestamp(start).strftime('%Y%m%d%H%M%S')
-        end = Timestamp(end).strftime('%Y%m%d%H%M%S')
-        start_modified = Timestamp(start_modified).strftime('%Y%m%d%H%M%S')
-        end_modified = Timestamp(end_modified).strftime('%Y%m%d%H%M%S')
+        start = pd.Timestamp(start).strftime('%Y%m%d%H%M%S')
+        end = pd.Timestamp(end).strftime('%Y%m%d%H%M%S')
+        start_modified = pd.Timestamp(start_modified).strftime('%Y%m%d%H%M%S')
+        end_modified = pd.Timestamp(end_modified).strftime('%Y%m%d%H%M%S')
 
         ### dict request
         ts_blockinfo_request = {"function": "get_ts_blockinfo",
@@ -780,13 +810,13 @@ class Hydllp(object):
 
         ts_blockinfo_result = self.query_by_dict(ts_blockinfo_request)
         blocks = ts_blockinfo_result['return']['blocks']
-        df1 = DataFrame(blocks)
+        df1 = pd.DataFrame(blocks)
         if df1.empty:
             return(df1)
         else:
-            df1['endtime'] = to_datetime(df1['endtime'], format='%Y%m%d%H%M%S')
-            df1['starttime'] = to_datetime(df1['starttime'], format='%Y%m%d%H%M%S')
-            df1['variable'] = to_numeric(df1['variable'], errors='coerce', downcast='integer')
+            df1['endtime'] = pd.to_datetime(df1['endtime'], format='%Y%m%d%H%M%S')
+            df1['starttime'] = pd.to_datetime(df1['starttime'], format='%Y%m%d%H%M%S')
+            df1['variable'] = pd.to_numeric(df1['variable'], errors='coerce', downcast='integer')
             df2 = df1[['site', 'datasource', 'variable', 'starttime', 'endtime']].sort_values(['site', 'variable', 'starttime'])
             df2.rename(columns={'datasource': 'data_source', 'variable': 'varto', 'starttime': 'from_mod_date', 'endtime': 'to_mod_date'}, inplace=True)
 
@@ -802,15 +832,15 @@ class Hydllp(object):
         site_list_str = ','.join([str(site) for site in sites])
 
         ### Datetime conversion - with dates < 1900
-        c1900 = Timestamp('1900-01-01')
+        c1900 = pd.Timestamp('1900-01-01')
         if start != 0:
-            start1 = Timestamp(start)
+            start1 = pd.Timestamp(start)
             if start1 > c1900:
                 start = start1.strftime('%Y%m%d%H%M%S')
             else:
                 start = start1.isoformat(' ').replace('-', '').replace(' ', '').replace(':', '')
         if end != 0:
-            end1 = Timestamp(end)
+            end1 = pd.Timestamp(end)
             if end1 > c1900:
                 end = end1.strftime('%Y%m%d%H%M%S')
             else:
@@ -835,17 +865,17 @@ class Hydllp(object):
         ### Convert json to a dataframe
         sites = [str(f['site']) for f in j1]
 
-        out1 = DataFrame()
+        out1 = pd.DataFrame()
         for i in range(len(j1)):
-            df1 = DataFrame(j1[i]['trace'])
+            df1 = pd.DataFrame(j1[i]['trace'])
             if not df1.empty:
                 df1.rename(columns={'v': 'data', 't': 'time', 'q': 'qual_code'}, inplace=True)
-                df1['data'] = to_numeric(df1['data'], errors='coerce')
-                df1['time'] = to_datetime(df1['time'], format='%Y%m%d%H%M%S')
-                df1['qual_code'] = to_numeric(df1['qual_code'], errors='coerce', downcast='integer')
+                df1['data'] = pd.to_numeric(df1['data'], errors='coerce')
+                df1['time'] = pd.to_datetime(df1['time'], format='%Y%m%d%H%M%S')
+                df1['qual_code'] = pd.to_numeric(df1['qual_code'], errors='coerce', downcast='integer')
                 df1['site'] = sites[i]
                 df2 = df1[df1.qual_code.isin(qual_codes)]
-                out1 = concat([out1, df2])
+                out1 = pd.concat([out1, df2])
 
         out2 = out1.set_index(['site', 'time'])[['data', 'qual_code']]
 

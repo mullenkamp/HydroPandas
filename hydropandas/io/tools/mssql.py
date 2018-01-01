@@ -2,17 +2,12 @@
 """
 Functions for importing mssql data.
 """
-from geopandas import GeoDataFrame
-from core.misc.misc import save_df
-from pandas import to_numeric, to_datetime, Timestamp, read_sql, Series, concat, merge, DataFrame
 from shapely.wkt import loads
 from pycrs.parser import from_epsg_code
 from pymssql import connect
-import traceback
-from datetime import datetime
-#from core.misc.misc import select_sites
-#from core.spatial.vector import xy_to_gpd, sel_sites_poly
-#from numpy import nan, ceil
+import pandas as pd
+import geopandas as gpd
+from hydropandas.util.misc import save_df
 
 
 def rd_sql(server, database, table=None, col_names=None, where_col=None, where_val=None, where_op='AND', geo_col=False,
@@ -44,6 +39,8 @@ def rd_sql(server, database, table=None, col_names=None, where_col=None, where_v
         The end date in the form '2010-01-01'.
     date_col : str
         The SQL table column that contains the dates.
+    rename_cols: list of str
+        List of strings to rename the resulting DataFrame column names.
     stmt : str
         Custom SQL statement to be directly passed to the database table. This will ignore all prior arguments except server and database.
     export_path : str
@@ -84,7 +81,7 @@ def rd_sql(server, database, table=None, col_names=None, where_col=None, where_v
 
     ## Create connection to database and execute sql statement
     conn = connect(server, database=database)
-    df = read_sql(stmt1, conn)
+    df = pd.read_sql(stmt1, conn)
     conn.close()
     if rename_cols is not None:
         df.columns = rename_cols
@@ -92,13 +89,13 @@ def rd_sql(server, database, table=None, col_names=None, where_col=None, where_v
     ## Read in geometry if required
     if geo_col & (stmt is not None):
         geometry, proj = rd_sql_geo(server=server, database=database, table=table, where_lst=where_lst)
-        df = GeoDataFrame(df, geometry=geometry, crs=proj)
+        df = gpd.GeoDataFrame(df, geometry=geometry, crs=proj)
 
     ## save and return
     if export_path is not None:
         save_df(df, export_path, index=False)
 
-    return (df)
+    return df
 
 
 def rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resample_code=None, period=1, fun='mean',
@@ -178,7 +175,7 @@ def rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resa
             stmt1 = "SELECT " + cols_count_str + " FROM " + table + " GROUP BY " + col_stmt + " HAVING count(" + values_cols + ") >= " + str(
                 min_count)
 
-        up_sites = read_sql(stmt1, conn)[groupby_cols[0]].tolist()
+        up_sites = pd.read_sql(stmt1, conn)[groupby_cols[0]].tolist()
         up_sites = [str(i) for i in up_sites]
 
         if not up_sites:
@@ -197,7 +194,7 @@ def rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resa
                                     where_lst=where_lst)
 
     ## Create connection to database and execute sql statement
-    df = read_sql(sql_stmt1, conn)
+    df = pd.read_sql(sql_stmt1, conn)
     conn.close()
 
     ## Check to see if any data was found
@@ -212,30 +209,7 @@ def rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resa
     if export_path is not None:
         save_df(df1, export_path)
 
-    return (df1)
-
-
-#def rd_sw_rain_geo(sites=None):
-#    if sites is not None:
-#        site_geo = rd_sql('SQL2012PROD05', 'Bgauging', 'RSITES',
-#                          col_names=['SiteNumber', 'River', 'SiteName', 'NZTMX', 'NZTMY'], where_col='SiteNumber',
-#                          where_val=sites)
-#    else:
-#        site_geo = rd_sql('SQL2012PROD05', 'Bgauging', 'RSITES',
-#                          col_names=['SiteNumber', 'River', 'SiteName', 'NZTMX', 'NZTMY'])
-#
-#    site_geo.columns = ['site', 'river', 'name', 'NZTMX', 'NZTMY']
-#    site_geo.loc[:, 'site'] = to_numeric(site_geo.loc[:, 'site'], errors='ignore')
-#
-#    site_geo2 = xy_to_gpd(df=site_geo, id_col=['site', 'river', 'name'], x_col='NZTMX', y_col='NZTMY')
-#    site_geo3 = site_geo2.loc[site_geo2.site > 0, :]
-#    site_geo3.loc[:, 'site'] = site_geo3.loc[:, 'site'].astype('int32')
-#    site_geo3['river'] = site_geo3.river.apply(lambda x: x.title())
-#    site_geo3['name'] = site_geo3.name.apply(lambda x: x.title())
-#    site_geo3['name'] = site_geo3.name.apply(lambda x: x.replace(' (Recorder)', ''))
-#    site_geo3['name'] = site_geo3.name.apply(lambda x: x.replace('Sh', 'SH'))
-#    site_geo3['name'] = site_geo3.name.apply(lambda x: x.replace('Ecs', 'ECS'))
-#    return (site_geo3.set_index('site'))
+    return df1
 
 
 def write_sql(df, server, database, table, dtype_dict, primary_keys=None, foreign_keys=None, foreign_table=None, create_table=True, drop_table=False, del_rows_dict=None, output_stmt=False):
@@ -301,7 +275,7 @@ def write_sql(df, server, database, table, dtype_dict, primary_keys=None, foreig
     for i in df.columns:
         dtype1 = dtype_dict[i]
         if (dtype1 == 'DATE') | (dtype1 == 'DATETIME'):
-            time1 = to_datetime(df[i]).dt.isoformat(' ')
+            time1 = pd.to_datetime(df[i]).dt.isoformat(' ')
             df1.loc[:, i] = time1
         elif 'VARCHAR' in dtype1:
             try:
@@ -430,8 +404,8 @@ def sql_where_stmts(where_col=None, where_val=None, where_op='AND', from_date=No
         where_stmt = []
 
     if isinstance(from_date, str):
-        from_date1 = to_datetime(from_date, errors='coerce')
-        if isinstance(from_date1, Timestamp):
+        from_date1 = pd.to_datetime(from_date, errors='coerce')
+        if isinstance(from_date1, pd.Timestamp):
             from_date2 = from_date1.isoformat().split('T')[0]
             where_from_date = date_col + " >= " + from_date2.join(['\'', '\''])
         else:
@@ -440,8 +414,8 @@ def sql_where_stmts(where_col=None, where_val=None, where_op='AND', from_date=No
         where_from_date = ''
 
     if isinstance(to_date, str):
-        to_date1 = to_datetime(to_date, errors='coerce')
-        if isinstance(to_date1, Timestamp):
+        to_date1 = pd.to_datetime(to_date, errors='coerce')
+        if isinstance(to_date1, pd.Timestamp):
             to_date2 = to_date1.isoformat().split('T')[0]
             where_to_date = date_col + " <= " + to_date2.join(['\'', '\''])
         else:
@@ -520,7 +494,7 @@ def sql_ts_agg_stmt(table, groupby_cols, date_col, values_cols, resample_code, p
         groupby_cols_lst.extend(values_cols)
         stmt1 = "SELECT " + ", ".join(groupby_cols_lst) + " FROM " + table + where_stmt
 
-    return (stmt1)
+    return stmt1
 
 
 def site_stat_stmt(table, site_col, values_col, fun):
@@ -548,7 +522,7 @@ def site_stat_stmt(table, site_col, values_col, fun):
 
     cols_str = ', '.join([site_col, fun_dict[fun] + '(' + values_col + ') as ' + values_col])
     stmt1 = "SELECT " + cols_str + " FROM " + table + " GROUP BY " + site_col
-    return (stmt1)
+    return stmt1
 
 
 def sql_del_rows_stmt(table, **kwargs):
@@ -558,7 +532,7 @@ def sql_del_rows_stmt(table, **kwargs):
 
     where_list = sql_where_stmts(**kwargs)
     stmt1 = "DELETE FROM " + table + " WHERE " + " and ".join(where_list)
-    return (stmt1)
+    return stmt1
 
 
 def rd_sql_geo(server, database, table, where_lst=None):
@@ -588,9 +562,9 @@ def rd_sql_geo(server, database, table, where_lst=None):
     conn = connect(server, database=database)
 
     geo_col_stmt = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME=" + "\'" + table + "\'" + " AND DATA_TYPE='geometry'"
-    geo_col = str(read_sql(geo_col_stmt, conn).iloc[0, 0])
+    geo_col = str(pd.read_sql(geo_col_stmt, conn).iloc[0, 0])
     geo_srid_stmt = "select distinct " + geo_col + ".STSrid from " + table
-    geo_srid = int(read_sql(geo_srid_stmt, conn).iloc[0, 0])
+    geo_srid = int(pd.read_sql(geo_srid_stmt, conn).iloc[0, 0])
     if where_lst is not None:
         if len(where_lst) > 0:
             stmt2 = "SELECT " + geo_col + ".STGeometryN(1).ToString()" + " FROM " + table + " where " + " and ".join(
@@ -599,12 +573,12 @@ def rd_sql_geo(server, database, table, where_lst=None):
             stmt2 = "SELECT " + geo_col + ".STGeometryN(1).ToString()" + " FROM " + table
     else:
         stmt2 = "SELECT " + geo_col + ".STGeometryN(1).ToString()" + " FROM " + table
-    df2 = read_sql(stmt2, conn)
+    df2 = pd.read_sql(stmt2, conn)
     df2.columns = ['geometry']
     geo = [loads(x) for x in df2.geometry]
     proj4 = from_epsg_code(geo_srid).to_proj4()
 
-    return (geo, proj4)
+    return geo, proj4
 
 
 #def mssql_logging(log, process):
