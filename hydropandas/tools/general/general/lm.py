@@ -174,6 +174,9 @@ class LM(object):
         for mp in multi_plots_names:
             setattr(model1, mp, model1._multi_plots_gen(mp))
 
+        setattr(model1, 'mane', model1._mane_fun)
+
+        ### Return
         return model1
 
     def _stat_err_gen(self, fun_name):
@@ -224,7 +227,7 @@ class LM(object):
 
         def nstat_err_fun(y=None, round_dig=5):
             """
-            Produces the associated Statsmodels eval_measures.
+            Produces the associated normalised Statsmodels eval_measures.
 
             Parameters
             ----------
@@ -288,6 +291,41 @@ class LM(object):
 
         return multi_plot
 
+    def _mane_fun(self, y=None, round_dig=3):
+        """
+        Produces the mean absolute normalised error.
+
+        Parameters
+        ----------
+        y: list, str, or None
+            The name(s) of the dependent variable(s).
+        round_dig: int
+            The number of digits to round.
+
+        Returns
+        -------
+        Dict
+            Where the key is the y name associated with the stat.
+        """
+        if y is None:
+            stat1 = {}
+            for i in self.y_names:
+                mane1 = mean(np.abs(self.sm_xy[i]['y'].values - self.sm_predict[i])/(self.sm_xy[i]['y'].values))
+                stat1.update({i: mane1})
+        elif isinstance(y, list):
+            stat1 = {}
+            for i in y:
+                mane1 = mean(np.abs(self.sm_xy[i]['y'].values - self.sm_predict[i])/(self.sm_xy[i]['y'].values))
+                stat1.update({i: mane1})
+        elif isinstance(y, str):
+            mane1 = mean(np.abs(self.sm_xy[y]['y'].values - self.sm_predict[y])/(self.sm_xy[y]['y'].values))
+            stat1 = {y: mane1}
+
+        if isinstance(round_dig, int):
+            stat1 = {j: np.round(stat1[j], round_dig) for j in stat1}
+
+        return stat1
+
 
 if __name__ == '__main__':
     df = pd.read_csv(r'S:\Surface Water\temp\test_df1.csv', header=[0,1], index_col=0, parse_dates=True, infer_datetime_format=True)
@@ -298,6 +336,5 @@ if __name__ == '__main__':
 
     ols1 = LM(x, y)
     ols2 = ols1.ols(2, log_x=True, log_y=True)
-    m1 = ols2.sm['137']
-    print(m1.summary())
+    print(ols2['137'])
 
