@@ -2,13 +2,13 @@
 """
 Functions to delineate catchments.
 """
-from pandas import DataFrame, read_csv, concat
-from geopandas import read_file, GeoDataFrame, GeoSeries
-from numpy import in1d, append, isnan
-from core.ecan_io import rd_sql
-from core.spatial.network import find_upstream_rec, extract_rec_catch, agg_rec_catch
-from core.spatial.vector import closest_line_to_pts
-from core.misc import select_sites
+import pandas as pd
+import numpy as np
+import geopandas as gpd
+from hydropandas.io.tools.mssql import rd_sql
+from hydropandas.tools.general.spatial.network import find_upstream_rec, extract_rec_catch, agg_rec_catch
+from hydropandas.tools.general.spatial.vector import closest_line_to_pts
+from hydropandas.util.misc import select_sites
 
 
 def catch_net(catch_sites_csv, catch_sites_col=['GRIDCODE', 'SITE']):
@@ -18,7 +18,7 @@ def catch_net(catch_sites_csv, catch_sites_col=['GRIDCODE', 'SITE']):
 
     ## Read in data
     catch_sites_names=['catch', 'site']
-    catch_sites = read_csv(catch_sites_csv)[catch_sites_col]
+    catch_sites = pd.read_csv(catch_sites_csv)[catch_sites_col]
     catch_sites.columns = catch_sites_names
 
     ## Reorganize and select intial catchments
@@ -36,19 +36,19 @@ def catch_net(catch_sites_csv, catch_sites_col=['GRIDCODE', 'SITE']):
     for i in index1:
         catch1 = df.loc[df.catch == i, 'site'].values
         catch_set1 = catch1
-        check1 = in1d(df.catch, catch1)
+        check1 = np.in1d(df.catch, catch1)
         while sum(check1) >= 1:
 #            if sum(check1) > len(catch1):
 #                print('Index numbering is wrong!')
             catch2 = df[check1].site.values.flatten()
-            catch3 = catch2[~isnan(catch2)]
-            catch_set1 = append(catch_set1, catch3)
-            check1 = in1d(df.catch, catch3)
+            catch3 = catch2[~np.isnan(catch2)]
+            catch_set1 = np.append(catch_set1, catch3)
+            check1 = np.in1d(df.catch, catch3)
             catch1 = catch3
         catch_set2.append(catch_set1.tolist())
 
-    df2 = DataFrame(catch_set2, index=index1)
-    return([df2, singles.values])
+    df2 = pd.DataFrame(catch_set2, index=index1)
+    return df2, singles.values
 
 
 def agg_catch(catch_del_shp, catch_sites_csv, catch_sites_col=['GRIDCODE', 'SITE'], catch_col='GRIDCODE'):
@@ -57,7 +57,7 @@ def agg_catch(catch_del_shp, catch_sites_csv, catch_sites_col=['GRIDCODE', 'SITE
     """
 
     ## Catchment areas shp
-    catch = read_file(catch_del_shp)[[catch_col, 'geometry']]
+    catch = gpd.read_file(catch_del_shp)[[catch_col, 'geometry']]
 
     ## dissolve the polygon
     catch3 = catch.dissolve(catch_col)
@@ -65,16 +65,16 @@ def agg_catch(catch_del_shp, catch_sites_csv, catch_sites_col=['GRIDCODE', 'SITE
     ## Determine upstream catchments
     catch_df, singles_df = catch_net(catch_sites_csv, catch_sites_col)
 
-    base1 = catch3[in1d(catch3.index, singles_df)].geometry
+    base1 = catch3[np.in1d(catch3.index, singles_df)].geometry
     for i in catch_df.index:
-            t1 = append(catch_df.loc[i, :].dropna().values, i)
-            t2 = GeoSeries(catch3[in1d(catch3.index, t1)].unary_union, index=[i])
-            base1 = GeoSeries(concat([base1, t2]))
+            t1 = np.append(catch_df.loc[i, :].dropna().values, i)
+            t2 = gpd.GeoSeries(catch3[np.in1d(catch3.index, t1)].unary_union, index=[i])
+            base1 = gpd.GeoSeries(pd.concat([base1, t2]))
 
     ## Convert to GeoDataFrame (so that all functions can be applied to it)
-    base2 = GeoDataFrame(base1.index, geometry=base1.geometry.values, crs=catch.crs)
+    base2 = gpd.GeoDataFrame(base1.index, geometry=base1.geometry.values, crs=catch.crs)
     base2.columns = ['site', 'geometry']
-    return(base2)
+    return base2
 
 
 def rec_catch_del(sites_shp, sites_col='site', catch_output=None):
@@ -107,7 +107,7 @@ def rec_catch_del(sites_shp, sites_col='site', catch_output=None):
         rec_streams.loc[rec_streams['NZREACH'] == i, mods[i].keys()] = mods[i].values()
 
     ### Find closest REC segment to points
-    pts_seg = closest_line_to_pts(pts, rec_streams, line_site_col='NZREACH', dis=400)
+    pts_seg = closest_line_to_pts(pts, rec_streams, line_site_col='NZREACH', buffer_dis=400)
     nzreach = pts_seg.copy().NZREACH.unique()
 
     ### Find all upstream reaches
@@ -123,7 +123,7 @@ def rec_catch_del(sites_shp, sites_col='site', catch_output=None):
 
     ### Export and return
     rec_shed1.to_file(catch_output)
-    return(rec_shed1)
+    return rec_shed1
 
 
 

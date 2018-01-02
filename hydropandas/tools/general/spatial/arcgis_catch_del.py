@@ -7,20 +7,36 @@ Functions to delineate catchments using arcpy.
 def arc_catch_del(WD, boundary_shp, sites_shp, site_num_col='site', point_dis=1000, stream_depth=10, grid_size=8, pour_dis=20, streams='S:/Surface Water/shared\\GIS_base\\vector\\MFE_REC_rivers_no_1st.shp', dem='S:/Surface Water/shared\\GIS_base\\raster\\DEM_8m_2012\\linz_8m_dem', export_dir='results', overwrite_rasters=False):
     """
     Arcpy function to delineate catchments based on specific points, a polygon, and the REC rivers layer.
-
+    Arcpy must be installed.
     Be careful that the folder path isn't too long!!! Do not have spaces in the path name!!! Arc sucks!!!
 
-    WD -- Working directory (str).\n
-    boundary_shp -- The path to the shapefile polygon boundary extent (str).\n
-    sites_shp -- The path to the sites shapefile (str).\n
-    site_num_col -- The column in the sites_shp that contains the site IDs (str).\n
-    point_dis -- The max distance to snap the sites to the nearest stream line (int).\n
-    stream_depth -- The depth that the streams shapefile should be burned into the dem (int).\n
-    grid_size -- The resolution of the dem (int).\n
-    streams -- The path to the streams shapefile (str).\n
-    dem -- The path to the dem (str).\n
-    export_dir -- The subfolder where the results should be saved (str).\n
-    overwrite_rasters -- Should the flow direction and flow accumulation rasters be overwritten? (bool).
+    Parameters:
+    WD: str
+        Working directory.
+    boundary_shp: str
+        The path to the shapefile polygon boundary extent.
+    sites_shp: str
+        The path to the sites shapefile.
+    site_num_col: str
+        The column in the sites_shp that contains the site IDs.
+    point_dis: int
+        The max distance to snap the sites to the nearest stream line.
+    stream_depth: int
+        The depth that the streams shapefile should be burned into the dem.
+    grid_size: int
+        The resolution of the dem.
+    streams: str
+        The path to the streams shapefile.
+    dem: str
+        The path to the dem.
+    export_dir: str
+        The subfolder where the results should be saved.
+    overwrite_rasters: bool
+        Should the flow direction and flow accumulation rasters be overwritten?
+
+    Returns
+    -------
+    None
     """
 
     # load in the necessary arcpy libraries to import arcpy
