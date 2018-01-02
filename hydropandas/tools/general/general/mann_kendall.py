@@ -9,6 +9,7 @@ import pandas as pd
 from scipy.stats import norm
 #todo create a .bat file for lisa to run these.
 
+
 def mann_kendall_test(x, alpha = 0.05):
     """
     retrieved from https://mail.scipy.org/pipermail/scipy-dev/2016-July/021413.html
@@ -67,6 +68,7 @@ def mann_kendall_test(x, alpha = 0.05):
         trend = 'no trend'
 
     return trend, h, p, z
+
 
 def _mann_kendall_test(x, alpha = 0.05):
     """
@@ -142,6 +144,7 @@ class mann_kendall_obj(object):
             test_data = data
         test_data = test_data.sort_index()
         self.trend, self.h, self.p, self.z, self.s ,self.var_s = _mann_kendall_test(test_data, alpha=alpha)
+
 
 class seasonal_kendall (object):
     """

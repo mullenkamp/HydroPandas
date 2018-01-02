@@ -3,9 +3,9 @@
 Functions for importing data from various sources.
 """
 import xarray as xr
-from core.spatial import xy_to_gpd, pts_poly_join
-from geopandas import read_file
-from pandas import merge
+import geopandas as gpd
+import pandas as pd
+from hydropandas.tools.general.spatial.vector import xy_to_gpd, pts_poly_join
 
 
 #####################################
@@ -19,7 +19,7 @@ def rd_nc(poly_shp, nc_path, poly_epsg=4326, poly_id='Station_ID', x_col='longit
     """
 
     ### Read in all data
-    poly = read_file(poly_shp)[[poly_id, 'geometry']].to_crs(epsg=poly_epsg)
+    poly = gpd.read_file(poly_shp)[[poly_id, 'geometry']].to_crs(epsg=poly_epsg)
     nc = xr.open_dataset(nc_path)
 
     ### Filter nc data
@@ -36,8 +36,8 @@ def rd_nc(poly_shp, nc_path, poly_epsg=4326, poly_id='Station_ID', x_col='longit
     join2 = join1[['id', poly_id]]
 
     ### Select the associated data
-    sel_xy = merge(df1_xy, join2, on='id').drop('id', axis=1)
-    df2 = merge(df1, sel_xy, on=[y_col, x_col])
+    sel_xy = pd.merge(df1_xy, join2, on='id').drop('id', axis=1)
+    df2 = pd.merge(df1, sel_xy, on=[y_col, x_col])
 
     ### Convert to time series
     if as_ts:
