@@ -6,6 +6,7 @@ Created on Thu Dec 28 13:30:36 2017
 Extra functions for Pandas.
 """
 import numpy as np
+import pandas as pd
 from pandas.core.groupby import SeriesGroupBy, GroupBy
 
 
@@ -22,15 +23,14 @@ def grp_mode(df, grp_cols, val_col):
     return df3
 
 
-def pd_grouby_fun(fun_name):
+def pd_grouby_fun(fun_name, df):
     """
     Function to make a function specifically to be used on pandas groupby objects from a string code of the associated function.
     """
-
-    if fun_name in GroupBy.__dict__.keys():
-        fun1 = GroupBy.__dict__[fun_name]
-    elif fun_name in SeriesGroupBy.__dict__.keys():
+    if type(df) == pd.Series:
         fun1 = SeriesGroupBy.__dict__[fun_name]
+    elif type(df) == pd.DataFrame:
+        fun1 = GroupBy.__dict__[fun_name]
     else:
-        raise ValueError('Need to use the right function name.')
+        raise ValueError('df should be either a Series or DataFrame.')
     return fun1
