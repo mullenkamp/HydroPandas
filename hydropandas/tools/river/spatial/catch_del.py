@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 import geopandas as gpd
 from hydropandas.io.tools.mssql import rd_sql
-from hydropandas.tools.general.spatial.network import find_upstream_rec, extract_rec_catch, agg_rec_catch
+from hydropandas.tools.river.spatial.network import find_upstream_rec, extract_rec_catch, agg_rec_catch
 from hydropandas.tools.general.spatial.vector import closest_line_to_pts
 from hydropandas.util.misc import select_sites
 
@@ -81,9 +81,19 @@ def rec_catch_del(sites_shp, sites_col='site', catch_output=None):
     """
     Catchment delineation using the REC streams and catchments.
 
-    sites_shp -- Points shapfile of the sites along the streams.\n
-    sites_col -- The column name of the site numbers in the sites_shp.\n
-    catch_output -- The output polygon shapefile path of the catchment delineation.
+    Parameters:
+    -----------
+    sites_shp: str
+        Points shapfile of the sites along the streams.
+    sites_col: str
+        The column name of the site numbers in the sites_shp.
+    catch_output: str or None
+        The output polygon shapefile path of the catchment delineation.
+
+    Returns
+    -------
+    GeoDataFrame
+        Polygons
     """
 
     ### Parameters
@@ -122,7 +132,8 @@ def rec_catch_del(sites_shp, sites_col='site', catch_output=None):
     rec_shed1 = rec_shed.merge(pts_seg.drop('geometry', axis=1), on='NZREACH')
 
     ### Export and return
-    rec_shed1.to_file(catch_output)
+    if catch_output is not None:
+        rec_shed1.to_file(catch_output)
     return rec_shed1
 
 

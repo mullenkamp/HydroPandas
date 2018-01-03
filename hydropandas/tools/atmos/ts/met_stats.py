@@ -4,8 +4,8 @@ Created on Tue Jul 18 09:33:42 2017
 
 @author: MichaelEK
 """
-from pandas import Series, MultiIndex, DatetimeIndex, to_datetime, concat
-from numpy import in1d
+import numpy as np
+import pandas as pd
 
 
 def precip_stats(df):
@@ -16,18 +16,18 @@ def precip_stats(df):
     """
 
     ### Check data structure
-    if not isinstance(df, Series):
+    if not isinstance(df, pd.Series):
         raise ValueError('df must be a pandas Series')
-    if not isinstance(df.index, MultiIndex):
+    if not isinstance(df.index, pd.MultiIndex):
         raise ValueError('The index of df must be a MultiIndex')
-    if not all(in1d(['site', 'time'], df.index.names)):
+    if not all(np.in1d(['site', 'time'], df.index.names)):
         raise ValueError("The MultiIndex names must be 'site' and 'time'")
     else:
         index_names = df.index.names
 #        site_index = index_names.index('site')
         time_index = index_names.index('time')
-    if not isinstance(df.index.levels[time_index], DatetimeIndex):
-        time1 = to_datetime(df.index.levels[time_index])
+    if not isinstance(df.index.levels[time_index], pd.DatetimeIndex):
+        time1 = pd.to_datetime(df.index.levels[time_index])
         df.index = df.index.set_levels(time1, time_index)
 
     ### Do stats
@@ -47,8 +47,8 @@ def precip_stats(df):
     years.name = 'Tot data yrs'
 
     ### Assemble results and return
-    out1 = concat([stats1, start, end, mis_days, mis_days_ratio, years], axis=1)
-    return(out1)
+    out1 = pd.concat([stats1, start, end, mis_days, mis_days_ratio, years], axis=1)
+    return out1
 
 
 

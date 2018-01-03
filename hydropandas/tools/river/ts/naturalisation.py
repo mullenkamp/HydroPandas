@@ -2,27 +2,43 @@
 """
 Stream naturalisation functions.
 """
-from pandas import to_datetime, concat, DataFrame, merge, read_hdf, to_timedelta
-from core.ecan_io.flow import rd_ts
-from geopandas import read_file
-from core.spatial.vector import pts_poly_join
-from core.misc.misc import select_sites, save_df
-from core.classes.hydro.base import hydro
+import pandas as pd
+import geopandas as gpd
+from hydropandas.io.tools.general_ts import rd_ts
+from hydropandas.tools.general.spatial.vector import pts_poly_join
+from hydropandas.util.misc import select_sites, save_df
 
 
 def stream_nat(sites, catch_shp=r'P:\cant_catch_delin\recorders\catch_del.shp', include_gw=True, max_date='2015-06-30', sd_hdf='S:/Surface Water/shared/base_data/usage/sd_est_all_mon_vol.h5', flow_csv=None, crc_shp=r'S:\Surface Water\shared\GIS_base\vector\allocations\allo_gis.shp', catch_col='site', pivot=False, return_data=False, export_path=None):
     """
     Function to naturalize stream flows from monthly sums of usage.
 
-    sites -- A list of recorder sites to be naturalised.\n
-    catch_shp -- A shapefile of the delineated catchments for all recorders.\n
-    include_gw -- Should stream depleting GW takes be included?\n
-    max_date -- The last date to be naturalised. In the form of '2015-06-30'.\n
-    sd_hdf -- The hdf file of all the crc/waps with estimated usage and allocation.\n
-    flow_csv -- If None, then use the hydro class to import the data. Otherwise, flow data can be imported as a csv file with the first column as datetime and each other column as a recorder site in m3/s. It can also be a dataframe.\n
-    crc_shp -- A shapefile of all of th locations of the crc/waps.\n
-    pivot -- Should the output be pivotted?\n
-    return_data -- Should the allocation/usage time series be returned?
+    Parameters
+    ----------
+    sites: list, ndarray, Series
+        A list of recorder sites to be naturalised.
+    catch_shp: str
+        A shapefile of the delineated catchments for all recorders.
+    include_gw: bool
+        Should stream depleting GW takes be included?
+    max_date: str
+        The last date to be naturalised. In the form of '2015-06-30'.
+    sd_hdf: str
+        The hdf file of all the crc/waps with estimated usage and allocation.
+    flow_csv: str or None
+        If None, then use the hydro class to import the data. Otherwise, flow data can be imported as a csv file with the first column as datetime and each other column as a recorder site in m3/s. It can also be a dataframe.
+    crc_shp: str
+        A shapefile of all of th locations of the crc/waps.
+    pivot: bool
+        Should the output be pivotted?
+    return_data: bool
+        Should the allocation/usage time series be returned?
+    export_path: str or None
+        Path to save results as either hdf or csv (or None).
+
+    Returns
+    -------
+    DataFrame
     """
 
     qual_codes = [10, 18, 20, 50]
@@ -32,7 +48,7 @@ def stream_nat(sites, catch_shp=r'P:\cant_catch_delin\recorders\catch_del.shp', 
     sites1 = select_sites(sites)
 
     ## Stream depletion
-    sd = read_hdf(sd_hdf)
+    sd = pd.read_hdf(sd_hdf)
     if include_gw:
         sd1 = sd[sd.time <= max_date]
     else:
@@ -48,7 +64,7 @@ def stream_nat(sites, catch_shp=r'P:\cant_catch_delin\recorders\catch_del.shp', 
         flow.name = 'flow'
         flow.index = flow.index.reorder_levels(['site', 'time'])
         flow = flow.sort_index()
-    elif isinstance(flow_csv, DataFrame):
+    elif isinstance(flow_csv, pd.DataFrame):
         flow = flow_csv.copy()
         flow.columns = flow.columns.astype(int)
         flow.index.name = 'time'
@@ -57,21 +73,15 @@ def stream_nat(sites, catch_shp=r'P:\cant_catch_delin\recorders\catch_del.shp', 
         flow.name = 'flow'
         flow.index = flow.index.reorder_levels(['site', 'time'])
         flow = flow.sort_index()
-    elif flow_csv is None:
-        flow = hydro().get_data(mtypes='flow', sites=sites1, qual_codes=qual_codes)
-        sites1 = flow.sites
-        flow = flow.data
-        flow.index = flow.index.droplevel('mtype')
-        flow.name = 'flow'
     else:
         raise ValueError('Pass something useful to flow_csv.')
 
     ## crc shp
-    crc_loc = read_file(crc_shp)
-    crc_loc1 = merge(crc_loc[['crc', 'take_type', 'allo_block', 'wap', 'use_type', 'geometry']], sd[['crc', 'take_type', 'allo_block', 'wap', 'use_type']].drop_duplicates(), on=['crc', 'take_type', 'allo_block', 'wap', 'use_type'])
+    crc_loc = gpd.read_file(crc_shp)
+    crc_loc1 = pd.merge(crc_loc[['crc', 'take_type', 'allo_block', 'wap', 'use_type', 'geometry']], sd[['crc', 'take_type', 'allo_block', 'wap', 'use_type']].drop_duplicates(), on=['crc', 'take_type', 'allo_block', 'wap', 'use_type'])
 
     ## Catchment areas shp
-    catch = read_file(catch_shp).drop('NZREACH', axis=1)
+    catch = gpd.read_file(catch_shp).drop('NZREACH', axis=1)
     catch = catch[catch[catch_col].isin(sites1)]
 
     ### Spatial processing of WAPs, catchments, and sites
@@ -98,7 +108,7 @@ def stream_nat(sites, catch_shp=r'P:\cant_catch_delin\recorders\catch_del.shp', 
 #    gaugings = gaugings[gauge_sites2]
 
     ### filter down the sites
-    sd1a = merge(crc_catch, sd1, on=['crc', 'take_type', 'allo_block', 'wap', 'use_type']).drop('geometry', axis=1)
+    sd1a = pd.merge(crc_catch, sd1, on=['crc', 'take_type', 'allo_block', 'wap', 'use_type']).drop('geometry', axis=1)
 
     ### Remove excessive usages
     sd1a = sd1a[~((sd1a.sd_usage / sd1a.ann_restr_allo_m3/12) >= 1.5)]
@@ -109,19 +119,19 @@ def stream_nat(sites, catch_shp=r'P:\cant_catch_delin\recorders\catch_del.shp', 
     sd2['sd_rate'] = sd2.sd_usage/days1/24/60/60
 
     ### Resample SD to daily time series
-    days2 = to_timedelta((days1/2).round().astype('int32'), unit='D')
+    days2 = pd.to_timedelta((days1/2).round().astype('int32'), unit='D')
     sd3 = sd2.drop('sd_usage', axis=1)
     sd3.loc[:, 'time'] = sd3.loc[:, 'time'] - days2
     grp1 = sd3.groupby(['site'])
     first1 = grp1.first()
     last1 = sd2.groupby('site')[['time', 'sd_rate']].last()
-    first1.loc[:, 'time'] = to_datetime(first1.loc[:, 'time'].dt.strftime('%Y-%m') + '-01')
-    sd4 = concat([first1.reset_index(), sd3, last1.reset_index()]).reset_index(drop=True).sort_values(['site', 'time'])
+    first1.loc[:, 'time'] = pd.to_datetime(first1.loc[:, 'time'].dt.strftime('%Y-%m') + '-01')
+    sd4 = pd.concat([first1.reset_index(), sd3, last1.reset_index()]).reset_index(drop=True).sort_values(['site', 'time'])
     sd5 = sd4.set_index('time')
     sd6 = sd5.groupby('site').apply(lambda x: x.resample('D').interpolate(method='pchip'))['sd_rate']
 
     ### Naturalise flows
-    nat1 = concat([flow, sd6], axis=1, join='inner')
+    nat1 = pd.concat([flow, sd6], axis=1, join='inner')
     nat1['nat_flow'] = nat1['flow'] + nat1['sd_rate']
 
 
@@ -154,6 +164,6 @@ def stream_nat(sites, catch_shp=r'P:\cant_catch_delin\recorders\catch_del.shp', 
     if isinstance(export_path, str):
         save_df(nat2, export_path)
     if return_data:
-        return(nat2, sd1a)
+        return nat2, sd1a
     else:
-        return(nat2)
+        return nat2

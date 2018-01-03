@@ -274,5 +274,5 @@ def fao_eto(df, z_msl=500, lat=-43.6, lon=172, TZ_lon=173, z_u=2, time_int='days
     ## Save data and return
     if isinstance(export, str):
         ETo.to_csv(export)
-    return(ETo)
+    return ETo
 

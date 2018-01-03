@@ -2,8 +2,8 @@
 """
 Functions for processing vcsn met data from NIWA.
 """
-from xarray import open_dataset, DataArray
-from os.path import splitext
+import os
+import xarray as xr
 
 
 def nc_add_gis(nc, x_coord, y_coord):
@@ -23,7 +23,7 @@ def nc_add_gis(nc, x_coord, y_coord):
     data_attr = {'grid_mapping': 'crs'}
 
     ### Read in the nc
-    ds1 = open_dataset(nc)
+    ds1 = xr.open_dataset(nc)
 
     ### Determine the variables with x and y coordinates
     vars1 = ds1.data_vars
@@ -39,11 +39,11 @@ def nc_add_gis(nc, x_coord, y_coord):
         ds1[i].attrs = attr1
 
     ### Add crs dummy dataset
-    ds_crs = DataArray(4326, attrs=nc_crs, name='crs').to_dataset()
+    ds_crs = xr.DataArray(4326, attrs=nc_crs, name='crs').to_dataset()
     ds2 = ds1.merge(ds_crs)
 
     ### Resave nc file
-    new_path = splitext(nc)[0] + '_gis.nc'
+    new_path = os.path.splitext(nc)[0] + '_gis.nc'
     ds2.to_netcdf(new_path)
     ds1.close()
     ds2.close()

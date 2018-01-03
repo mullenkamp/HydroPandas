@@ -5,11 +5,10 @@ Misc functions.
 from __future__ import print_function
 from re import search, IGNORECASE, findall
 import patoolib, fnmatch, os
-from os import path, listdir
 from datetime import datetime
 import pandas as pd
 import numpy as np
-# import geopandas as gpd
+import geopandas as gpd
 
 ##########################################
 ### Base stats for the default view of the class (once data has been loaded)
@@ -57,7 +56,7 @@ def save_df(df, path_str, index=True, header=True):
     index -- Should the row index be saved? Only necessary for csv.
     """
 
-    path1 = path.splitext(path_str)
+    path1 = os.path.splitext(path_str)
 
     if path1[1] in '.h5':
         df.to_hdf(path_str, 'df', mode='w')
@@ -70,9 +69,9 @@ def get_subdir(a_dir, full_path=False):
     Simple function to get all subdirectories from a directory.
     """
     if full_path:
-        return [path.join(a_dir, name) for name in listdir(a_dir) if path.isdir(path.join(a_dir, name))]
+        return [os.path.join(a_dir, name) for name in os.listdir(a_dir) if os.path.isdir(os.path.join(a_dir, name))]
     else:
-        return [name for name in listdir(a_dir) if path.isdir(path.join(a_dir, name))]
+        return [name for name in os.listdir(a_dir) if os.path.isdir(os.path.join(a_dir, name))]
 
 
 def pytime_to_datetime(pytime):
@@ -119,11 +118,13 @@ def select_sites(x):
         x1 = x.iloc[:, 0].values.copy()
     elif isinstance(x, str):
         if x.endswith('.shp'):
-            x1 = pd.read_file(x).copy()
+            x1 = gpd.read_file(x).copy()
         else:
             x1 = pd.read_csv(x).iloc[:, 0].values.copy()
     elif x is None:
         x1 = x
+    else:
+        raise TypeError("I'm sure you can find some valid type to pass")
 
     return x1
 
@@ -134,9 +135,9 @@ def rd_dir(data_dir, ext, file_num_names=False, ignore_case=True):
     """
 
     if ignore_case:
-        files = np.array([filename for filename in listdir(data_dir) if search('.' + ext + '$', filename, IGNORECASE)])
+        files = np.array([filename for filename in os.listdir(data_dir) if search('.' + ext + '$', filename, IGNORECASE)])
     else:
-        files = np.array([filename for filename in listdir(data_dir) if search('.' + ext + '$', filename)])
+        files = np.array([filename for filename in os.listdir(data_dir) if search('.' + ext + '$', filename)])
 
     if file_num_names:
         site_names = np.array([int(findall("\d+", fi)[0]) for fi in files])

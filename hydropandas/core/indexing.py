@@ -37,12 +37,12 @@ def sel(self, mtypes=None, sites=None, require=None, resample=None, start=None, 
     sel_out = self.sel_ts(mtypes=mtypes, sites=sites, require=require, resample=resample, start=start, end=end)
     sel_out1 = sel_out.reset_index()
     new1 = self.add_data(sel_out1, 'time', 'site', 'mtype', 'data', dformat='long', add=False)
-    return(new1)
+    return new1
 
 
 def __getitem__(self, key):
     n3 = self.data.loc(axis=0)[key]
-    return(n3)
+    return n3
 
 
 def sel_by_geo_attr(self, attr_dict, mtypes=None):
@@ -59,7 +59,7 @@ def sel_by_geo_attr(self, attr_dict, mtypes=None):
     sites = attr1.index.tolist()
 
     new2 = self.sel(mtypes=mtypes, sites=sites)
-    return(new2)
+    return new2
 
 ##########################################################
 ### Selecting/Indexing the time series data and returning a Pandas object

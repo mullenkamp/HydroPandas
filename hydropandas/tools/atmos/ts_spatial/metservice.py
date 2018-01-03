@@ -6,14 +6,14 @@ Created on Thu Jun 29 11:17:26 2017
 
 Functions for processing MetService data.
 """
-from os import path
-from xarray import open_dataset
-from numpy import tile, arange
+import os
+import numpy as np
+import pandas as pd
+import xarray as xr
+import geopandas as gpd
 from shapely.geometry import Point
-from geopandas import GeoDataFrame
-from pandas import to_datetime, merge, to_numeric
-from core.ecan_io.mssql import rd_sql
-from core.spatial.vector import xy_to_gpd
+from hydropandas.io.tools.mssql import rd_sql
+from hydropandas.tools.general.spatial.vector import xy_to_gpd
 
 
 def proc_metservice_nc(nc, lat_coord='south_north', lon_coord='west_east', time_coord='Time', time_var='Times', export_dir=None):
@@ -43,18 +43,18 @@ def proc_metservice_nc(nc, lat_coord='south_north', lon_coord='west_east', time_
     proj1 = '+proj=lcc +lat_1=-60 +lat_2=-30 +lat_0=-60 +lon_0=167.5 +x_0=211921 +y_0=-1221320 +a=6367470 +b=6367470 +no_defs'
 
     ### Read in the nc file
-    x1 = open_dataset(nc)
+    x1 = xr.open_dataset(nc)
 
     ### Extract parameters and convert to numpy arrays
-    time1 = to_datetime(x1[time_var].data, format='%Y-%m-%d_%H:%M:%S')
+    time1 = pd.to_datetime(x1[time_var].data, format='%Y-%m-%d_%H:%M:%S')
 
     nlat = x1.dims[lat_coord]
     nlon = x1.dims[lon_coord]
     x_res = int(x1.attrs['DX'])
     y_res = int(x1.attrs['DY'])
 
-    lat = arange(nlat, dtype='int32') * y_res
-    lon = arange(nlon, dtype='int32') * x_res
+    lat = np.arange(nlat, dtype='int32') * y_res
+    lon = np.arange(nlon, dtype='int32') * x_res
 
     ### Remove the old time variable and add in the coordinates
     x2 = x1.drop(time_var)
@@ -97,15 +97,15 @@ def proc_metservice_nc(nc, lat_coord='south_north', lon_coord='west_east', time_
 
     ### Save the new file and close them
     if export_dir is None:
-        new_path = path.splitext(nc)[0] + '_corr.nc'
+        new_path = os.path.splitext(nc)[0] + '_corr.nc'
     elif isinstance(export_dir, (str, unicode)):
-        nc_file = path.splitext(path.split(nc)[1])[0] + '_corr.nc'
-        new_path = path.join(export_dir, nc_file)
+        nc_file = os.path.splitext(os.path.split(nc)[1])[0] + '_corr.nc'
+        new_path = os.path.join(export_dir, nc_file)
 
     x5.to_netcdf(new_path)
     x1.close()
     x5.close()
-    return(new_path)
+    return new_path
 
 
 def ACPR_to_rate(df, lat_coord='y', lon_coord='x', time_coord='time'):
@@ -130,11 +130,11 @@ def ACPR_to_rate(df, lat_coord='y', lon_coord='x', time_coord='time'):
     ### Extract data into dataframe
     df1 = df.copy().set_index(time_coord)
     df1a = df1.shift(1, freq='H')
-    df0 = merge(df1.reset_index(), df1a.reset_index(), on=[time_coord, lon_coord, lat_coord], how='inner')
+    df0 = pd.merge(df1.reset_index(), df1a.reset_index(), on=[time_coord, lon_coord, lat_coord], how='inner')
     df0['precip'] = (df0['ACPR_x'] - df0['ACPR_y']).round(3)
     df2 = df0[[time_coord, lon_coord, lat_coord, 'precip']]
 
-    return(df2)
+    return df2
 
 
 def MetS_nc_to_df(nc, lat_coord='y', lon_coord='x', time_coord='time', precip_var='precip', proj4='spatial_ref'):
@@ -165,24 +165,24 @@ def MetS_nc_to_df(nc, lat_coord='y', lon_coord='x', time_coord='time', precip_va
     """
 
     ### Extract all data to dataframes
-    with open_dataset(nc) as ds:
+    with xr.open_dataset(nc) as ds:
         precip = ds[precip_var].to_dataframe().reset_index()
     proj1 = str(ds.attrs[proj4])
 
     ### Create geodataframe
     time = precip[time_coord].unique()
     sites0 = precip.loc[precip[time_coord] == time[0], [lon_coord, lat_coord]]
-    precip.loc[:, 'site'] = tile(sites0.index, len(time))
+    precip.loc[:, 'site'] = np.tile(sites0.index, len(time))
     sites0.index.name = 'site'
 
     geometry = [Point(xy) for xy in zip(sites0[lon_coord], sites0[lat_coord])]
-    sites = GeoDataFrame(sites0.index, geometry=geometry, crs=proj1)
+    sites = gpd.GeoDataFrame(sites0.index, geometry=geometry, crs=proj1)
 
-    start_date = to_datetime(ds.attrs['START_DATE'], format='%Y-%m-%d_%H:%M:%S')
+    start_date = pd.to_datetime(ds.attrs['START_DATE'], format='%Y-%m-%d_%H:%M:%S')
 
     ### Return
     ds.close()
-    return(precip, sites, start_date)
+    return precip, sites, start_date
 
 
 def metconnect_id_loc(sites=None, mc_server='SQL2012PROD03', mc_db='MetConnect', mc_site_table='RainFallPredictionSites', mc_cols=['MetConnectID', 'SiteString', 'TidedaID'], gis_server='SQL2012PROD05'):
@@ -232,11 +232,11 @@ def metconnect_id_loc(sites=None, mc_server='SQL2012PROD03', mc_db='MetConnect',
 #    t1 = merge(mc2, hy_pts, on='Point')
 #    t2 = merge(t1, hy_objs, on='Object')
 #    t3 = merge(t2, hy_sites, on='Site')
-    t4 = merge(mc2, hy_loc, on='ExtSysId')
+    t4 = pd.merge(mc2, hy_loc, on='ExtSysId')
 
     hy_xy = xy_to_gpd('MetConnectID', 'x', 'y', t4)
 
-    return(hy_xy)
+    return hy_xy
 
 
 

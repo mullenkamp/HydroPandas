@@ -6,12 +6,12 @@ Created on Wed Jul 19 08:03:19 2017
 
 Functions for the land surface recharge model.
 """
-from core.ecan_io.mssql import rd_sql
-from core.ts.met.interp import poly_interp_agg
-from pandas import merge, concat
-from geopandas import read_file
-from core.spatial.vector import xy_to_gpd, points_grid_to_poly, spatial_overlays
-from numpy import nan, full, arange, seterr, tile, exp
+import numpy as np
+import pandas as pd
+import geopandas as gpd
+from hydropandas.io.tools.mssql import rd_sql
+from hydropandas.tools.atmos.spatial.interp import poly_interp_agg
+from hydropandas.tools.general.spatial.vector import xy_to_gpd, points_grid_to_poly, spatial_overlays
 
 
 def AET(pet, A, paw_now, paw_max):
@@ -19,8 +19,8 @@ def AET(pet, A, paw_now, paw_max):
     Minhas et al. (1974) function used by David Scott to estimate 'actual ET' from PET and PAW. All inputs must be as floats.
     """
 
-    aet = pet * ((1 - exp(-A*paw_now/paw_max))/(1 - 2*exp(-A) + exp(-A*paw_now/paw_max)))
-    return(aet)
+    aet = pet * ((1 - np.exp(-A*paw_now/paw_max))/(1 - 2*np.exp(-A) + np.exp(-A*paw_now/paw_max)))
+    return aet
 
 
 def poly_import(irr_type_dict, paw_dict, paw_ratio=0.67):
@@ -40,7 +40,7 @@ def poly_import(irr_type_dict, paw_dict, paw_ratio=0.67):
     if 'shp' in irr_type_dict.keys():
         if not isinstance(irr_type_dict['shp'], str):
             raise TypeError("If 'shp' is in the dict, then it must be a string path to a shapefile.")
-        irr1 = read_file(irr_type_dict['shp'])[[irr_type_dict['column'], 'geometry']]
+        irr1 = gpd.read_file(irr_type_dict['shp'])[[irr_type_dict['column'], 'geometry']]
     elif isinstance(irr_type_dict, dict):
         irr1 = rd_sql(irr_type_dict['server'], irr_type_dict['database'], irr_type_dict['table'], [irr_type_dict['column']], geo_col=True)
     irr1.rename(columns={irr_type_dict['column']: 'irr_type'}, inplace=True)
@@ -48,7 +48,7 @@ def poly_import(irr_type_dict, paw_dict, paw_ratio=0.67):
     if 'shp' in paw_dict.keys():
         if not isinstance(paw_dict['shp'], str):
             raise TypeError("If 'shp' is in the dict, then it must be a string path to a shapefile.")
-        paw1 = read_file(paw_dict['shp'])[[paw_dict['column'], 'geometry']]
+        paw1 = gpd.read_file(paw_dict['shp'])[[paw_dict['column'], 'geometry']]
     elif isinstance(paw_dict, dict):
         paw1 = rd_sql(paw_dict['server'], paw_dict['database'], paw_dict['table'], [paw_dict['column']], geo_col=True)
     paw1.rename(columns={paw_dict['column']: 'paw'}, inplace=True)
@@ -61,10 +61,10 @@ def input_processing(precip_et, crs, irr1, paw1, bound_shp, rain_name, pet_name,
     """
     Function to process the input data for the lsrm. Outputs a DataFrame of the variables for the lsrm.
     """
-    seterr(invalid='ignore')
+    np.seterr(invalid='ignore')
 
     ## Load and resample precip and et
-    bound = read_file(bound_shp)
+    bound = gpd.read_file(bound_shp)
 
     new_rain = poly_interp_agg(precip_et, crs, bound_shp, rain_name, 'time', 'x', 'y', buffer_dis, grid_res, grid_res, interp_fun=interp_fun, agg_ts_fun=agg_ts_fun, period=time_agg) * precip_correction
     new_rain.name = 'precip'
@@ -72,7 +72,7 @@ def input_processing(precip_et, crs, irr1, paw1, bound_shp, rain_name, pet_name,
     new_et = poly_interp_agg(precip_et, crs, bound_shp, pet_name, 'time', 'x', 'y', buffer_dis, grid_res, grid_res, interp_fun=interp_fun, agg_ts_fun=agg_ts_fun, period=time_agg)
     new_et.name = 'pet'
 
-    new_rain_et = concat([new_rain, new_et], axis=1)
+    new_rain_et = pd.concat([new_rain, new_et], axis=1)
 
     ## convert new point locations to geopandas
     time1 = new_rain_et.index.levels[0][0]
@@ -81,7 +81,7 @@ def input_processing(precip_et, crs, irr1, paw1, bound_shp, rain_name, pet_name,
     grid2.columns = ['site', 'geometry']
 
     all_times = new_rain_et.index.levels[0]
-    new_rain_et.loc[:, 'site'] = tile(grid1.index, len(all_times))
+    new_rain_et.loc[:, 'site'] = np.tile(grid1.index, len(all_times))
 
     ## Convert points to polygons
     sites_poly = points_grid_to_poly(grid2, 'site')
@@ -116,7 +116,7 @@ def input_processing(precip_et, crs, irr1, paw1, bound_shp, rain_name, pet_name,
     mis_sites_index = ~sites_poly3.site.isin(paw5.site)
     sites_poly3['area'] = sites_poly3.area.round()
 
-    paw6 = concat([paw5, sites_poly3[mis_sites_index]])
+    paw6 = pd.concat([paw5, sites_poly3[mis_sites_index]])
     paw6.loc[paw6.paw.isnull(), 'paw'] = 1
 
     # Aggregate by site weighted by area to estimate a volume
@@ -135,20 +135,20 @@ def input_processing(precip_et, crs, irr1, paw1, bound_shp, rain_name, pet_name,
 
     irr_area_ratio1 = (site_irr_area/sites_poly_area).round(3)
 
-    poly_data1 = concat([paw7, sites_poly_area, irr_eff2, irr_trig2, irr_area_ratio1], axis=1)
+    poly_data1 = pd.concat([paw7, sites_poly_area, irr_eff2, irr_trig2, irr_area_ratio1], axis=1)
     poly_data1.columns = ['paw', 'site_area', 'irr_eff', 'irr_trig', 'irr_area_ratio']
-    poly_data1.loc[poly_data1['irr_area_ratio'] < min_irr_area_ratio, ['irr_eff', 'irr_trig', 'irr_area_ratio']] = nan
+    poly_data1.loc[poly_data1['irr_area_ratio'] < min_irr_area_ratio, ['irr_eff', 'irr_trig', 'irr_area_ratio']] = np.nan
 
     ## Combine time series with polygon data
     new_rain_et1 = new_rain_et[new_rain_et['site'].isin(sites_poly2.index)]
 
-    input1 = merge(new_rain_et1.reset_index(), poly_data1.reset_index(), on='site', how='left')
+    input1 = pd.merge(new_rain_et1.reset_index(), poly_data1.reset_index(), on='site', how='left')
 
     ## Convert precip and et to volumes
     input1.loc[:, ['precip', 'pet']] = (input1.loc[:, ['precip', 'pet']].mul(input1.loc[:, 'site_area'], axis=0) * 0.001).round(2)
 
     ## Remove irrigation parameters during non-irrigation times
-    input1.loc[~input1.time.dt.month.isin(irr_mons), ['irr_eff', 'irr_trig']] = nan
+    input1.loc[~input1.time.dt.month.isin(irr_mons), ['irr_eff', 'irr_trig']] = np.nan
 
     ## Run checks on the input data
 
@@ -197,14 +197,14 @@ def input_processing(precip_et, crs, irr1, paw1, bound_shp, rain_name, pet_name,
         raise ValueError('irr_area_ratio variable must be a float dtype')
 
     ## Return dict
-    return(input1, sites_poly2)
+    return input1, sites_poly2
 
 
 def lsrm(model_var, A, include_irr=True):
     """
     The lsrm.
     """
-    seterr(invalid='ignore')
+    np.seterr(invalid='ignore')
 
     ## Make initial variables
     all_times = model_var['time'].unique()
@@ -218,8 +218,8 @@ def lsrm(model_var, A, include_irr=True):
 
     irr_paw_val = paw_val * irr_area_ratio_val.values
     non_irr_paw_val = paw_val - irr_paw_val
-    irr_paw_val[irr_paw_val <= 0 ] = nan
-    non_irr_paw_val[non_irr_paw_val <= 0 ] = nan
+    irr_paw_val[irr_paw_val <= 0 ] = np.nan
+    non_irr_paw_val[non_irr_paw_val <= 0 ] = np.nan
 
     irr_rain_val = model_var['precip'].values * irr_area_ratio_val.values
     non_irr_rain_val = model_var['precip'].values - irr_rain_val
@@ -230,14 +230,14 @@ def lsrm(model_var, A, include_irr=True):
     irr_eff_val = model_var['irr_eff'].values
     irr_trig_val = model_var['irr_trig'].values
 
-    time_index = arange(len(model_var)).reshape(len(all_times), len(sites))
+    time_index = np.arange(len(model_var)).reshape(len(all_times), len(sites))
 
     # Initial conditions
     w_irr = irr_paw_val[time_index[0]].copy()
     w_non_irr = non_irr_paw_val[time_index[0]].copy()
 
     # Output variables
-    out_w_irr = full(len(irr_eff_val), nan)
+    out_w_irr = np.full(len(irr_eff_val), np.nan)
     out_irr_demand = out_w_irr.copy()
     out_w_non_irr = out_w_irr.copy()
     out_irr_aet = out_w_irr.copy()
@@ -312,7 +312,7 @@ def lsrm(model_var, A, include_irr=True):
     output1.loc[:, 'non_irr_drainage'] = out_non_irr_drainage.round(2)
 
     ### Return output dataframe
-    return(output1)
+    return output1
 
 
 
