@@ -15,7 +15,7 @@ import geopandas as gpd
 
 
 def _base_stats_fun(self):
-    grp1 = self.data.groupby(level=['mtype', 'site'])
+    grp1 = self.tsdata.groupby(level=['mtype', 'site'])
     start = grp1.apply(lambda x: x.first_valid_index()[2])
     start.name = 'start_time'
     end = grp1.apply(lambda x: x.last_valid_index()[2])

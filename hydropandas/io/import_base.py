@@ -2,26 +2,27 @@
 """
 Functions for the hydro class for importing data.
 """
-
-from pandas import DataFrame, Series, DatetimeIndex, to_datetime, MultiIndex, concat, to_numeric, read_csv
-from numpy import in1d, where
-from geopandas import GeoDataFrame, GeoSeries, read_file
 from collections import defaultdict
-from core.classes.hydro.base import all_mtypes
-from xarray import open_dataset
+import numpy as np
+import pandas as pd
+import geopandas as gpd
+import xarray as xr
 from shapely.wkt import loads
 from shapely.geometry import Point
-from core.ecan_io.mssql import rd_sql_ts, rd_sql
-from core.spatial.vector import sel_sites_poly
-
+from hydropandas.io.tools.mssql import rd_sql, rd_sql_ts
+from hydropandas.tools.general.spatial.vector import sel_sites_poly
+from hydropandas.core.base import all_hydro_ids, mtype_df, ureg, Q_
+from hydropandas.core.indexing import _comp_by_catch
 
 ########################################################
 #### Time series data
 
+mfreq_list = ['discrete', 'sum', 'mean']
+
 ### Primary import functions
 
 
-def add_data(self, data, time=None, sites=None, mtypes=None, values=None, dformat=None, add=True):
+def add_data(self, data, dformat, hydro_id, freq_type, times=None, sites=None, values=None, units=None, qual_codes=None, add=True):
     """
     The general function to add time series data to the hydro class object.
 
@@ -33,8 +34,8 @@ def add_data(self, data, time=None, sites=None, mtypes=None, values=None, dforma
 
     Parameters
     ----------
-    data : DataFrame or type that can be coerced to a DataFrame
-        A Pandas DataFrame in either long or wide format or an object type that can be coerced to a DataFrame via DataFrame(data) (see Pandas).
+    data : DataFrame
+        A Pandas DataFrame in either long or wide format.
     time : DateTimeIndex, str, or None
         The time index reference. Depends on dformat.
     sites : str, int, or None
@@ -50,108 +51,107 @@ def add_data(self, data, time=None, sites=None, mtypes=None, values=None, dforma
 
     Returns
     -------
-    HydroPandas
+    Hydro
     """
 
-    ### Convert input data to long format for consumption
-
-    if dformat is None:
-        raise ValueError("dformat must be specified and must be either 'long' or 'wide'.")
-    if not isinstance(data, DataFrame):
-        data = DataFrame(data)
+    ### Convert input data to standarised long format for consumption
+    if not isinstance(data, pd.DataFrame):
+        raise TypeError('data must be a DataFrame.')
     if data.empty:
         raise ValueError('DataFrame is empty, no data was passed')
     if dformat is 'wide':
-        if isinstance(data.columns, MultiIndex):
-            if not isinstance(data.index, DatetimeIndex):
-                raise ValueError("A MultiIndex column DataFrame must have a DateTimeIndex as the row index.")
+        if not isinstance(data.index, pd.DatetimeIndex):
+                raise ValueError('If dformat is wide, then the df.index should be a DateTimeIndex')
+        if isinstance(data.columns, pd.MultiIndex):
             d1 = data.copy()
-            d1.columns.names = ['mtype', 'site']
-            d1.columns.set_levels(to_numeric(d1.columns.levels[1], errors='ignore', downcast='integer'), level='site', inplace=True)
             d1.index.name = 'time'
-            d2 = d1.stack(level=['mtype', 'site'])
-            input1 = d2.reorder_levels(['mtype', 'site', 'time'])
-        else:
-            if isinstance(data.index, DatetimeIndex):
-                    d1 = data.copy()
-                    d1.index.name = 'time'
-            else:
-                if isinstance(time, (str, int)):
-                    data.loc[:, time] = to_datetime(data.loc[:, time])
-                    d1 = data.set_index(time)
-                else:
-                    d1 = data.set_index(to_datetime(time))
-                d1.index.name = 'time'
-            if isinstance(mtypes, (str, int)):
-                d1.columns.name = 'site'
-                d1.columns = to_numeric(d1.columns, errors='ignore', downcast='integer')
-                d1['mtype'] = mtypes
-                d2 = d1.set_index('mtype', append=True)
-                input1 = d2.stack().reorder_levels(['mtype', 'site', 'time'])
-    elif dformat is 'long':
-        if not isinstance(mtypes, (str, int)) or not isinstance(sites, (str, int)) or not isinstance(time, (str, int)) or not isinstance(values, (str, int)):
-            raise ValueError("Long format DataFrame must have 4 columns each corresponding to 'mtypes', 'sites', 'time', and 'values'.")
+            input1 = d1.reset_index().melt(id_vars='time')
+            input1.rename(columns={hydro_id: 'hydro_id', sites: 'site'}, inplace=True)
         else:
             d1 = data.copy()
-            cols = d1.columns
-            if len(cols) < 4:
-                set1 = [mtypes, sites]
-                w1 = where(Series(set1).isin(cols))[0][0]
-                if w1 == 0:
-                    d1['site'] = sites
-                    sites = 'site'
-                else:
-                    d1['mtype'] = mtypes
-                    mtypes = 'mtype'
+            d1.index.name = 'time'
+            if '/' in hydro_id:
+                d1.columns.name = 'site'
+                input1 = d1.reset_index().melt(id_vars='time')
+                input1['hydro_id'] = hydro_id
+            else:
+                d1.columns.name = 'hydro_id'
+                input1 = d1.reset_index().melt(id_vars='time')
+                input1['site'] = sites
+    elif dformat is 'long':
+        if (len(data.columns) < 4) or not isinstance(hydro_id, str) or not isinstance(sites, str) or not isinstance(times, str) or not isinstance(values, str):
+            raise ValueError("Long format DataFrame must have 4 or 5 columns each corresponding to hydro_id, sites, time, and values (and optionally qual_codes).")
+        input1 = data.copy()
+        input1.rename(columns={hydro_id: 'hydro_id', sites: 'site', times: 'time', values: 'value', qual_codes: 'qual_code'}, inplace=True)
+        if input1['time'].dtype.type != np.datetime64:
+            input1['time'] = pd.to_datetime(input1['time'])
+        if any(input1.value.isnull()):
+            input1 = input1.dropna()
 
-            if not isinstance(d1.loc[:, time], DatetimeIndex):
-                d1.loc[:, time] = to_datetime(d1.loc[:, time])
-            d1.rename(columns={mtypes: 'mtype', sites: 'site', time: 'time'}, inplace=True)
-            input1 = d1.set_index(['mtype', 'site', 'time'])[values]
-            input1.index.set_levels(to_numeric(input1.index.levels[1], errors='ignore'), level='site', inplace=True)
+    ### Categorise hydro_id and site columns and set index
+    input2 = input1.copy()
+    input2['hydro_id'] = input2['hydro_id'].astype('category')
+    input2['site'] = input2['site'].astype('category')
+    input2 = input2.set_index(['hydro_id', 'site', 'time'])
+    df_index = input2.index.droplevel('time').drop_duplicates()
 
-    ### Run additional checks and append to existing data
-    ## Remove data with NaN
-    if any(input1.isnull()):
-        input2 = input1[input1.notnull()].reset_index()
-        input1 = input2.set_index(['mtype', 'site', 'time'])[values]
+    ### Run additional checks
+    ## Check hydro_ids
+    new_hydro_ids = input2.index.levels[0]
+    hydro_ids_bool = np.in1d(new_hydro_ids, all_hydro_ids.index)
+    if any(~hydro_ids_bool):
+        sel_hydro_ids = new_hydro_ids[hydro_ids_bool]
+        input2 = input2.loc(axis=0)[sel_hydro_ids, :, :]
 
-    ## Check mtypes
-    new_mtypes = input1.index.levels[0]
-    mtypes_bool = in1d(new_mtypes, all_mtypes)
-    if any(~mtypes_bool):
-        sel_mtypes = new_mtypes[mtypes_bool]
-        input1 = input1.loc(axis=0)[sel_mtypes, :, :]
+    ## Check freq_type and assign
+    _assign_mfreq(self, df_index, freq_type)
 
-    input1.name = 'data'
+    ### Assign units
+    _assign_units(self, df_index, units)
 
-    ## Remove base_stats if it exists
-    if hasattr(self, '_base_stats'):
-        delattr(self, '_base_stats')
+#    ### Convert to series'
+#    if isinstance(qual_codes, str):
+#        qual = input2['qual_code']
+#        qual.name = 'qual_code'
+#    else:
+#        qual = None
+#    tsdata = input2['value']
+#    tsdata.name = 'tsdata'
 
-    ## Add data to hydro object
+    ### Add data to hydro object
     if add:
-        if hasattr(self, 'data'):
-            setattr(self, 'data', input1.combine_first(self.data).sort_index())
+        ### Remove base_stats if it exists
+        if hasattr(self, '_base_stats'):
+            delattr(self, '_base_stats')
+        if hasattr(self, 'tsdata'):
+            setattr(self, 'tsdata', input2.combine_first(self.tsdata).sort_index())
         else:
-            setattr(self, 'data', input1.sort_index())
+            setattr(self, 'tsdata', input2.sort_index())
+
+#        if isinstance(qual, pd.Series):
+#            if hasattr(self, 'qual_code'):
+#                setattr(self, 'qual_code', qual.combine_first(self.qual_code).sort_index())
+#            else:
+#                setattr(self, 'qual_code', qual.sort_index())
 
         ## Reassign attributes
         _import_attr(self)
 
         ## Return
-        return(self)
+        return self
     else:
         new1 = self.copy()
-        setattr(new1, 'data', input1.sort_index())
+        setattr(new1, 'tsdata', input2.sort_index())
+#        if isinstance(qual, pd.Series):
+#            setattr(new1, 'qual_code', qual.sort_index())
         _import_attr(new1)
-        if hasattr(new1, 'site_geo_attr'):
-            new1.get_site_geo_attr()
-        if hasattr(new1, 'geo_loc'):
-            new1.add_geo_loc(new1.geo_loc, check=False)
-        if hasattr(new1, 'geo_catch'):
-            new1.add_geo_catch(new1.geo_catch, check=False)
-        return(new1)
+#        if hasattr(new1, 'site_geo_attr'):
+#            new1.get_site_geo_attr()
+        if hasattr(new1, 'geo_point'):
+            new1.add_geo_point(new1.geo_point, check=False)
+#        if hasattr(new1, 'geo_catch'):
+#            new1.add_geo_catch(new1.geo_catch, check=False)
+        return new1
 
 
 ### Import helper functions
@@ -161,24 +161,24 @@ def add_data(self, data, time=None, sites=None, mtypes=None, values=None, dforma
 
 def _import_attr(self):
     ## Assign the list of available mtypes
-    self.mtypes = self.data.index.levels[0].tolist()
+    self.hydro_id = self.tsdata.index.levels[0].tolist()
 
     ## Assign the list of available sites
-    self.sites = self.data.index.levels[1].tolist()
+    self.sites = self.tsdata.index.levels[1].tolist()
 
     ## Assign a dict of sites to mtypes
-    mtypes1 = self.data.index.get_level_values('mtype')
-    sites1 = self.data.index.get_level_values('site')
-    zipped = zip(mtypes1, sites1)
+    hydro_id1 = self.tsdata.index.get_level_values('hydro_id')
+    sites1 = self.tsdata.index.get_level_values('site')
+    zipped = zip(hydro_id1, sites1)
     ms = defaultdict(set)
     for a, b in zipped:
         ms[a].add(b)
-    setattr(self, 'mtypes_sites', dict(ms))
+    setattr(self, 'hydroid_sites', dict(ms))
 
     sm = defaultdict(set)
     for a, b in zipped:
         sm[b].add(a)
-    setattr(self, 'sites_mtypes', dict(sm))
+    setattr(self, 'sites_hydroid', dict(sm))
 
     ## Assign a blank site attribute table
 #    if hasattr(self, 'site_attr'):
@@ -192,6 +192,63 @@ def _import_attr(self):
 #        site_attr.index.name = 'site'
 #        setattr(self, 'site_attr', site_attr)
 
+def _assign_mfreq(self, df_index, freq_type):
+    """
+
+    """
+    if isinstance(freq_type, str):
+        if freq_type in mfreq_list:
+            mfreq_s = pd.Series(freq_type, index=df_index, name='mfreq', dtype='category')
+        else:
+            raise ValueError('If freq_type is a str then it must be one of ' +  ', '.join(mfreq_list))
+    elif isinstance(freq_type, dict):
+        if isinstance(freq_type.keys()[0], tuple):
+            mfreq_mis = [i for i in df_index.tolist() if i not in freq_type.keys()]
+            if mfreq_mis:
+                raise ValueError('If freq_type is a dict with tuples as keys, then they must have the same combination of hydro_ids and sites as the input data. Missing tuples include ' + str(mfreq_mis)[1:-1])
+            mfreq_s = pd.DataFrame.from_dict(freq_type, orient='index')[0]
+            mfreq_s.index = pd.MultiIndex.from_tuples(mfreq_s.index)
+            mfreq_s.name = 'mfreq'
+            mfreq_s.index.names = ['hydro_id', 'site']
+        else:
+            mfreq_mis = [i for i in df_index.levels[0].tolist() if i not in freq_type.keys()]
+            if mfreq_mis:
+                raise ValueError('If freq_type is a dict with hydro_ids as keys, then they must have the same number of hydro_ids as the input data. Missing hydro_ids include ' + str(mfreq_mis)[1:-1])
+            mfreq_s1 = pd.DataFrame.from_dict(freq_type, orient='index')[0]
+            mfreq_s1.name = 'mfreq'
+            mfreq_s1.index.names = ['hydro_id']
+            mfreq_s = pd.Series(mfreq_s1[df_index.get_level_values(0)].values, index=df_index, name='mfreq')
+    setattr(self, 'mfreq', mfreq_s)
+
+
+def _assign_units(self, df_index, units):
+    """
+
+    """
+    hydro_id1 = df_index.levels[0].tolist()
+    units_dict = {}
+    if isinstance(units, str):
+        if len(hydro_id1) != 1:
+            raise ValueError('If there are more than one hydro_id, a dict needs to be passed to units (or None).')
+        units_dict.update({hydro_id1[0]: ureg(units)})
+    elif isinstance(units, dict):
+        units_mis = [i for i in hydro_id1 if i not in units.keys()]
+        if units_mis:
+            raise ValueError('If units is a dict with hydro_ids as keys, then they must have the same number of hydro_ids as the input data. Missing hydro_ids include ' + str(units_mis)[1:-1])
+        if isinstance(units[units.keys()[0]], ureg.Quantity):
+            units_dict = units
+        else:
+            for u in units:
+                units_dict.update({u: ureg(units[u])})
+    else:
+        mtypes = all_hydro_ids.loc[hydro_id1, ['measurement']]
+        hydro_id_units = pd.merge(mtypes, mtype_df[['Units']], right_index=True, left_on='measurement')
+        hydro_id_units = hydro_id_units.drop('measurement', axis=1)['Units'].to_dict()
+        for u in hydro_id_units:
+            units_dict.update({u: ureg(hydro_id_units[u])})
+    setattr(self, 'units', units_dict)
+
+
 ###################################################
 #### Combine two hydro class objects together
 
@@ -199,14 +256,18 @@ def combine(self, hp):
     """
     Function to combine two hydro class objects.
     """
-    new1 = self.add_data(hp.data.reset_index(), 'time', 'site', 'mtype', 'data', dformat='long')
+    if 'qual_code' in hp.tsdata.columns:
+        qual1 = 'qual_code'
+    else:
+        qual1 = None
+    new1 = self.add_data(hp.tsdata.reset_index(), dformat='long', hydro_id='hydro_id', freq_type=hp.mfreq.to_dict(), times='time', sites='site', values='tsdata', units=hp.units, qual_codes=qual1)
     if hasattr(hp, 'site_attr'):
         new1.add_site_attr(hp.site_attr)
-    if hasattr(hp, 'geo_loc'):
-        new1.add_geo_loc(hp.geo_loc, check=False)
+    if hasattr(hp, 'geo_point'):
+        new1.add_geo_point(hp.geo_point, check=False)
     if hasattr(hp, 'geo_catch'):
         new1.add_geo_catch(hp.geo_catch, check=False)
-    return(new1)
+    return new1
 
 
 ####################################################
@@ -224,41 +285,40 @@ def _add_geo_data(self, geo, obj_name):
     else:
         geo_sites = []
     sites = self.sites
-    geo_sites_check = ~Series(sites).isin(geo_sites)
+    geo_sites_check = ~pd.Series(sites).isin(geo_sites)
     if (len(sites) < len(geo_sites)) & all(~geo_sites_check):
         pre_geo = pre_geo.loc[sites]
         setattr(self, obj_name, pre_geo)
     if any(geo_sites_check):
-        sites_sel = Series(sites)[geo_sites_check]
-        if isinstance(geo, (GeoDataFrame, str)):
+        sites_sel = pd.Series(sites)[geo_sites_check]
+        if isinstance(geo, (pd.GeoDataFrame, str)):
             if isinstance(geo, str):
-                geo0 = read_file(geo)
+                geo0 = gpd.read_file(geo)
                 geo1 = geo0.set_index(geo0.columns[0])
             else:
                 geo1 = geo
-            site_sel_check = Series(sites_sel).isin(geo1.index)
+            site_sel_check = pd.Series(sites_sel).isin(geo1.index)
             sites_sel2 = sites_sel[site_sel_check]
             if any(site_sel_check):
                 if hasattr(self, obj_name):
-                    setattr(self, obj_name, concat([pre_geo, geo1.loc[sites_sel2, :]]))
+                    setattr(self, obj_name, pd.concat([pre_geo, geo1.loc[sites_sel2, :]]))
                 else:
                     setattr(self, obj_name, geo1.loc[sites_sel2, :])
                 getattr(self, obj_name).index.name = 'site'
             else:
-                raise ValueError('Input geo data must have locations for some of the mtype sites.')
+                raise ValueError('Input geo data must have locations for some of the sites.')
         else:
             raise ValueError('Input data must be a GeoDataFrame or a string path to a shapefile!')
 
 
-def add_geo_loc(self, geo, check=True):
-    _add_geo_data(self, geo, 'geo_loc')
+def add_geo_point(self, geo, check=True):
+    _add_geo_data(self, geo, 'geo_point')
     if check:
-        _check_geo_sites(self, 'geo_loc')
+        _check_geo_sites(self, 'geo_point')
 
 
 def add_geo_catch(self, geo, check=True):
-    if hasattr(self, 'geo_loc'):
-        from core.classes.hydro.indexing import _comp_by_catch
+    if hasattr(self, 'geo_point'):
         _add_geo_data(self, geo, 'geo_catch')
         _comp_by_catch(self)
         if check:
@@ -270,11 +330,13 @@ def add_geo_catch(self, geo, check=True):
 ### Checks
 
 ## Identify missing site locations
-def missing_geo_loc_sites(self):
-    if hasattr(self, 'geo_loc'):
-        geo_sites = self.geo_loc.index.tolist()
+
+
+def missing_geo_point_sites(self):
+    if hasattr(self, 'geo_point'):
+        geo_sites = self.geo_point.index.tolist()
         sites = self.sites
-        mis_sites = Series(sites)[~Series(sites).isin(geo_sites)].tolist()
+        mis_sites = pd.Series(sites)[~pd.Series(sites).isin(geo_sites)].tolist()
         self._mis_geo_sites = mis_sites
         return(mis_sites)
     else:
@@ -284,11 +346,11 @@ def missing_geo_loc_sites(self):
 def _check_crs(self):
     geo_crs = {i: getattr(self, i).crs for i in self.__dict__.keys() if 'geo' in i}
     if len(geo_crs) > 1:
-        geo_loc_crs = getattr(self, 'geo_loc').crs
+        geo_point_crs = getattr(self, 'geo_point').crs
         for i in geo_crs.keys():
-            if not i == 'geo_loc':
+            if not i == 'geo_point':
                 geo1 = getattr(self, i)
-                geo2 = geo1.to_crs(crs=geo_loc_crs)
+                geo2 = geo1.to_crs(crs=geo_point_crs)
                 setattr(self, i, geo2)
 
 ## Check if all sites have been found for the geo data
@@ -304,38 +366,38 @@ def _check_geo_sites(self, geo_name):
 ####################################################
 #### Populate site attributes
 
-def add_site_attr(self, df):
-    """
-    Function to add in site attributes. df must be a dataframe with the sites as an index.
-    """
-    if isinstance(df, DataFrame):
-        sites = self.sites
-        if all(Series(sites).isin(df.index)):
-            new_attr1 = df.loc[df.index.isin(sites), site_attr_lst]
-        elif any(Series(sites).isin(df.index)):
-            new_attr = df.loc[df.index.isin(sites), site_attr_lst]
-            new_attr1 = new_attr.combine_first(self.site_attr)
-        else:
-            raise ValueError('No new sites!')
-        setattr(self, 'site_attr', new_attr1)
+# def add_site_attr(self, df):
+#     """
+#     Function to add in site attributes. df must be a dataframe with the sites as an index.
+#     """
+#     if isinstance(df, pd.DataFrame):
+#         sites = self.sites
+#         if all(pd.Series(sites).isin(df.index)):
+#             new_attr1 = df.loc[df.index.isin(sites), site_attr_lst]
+#         elif any(pd.Series(sites).isin(df.index)):
+#             new_attr = df.loc[df.index.isin(sites), site_attr_lst]
+#             new_attr1 = new_attr.combine_first(self.site_attr)
+#         else:
+#             raise ValueError('No new sites!')
+#         setattr(self, 'site_attr', new_attr1)
 
 
 ####################################################
 #### File reading functions (csv and netcdf)
 
 
-def rd_csv(self, csv_path, time=None, sites=None, mtypes=None, values=None, dformat=None, multiindex=False, skiprows=0):
+def rd_csv(self, csv_path, dformat, hydro_id, freq_type, multicolumn=False, times=None, sites=None, values=None, units=None, qual_codes=None):
     """
     Simple function to read in time series data and make it regular if needed.
     """
-
-    if multiindex:
-        ts = read_csv(csv_path, parse_dates=True, infer_datetime_format=True, dayfirst=True, skiprows=skiprows, header=[0, 1], index_col=0)
-        ts.columns.names = ['mtype', 'site']
-        ts.index.name = 'time'
+    if dformat == 'wide':
+        if multicolumn:
+            ts = pd.read_csv(csv_path, parse_dates=True, infer_datetime_format=True, dayfirst=True, header=[0, 1], index_col=0)
+        else:
+            ts = pd.read_csv(csv_path, parse_dates=[times], infer_datetime_format=True, dayfirst=True, header='infer')
     else:
-        ts = read_csv(csv_path, parse_dates=[time], infer_datetime_format=True, dayfirst=True, skiprows=skiprows, header='infer')
-    self.add_data(ts, time=time, sites=sites, mtypes=mtypes, values=values, dformat=dformat)
+        ts = pd.read_csv(csv_path, parse_dates=[times], infer_datetime_format=True, dayfirst=True, header='infer').reset_index()
+    self.add_data(ts, dformat=dformat, hydro_id=hydro_id, freq_type=freq_type, times=times, sites=sites, values=values, units=units, qual_codes=qual_codes)
     return(self)
 
 
@@ -344,31 +406,31 @@ def rd_netcdf(self, nc_path):
     Function to read a netcdf file (.nc) that was an export from a hydro class.
     """
 
-    with open_dataset(nc_path) as ds1:
+    with xr.open_dataset(nc_path) as ds1:
 
         ### Load in the geometry data
-        if any(in1d(ds1.data_vars.keys(), 'geo_catch_wkt')):
+        if any(np.in1d(ds1.data_vars.keys(), 'geo_catch_wkt')):
     #        geo_catch_cols = [i for i in ds1.keys() if 'geo_catch' in i]
             df_catch = ds1['geo_catch_wkt'].to_dataframe()
             df_catch.columns = df_catch.columns.str.replace('geo_catch_', '')
             geo1 = [loads(x) for x in df_catch.wkt]
-            gdf_catch = GeoDataFrame(df_catch.drop('wkt', axis=1), geometry=geo1, crs=dict(ds1.attrs['crs']))
+            gdf_catch = gpd.GeoDataFrame(df_catch.drop('wkt', axis=1), geometry=geo1, crs=dict(ds1.attrs['crs']))
             gdf_catch.index.name = 'site'
             ds1 = ds1.drop('geo_catch_wkt')
 
-        if any(in1d(ds1.data_vars.keys(), 'geo_loc_x')):
-            geo_loc_cols = [i for i in ds1.keys() if 'geo_loc' in i]
-            df_loc = ds1[geo_loc_cols].to_dataframe()
-            df_loc.columns = df_loc.columns.str.replace('geo_loc_', '')
-            geo2 = [Point(xy) for xy in zip(df_loc.x, df_loc.y)]
-            crs1 = dict(ds1['geo_loc_x'].attrs.copy())
+        if any(np.in1d(ds1.data_vars.keys(), 'geo_point_x')):
+            geo_point_cols = [i for i in ds1.keys() if 'geo_point' in i]
+            df_point = ds1[geo_point_cols].to_dataframe()
+            df_point.columns = df_point.columns.str.replace('geo_point_', '')
+            geo2 = [Point(xy) for xy in zip(df_point.x, df_point.y)]
+            crs1 = dict(ds1['geo_point_x'].attrs.copy())
             crs1.update({i: bool(crs1[i]) for i in crs1 if crs1[i] in ['True', 'False']})
-            gdf_loc = GeoDataFrame(df_loc.drop(['x', 'y'], axis=1), geometry=geo2, crs=crs1)
-            gdf_loc.index.name = 'site'
-            ds1 = ds1.drop(geo_loc_cols)
+            gdf_point = gpd.GeoDataFrame(df_point.drop(['x', 'y'], axis=1), geometry=geo2, crs=crs1)
+            gdf_point.index.name = 'site'
+            ds1 = ds1.drop(geo_point_cols)
 
         ### Load in the site attribute data
-        if any(in1d(ds1.data_vars.keys(), 'site_attr')):
+        if any(np.in1d(ds1.data_vars.keys(), 'site_attr')):
             site_attr_cols = [i for i in ds1.keys() if 'site_attr' in i]
             site_attr1 = ds1[site_attr_cols].to_dataframe()
             site_attr1.columns = site_attr1.columns.str.replace('site_attr_', '')
@@ -383,14 +445,14 @@ def rd_netcdf(self, nc_path):
         ### Add in the earlier attributes
         if 'site_attr1' in locals():
             self.add_site_attr(site_attr1)
-        if 'gdf_loc' in locals():
-            self.add_geo_loc(gdf_loc, check=False)
+        if 'gdf_point' in locals():
+            self.add_geo_point(gdf_point, check=False)
         if 'gdf_catch' in locals():
             self.add_geo_catch(gdf_catch, check=False)
 
         ### return
     #    ds1.close()
-        return(self)
+        return self
 
 
 ##############################################
@@ -471,7 +533,7 @@ def _rd_hydro_mssql(self, server, database, table, mtype, date_col, site_col, da
     df['mtype'] = mtype
 
     self.add_data(df, 'time', 'site', 'mtype', 'data', 'long')
-    return(self)
+    return self
 
 
 def _rd_hydro_geo_mssql(self, server, database, table, geo_dict):
@@ -481,7 +543,7 @@ def _rd_hydro_geo_mssql(self, server, database, table, geo_dict):
 
     sites1 = rd_sql(server, database, table, 'site', geo_dict)
     sites2 = sites1.site.astype(str).values.tolist()
-    return(sites2)
+    return sites2
 
 
 def _proc_hydro_sql(self, sites_sql_fun, mtype_dict, mtype, sites=None, from_date=None, to_date=None, qual_codes=None, min_count=None, buffer_dis=0, resample_code=None, period=1, fun='mean'):
@@ -489,11 +551,11 @@ def _proc_hydro_sql(self, sites_sql_fun, mtype_dict, mtype, sites=None, from_dat
     Convenience function for reading in mssql data from standardized hydro tables.
     """
 
-    if isinstance(sites, GeoDataFrame):
+    if isinstance(sites, gpd.GeoDataFrame):
         loc1 = sites_sql_fun()
         sites1 = sel_sites_poly(loc1, sites, buffer_dis).index.astype(str)
     else:
-        sites1 = Series(sites).astype(str)
+        sites1 = pd.Series(sites).astype(str)
 
     h1 = self.copy()
     if isinstance(mtype_dict, (list, tuple)):
@@ -522,7 +584,7 @@ def _proc_hydro_sql(self, sites_sql_fun, mtype_dict, mtype, sites=None, from_dat
     elif callable(mtype_dict):
         h1 = mtype_dict(h1, sites=sites1, mtype=mtype, from_date=from_date, to_date=to_date, min_count=min_count)
 
-    return(h1)
+    return h1
 
 
 

@@ -1,688 +1,688 @@
-mtype,site,time,data
-river_flow_cont_qc,65101,2016-01-01,20.696
-river_flow_cont_qc,65101,2016-01-02,21.019
-river_flow_cont_qc,65101,2016-01-03,38.637
-river_flow_cont_qc,65101,2016-01-04,70.794
-river_flow_cont_qc,65101,2016-01-05,51.882
-river_flow_cont_qc,65101,2016-01-06,42.521
-river_flow_cont_qc,65101,2016-01-07,36.901
-river_flow_cont_qc,65101,2016-01-08,36.695
-river_flow_cont_qc,65101,2016-01-09,77.287
-river_flow_cont_qc,65101,2016-01-10,59.609
-river_flow_cont_qc,65101,2016-01-11,50.637
-river_flow_cont_qc,65101,2016-01-12,44.124
-river_flow_cont_qc,65101,2016-01-13,39.464
-river_flow_cont_qc,65101,2016-01-14,37.369
-river_flow_cont_qc,65101,2016-01-15,34.403
-river_flow_cont_qc,65101,2016-01-16,43.455
-river_flow_cont_qc,65101,2016-01-17,53.686
-river_flow_cont_qc,65101,2016-01-18,58.138
-river_flow_cont_qc,65101,2016-01-19,77.015
-river_flow_cont_qc,65101,2016-01-20,69.605
-river_flow_cont_qc,65101,2016-01-21,58.588
-river_flow_cont_qc,65101,2016-01-22,51.151
-river_flow_cont_qc,65101,2016-01-23,44.723
-river_flow_cont_qc,65101,2016-01-24,40.565
-river_flow_cont_qc,65101,2016-01-25,39.026
-river_flow_cont_qc,65101,2016-01-26,36.665
-river_flow_cont_qc,65101,2016-01-27,42.304
-river_flow_cont_qc,65101,2016-01-28,90.007
-river_flow_cont_qc,65101,2016-01-29,82.571
-river_flow_cont_qc,65101,2016-01-30,68.899
-river_flow_cont_qc,65101,2016-01-31,60.989
-river_flow_cont_qc,65101,2016-02-01,54.425
-river_flow_cont_qc,65101,2016-02-02,48.073
-river_flow_cont_qc,65101,2016-02-03,42.032
-river_flow_cont_qc,65101,2016-02-04,37.489
-river_flow_cont_qc,65101,2016-02-05,34.555
-river_flow_cont_qc,65101,2016-02-06,32.726
-river_flow_cont_qc,65101,2016-02-07,30.774
-river_flow_cont_qc,65101,2016-02-08,29.362
-river_flow_cont_qc,65101,2016-02-09,28.088
-river_flow_cont_qc,65101,2016-02-10,27.107
-river_flow_cont_qc,65101,2016-02-11,25.464
-river_flow_cont_qc,65101,2016-02-12,24.296
-river_flow_cont_qc,65101,2016-02-13,23.415
-river_flow_cont_qc,65101,2016-02-14,22.68
-river_flow_cont_qc,65101,2016-02-15,21.878
-river_flow_cont_qc,65101,2016-02-16,20.331
-river_flow_cont_qc,65101,2016-02-17,19.482
-river_flow_cont_qc,65101,2016-02-18,30.301
-river_flow_cont_qc,65101,2016-02-19,60.073
-river_flow_cont_qc,65101,2016-02-20,71.924
-river_flow_cont_qc,65101,2016-02-21,57.81
-river_flow_cont_qc,65101,2016-02-22,49.096
-river_flow_cont_qc,65101,2016-02-23,43.144
-river_flow_cont_qc,65101,2016-02-24,38.48
-river_flow_cont_qc,65101,2016-02-25,34.917
-river_flow_cont_qc,65101,2016-02-26,32.28
-river_flow_cont_qc,65101,2016-02-27,29.833
-river_flow_cont_qc,65101,2016-02-28,28.17
-river_flow_cont_qc,65101,2016-02-29,27.205
-river_flow_cont_qc,65101,2016-03-01,27.236
-river_flow_cont_qc,65101,2016-03-02,26.139
-river_flow_cont_qc,65101,2016-03-03,24.725
-river_flow_cont_qc,65101,2016-03-04,23.049
-river_flow_cont_qc,65101,2016-03-05,21.361
-river_flow_cont_qc,65101,2016-03-06,20.716
-river_flow_cont_qc,65101,2016-03-07,20.146
-river_flow_cont_qc,65101,2016-03-08,20.342
-river_flow_cont_qc,69505,2016-01-01,2.3
-river_flow_cont_qc,69505,2016-01-02,2.33
-river_flow_cont_qc,69505,2016-01-03,2.898
-river_flow_cont_qc,69505,2016-01-04,4.44
-river_flow_cont_qc,69505,2016-01-05,3.585
-river_flow_cont_qc,69505,2016-01-06,3.143
-river_flow_cont_qc,69505,2016-01-07,2.827
-river_flow_cont_qc,69505,2016-01-08,2.986
-river_flow_cont_qc,69505,2016-01-09,2.757
-river_flow_cont_qc,69505,2016-01-10,2.553
-river_flow_cont_qc,69505,2016-01-11,2.525
-river_flow_cont_qc,69505,2016-01-12,2.409
-river_flow_cont_qc,69505,2016-01-13,2.669
-river_flow_cont_qc,69505,2016-01-14,2.766
-river_flow_cont_qc,69505,2016-01-15,2.424
-river_flow_cont_qc,69505,2016-01-16,2.833
-river_flow_cont_qc,69505,2016-01-17,2.809
-river_flow_cont_qc,69505,2016-01-18,3.703
-river_flow_cont_qc,69505,2016-01-19,10.389
-river_flow_cont_qc,69505,2016-01-20,12.776
-river_flow_cont_qc,69505,2016-01-21,6.703
-river_flow_cont_qc,69505,2016-01-22,4.973
-river_flow_cont_qc,69505,2016-01-23,4.123
-river_flow_cont_qc,69505,2016-01-24,3.708
-river_flow_cont_qc,69505,2016-01-25,3.398
-river_flow_cont_qc,69505,2016-01-26,3.219
-river_flow_cont_qc,69505,2016-01-27,4.139
-river_flow_cont_qc,69505,2016-01-28,5.939
-river_flow_cont_qc,69505,2016-01-29,5.65
-river_flow_cont_qc,69505,2016-01-30,5.015
-river_flow_cont_qc,69505,2016-01-31,4.638
-river_flow_cont_qc,69505,2016-02-01,4.108
-river_flow_cont_qc,69505,2016-02-02,3.672
-river_flow_cont_qc,69505,2016-02-03,3.394
-river_flow_cont_qc,69505,2016-02-04,3.062
-river_flow_cont_qc,69505,2016-02-05,2.985
-river_flow_cont_qc,69505,2016-02-06,2.947
-river_flow_cont_qc,69505,2016-02-07,2.929
-river_flow_cont_qc,69505,2016-02-08,2.776
-river_flow_cont_qc,69505,2016-02-09,2.699
-river_flow_cont_qc,69505,2016-02-10,2.676
-river_flow_cont_qc,69505,2016-02-11,2.517
-river_flow_cont_qc,69505,2016-02-12,2.458
-river_flow_cont_qc,69505,2016-02-13,2.816
-river_flow_cont_qc,69505,2016-02-14,2.573
-river_flow_cont_qc,69505,2016-02-15,2.398
-river_flow_cont_qc,69505,2016-02-16,2.264
-river_flow_cont_qc,69505,2016-02-17,2.715
-river_flow_cont_qc,69505,2016-02-18,3.012
-river_flow_cont_qc,69505,2016-02-19,4.21
-river_flow_cont_qc,69505,2016-02-20,3.286
-river_flow_cont_qc,69505,2016-02-21,2.843
-river_flow_cont_qc,69505,2016-02-22,2.695
-river_flow_cont_qc,69505,2016-02-23,2.673
-river_flow_cont_qc,69505,2016-02-24,2.559
-river_flow_cont_qc,69505,2016-02-25,2.396
-river_flow_cont_qc,69505,2016-02-26,2.295
-river_flow_cont_qc,69505,2016-02-27,2.199
-river_flow_cont_qc,69505,2016-02-28,2.182
-river_flow_cont_qc,69505,2016-02-29,2.223
-river_flow_cont_qc,69505,2016-03-01,2.207
-river_flow_cont_qc,69505,2016-03-02,2.139
-river_flow_cont_qc,69505,2016-03-03,2.086
-river_flow_cont_qc,69505,2016-03-04,1.997
-river_flow_cont_qc,69505,2016-03-05,1.977
-river_flow_cont_qc,69505,2016-03-06,1.916
-river_flow_cont_qc,69505,2016-03-07,1.911
-river_flow_cont_qc,69505,2016-03-08,1.944
-river_flow_cont_qc,69602,2016-01-01,0.569
-river_flow_cont_qc,69602,2016-01-02,0.58
-river_flow_cont_qc,69602,2016-01-03,0.627
-river_flow_cont_qc,69602,2016-01-04,0.631
-river_flow_cont_qc,69602,2016-01-05,0.67
-river_flow_cont_qc,69602,2016-01-06,0.638
-river_flow_cont_qc,69602,2016-01-07,0.579
-river_flow_cont_qc,69602,2016-01-08,0.576
-river_flow_cont_qc,69602,2016-01-09,0.59
-river_flow_cont_qc,69602,2016-01-10,0.584
-river_flow_cont_qc,69602,2016-01-11,0.568
-river_flow_cont_qc,69602,2016-01-12,0.545
-river_flow_cont_qc,69602,2016-01-13,0.56
-river_flow_cont_qc,69602,2016-01-14,0.559
-river_flow_cont_qc,69602,2016-01-15,0.574
-river_flow_cont_qc,69602,2016-01-16,0.606
-river_flow_cont_qc,69602,2016-01-17,0.674
-river_flow_cont_qc,69602,2016-01-18,0.94
-river_flow_cont_qc,69602,2016-01-19,2.701
-river_flow_cont_qc,69602,2016-01-20,45.647
-river_flow_cont_qc,69602,2016-01-21,12.782
-river_flow_cont_qc,69602,2016-01-22,6.115
-river_flow_cont_qc,69602,2016-01-23,4.353
-river_flow_cont_qc,69602,2016-01-24,3.653
-river_flow_cont_qc,69602,2016-01-25,3.28
-river_flow_cont_qc,69602,2016-01-26,3.056
-river_flow_cont_qc,69602,2016-01-27,2.899
-river_flow_cont_qc,69602,2016-01-28,5.055
-river_flow_cont_qc,69602,2016-01-29,6.702
-river_flow_cont_qc,69602,2016-01-30,5.465
-river_flow_cont_qc,69602,2016-01-31,5.574
-river_flow_cont_qc,69602,2016-02-01,4.932
-river_flow_cont_qc,69602,2016-02-02,4.031
-river_flow_cont_qc,69602,2016-02-03,3.435
-river_flow_cont_qc,69602,2016-02-04,3.028
-river_flow_cont_qc,69602,2016-02-05,2.713
-river_flow_cont_qc,69602,2016-02-06,2.624
-river_flow_cont_qc,69602,2016-02-07,2.577
-river_flow_cont_qc,69602,2016-02-08,2.552
-river_flow_cont_qc,69602,2016-02-09,2.419
-river_flow_cont_qc,69602,2016-02-10,2.21
-river_flow_cont_qc,69602,2016-02-11,2.05
-river_flow_cont_qc,69602,2016-02-12,1.945
-river_flow_cont_qc,69602,2016-02-13,1.881
-river_flow_cont_qc,69602,2016-02-14,1.869
-river_flow_cont_qc,69602,2016-02-15,1.83
-river_flow_cont_qc,69602,2016-02-16,1.791
-river_flow_cont_qc,69602,2016-02-17,1.776
-river_flow_cont_qc,69602,2016-02-18,1.758
-river_flow_cont_qc,69602,2016-02-19,1.714
-river_flow_cont_qc,69602,2016-02-20,1.63
-river_flow_cont_qc,69602,2016-02-21,1.625
-river_flow_cont_qc,69602,2016-02-22,1.677
-river_flow_cont_qc,69602,2016-02-23,1.728
-river_flow_cont_qc,69602,2016-02-24,1.641
-river_flow_cont_qc,69602,2016-02-25,1.679
-river_flow_cont_qc,69602,2016-02-26,1.614
-river_flow_cont_qc,69602,2016-02-27,1.554
-river_flow_cont_qc,69602,2016-02-28,1.523
-river_flow_cont_qc,69602,2016-02-29,1.504
-river_flow_cont_qc,69602,2016-03-01,1.477
-river_flow_cont_qc,69602,2016-03-02,1.452
-river_flow_cont_qc,69602,2016-03-03,1.425
-river_flow_cont_qc,69602,2016-03-04,1.357
-river_flow_cont_qc,69602,2016-03-05,1.292
-river_flow_cont_qc,69602,2016-03-06,1.266
-river_flow_cont_qc,69602,2016-03-07,1.261
-river_flow_cont_qc,69602,2016-03-08,1.292
-river_flow_cont_qc,69607,2016-01-01,2.383
-river_flow_cont_qc,69607,2016-01-02,2.344
-river_flow_cont_qc,69607,2016-01-03,2.173
-river_flow_cont_qc,69607,2016-01-04,4.45
-river_flow_cont_qc,69607,2016-01-05,4.697
-river_flow_cont_qc,69607,2016-01-06,2.662
-river_flow_cont_qc,69607,2016-01-07,1.821
-river_flow_cont_qc,69607,2016-01-08,1.891
-river_flow_cont_qc,69607,2016-01-09,2.337
-river_flow_cont_qc,69607,2016-01-10,2.186
-river_flow_cont_qc,69607,2016-01-11,2.208
-river_flow_cont_qc,69607,2016-01-12,2.243
-river_flow_cont_qc,69607,2016-01-13,2.341
-river_flow_cont_qc,69607,2016-01-14,2.638
-river_flow_cont_qc,69607,2016-01-15,2.722
-river_flow_cont_qc,69607,2016-01-16,3.429
-river_flow_cont_qc,69607,2016-01-17,4.693
-river_flow_cont_qc,69607,2016-01-18,4.664
-river_flow_cont_qc,69607,2016-01-19,10.562
-river_flow_cont_qc,69607,2016-01-20,35.32
-river_flow_cont_qc,69607,2016-01-21,18.682
-river_flow_cont_qc,69607,2016-01-22,11.773
-river_flow_cont_qc,69607,2016-01-23,8.675
-river_flow_cont_qc,69607,2016-01-24,7.261
-river_flow_cont_qc,69607,2016-01-25,6.366
-river_flow_cont_qc,69607,2016-01-26,5.785
-river_flow_cont_qc,69607,2016-01-27,5.701
-river_flow_cont_qc,69607,2016-01-28,14.346
-river_flow_cont_qc,69607,2016-01-29,15.942
-river_flow_cont_qc,69607,2016-01-30,12.753
-river_flow_cont_qc,69607,2016-01-31,11.552
-river_flow_cont_qc,69607,2016-02-01,10.039
-river_flow_cont_qc,69607,2016-02-02,8.533
-river_flow_cont_qc,69607,2016-02-03,7.017
-river_flow_cont_qc,69607,2016-02-04,5.676
-river_flow_cont_qc,69607,2016-02-05,4.525
-river_flow_cont_qc,69607,2016-02-06,4.008
-river_flow_cont_qc,69607,2016-02-07,3.815
-river_flow_cont_qc,69607,2016-02-08,3.54
-river_flow_cont_qc,69607,2016-02-09,3.106
-river_flow_cont_qc,69607,2016-02-10,2.854
-river_flow_cont_qc,69607,2016-02-11,2.84
-river_flow_cont_qc,69607,2016-02-12,2.758
-river_flow_cont_qc,69607,2016-02-13,2.936
-river_flow_cont_qc,69607,2016-02-14,2.86
-river_flow_cont_qc,69607,2016-02-15,2.559
-river_flow_cont_qc,69607,2016-02-16,2.502
-river_flow_cont_qc,69607,2016-02-17,2.69
-river_flow_cont_qc,69607,2016-02-18,2.825
-river_flow_cont_qc,69607,2016-02-19,2.985
-river_flow_cont_qc,69607,2016-02-20,2.819
-river_flow_cont_qc,69607,2016-02-21,2.611
-river_flow_cont_qc,69607,2016-02-22,2.758
-river_flow_cont_qc,69607,2016-02-23,2.936
-river_flow_cont_qc,69607,2016-02-24,3.108
-river_flow_cont_qc,69607,2016-02-25,2.892
-river_flow_cont_qc,69607,2016-02-26,3.046
-river_flow_cont_qc,69607,2016-02-27,3.067
-river_flow_cont_qc,69607,2016-02-28,2.973
-river_flow_cont_qc,69607,2016-02-29,2.96
-river_flow_cont_qc,69607,2016-03-01,5.405
-river_flow_cont_qc,69607,2016-03-02,6.071
-river_flow_cont_qc,69607,2016-03-03,6.378
-river_flow_cont_qc,69607,2016-03-04,6.374
-river_flow_cont_qc,69607,2016-03-05,6.32
-river_flow_cont_qc,69607,2016-03-06,6.329
-river_flow_cont_qc,69607,2016-03-07,6.388
-river_flow_cont_qc,69607,2016-03-08,6.578
-river_flow_cont_qc,70105,2016-01-01,1.318
-river_flow_cont_qc,70105,2016-01-02,1.191
-river_flow_cont_qc,70105,2016-01-03,1.185
-river_flow_cont_qc,70105,2016-01-04,1.197
-river_flow_cont_qc,70105,2016-01-05,1.101
-river_flow_cont_qc,70105,2016-01-06,1.033
-river_flow_cont_qc,70105,2016-01-07,0.977
-river_flow_cont_qc,70105,2016-01-08,0.957
-river_flow_cont_qc,70105,2016-01-09,0.933
-river_flow_cont_qc,70105,2016-01-10,0.877
-river_flow_cont_qc,70105,2016-01-11,0.821
-river_flow_cont_qc,70105,2016-01-12,0.785
-river_flow_cont_qc,70105,2016-01-13,0.807
-river_flow_cont_qc,70105,2016-01-14,1.113
-river_flow_cont_qc,70105,2016-01-15,1.106
-river_flow_cont_qc,70105,2016-01-16,5.261
-river_flow_cont_qc,70105,2016-01-17,3.933
-river_flow_cont_qc,70105,2016-01-18,5.262
-river_flow_cont_qc,70105,2016-01-19,14.784
-river_flow_cont_qc,70105,2016-01-20,24.583
-river_flow_cont_qc,70105,2016-01-21,9.457
-river_flow_cont_qc,70105,2016-01-22,5.628
-river_flow_cont_qc,70105,2016-01-23,4.105
-river_flow_cont_qc,70105,2016-01-24,3.283
-river_flow_cont_qc,70105,2016-01-25,2.684
-river_flow_cont_qc,70105,2016-01-26,2.334
-river_flow_cont_qc,70105,2016-01-27,2.408
-river_flow_cont_qc,70105,2016-01-28,4.822
-river_flow_cont_qc,70105,2016-01-29,6.203
-river_flow_cont_qc,70105,2016-01-30,4.937
-river_flow_cont_qc,70105,2016-01-31,4.726
-river_flow_cont_qc,70105,2016-02-01,4.005
-river_flow_cont_qc,70105,2016-02-02,3.316
-river_flow_cont_qc,70105,2016-02-03,2.753
-river_flow_cont_qc,70105,2016-02-04,2.258
-river_flow_cont_qc,70105,2016-02-05,1.944
-river_flow_cont_qc,70105,2016-02-06,1.833
-river_flow_cont_qc,70105,2016-02-07,1.739
-river_flow_cont_qc,70105,2016-02-08,1.482
-river_flow_cont_qc,70105,2016-02-09,1.343
-river_flow_cont_qc,70105,2016-02-10,1.345
-river_flow_cont_qc,70105,2016-02-11,1.253
-river_flow_cont_qc,70105,2016-02-12,1.123
-river_flow_cont_qc,70105,2016-02-13,1.063
-river_flow_cont_qc,70105,2016-02-14,1.023
-river_flow_cont_qc,70105,2016-02-15,0.936
-river_flow_cont_qc,70105,2016-02-16,0.86
-river_flow_cont_qc,70105,2016-02-17,0.851
-river_flow_cont_qc,70105,2016-02-18,0.881
-river_flow_cont_qc,70105,2016-02-19,0.886
-river_flow_cont_qc,70105,2016-02-20,0.715
-river_flow_cont_qc,70105,2016-02-21,0.669
-river_flow_cont_qc,70105,2016-02-22,0.676
-river_flow_cont_qc,70105,2016-02-23,0.708
-river_flow_cont_qc,70105,2016-02-24,0.675
-river_flow_cont_qc,70105,2016-02-25,0.642
-river_flow_cont_qc,70105,2016-02-26,0.632
-river_flow_cont_qc,70105,2016-02-27,0.593
-river_flow_cont_qc,70105,2016-02-28,0.57
-river_flow_cont_qc,70105,2016-02-29,0.575
-river_flow_cont_qc,70105,2016-03-01,0.586
-river_flow_cont_qc,70105,2016-03-02,0.57
-river_flow_cont_qc,70105,2016-03-03,0.549
-river_flow_cont_qc,70105,2016-03-04,0.531
-river_flow_cont_qc,70105,2016-03-05,0.513
-river_flow_cont_qc,70105,2016-03-06,0.492
-river_flow_cont_qc,70105,2016-03-07,0.502
-river_flow_cont_qc,70105,2016-03-08,0.521
-river_flow_disc_qc,66,2016-01-22,0.3167
-river_flow_disc_qc,66,2016-03-02,0.187
-river_flow_disc_qc,66,2016-03-08,0.1722
-river_flow_disc_qc,66,2016-03-17,0.2665
-river_flow_disc_qc,66,2017-02-14,0.2066
-river_flow_disc_qc,66,2017-03-31,0.3831
-river_flow_disc_qc,137,2016-03-08,0.4211
-river_wl_cont_qc,65101,2016-01-01,0.28
-river_wl_cont_qc,65101,2016-01-02,0.287
-river_wl_cont_qc,65101,2016-01-03,0.567
-river_wl_cont_qc,65101,2016-01-04,1.027
-river_wl_cont_qc,65101,2016-01-05,0.796
-river_wl_cont_qc,65101,2016-01-06,0.67
-river_wl_cont_qc,65101,2016-01-07,0.583
-river_wl_cont_qc,65101,2016-01-08,0.57
-river_wl_cont_qc,65101,2016-01-09,1.097
-river_wl_cont_qc,65101,2016-01-10,0.896
-river_wl_cont_qc,65101,2016-01-11,0.781
-river_wl_cont_qc,65101,2016-01-12,0.692
-river_wl_cont_qc,65101,2016-01-13,0.625
-river_wl_cont_qc,65101,2016-01-14,0.591
-river_wl_cont_qc,65101,2016-01-15,0.541
-river_wl_cont_qc,65101,2016-01-16,0.672
-river_wl_cont_qc,65101,2016-01-17,0.82
-river_wl_cont_qc,65101,2016-01-18,0.876
-river_wl_cont_qc,65101,2016-01-19,1.096
-river_wl_cont_qc,65101,2016-01-20,1.016
-river_wl_cont_qc,65101,2016-01-21,0.883
-river_wl_cont_qc,65101,2016-01-22,0.787
-river_wl_cont_qc,65101,2016-01-23,0.701
-river_wl_cont_qc,65101,2016-01-24,0.641
-river_wl_cont_qc,65101,2016-01-25,0.618
-river_wl_cont_qc,65101,2016-01-26,0.579
-river_wl_cont_qc,65101,2016-01-27,0.663
-river_wl_cont_qc,65101,2016-01-28,1.215
-river_wl_cont_qc,65101,2016-01-29,1.154
-river_wl_cont_qc,65101,2016-01-30,1.009
-river_wl_cont_qc,65101,2016-01-31,0.914
-river_wl_cont_qc,65101,2016-02-01,0.829
-river_wl_cont_qc,65101,2016-02-02,0.747
-river_wl_cont_qc,65101,2016-02-03,0.662
-river_wl_cont_qc,65101,2016-02-04,0.593
-river_wl_cont_qc,65101,2016-02-05,0.543
-river_wl_cont_qc,65101,2016-02-06,0.511
-river_wl_cont_qc,65101,2016-02-07,0.476
-river_wl_cont_qc,65101,2016-02-08,0.45
-river_wl_cont_qc,65101,2016-02-09,0.427
-river_wl_cont_qc,65101,2016-02-10,0.408
-river_wl_cont_qc,65101,2016-02-11,0.376
-river_wl_cont_qc,65101,2016-02-12,0.353
-river_wl_cont_qc,65101,2016-02-13,0.335
-river_wl_cont_qc,65101,2016-02-14,0.321
-river_wl_cont_qc,65101,2016-02-15,0.304
-river_wl_cont_qc,65101,2016-02-16,0.273
-river_wl_cont_qc,65101,2016-02-17,0.254
-river_wl_cont_qc,65101,2016-02-18,0.458
-river_wl_cont_qc,65101,2016-02-19,0.886
-river_wl_cont_qc,65101,2016-02-20,1.041
-river_wl_cont_qc,65101,2016-02-21,0.873
-river_wl_cont_qc,65101,2016-02-22,0.76
-river_wl_cont_qc,65101,2016-02-23,0.679
-river_wl_cont_qc,65101,2016-02-24,0.609
-river_wl_cont_qc,65101,2016-02-25,0.549
-river_wl_cont_qc,65101,2016-02-26,0.503
-river_wl_cont_qc,65101,2016-02-27,0.459
-river_wl_cont_qc,65101,2016-02-28,0.428
-river_wl_cont_qc,65101,2016-02-29,0.41
-river_wl_cont_qc,65101,2016-03-01,0.41
-river_wl_cont_qc,65101,2016-03-02,0.389
-river_wl_cont_qc,65101,2016-03-03,0.362
-river_wl_cont_qc,65101,2016-03-04,0.328
-river_wl_cont_qc,65101,2016-03-05,0.294
-river_wl_cont_qc,65101,2016-03-06,0.281
-river_wl_cont_qc,65101,2016-03-07,0.269
-river_wl_cont_qc,65101,2016-03-08,0.273
-river_wl_cont_qc,69505,2016-01-01,1.185
-river_wl_cont_qc,69505,2016-01-02,1.187
-river_wl_cont_qc,69505,2016-01-03,1.224
-river_wl_cont_qc,69505,2016-01-04,1.309
-river_wl_cont_qc,69505,2016-01-05,1.267
-river_wl_cont_qc,69505,2016-01-06,1.242
-river_wl_cont_qc,69505,2016-01-07,1.223
-river_wl_cont_qc,69505,2016-01-08,1.233
-river_wl_cont_qc,69505,2016-01-09,1.219
-river_wl_cont_qc,69505,2016-01-10,1.204
-river_wl_cont_qc,69505,2016-01-11,1.202
-river_wl_cont_qc,69505,2016-01-12,1.193
-river_wl_cont_qc,69505,2016-01-13,1.212
-river_wl_cont_qc,69505,2016-01-14,1.219
-river_wl_cont_qc,69505,2016-01-15,1.194
-river_wl_cont_qc,69505,2016-01-16,1.224
-river_wl_cont_qc,69505,2016-01-17,1.222
-river_wl_cont_qc,69505,2016-01-18,1.272
-river_wl_cont_qc,69505,2016-01-19,1.465
-river_wl_cont_qc,69505,2016-01-20,1.55
-river_wl_cont_qc,69505,2016-01-21,1.398
-river_wl_cont_qc,69505,2016-01-22,1.333
-river_wl_cont_qc,69505,2016-01-23,1.294
-river_wl_cont_qc,69505,2016-01-24,1.273
-river_wl_cont_qc,69505,2016-01-25,1.257
-river_wl_cont_qc,69505,2016-01-26,1.247
-river_wl_cont_qc,69505,2016-01-27,1.29
-river_wl_cont_qc,69505,2016-01-28,1.372
-river_wl_cont_qc,69505,2016-01-29,1.361
-river_wl_cont_qc,69505,2016-01-30,1.335
-river_wl_cont_qc,69505,2016-01-31,1.318
-river_wl_cont_qc,69505,2016-02-01,1.293
-river_wl_cont_qc,69505,2016-02-02,1.271
-river_wl_cont_qc,69505,2016-02-03,1.256
-river_wl_cont_qc,69505,2016-02-04,1.238
-river_wl_cont_qc,69505,2016-02-05,1.233
-river_wl_cont_qc,69505,2016-02-06,1.231
-river_wl_cont_qc,69505,2016-02-07,1.23
-river_wl_cont_qc,69505,2016-02-08,1.22
-river_wl_cont_qc,69505,2016-02-09,1.215
-river_wl_cont_qc,69505,2016-02-10,1.213
-river_wl_cont_qc,69505,2016-02-11,1.202
-river_wl_cont_qc,69505,2016-02-12,1.197
-river_wl_cont_qc,69505,2016-02-13,1.222
-river_wl_cont_qc,69505,2016-02-14,1.206
-river_wl_cont_qc,69505,2016-02-15,1.193
-river_wl_cont_qc,69505,2016-02-16,1.183
-river_wl_cont_qc,69505,2016-02-17,1.215
-river_wl_cont_qc,69505,2016-02-18,1.233
-river_wl_cont_qc,69505,2016-02-19,1.298
-river_wl_cont_qc,69505,2016-02-20,1.25
-river_wl_cont_qc,69505,2016-02-21,1.224
-river_wl_cont_qc,69505,2016-02-22,1.215
-river_wl_cont_qc,69505,2016-02-23,1.213
-river_wl_cont_qc,69505,2016-02-24,1.205
-river_wl_cont_qc,69505,2016-02-25,1.192
-river_wl_cont_qc,69505,2016-02-26,1.185
-river_wl_cont_qc,69505,2016-02-27,1.178
-river_wl_cont_qc,69505,2016-02-28,1.176
-river_wl_cont_qc,69505,2016-02-29,1.179
-river_wl_cont_qc,69505,2016-03-01,1.178
-river_wl_cont_qc,69505,2016-03-02,1.173
-river_wl_cont_qc,69505,2016-03-03,1.169
-river_wl_cont_qc,69505,2016-03-04,1.162
-river_wl_cont_qc,69505,2016-03-05,1.161
-river_wl_cont_qc,69505,2016-03-06,1.156
-river_wl_cont_qc,69505,2016-03-07,1.155
-river_wl_cont_qc,69505,2016-03-08,1.158
-river_wl_cont_qc,69602,2016-01-01,0.973
-river_wl_cont_qc,69602,2016-01-02,0.974
-river_wl_cont_qc,69602,2016-01-03,0.98
-river_wl_cont_qc,69602,2016-01-04,0.98
-river_wl_cont_qc,69602,2016-01-05,0.985
-river_wl_cont_qc,69602,2016-01-06,0.981
-river_wl_cont_qc,69602,2016-01-07,0.974
-river_wl_cont_qc,69602,2016-01-08,0.974
-river_wl_cont_qc,69602,2016-01-09,0.975
-river_wl_cont_qc,69602,2016-01-10,0.975
-river_wl_cont_qc,69602,2016-01-11,0.973
-river_wl_cont_qc,69602,2016-01-12,0.97
-river_wl_cont_qc,69602,2016-01-13,0.972
-river_wl_cont_qc,69602,2016-01-14,0.972
-river_wl_cont_qc,69602,2016-01-15,0.973
-river_wl_cont_qc,69602,2016-01-16,0.977
-river_wl_cont_qc,69602,2016-01-17,0.985
-river_wl_cont_qc,69602,2016-01-18,1.014
-river_wl_cont_qc,69602,2016-01-19,1.116
-river_wl_cont_qc,69602,2016-01-20,2.004
-river_wl_cont_qc,69602,2016-01-21,1.543
-river_wl_cont_qc,69602,2016-01-22,1.325
-river_wl_cont_qc,69602,2016-01-23,1.237
-river_wl_cont_qc,69602,2016-01-24,1.197
-river_wl_cont_qc,69602,2016-01-25,1.175
-river_wl_cont_qc,69602,2016-01-26,1.16
-river_wl_cont_qc,69602,2016-01-27,1.15
-river_wl_cont_qc,69602,2016-01-28,1.267
-river_wl_cont_qc,69602,2016-01-29,1.353
-river_wl_cont_qc,69602,2016-01-30,1.296
-river_wl_cont_qc,69602,2016-01-31,1.301
-river_wl_cont_qc,69602,2016-02-01,1.269
-river_wl_cont_qc,69602,2016-02-02,1.219
-river_wl_cont_qc,69602,2016-02-03,1.184
-river_wl_cont_qc,69602,2016-02-04,1.159
-river_wl_cont_qc,69602,2016-02-05,1.138
-river_wl_cont_qc,69602,2016-02-06,1.132
-river_wl_cont_qc,69602,2016-02-07,1.129
-river_wl_cont_qc,69602,2016-02-08,1.128
-river_wl_cont_qc,69602,2016-02-09,1.119
-river_wl_cont_qc,69602,2016-02-10,1.104
-river_wl_cont_qc,69602,2016-02-11,1.093
-river_wl_cont_qc,69602,2016-02-12,1.084
-river_wl_cont_qc,69602,2016-02-13,1.079
-river_wl_cont_qc,69602,2016-02-14,1.078
-river_wl_cont_qc,69602,2016-02-15,1.074
-river_wl_cont_qc,69602,2016-02-16,1.071
-river_wl_cont_qc,69602,2016-02-17,1.07
-river_wl_cont_qc,69602,2016-02-18,1.068
-river_wl_cont_qc,69602,2016-02-19,1.064
-river_wl_cont_qc,69602,2016-02-20,1.057
-river_wl_cont_qc,69602,2016-02-21,1.057
-river_wl_cont_qc,69602,2016-02-22,1.061
-river_wl_cont_qc,69602,2016-02-23,1.066
-river_wl_cont_qc,69602,2016-02-24,1.058
-river_wl_cont_qc,69602,2016-02-25,1.061
-river_wl_cont_qc,69602,2016-02-26,1.056
-river_wl_cont_qc,69602,2016-02-27,1.05
-river_wl_cont_qc,69602,2016-02-28,1.047
-river_wl_cont_qc,69602,2016-02-29,1.046
-river_wl_cont_qc,69602,2016-03-01,1.043
-river_wl_cont_qc,69602,2016-03-02,1.041
-river_wl_cont_qc,69602,2016-03-03,1.038
-river_wl_cont_qc,69602,2016-03-04,1.032
-river_wl_cont_qc,69602,2016-03-05,1.025
-river_wl_cont_qc,69602,2016-03-06,1.022
-river_wl_cont_qc,69602,2016-03-07,1.022
-river_wl_cont_qc,69602,2016-03-08,1.025
-river_wl_cont_qc,69607,2016-01-01,0.836
-river_wl_cont_qc,69607,2016-01-02,0.834
-river_wl_cont_qc,69607,2016-01-03,0.822
-river_wl_cont_qc,69607,2016-01-04,0.935
-river_wl_cont_qc,69607,2016-01-05,0.953
-river_wl_cont_qc,69607,2016-01-06,0.841
-river_wl_cont_qc,69607,2016-01-07,0.779
-river_wl_cont_qc,69607,2016-01-08,0.784
-river_wl_cont_qc,69607,2016-01-09,0.819
-river_wl_cont_qc,69607,2016-01-10,0.807
-river_wl_cont_qc,69607,2016-01-11,0.809
-river_wl_cont_qc,69607,2016-01-12,0.812
-river_wl_cont_qc,69607,2016-01-13,0.819
-river_wl_cont_qc,69607,2016-01-14,0.84
-river_wl_cont_qc,69607,2016-01-15,0.845
-river_wl_cont_qc,69607,2016-01-16,0.887
-river_wl_cont_qc,69607,2016-01-17,0.952
-river_wl_cont_qc,69607,2016-01-18,0.949
-river_wl_cont_qc,69607,2016-01-19,1.136
-river_wl_cont_qc,69607,2016-01-20,1.462
-river_wl_cont_qc,69607,2016-01-21,1.295
-river_wl_cont_qc,69607,2016-01-22,1.171
-river_wl_cont_qc,69607,2016-01-23,1.087
-river_wl_cont_qc,69607,2016-01-24,1.036
-river_wl_cont_qc,69607,2016-01-25,0.995
-river_wl_cont_qc,69607,2016-01-26,0.966
-river_wl_cont_qc,69607,2016-01-27,0.962
-river_wl_cont_qc,69607,2016-01-28,1.199
-river_wl_cont_qc,69607,2016-01-29,1.255
-river_wl_cont_qc,69607,2016-01-30,1.196
-river_wl_cont_qc,69607,2016-01-31,1.169
-river_wl_cont_qc,69607,2016-02-01,1.131
-river_wl_cont_qc,69607,2016-02-02,1.087
-river_wl_cont_qc,69607,2016-02-03,1.037
-river_wl_cont_qc,69607,2016-02-04,0.988
-river_wl_cont_qc,69607,2016-02-05,0.939
-river_wl_cont_qc,69607,2016-02-06,0.913
-river_wl_cont_qc,69607,2016-02-07,0.903
-river_wl_cont_qc,69607,2016-02-08,0.888
-river_wl_cont_qc,69607,2016-02-09,0.862
-river_wl_cont_qc,69607,2016-02-10,0.845
-river_wl_cont_qc,69607,2016-02-11,0.844
-river_wl_cont_qc,69607,2016-02-12,0.839
-river_wl_cont_qc,69607,2016-02-13,0.851
-river_wl_cont_qc,69607,2016-02-14,0.846
-river_wl_cont_qc,69607,2016-02-15,0.826
-river_wl_cont_qc,69607,2016-02-16,0.822
-river_wl_cont_qc,69607,2016-02-17,0.835
-river_wl_cont_qc,69607,2016-02-18,0.843
-river_wl_cont_qc,69607,2016-02-19,0.854
-river_wl_cont_qc,69607,2016-02-20,0.843
-river_wl_cont_qc,69607,2016-02-21,0.829
-river_wl_cont_qc,69607,2016-02-22,0.839
-river_wl_cont_qc,69607,2016-02-23,0.851
-river_wl_cont_qc,69607,2016-02-24,0.862
-river_wl_cont_qc,69607,2016-02-25,0.848
-river_wl_cont_qc,69607,2016-02-26,0.858
-river_wl_cont_qc,69607,2016-02-27,0.859
-river_wl_cont_qc,69607,2016-02-28,0.853
-river_wl_cont_qc,69607,2016-02-29,0.852
-river_wl_cont_qc,69607,2016-03-01,0.977
-river_wl_cont_qc,69607,2016-03-02,1.003
-river_wl_cont_qc,69607,2016-03-03,1.015
-river_wl_cont_qc,69607,2016-03-04,1.014
-river_wl_cont_qc,69607,2016-03-05,1.012
-river_wl_cont_qc,69607,2016-03-06,1.013
-river_wl_cont_qc,69607,2016-03-07,1.015
-river_wl_cont_qc,69607,2016-03-08,1.022
-river_wl_cont_qc,70105,2016-01-01,1.196
-river_wl_cont_qc,70105,2016-01-02,1.18
-river_wl_cont_qc,70105,2016-01-03,1.179
-river_wl_cont_qc,70105,2016-01-04,1.18
-river_wl_cont_qc,70105,2016-01-05,1.167
-river_wl_cont_qc,70105,2016-01-06,1.156
-river_wl_cont_qc,70105,2016-01-07,1.148
-river_wl_cont_qc,70105,2016-01-08,1.144
-river_wl_cont_qc,70105,2016-01-09,1.14
-river_wl_cont_qc,70105,2016-01-10,1.13
-river_wl_cont_qc,70105,2016-01-11,1.12
-river_wl_cont_qc,70105,2016-01-12,1.113
-river_wl_cont_qc,70105,2016-01-13,1.117
-river_wl_cont_qc,70105,2016-01-14,1.167
-river_wl_cont_qc,70105,2016-01-15,1.167
-river_wl_cont_qc,70105,2016-01-16,1.422
-river_wl_cont_qc,70105,2016-01-17,1.371
-river_wl_cont_qc,70105,2016-01-18,1.421
-river_wl_cont_qc,70105,2016-01-19,1.682
-river_wl_cont_qc,70105,2016-01-20,1.945
-river_wl_cont_qc,70105,2016-01-21,1.604
-river_wl_cont_qc,70105,2016-01-22,1.45
-river_wl_cont_qc,70105,2016-01-23,1.378
-river_wl_cont_qc,70105,2016-01-24,1.335
-river_wl_cont_qc,70105,2016-01-25,1.302
-river_wl_cont_qc,70105,2016-01-26,1.28
-river_wl_cont_qc,70105,2016-01-27,1.285
-river_wl_cont_qc,70105,2016-01-28,1.411
-river_wl_cont_qc,70105,2016-01-29,1.476
-river_wl_cont_qc,70105,2016-01-30,1.419
-river_wl_cont_qc,70105,2016-01-31,1.409
-river_wl_cont_qc,70105,2016-02-01,1.373
-river_wl_cont_qc,70105,2016-02-02,1.337
-river_wl_cont_qc,70105,2016-02-03,1.306
-river_wl_cont_qc,70105,2016-02-04,1.275
-river_wl_cont_qc,70105,2016-02-05,1.252
-river_wl_cont_qc,70105,2016-02-06,1.244
-river_wl_cont_qc,70105,2016-02-07,1.236
-river_wl_cont_qc,70105,2016-02-08,1.212
-river_wl_cont_qc,70105,2016-02-09,1.198
-river_wl_cont_qc,70105,2016-02-10,1.198
-river_wl_cont_qc,70105,2016-02-11,1.188
-river_wl_cont_qc,70105,2016-02-12,1.172
-river_wl_cont_qc,70105,2016-02-13,1.164
-river_wl_cont_qc,70105,2016-02-14,1.159
-river_wl_cont_qc,70105,2016-02-15,1.146
-river_wl_cont_qc,70105,2016-02-16,1.135
-river_wl_cont_qc,70105,2016-02-17,1.133
-river_wl_cont_qc,70105,2016-02-18,1.138
-river_wl_cont_qc,70105,2016-02-19,1.138
-river_wl_cont_qc,70105,2016-02-20,1.109
-river_wl_cont_qc,70105,2016-02-21,1.101
-river_wl_cont_qc,70105,2016-02-22,1.102
-river_wl_cont_qc,70105,2016-02-23,1.108
-river_wl_cont_qc,70105,2016-02-24,1.102
-river_wl_cont_qc,70105,2016-02-25,1.096
-river_wl_cont_qc,70105,2016-02-26,1.094
-river_wl_cont_qc,70105,2016-02-27,1.086
-river_wl_cont_qc,70105,2016-02-28,1.081
-river_wl_cont_qc,70105,2016-02-29,1.082
-river_wl_cont_qc,70105,2016-03-01,1.084
-river_wl_cont_qc,70105,2016-03-02,1.08
-river_wl_cont_qc,70105,2016-03-03,1.076
-river_wl_cont_qc,70105,2016-03-04,1.071
-river_wl_cont_qc,70105,2016-03-05,1.067
-river_wl_cont_qc,70105,2016-03-06,1.062
-river_wl_cont_qc,70105,2016-03-07,1.064
-river_wl_cont_qc,70105,2016-03-08,1.069
+hydro_id,site,time,data
+river / flow / rec / qc,65101,1/01/2016,20.696
+river / flow / rec / qc,65101,2/01/2016,21.019
+river / flow / rec / qc,65101,3/01/2016,38.637
+river / flow / rec / qc,65101,4/01/2016,70.794
+river / flow / rec / qc,65101,5/01/2016,51.882
+river / flow / rec / qc,65101,6/01/2016,42.521
+river / flow / rec / qc,65101,7/01/2016,36.901
+river / flow / rec / qc,65101,8/01/2016,36.695
+river / flow / rec / qc,65101,9/01/2016,77.287
+river / flow / rec / qc,65101,10/01/2016,59.609
+river / flow / rec / qc,65101,11/01/2016,50.637
+river / flow / rec / qc,65101,12/01/2016,44.124
+river / flow / rec / qc,65101,13/01/2016,39.464
+river / flow / rec / qc,65101,14/01/2016,37.369
+river / flow / rec / qc,65101,15/01/2016,34.403
+river / flow / rec / qc,65101,16/01/2016,43.455
+river / flow / rec / qc,65101,17/01/2016,53.686
+river / flow / rec / qc,65101,18/01/2016,58.138
+river / flow / rec / qc,65101,19/01/2016,77.015
+river / flow / rec / qc,65101,20/01/2016,69.605
+river / flow / rec / qc,65101,21/01/2016,58.588
+river / flow / rec / qc,65101,22/01/2016,51.151
+river / flow / rec / qc,65101,23/01/2016,44.723
+river / flow / rec / qc,65101,24/01/2016,40.565
+river / flow / rec / qc,65101,25/01/2016,39.026
+river / flow / rec / qc,65101,26/01/2016,36.665
+river / flow / rec / qc,65101,27/01/2016,42.304
+river / flow / rec / qc,65101,28/01/2016,90.007
+river / flow / rec / qc,65101,29/01/2016,82.571
+river / flow / rec / qc,65101,30/01/2016,68.899
+river / flow / rec / qc,65101,31/01/2016,60.989
+river / flow / rec / qc,65101,1/02/2016,54.425
+river / flow / rec / qc,65101,2/02/2016,48.073
+river / flow / rec / qc,65101,3/02/2016,42.032
+river / flow / rec / qc,65101,4/02/2016,37.489
+river / flow / rec / qc,65101,5/02/2016,34.555
+river / flow / rec / qc,65101,6/02/2016,32.726
+river / flow / rec / qc,65101,7/02/2016,30.774
+river / flow / rec / qc,65101,8/02/2016,29.362
+river / flow / rec / qc,65101,9/02/2016,28.088
+river / flow / rec / qc,65101,10/02/2016,27.107
+river / flow / rec / qc,65101,11/02/2016,25.464
+river / flow / rec / qc,65101,12/02/2016,24.296
+river / flow / rec / qc,65101,13/02/2016,23.415
+river / flow / rec / qc,65101,14/02/2016,22.68
+river / flow / rec / qc,65101,15/02/2016,21.878
+river / flow / rec / qc,65101,16/02/2016,20.331
+river / flow / rec / qc,65101,17/02/2016,19.482
+river / flow / rec / qc,65101,18/02/2016,30.301
+river / flow / rec / qc,65101,19/02/2016,60.073
+river / flow / rec / qc,65101,20/02/2016,71.924
+river / flow / rec / qc,65101,21/02/2016,57.81
+river / flow / rec / qc,65101,22/02/2016,49.096
+river / flow / rec / qc,65101,23/02/2016,43.144
+river / flow / rec / qc,65101,24/02/2016,38.48
+river / flow / rec / qc,65101,25/02/2016,34.917
+river / flow / rec / qc,65101,26/02/2016,32.28
+river / flow / rec / qc,65101,27/02/2016,29.833
+river / flow / rec / qc,65101,28/02/2016,28.17
+river / flow / rec / qc,65101,29/02/2016,27.205
+river / flow / rec / qc,65101,1/03/2016,27.236
+river / flow / rec / qc,65101,2/03/2016,26.139
+river / flow / rec / qc,65101,3/03/2016,24.725
+river / flow / rec / qc,65101,4/03/2016,23.049
+river / flow / rec / qc,65101,5/03/2016,21.361
+river / flow / rec / qc,65101,6/03/2016,20.716
+river / flow / rec / qc,65101,7/03/2016,20.146
+river / flow / rec / qc,65101,8/03/2016,20.342
+river / flow / rec / qc,69505,1/01/2016,2.3
+river / flow / rec / qc,69505,2/01/2016,2.33
+river / flow / rec / qc,69505,3/01/2016,2.898
+river / flow / rec / qc,69505,4/01/2016,4.44
+river / flow / rec / qc,69505,5/01/2016,3.585
+river / flow / rec / qc,69505,6/01/2016,3.143
+river / flow / rec / qc,69505,7/01/2016,2.827
+river / flow / rec / qc,69505,8/01/2016,2.986
+river / flow / rec / qc,69505,9/01/2016,2.757
+river / flow / rec / qc,69505,10/01/2016,2.553
+river / flow / rec / qc,69505,11/01/2016,2.525
+river / flow / rec / qc,69505,12/01/2016,2.409
+river / flow / rec / qc,69505,13/01/2016,2.669
+river / flow / rec / qc,69505,14/01/2016,2.766
+river / flow / rec / qc,69505,15/01/2016,2.424
+river / flow / rec / qc,69505,16/01/2016,2.833
+river / flow / rec / qc,69505,17/01/2016,2.809
+river / flow / rec / qc,69505,18/01/2016,3.703
+river / flow / rec / qc,69505,19/01/2016,10.389
+river / flow / rec / qc,69505,20/01/2016,12.776
+river / flow / rec / qc,69505,21/01/2016,6.703
+river / flow / rec / qc,69505,22/01/2016,4.973
+river / flow / rec / qc,69505,23/01/2016,4.123
+river / flow / rec / qc,69505,24/01/2016,3.708
+river / flow / rec / qc,69505,25/01/2016,3.398
+river / flow / rec / qc,69505,26/01/2016,3.219
+river / flow / rec / qc,69505,27/01/2016,4.139
+river / flow / rec / qc,69505,28/01/2016,5.939
+river / flow / rec / qc,69505,29/01/2016,5.65
+river / flow / rec / qc,69505,30/01/2016,5.015
+river / flow / rec / qc,69505,31/01/2016,4.638
+river / flow / rec / qc,69505,1/02/2016,4.108
+river / flow / rec / qc,69505,2/02/2016,3.672
+river / flow / rec / qc,69505,3/02/2016,3.394
+river / flow / rec / qc,69505,4/02/2016,3.062
+river / flow / rec / qc,69505,5/02/2016,2.985
+river / flow / rec / qc,69505,6/02/2016,2.947
+river / flow / rec / qc,69505,7/02/2016,2.929
+river / flow / rec / qc,69505,8/02/2016,2.776
+river / flow / rec / qc,69505,9/02/2016,2.699
+river / flow / rec / qc,69505,10/02/2016,2.676
+river / flow / rec / qc,69505,11/02/2016,2.517
+river / flow / rec / qc,69505,12/02/2016,2.458
+river / flow / rec / qc,69505,13/02/2016,2.816
+river / flow / rec / qc,69505,14/02/2016,2.573
+river / flow / rec / qc,69505,15/02/2016,2.398
+river / flow / rec / qc,69505,16/02/2016,2.264
+river / flow / rec / qc,69505,17/02/2016,2.715
+river / flow / rec / qc,69505,18/02/2016,3.012
+river / flow / rec / qc,69505,19/02/2016,4.21
+river / flow / rec / qc,69505,20/02/2016,3.286
+river / flow / rec / qc,69505,21/02/2016,2.843
+river / flow / rec / qc,69505,22/02/2016,2.695
+river / flow / rec / qc,69505,23/02/2016,2.673
+river / flow / rec / qc,69505,24/02/2016,2.559
+river / flow / rec / qc,69505,25/02/2016,2.396
+river / flow / rec / qc,69505,26/02/2016,2.295
+river / flow / rec / qc,69505,27/02/2016,2.199
+river / flow / rec / qc,69505,28/02/2016,2.182
+river / flow / rec / qc,69505,29/02/2016,2.223
+river / flow / rec / qc,69505,1/03/2016,2.207
+river / flow / rec / qc,69505,2/03/2016,2.139
+river / flow / rec / qc,69505,3/03/2016,2.086
+river / flow / rec / qc,69505,4/03/2016,1.997
+river / flow / rec / qc,69505,5/03/2016,1.977
+river / flow / rec / qc,69505,6/03/2016,1.916
+river / flow / rec / qc,69505,7/03/2016,1.911
+river / flow / rec / qc,69505,8/03/2016,1.944
+river / flow / rec / qc,69602,1/01/2016,0.569
+river / flow / rec / qc,69602,2/01/2016,0.58
+river / flow / rec / qc,69602,3/01/2016,0.627
+river / flow / rec / qc,69602,4/01/2016,0.631
+river / flow / rec / qc,69602,5/01/2016,0.67
+river / flow / rec / qc,69602,6/01/2016,0.638
+river / flow / rec / qc,69602,7/01/2016,0.579
+river / flow / rec / qc,69602,8/01/2016,0.576
+river / flow / rec / qc,69602,9/01/2016,0.59
+river / flow / rec / qc,69602,10/01/2016,0.584
+river / flow / rec / qc,69602,11/01/2016,0.568
+river / flow / rec / qc,69602,12/01/2016,0.545
+river / flow / rec / qc,69602,13/01/2016,0.56
+river / flow / rec / qc,69602,14/01/2016,0.559
+river / flow / rec / qc,69602,15/01/2016,0.574
+river / flow / rec / qc,69602,16/01/2016,0.606
+river / flow / rec / qc,69602,17/01/2016,0.674
+river / flow / rec / qc,69602,18/01/2016,0.94
+river / flow / rec / qc,69602,19/01/2016,2.701
+river / flow / rec / qc,69602,20/01/2016,45.647
+river / flow / rec / qc,69602,21/01/2016,12.782
+river / flow / rec / qc,69602,22/01/2016,6.115
+river / flow / rec / qc,69602,23/01/2016,4.353
+river / flow / rec / qc,69602,24/01/2016,3.653
+river / flow / rec / qc,69602,25/01/2016,3.28
+river / flow / rec / qc,69602,26/01/2016,3.056
+river / flow / rec / qc,69602,27/01/2016,2.899
+river / flow / rec / qc,69602,28/01/2016,5.055
+river / flow / rec / qc,69602,29/01/2016,6.702
+river / flow / rec / qc,69602,30/01/2016,5.465
+river / flow / rec / qc,69602,31/01/2016,5.574
+river / flow / rec / qc,69602,1/02/2016,4.932
+river / flow / rec / qc,69602,2/02/2016,4.031
+river / flow / rec / qc,69602,3/02/2016,3.435
+river / flow / rec / qc,69602,4/02/2016,3.028
+river / flow / rec / qc,69602,5/02/2016,2.713
+river / flow / rec / qc,69602,6/02/2016,2.624
+river / flow / rec / qc,69602,7/02/2016,2.577
+river / flow / rec / qc,69602,8/02/2016,2.552
+river / flow / rec / qc,69602,9/02/2016,2.419
+river / flow / rec / qc,69602,10/02/2016,2.21
+river / flow / rec / qc,69602,11/02/2016,2.05
+river / flow / rec / qc,69602,12/02/2016,1.945
+river / flow / rec / qc,69602,13/02/2016,1.881
+river / flow / rec / qc,69602,14/02/2016,1.869
+river / flow / rec / qc,69602,15/02/2016,1.83
+river / flow / rec / qc,69602,16/02/2016,1.791
+river / flow / rec / qc,69602,17/02/2016,1.776
+river / flow / rec / qc,69602,18/02/2016,1.758
+river / flow / rec / qc,69602,19/02/2016,1.714
+river / flow / rec / qc,69602,20/02/2016,1.63
+river / flow / rec / qc,69602,21/02/2016,1.625
+river / flow / rec / qc,69602,22/02/2016,1.677
+river / flow / rec / qc,69602,23/02/2016,1.728
+river / flow / rec / qc,69602,24/02/2016,1.641
+river / flow / rec / qc,69602,25/02/2016,1.679
+river / flow / rec / qc,69602,26/02/2016,1.614
+river / flow / rec / qc,69602,27/02/2016,1.554
+river / flow / rec / qc,69602,28/02/2016,1.523
+river / flow / rec / qc,69602,29/02/2016,1.504
+river / flow / rec / qc,69602,1/03/2016,1.477
+river / flow / rec / qc,69602,2/03/2016,1.452
+river / flow / rec / qc,69602,3/03/2016,1.425
+river / flow / rec / qc,69602,4/03/2016,1.357
+river / flow / rec / qc,69602,5/03/2016,1.292
+river / flow / rec / qc,69602,6/03/2016,1.266
+river / flow / rec / qc,69602,7/03/2016,1.261
+river / flow / rec / qc,69602,8/03/2016,1.292
+river / flow / rec / qc,69607,1/01/2016,2.383
+river / flow / rec / qc,69607,2/01/2016,2.344
+river / flow / rec / qc,69607,3/01/2016,2.173
+river / flow / rec / qc,69607,4/01/2016,4.45
+river / flow / rec / qc,69607,5/01/2016,4.697
+river / flow / rec / qc,69607,6/01/2016,2.662
+river / flow / rec / qc,69607,7/01/2016,1.821
+river / flow / rec / qc,69607,8/01/2016,1.891
+river / flow / rec / qc,69607,9/01/2016,2.337
+river / flow / rec / qc,69607,10/01/2016,2.186
+river / flow / rec / qc,69607,11/01/2016,2.208
+river / flow / rec / qc,69607,12/01/2016,2.243
+river / flow / rec / qc,69607,13/01/2016,2.341
+river / flow / rec / qc,69607,14/01/2016,2.638
+river / flow / rec / qc,69607,15/01/2016,2.722
+river / flow / rec / qc,69607,16/01/2016,3.429
+river / flow / rec / qc,69607,17/01/2016,4.693
+river / flow / rec / qc,69607,18/01/2016,4.664
+river / flow / rec / qc,69607,19/01/2016,10.562
+river / flow / rec / qc,69607,20/01/2016,35.32
+river / flow / rec / qc,69607,21/01/2016,18.682
+river / flow / rec / qc,69607,22/01/2016,11.773
+river / flow / rec / qc,69607,23/01/2016,8.675
+river / flow / rec / qc,69607,24/01/2016,7.261
+river / flow / rec / qc,69607,25/01/2016,6.366
+river / flow / rec / qc,69607,26/01/2016,5.785
+river / flow / rec / qc,69607,27/01/2016,5.701
+river / flow / rec / qc,69607,28/01/2016,14.346
+river / flow / rec / qc,69607,29/01/2016,15.942
+river / flow / rec / qc,69607,30/01/2016,12.753
+river / flow / rec / qc,69607,31/01/2016,11.552
+river / flow / rec / qc,69607,1/02/2016,10.039
+river / flow / rec / qc,69607,2/02/2016,8.533
+river / flow / rec / qc,69607,3/02/2016,7.017
+river / flow / rec / qc,69607,4/02/2016,5.676
+river / flow / rec / qc,69607,5/02/2016,4.525
+river / flow / rec / qc,69607,6/02/2016,4.008
+river / flow / rec / qc,69607,7/02/2016,3.815
+river / flow / rec / qc,69607,8/02/2016,3.54
+river / flow / rec / qc,69607,9/02/2016,3.106
+river / flow / rec / qc,69607,10/02/2016,2.854
+river / flow / rec / qc,69607,11/02/2016,2.84
+river / flow / rec / qc,69607,12/02/2016,2.758
+river / flow / rec / qc,69607,13/02/2016,2.936
+river / flow / rec / qc,69607,14/02/2016,2.86
+river / flow / rec / qc,69607,15/02/2016,2.559
+river / flow / rec / qc,69607,16/02/2016,2.502
+river / flow / rec / qc,69607,17/02/2016,2.69
+river / flow / rec / qc,69607,18/02/2016,2.825
+river / flow / rec / qc,69607,19/02/2016,2.985
+river / flow / rec / qc,69607,20/02/2016,2.819
+river / flow / rec / qc,69607,21/02/2016,2.611
+river / flow / rec / qc,69607,22/02/2016,2.758
+river / flow / rec / qc,69607,23/02/2016,2.936
+river / flow / rec / qc,69607,24/02/2016,3.108
+river / flow / rec / qc,69607,25/02/2016,2.892
+river / flow / rec / qc,69607,26/02/2016,3.046
+river / flow / rec / qc,69607,27/02/2016,3.067
+river / flow / rec / qc,69607,28/02/2016,2.973
+river / flow / rec / qc,69607,29/02/2016,2.96
+river / flow / rec / qc,69607,1/03/2016,5.405
+river / flow / rec / qc,69607,2/03/2016,6.071
+river / flow / rec / qc,69607,3/03/2016,6.378
+river / flow / rec / qc,69607,4/03/2016,6.374
+river / flow / rec / qc,69607,5/03/2016,6.32
+river / flow / rec / qc,69607,6/03/2016,6.329
+river / flow / rec / qc,69607,7/03/2016,6.388
+river / flow / rec / qc,69607,8/03/2016,6.578
+river / flow / rec / qc,70105,1/01/2016,1.318
+river / flow / rec / qc,70105,2/01/2016,1.191
+river / flow / rec / qc,70105,3/01/2016,1.185
+river / flow / rec / qc,70105,4/01/2016,1.197
+river / flow / rec / qc,70105,5/01/2016,1.101
+river / flow / rec / qc,70105,6/01/2016,1.033
+river / flow / rec / qc,70105,7/01/2016,0.977
+river / flow / rec / qc,70105,8/01/2016,0.957
+river / flow / rec / qc,70105,9/01/2016,0.933
+river / flow / rec / qc,70105,10/01/2016,0.877
+river / flow / rec / qc,70105,11/01/2016,0.821
+river / flow / rec / qc,70105,12/01/2016,0.785
+river / flow / rec / qc,70105,13/01/2016,0.807
+river / flow / rec / qc,70105,14/01/2016,1.113
+river / flow / rec / qc,70105,15/01/2016,1.106
+river / flow / rec / qc,70105,16/01/2016,5.261
+river / flow / rec / qc,70105,17/01/2016,3.933
+river / flow / rec / qc,70105,18/01/2016,5.262
+river / flow / rec / qc,70105,19/01/2016,14.784
+river / flow / rec / qc,70105,20/01/2016,24.583
+river / flow / rec / qc,70105,21/01/2016,9.457
+river / flow / rec / qc,70105,22/01/2016,5.628
+river / flow / rec / qc,70105,23/01/2016,4.105
+river / flow / rec / qc,70105,24/01/2016,3.283
+river / flow / rec / qc,70105,25/01/2016,2.684
+river / flow / rec / qc,70105,26/01/2016,2.334
+river / flow / rec / qc,70105,27/01/2016,2.408
+river / flow / rec / qc,70105,28/01/2016,4.822
+river / flow / rec / qc,70105,29/01/2016,6.203
+river / flow / rec / qc,70105,30/01/2016,4.937
+river / flow / rec / qc,70105,31/01/2016,4.726
+river / flow / rec / qc,70105,1/02/2016,4.005
+river / flow / rec / qc,70105,2/02/2016,3.316
+river / flow / rec / qc,70105,3/02/2016,2.753
+river / flow / rec / qc,70105,4/02/2016,2.258
+river / flow / rec / qc,70105,5/02/2016,1.944
+river / flow / rec / qc,70105,6/02/2016,1.833
+river / flow / rec / qc,70105,7/02/2016,1.739
+river / flow / rec / qc,70105,8/02/2016,1.482
+river / flow / rec / qc,70105,9/02/2016,1.343
+river / flow / rec / qc,70105,10/02/2016,1.345
+river / flow / rec / qc,70105,11/02/2016,1.253
+river / flow / rec / qc,70105,12/02/2016,1.123
+river / flow / rec / qc,70105,13/02/2016,1.063
+river / flow / rec / qc,70105,14/02/2016,1.023
+river / flow / rec / qc,70105,15/02/2016,0.936
+river / flow / rec / qc,70105,16/02/2016,0.86
+river / flow / rec / qc,70105,17/02/2016,0.851
+river / flow / rec / qc,70105,18/02/2016,0.881
+river / flow / rec / qc,70105,19/02/2016,0.886
+river / flow / rec / qc,70105,20/02/2016,0.715
+river / flow / rec / qc,70105,21/02/2016,0.669
+river / flow / rec / qc,70105,22/02/2016,0.676
+river / flow / rec / qc,70105,23/02/2016,0.708
+river / flow / rec / qc,70105,24/02/2016,0.675
+river / flow / rec / qc,70105,25/02/2016,0.642
+river / flow / rec / qc,70105,26/02/2016,0.632
+river / flow / rec / qc,70105,27/02/2016,0.593
+river / flow / rec / qc,70105,28/02/2016,0.57
+river / flow / rec / qc,70105,29/02/2016,0.575
+river / flow / rec / qc,70105,1/03/2016,0.586
+river / flow / rec / qc,70105,2/03/2016,0.57
+river / flow / rec / qc,70105,3/03/2016,0.549
+river / flow / rec / qc,70105,4/03/2016,0.531
+river / flow / rec / qc,70105,5/03/2016,0.513
+river / flow / rec / qc,70105,6/03/2016,0.492
+river / flow / rec / qc,70105,7/03/2016,0.502
+river / flow / rec / qc,70105,8/03/2016,0.521
+river / flow / mfield / qc,66,22/01/2016,0.3167
+river / flow / mfield / qc,66,2/03/2016,0.187
+river / flow / mfield / qc,66,8/03/2016,0.1722
+river / flow / mfield / qc,66,17/03/2016,0.2665
+river / flow / mfield / qc,66,14/02/2017,0.2066
+river / flow / mfield / qc,66,31/03/2017,0.3831
+river / flow / mfield / qc,137,8/03/2016,0.4211
+river / wl / rec / qc,65101,1/01/2016,0.28
+river / wl / rec / qc,65101,2/01/2016,0.287
+river / wl / rec / qc,65101,3/01/2016,0.567
+river / wl / rec / qc,65101,4/01/2016,1.027
+river / wl / rec / qc,65101,5/01/2016,0.796
+river / wl / rec / qc,65101,6/01/2016,0.67
+river / wl / rec / qc,65101,7/01/2016,0.583
+river / wl / rec / qc,65101,8/01/2016,0.57
+river / wl / rec / qc,65101,9/01/2016,1.097
+river / wl / rec / qc,65101,10/01/2016,0.896
+river / wl / rec / qc,65101,11/01/2016,0.781
+river / wl / rec / qc,65101,12/01/2016,0.692
+river / wl / rec / qc,65101,13/01/2016,0.625
+river / wl / rec / qc,65101,14/01/2016,0.591
+river / wl / rec / qc,65101,15/01/2016,0.541
+river / wl / rec / qc,65101,16/01/2016,0.672
+river / wl / rec / qc,65101,17/01/2016,0.82
+river / wl / rec / qc,65101,18/01/2016,0.876
+river / wl / rec / qc,65101,19/01/2016,1.096
+river / wl / rec / qc,65101,20/01/2016,1.016
+river / wl / rec / qc,65101,21/01/2016,0.883
+river / wl / rec / qc,65101,22/01/2016,0.787
+river / wl / rec / qc,65101,23/01/2016,0.701
+river / wl / rec / qc,65101,24/01/2016,0.641
+river / wl / rec / qc,65101,25/01/2016,0.618
+river / wl / rec / qc,65101,26/01/2016,0.579
+river / wl / rec / qc,65101,27/01/2016,0.663
+river / wl / rec / qc,65101,28/01/2016,1.215
+river / wl / rec / qc,65101,29/01/2016,1.154
+river / wl / rec / qc,65101,30/01/2016,1.009
+river / wl / rec / qc,65101,31/01/2016,0.914
+river / wl / rec / qc,65101,1/02/2016,0.829
+river / wl / rec / qc,65101,2/02/2016,0.747
+river / wl / rec / qc,65101,3/02/2016,0.662
+river / wl / rec / qc,65101,4/02/2016,0.593
+river / wl / rec / qc,65101,5/02/2016,0.543
+river / wl / rec / qc,65101,6/02/2016,0.511
+river / wl / rec / qc,65101,7/02/2016,0.476
+river / wl / rec / qc,65101,8/02/2016,0.45
+river / wl / rec / qc,65101,9/02/2016,0.427
+river / wl / rec / qc,65101,10/02/2016,0.408
+river / wl / rec / qc,65101,11/02/2016,0.376
+river / wl / rec / qc,65101,12/02/2016,0.353
+river / wl / rec / qc,65101,13/02/2016,0.335
+river / wl / rec / qc,65101,14/02/2016,0.321
+river / wl / rec / qc,65101,15/02/2016,0.304
+river / wl / rec / qc,65101,16/02/2016,0.273
+river / wl / rec / qc,65101,17/02/2016,0.254
+river / wl / rec / qc,65101,18/02/2016,0.458
+river / wl / rec / qc,65101,19/02/2016,0.886
+river / wl / rec / qc,65101,20/02/2016,1.041
+river / wl / rec / qc,65101,21/02/2016,0.873
+river / wl / rec / qc,65101,22/02/2016,0.76
+river / wl / rec / qc,65101,23/02/2016,0.679
+river / wl / rec / qc,65101,24/02/2016,0.609
+river / wl / rec / qc,65101,25/02/2016,0.549
+river / wl / rec / qc,65101,26/02/2016,0.503
+river / wl / rec / qc,65101,27/02/2016,0.459
+river / wl / rec / qc,65101,28/02/2016,0.428
+river / wl / rec / qc,65101,29/02/2016,0.41
+river / wl / rec / qc,65101,1/03/2016,0.41
+river / wl / rec / qc,65101,2/03/2016,0.389
+river / wl / rec / qc,65101,3/03/2016,0.362
+river / wl / rec / qc,65101,4/03/2016,0.328
+river / wl / rec / qc,65101,5/03/2016,0.294
+river / wl / rec / qc,65101,6/03/2016,0.281
+river / wl / rec / qc,65101,7/03/2016,0.269
+river / wl / rec / qc,65101,8/03/2016,0.273
+river / wl / rec / qc,69505,1/01/2016,1.185
+river / wl / rec / qc,69505,2/01/2016,1.187
+river / wl / rec / qc,69505,3/01/2016,1.224
+river / wl / rec / qc,69505,4/01/2016,1.309
+river / wl / rec / qc,69505,5/01/2016,1.267
+river / wl / rec / qc,69505,6/01/2016,1.242
+river / wl / rec / qc,69505,7/01/2016,1.223
+river / wl / rec / qc,69505,8/01/2016,1.233
+river / wl / rec / qc,69505,9/01/2016,1.219
+river / wl / rec / qc,69505,10/01/2016,1.204
+river / wl / rec / qc,69505,11/01/2016,1.202
+river / wl / rec / qc,69505,12/01/2016,1.193
+river / wl / rec / qc,69505,13/01/2016,1.212
+river / wl / rec / qc,69505,14/01/2016,1.219
+river / wl / rec / qc,69505,15/01/2016,1.194
+river / wl / rec / qc,69505,16/01/2016,1.224
+river / wl / rec / qc,69505,17/01/2016,1.222
+river / wl / rec / qc,69505,18/01/2016,1.272
+river / wl / rec / qc,69505,19/01/2016,1.465
+river / wl / rec / qc,69505,20/01/2016,1.55
+river / wl / rec / qc,69505,21/01/2016,1.398
+river / wl / rec / qc,69505,22/01/2016,1.333
+river / wl / rec / qc,69505,23/01/2016,1.294
+river / wl / rec / qc,69505,24/01/2016,1.273
+river / wl / rec / qc,69505,25/01/2016,1.257
+river / wl / rec / qc,69505,26/01/2016,1.247
+river / wl / rec / qc,69505,27/01/2016,1.29
+river / wl / rec / qc,69505,28/01/2016,1.372
+river / wl / rec / qc,69505,29/01/2016,1.361
+river / wl / rec / qc,69505,30/01/2016,1.335
+river / wl / rec / qc,69505,31/01/2016,1.318
+river / wl / rec / qc,69505,1/02/2016,1.293
+river / wl / rec / qc,69505,2/02/2016,1.271
+river / wl / rec / qc,69505,3/02/2016,1.256
+river / wl / rec / qc,69505,4/02/2016,1.238
+river / wl / rec / qc,69505,5/02/2016,1.233
+river / wl / rec / qc,69505,6/02/2016,1.231
+river / wl / rec / qc,69505,7/02/2016,1.23
+river / wl / rec / qc,69505,8/02/2016,1.22
+river / wl / rec / qc,69505,9/02/2016,1.215
+river / wl / rec / qc,69505,10/02/2016,1.213
+river / wl / rec / qc,69505,11/02/2016,1.202
+river / wl / rec / qc,69505,12/02/2016,1.197
+river / wl / rec / qc,69505,13/02/2016,1.222
+river / wl / rec / qc,69505,14/02/2016,1.206
+river / wl / rec / qc,69505,15/02/2016,1.193
+river / wl / rec / qc,69505,16/02/2016,1.183
+river / wl / rec / qc,69505,17/02/2016,1.215
+river / wl / rec / qc,69505,18/02/2016,1.233
+river / wl / rec / qc,69505,19/02/2016,1.298
+river / wl / rec / qc,69505,20/02/2016,1.25
+river / wl / rec / qc,69505,21/02/2016,1.224
+river / wl / rec / qc,69505,22/02/2016,1.215
+river / wl / rec / qc,69505,23/02/2016,1.213
+river / wl / rec / qc,69505,24/02/2016,1.205
+river / wl / rec / qc,69505,25/02/2016,1.192
+river / wl / rec / qc,69505,26/02/2016,1.185
+river / wl / rec / qc,69505,27/02/2016,1.178
+river / wl / rec / qc,69505,28/02/2016,1.176
+river / wl / rec / qc,69505,29/02/2016,1.179
+river / wl / rec / qc,69505,1/03/2016,1.178
+river / wl / rec / qc,69505,2/03/2016,1.173
+river / wl / rec / qc,69505,3/03/2016,1.169
+river / wl / rec / qc,69505,4/03/2016,1.162
+river / wl / rec / qc,69505,5/03/2016,1.161
+river / wl / rec / qc,69505,6/03/2016,1.156
+river / wl / rec / qc,69505,7/03/2016,1.155
+river / wl / rec / qc,69505,8/03/2016,1.158
+river / wl / rec / qc,69602,1/01/2016,0.973
+river / wl / rec / qc,69602,2/01/2016,0.974
+river / wl / rec / qc,69602,3/01/2016,0.98
+river / wl / rec / qc,69602,4/01/2016,0.98
+river / wl / rec / qc,69602,5/01/2016,0.985
+river / wl / rec / qc,69602,6/01/2016,0.981
+river / wl / rec / qc,69602,7/01/2016,0.974
+river / wl / rec / qc,69602,8/01/2016,0.974
+river / wl / rec / qc,69602,9/01/2016,0.975
+river / wl / rec / qc,69602,10/01/2016,0.975
+river / wl / rec / qc,69602,11/01/2016,0.973
+river / wl / rec / qc,69602,12/01/2016,0.97
+river / wl / rec / qc,69602,13/01/2016,0.972
+river / wl / rec / qc,69602,14/01/2016,0.972
+river / wl / rec / qc,69602,15/01/2016,0.973
+river / wl / rec / qc,69602,16/01/2016,0.977
+river / wl / rec / qc,69602,17/01/2016,0.985
+river / wl / rec / qc,69602,18/01/2016,1.014
+river / wl / rec / qc,69602,19/01/2016,1.116
+river / wl / rec / qc,69602,20/01/2016,2.004
+river / wl / rec / qc,69602,21/01/2016,1.543
+river / wl / rec / qc,69602,22/01/2016,1.325
+river / wl / rec / qc,69602,23/01/2016,1.237
+river / wl / rec / qc,69602,24/01/2016,1.197
+river / wl / rec / qc,69602,25/01/2016,1.175
+river / wl / rec / qc,69602,26/01/2016,1.16
+river / wl / rec / qc,69602,27/01/2016,1.15
+river / wl / rec / qc,69602,28/01/2016,1.267
+river / wl / rec / qc,69602,29/01/2016,1.353
+river / wl / rec / qc,69602,30/01/2016,1.296
+river / wl / rec / qc,69602,31/01/2016,1.301
+river / wl / rec / qc,69602,1/02/2016,1.269
+river / wl / rec / qc,69602,2/02/2016,1.219
+river / wl / rec / qc,69602,3/02/2016,1.184
+river / wl / rec / qc,69602,4/02/2016,1.159
+river / wl / rec / qc,69602,5/02/2016,1.138
+river / wl / rec / qc,69602,6/02/2016,1.132
+river / wl / rec / qc,69602,7/02/2016,1.129
+river / wl / rec / qc,69602,8/02/2016,1.128
+river / wl / rec / qc,69602,9/02/2016,1.119
+river / wl / rec / qc,69602,10/02/2016,1.104
+river / wl / rec / qc,69602,11/02/2016,1.093
+river / wl / rec / qc,69602,12/02/2016,1.084
+river / wl / rec / qc,69602,13/02/2016,1.079
+river / wl / rec / qc,69602,14/02/2016,1.078
+river / wl / rec / qc,69602,15/02/2016,1.074
+river / wl / rec / qc,69602,16/02/2016,1.071
+river / wl / rec / qc,69602,17/02/2016,1.07
+river / wl / rec / qc,69602,18/02/2016,1.068
+river / wl / rec / qc,69602,19/02/2016,1.064
+river / wl / rec / qc,69602,20/02/2016,1.057
+river / wl / rec / qc,69602,21/02/2016,1.057
+river / wl / rec / qc,69602,22/02/2016,1.061
+river / wl / rec / qc,69602,23/02/2016,1.066
+river / wl / rec / qc,69602,24/02/2016,1.058
+river / wl / rec / qc,69602,25/02/2016,1.061
+river / wl / rec / qc,69602,26/02/2016,1.056
+river / wl / rec / qc,69602,27/02/2016,1.05
+river / wl / rec / qc,69602,28/02/2016,1.047
+river / wl / rec / qc,69602,29/02/2016,1.046
+river / wl / rec / qc,69602,1/03/2016,1.043
+river / wl / rec / qc,69602,2/03/2016,1.041
+river / wl / rec / qc,69602,3/03/2016,1.038
+river / wl / rec / qc,69602,4/03/2016,1.032
+river / wl / rec / qc,69602,5/03/2016,1.025
+river / wl / rec / qc,69602,6/03/2016,1.022
+river / wl / rec / qc,69602,7/03/2016,1.022
+river / wl / rec / qc,69602,8/03/2016,1.025
+river / wl / rec / qc,69607,1/01/2016,0.836
+river / wl / rec / qc,69607,2/01/2016,0.834
+river / wl / rec / qc,69607,3/01/2016,0.822
+river / wl / rec / qc,69607,4/01/2016,0.935
+river / wl / rec / qc,69607,5/01/2016,0.953
+river / wl / rec / qc,69607,6/01/2016,0.841
+river / wl / rec / qc,69607,7/01/2016,0.779
+river / wl / rec / qc,69607,8/01/2016,0.784
+river / wl / rec / qc,69607,9/01/2016,0.819
+river / wl / rec / qc,69607,10/01/2016,0.807
+river / wl / rec / qc,69607,11/01/2016,0.809
+river / wl / rec / qc,69607,12/01/2016,0.812
+river / wl / rec / qc,69607,13/01/2016,0.819
+river / wl / rec / qc,69607,14/01/2016,0.84
+river / wl / rec / qc,69607,15/01/2016,0.845
+river / wl / rec / qc,69607,16/01/2016,0.887
+river / wl / rec / qc,69607,17/01/2016,0.952
+river / wl / rec / qc,69607,18/01/2016,0.949
+river / wl / rec / qc,69607,19/01/2016,1.136
+river / wl / rec / qc,69607,20/01/2016,1.462
+river / wl / rec / qc,69607,21/01/2016,1.295
+river / wl / rec / qc,69607,22/01/2016,1.171
+river / wl / rec / qc,69607,23/01/2016,1.087
+river / wl / rec / qc,69607,24/01/2016,1.036
+river / wl / rec / qc,69607,25/01/2016,0.995
+river / wl / rec / qc,69607,26/01/2016,0.966
+river / wl / rec / qc,69607,27/01/2016,0.962
+river / wl / rec / qc,69607,28/01/2016,1.199
+river / wl / rec / qc,69607,29/01/2016,1.255
+river / wl / rec / qc,69607,30/01/2016,1.196
+river / wl / rec / qc,69607,31/01/2016,1.169
+river / wl / rec / qc,69607,1/02/2016,1.131
+river / wl / rec / qc,69607,2/02/2016,1.087
+river / wl / rec / qc,69607,3/02/2016,1.037
+river / wl / rec / qc,69607,4/02/2016,0.988
+river / wl / rec / qc,69607,5/02/2016,0.939
+river / wl / rec / qc,69607,6/02/2016,0.913
+river / wl / rec / qc,69607,7/02/2016,0.903
+river / wl / rec / qc,69607,8/02/2016,0.888
+river / wl / rec / qc,69607,9/02/2016,0.862
+river / wl / rec / qc,69607,10/02/2016,0.845
+river / wl / rec / qc,69607,11/02/2016,0.844
+river / wl / rec / qc,69607,12/02/2016,0.839
+river / wl / rec / qc,69607,13/02/2016,0.851
+river / wl / rec / qc,69607,14/02/2016,0.846
+river / wl / rec / qc,69607,15/02/2016,0.826
+river / wl / rec / qc,69607,16/02/2016,0.822
+river / wl / rec / qc,69607,17/02/2016,0.835
+river / wl / rec / qc,69607,18/02/2016,0.843
+river / wl / rec / qc,69607,19/02/2016,0.854
+river / wl / rec / qc,69607,20/02/2016,0.843
+river / wl / rec / qc,69607,21/02/2016,0.829
+river / wl / rec / qc,69607,22/02/2016,0.839
+river / wl / rec / qc,69607,23/02/2016,0.851
+river / wl / rec / qc,69607,24/02/2016,0.862
+river / wl / rec / qc,69607,25/02/2016,0.848
+river / wl / rec / qc,69607,26/02/2016,0.858
+river / wl / rec / qc,69607,27/02/2016,0.859
+river / wl / rec / qc,69607,28/02/2016,0.853
+river / wl / rec / qc,69607,29/02/2016,0.852
+river / wl / rec / qc,69607,1/03/2016,0.977
+river / wl / rec / qc,69607,2/03/2016,1.003
+river / wl / rec / qc,69607,3/03/2016,1.015
+river / wl / rec / qc,69607,4/03/2016,1.014
+river / wl / rec / qc,69607,5/03/2016,1.012
+river / wl / rec / qc,69607,6/03/2016,1.013
+river / wl / rec / qc,69607,7/03/2016,1.015
+river / wl / rec / qc,69607,8/03/2016,1.022
+river / wl / rec / qc,70105,1/01/2016,1.196
+river / wl / rec / qc,70105,2/01/2016,1.18
+river / wl / rec / qc,70105,3/01/2016,1.179
+river / wl / rec / qc,70105,4/01/2016,1.18
+river / wl / rec / qc,70105,5/01/2016,1.167
+river / wl / rec / qc,70105,6/01/2016,1.156
+river / wl / rec / qc,70105,7/01/2016,1.148
+river / wl / rec / qc,70105,8/01/2016,1.144
+river / wl / rec / qc,70105,9/01/2016,1.14
+river / wl / rec / qc,70105,10/01/2016,1.13
+river / wl / rec / qc,70105,11/01/2016,1.12
+river / wl / rec / qc,70105,12/01/2016,1.113
+river / wl / rec / qc,70105,13/01/2016,1.117
+river / wl / rec / qc,70105,14/01/2016,1.167
+river / wl / rec / qc,70105,15/01/2016,1.167
+river / wl / rec / qc,70105,16/01/2016,1.422
+river / wl / rec / qc,70105,17/01/2016,1.371
+river / wl / rec / qc,70105,18/01/2016,1.421
+river / wl / rec / qc,70105,19/01/2016,1.682
+river / wl / rec / qc,70105,20/01/2016,1.945
+river / wl / rec / qc,70105,21/01/2016,1.604
+river / wl / rec / qc,70105,22/01/2016,1.45
+river / wl / rec / qc,70105,23/01/2016,1.378
+river / wl / rec / qc,70105,24/01/2016,1.335
+river / wl / rec / qc,70105,25/01/2016,1.302
+river / wl / rec / qc,70105,26/01/2016,1.28
+river / wl / rec / qc,70105,27/01/2016,1.285
+river / wl / rec / qc,70105,28/01/2016,1.411
+river / wl / rec / qc,70105,29/01/2016,1.476
+river / wl / rec / qc,70105,30/01/2016,1.419
+river / wl / rec / qc,70105,31/01/2016,1.409
+river / wl / rec / qc,70105,1/02/2016,1.373
+river / wl / rec / qc,70105,2/02/2016,1.337
+river / wl / rec / qc,70105,3/02/2016,1.306
+river / wl / rec / qc,70105,4/02/2016,1.275
+river / wl / rec / qc,70105,5/02/2016,1.252
+river / wl / rec / qc,70105,6/02/2016,1.244
+river / wl / rec / qc,70105,7/02/2016,1.236
+river / wl / rec / qc,70105,8/02/2016,1.212
+river / wl / rec / qc,70105,9/02/2016,1.198
+river / wl / rec / qc,70105,10/02/2016,1.198
+river / wl / rec / qc,70105,11/02/2016,1.188
+river / wl / rec / qc,70105,12/02/2016,1.172
+river / wl / rec / qc,70105,13/02/2016,1.164
+river / wl / rec / qc,70105,14/02/2016,1.159
+river / wl / rec / qc,70105,15/02/2016,1.146
+river / wl / rec / qc,70105,16/02/2016,1.135
+river / wl / rec / qc,70105,17/02/2016,1.133
+river / wl / rec / qc,70105,18/02/2016,1.138
+river / wl / rec / qc,70105,19/02/2016,1.138
+river / wl / rec / qc,70105,20/02/2016,1.109
+river / wl / rec / qc,70105,21/02/2016,1.101
+river / wl / rec / qc,70105,22/02/2016,1.102
+river / wl / rec / qc,70105,23/02/2016,1.108
+river / wl / rec / qc,70105,24/02/2016,1.102
+river / wl / rec / qc,70105,25/02/2016,1.096
+river / wl / rec / qc,70105,26/02/2016,1.094
+river / wl / rec / qc,70105,27/02/2016,1.086
+river / wl / rec / qc,70105,28/02/2016,1.081
+river / wl / rec / qc,70105,29/02/2016,1.082
+river / wl / rec / qc,70105,1/03/2016,1.084
+river / wl / rec / qc,70105,2/03/2016,1.08
+river / wl / rec / qc,70105,3/03/2016,1.076
+river / wl / rec / qc,70105,4/03/2016,1.071
+river / wl / rec / qc,70105,5/03/2016,1.067
+river / wl / rec / qc,70105,6/03/2016,1.062
+river / wl / rec / qc,70105,7/03/2016,1.064
+river / wl / rec / qc,70105,8/03/2016,1.069

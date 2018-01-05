@@ -6,7 +6,11 @@ Created on Thu Feb 16 15:41:08 2017
 """
 from collections import OrderedDict
 from itertools import product, chain
-from pandas import DataFrame, CategoricalIndex, concat
+import pandas as pd
+import pint
+
+ureg = pint.UnitRegistry()
+Q_ = ureg.Quantity
 
 #######################################
 ### Lists and dictionaries for the master tables and associated data
@@ -59,16 +63,16 @@ resample_mtype_fun = {'flow': 'mean', 'wl': 'mean', 'precip': 'sum', 'R_n': 'sum
 #####################################
 ### Create master tables
 
-feature_df = DataFrame(feature_list, columns=['FeatureLongName', 'FeatureShortName', 'Description'])
+feature_df = pd.DataFrame(feature_list, columns=['FeatureLongName', 'FeatureShortName', 'Description'])
 feature_df.set_index('FeatureShortName', inplace=True)
 
-mtype_df = DataFrame(mtype_list, columns=['MTypeLongName', 'MTypeShortName', 'MTypeGroup', 'Units', 'Description'])
+mtype_df = pd.DataFrame(mtype_list, columns=['MTypeLongName', 'MTypeShortName', 'MTypeGroup', 'Units', 'Description'])
 mtype_df.set_index('MTypeShortName', inplace=True)
 
-msource_df = DataFrame(msource_list, columns=['MSourceLongName', 'MSourceShortName', 'Description'])
+msource_df = pd.DataFrame(msource_list, columns=['MSourceLongName', 'MSourceShortName', 'Description'])
 msource_df.set_index('MSourceShortName', inplace=True)
 
-qual_state_df = DataFrame(qual_state_list, columns=['QualityStateLongName', 'QualityStateShortName', 'Description'])
+qual_state_df = pd.DataFrame(qual_state_list, columns=['QualityStateLongName', 'QualityStateShortName', 'Description'])
 qual_state_df.set_index('QualityStateShortName', inplace=True)
 
 #######################################
@@ -82,8 +86,9 @@ hydro_ids = OrderedDict((' / '.join(i), i) for i in fields_list)
 
 resample_fun = OrderedDict((' / '.join(i), resample_mtype_fun[i[1]]) for i in fields_list)
 
-all_hydro_ids = DataFrame(fields_list, index=hydro_ids.keys(), dtype='category')
-all_hydro_ids.columns = ['feature', 'mtype', 'stype', 'qtype']
+all_hydro_ids = pd.DataFrame(fields_list, index=hydro_ids.keys(), dtype='category')
+all_hydro_ids.columns = ['feature', 'measurement', 'source', 'quality']
+all_hydro_ids.index.name = 'hydro_id'
 
 ######################################
 ### The main class
@@ -92,16 +97,18 @@ class hydro(object):
     """
     A class to handle environmental time series data where a site has a measurement type, a time series, and a location.
     """
-    from core.classes.hydro.import_fun import add_geo_loc, missing_geo_loc_sites, add_data, _import_attr, add_geo_catch, _add_geo_data, rd_csv, rd_netcdf, _rd_hydro_mssql, combine, _rd_hydro_geo_mssql, _proc_hydro_sql
-    from core.classes.hydro.indexing import sel_ts, sel_sites_by_poly, sel_ts_by_poly, sel, sel_by_poly, __getitem__, _comp_by_buffer, _comp_by_catch, sel_by_geo_attr
-    from core.classes.hydro.misc import _check_mtypes_sites, _mtype_check
-    from core.classes.hydro.export_fun import to_csv, to_netcdf, to_shp
-    from core.classes.hydro.ecan_import import get_geo_loc, _rd_hydstra, _rd_hydrotel, _rd_henry, get_data, get_site_geo_attr
-    from copy import copy
-    from core.classes.hydro.tools.sw import malf7d, flow_reg
-    from core.classes.hydro.tools.general import resample, stats
-    from core.classes.hydro.tools.plot import plot_hydrograph, plot_reg
-    from core.classes.hydro.tools.gw import gwl_reg
+#    from core.classes.hydro.import_fun import add_geo_loc, missing_geo_loc_sites, add_data, _import_attr, add_geo_catch, _add_geo_data, rd_csv, rd_netcdf, _rd_hydro_mssql, combine, _rd_hydro_geo_mssql, _proc_hydro_sql
+#    from core.classes.hydro.indexing import sel_ts, sel_sites_by_poly, sel_ts_by_poly, sel, sel_by_poly, __getitem__, _comp_by_buffer, _comp_by_catch, sel_by_geo_attr
+#    from core.classes.hydro.misc import _check_mtypes_sites, _mtype_check
+#    from core.classes.hydro.export_fun import to_csv, to_netcdf, to_shp
+#    from core.classes.hydro.ecan_import import get_geo_loc, _rd_hydstra, _rd_hydrotel, _rd_henry, get_data, get_site_geo_attr
+#    from copy import copy
+#    from core.classes.hydro.tools.sw import malf7d, flow_reg
+#    from core.classes.hydro.tools.general import resample, stats
+#    from core.classes.hydro.tools.plot import plot_hydrograph, plot_reg
+#    from core.classes.hydro.tools.gw import gwl_reg
+#    from hydropandas.core.indexing import
+    from hydropandas.io.import_base import add_data, rd_csv
 
 #    @property
 #    def _constructor(self):
@@ -122,7 +129,7 @@ class hydro(object):
 
     ### What to return when the oject is called alone
     def __repr__(self):
-        if hasattr(self, 'data'):
+        if hasattr(self, 'tsdata'):
             if not hasattr(self, '_base_stats'):
                 self._base_stats_fun()
             return(repr(self._base_stats))
@@ -133,13 +140,13 @@ class hydro(object):
     ### Base stats for the default view of the class (once data has been loaded)
 
     def _base_stats_fun(self):
-        grp1 = self.data.groupby(level=['mtype', 'site'])
+        grp1 = self.tsdata['value'].groupby(level=['hydro_id', 'site'])
         start = grp1.apply(lambda x: x.first_valid_index()[2])
         start.name = 'start_time'
         end = grp1.apply(lambda x: x.last_valid_index()[2])
         end.name = 'end_time'
         stats1 = grp1.describe()[['min', '25%', '50%', '75%', 'mean', 'max', 'count']].round(2)
-        out1 = concat([stats1, start, end], axis=1)
+        out1 = pd.concat([stats1, start, end], axis=1)
         setattr(self, '_base_stats', out1)
 
 

@@ -2,9 +2,9 @@
 """
 Functions to index and select data within the hydro class.
 """
-from pandas import DataFrame, Series, concat, Grouper
-from numpy import ndarray, in1d
-from core.classes.hydro.base import resample_fun
+import numpy as np
+import pandas as pd
+from hydropandas.core.base import resample_fun
 
 #########################################################
 ### Selecting/indexing the time series data and returing a hydro class object
@@ -54,7 +54,7 @@ def sel_by_geo_attr(self, attr_dict, mtypes=None):
         raise TypeError('attr_dict must be a dictionary.')
     attr1 = self.site_geo_attr.copy()
     for i in attr_dict:
-        attr1 = attr1[in1d(attr1[i].values, attr_dict[i])]
+        attr1 = attr1[np.in1d(attr1[i].values, attr_dict[i])]
 
     sites = attr1.index.tolist()
 
@@ -95,7 +95,7 @@ def sel_ts(self, mtypes=None, sites=None, require=None, pivot=False, resample=No
         mtypes = [mtypes]
     if mtypes is None:
         mtypes = slice(None)
-    elif isinstance(mtypes, (list, ndarray)):
+    elif isinstance(mtypes, (list, np.ndarray)):
         mtypes = [i for i in self.mtypes if any([j in i for j in mtypes])]
     else:
         raise TypeError('mtypes must be a str, list, or ndarray')
@@ -111,17 +111,17 @@ def sel_ts(self, mtypes=None, sites=None, require=None, pivot=False, resample=No
     if resample is not None:
         levels1 = sel_out1.index.get_level_values(0).unique()
         agg_funs = {i: resample_fun[i] for i in levels1}
-        sel_out2 = DataFrame()
+        sel_out2 = pd.DataFrame()
         if 'mean' in agg_funs.values():
             mtypes_mean = [i for i in agg_funs if agg_funs[i] == 'mean']
             df_mean = sel_out1.loc[mtypes_mean, :, :]
-            mean1 = df_mean.groupby([Grouper(level='mtype'), Grouper(level='site'), Grouper(level='time', freq=resample)]).mean()
+            mean1 = df_mean.groupby([pd.Grouper(level='mtype'), pd.Grouper(level='site'), pd.Grouper(level='time', freq=resample)]).mean()
             sel_out2 = mean1.copy()
         if 'sum' in agg_funs.values():
             mtypes_sum = [i for i in agg_funs if agg_funs[i] == 'sum']
             df_sum = sel_out1.loc[mtypes_sum, :, :]
-            sum1 = df_sum.groupby([Grouper(level='mtype'), Grouper(level='site'), Grouper(level='time', freq=resample)]).sum()
-            sel_out2 = concat([sel_out2, sum1])
+            sum1 = df_sum.groupby([pd.Grouper(level='mtype'), pd.Grouper(level='site'), pd.Grouper(level='time', freq=resample)]).sum()
+            sel_out2 = pd.concat([sel_out2, sum1])
     else:
         sel_out2 = sel_out1
     if pivot:
@@ -131,8 +131,16 @@ def sel_ts(self, mtypes=None, sites=None, require=None, pivot=False, resample=No
             sel_out2 = sel_out2.unstack('site')
         else:
             sel_out2 = sel_out2.unstack(['mtype', 'site'])
-    return(sel_out2)
+    return sel_out2
 
+#mtypes = all_hydro_ids.loc[hydro_id1, ['measurement']]
+#hydro_id_units = pd.merge(mtypes, mtype_df[['Units']], right_index=True, left_on='measurement')
+#hydro_id_units = hydro_id_units.drop('measurement', axis=1)['Units']
+
+#df_grp = df.groupby(level='hydro_id')['value']
+#        for name, group in df_grp:
+#            it_units = units[name]
+#            units_dict.update({name: Q_(group.values, it_units)})
 
 ##############################################################
 ### Selecting/indexing the geo data
@@ -166,7 +174,7 @@ def sel_sites_by_poly(self, poly, buffer_dis=0):
 
     pts = self.geo_loc
     sites_sel = sel_sites_poly(pts, poly, buffer_dis).index.tolist()
-    return(sites_sel)
+    return sites_sel
 
 
 def sel_ts_by_poly(self, poly, buffer_dis=0, **kwargs):
@@ -189,7 +197,7 @@ def sel_ts_by_poly(self, poly, buffer_dis=0, **kwargs):
     """
     sites_sel = self.sel_sites_by_poly(poly, buffer_dis)
     ts_out1 = self.sel_ts(sites=sites_sel, **kwargs)
-    return(ts_out1)
+    return ts_out1
 
 
 def sel_by_poly(self, poly, buffer_dis=0, **kwargs):
@@ -211,7 +219,7 @@ def sel_by_poly(self, poly, buffer_dis=0, **kwargs):
     """
     sites_sel = self.sel_sites_by_poly(poly, buffer_dis)
     out1 = self.sel(sites=sites_sel, **kwargs)
-    return(out1)
+    return out1
 
 
 def _comp_by_buffer(self, buffer_dis=None):
@@ -226,7 +234,7 @@ def _comp_by_buffer(self, buffer_dis=None):
     pts_buff = pts.buffer(buffer_dis)
     dict1 = {i: tuple(j for j in pts[pts.within(pts_buff.loc[i])].index.tolist()  if j != i) for i in pts_buff.index}
     setattr(self, 'comp_dict', dict1)
-    return(self)
+    return self
 
 
 def _comp_by_catch(self):
@@ -241,7 +249,7 @@ def _comp_by_catch(self):
     pts = self.geo_loc
     dict1 = {i: tuple(j for j in pts[pts.within(catch.loc[i, 'geometry'])].index.tolist()  if j != i) for i in catch.index}
     setattr(self, 'comp_catch_dict', dict1)
-    return(self)
+    return self
 
 
 
