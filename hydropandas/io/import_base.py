@@ -22,7 +22,7 @@ mfreq_list = ['discrete', 'sum', 'mean']
 ### Primary import functions
 
 
-def add_data(self, data, dformat, hydro_id, freq_type, times=None, sites=None, values=None, units=None, qual_codes=None, add=True):
+def add_data(self, data, dformat, hydro_id, freq_type, times=None, sites=None, values=None, units=None, qual_codes=None):
     """
     The general function to add time series data to the hydro class object.
 
@@ -85,8 +85,10 @@ def add_data(self, data, dformat, hydro_id, freq_type, times=None, sites=None, v
         input1.rename(columns={hydro_id: 'hydro_id', sites: 'site', times: 'time', values: 'value', qual_codes: 'qual_code'}, inplace=True)
         if input1['time'].dtype.type != np.datetime64:
             input1['time'] = pd.to_datetime(input1['time'])
-        if any(input1.value.isnull()):
-            input1 = input1.dropna()
+
+    ### Remove NaNs
+    if any(input1.value.isnull()):
+        input1 = input1.dropna()
 
     ### Categorise hydro_id and site columns and set index
     input2 = input1.copy()
@@ -104,10 +106,10 @@ def add_data(self, data, dformat, hydro_id, freq_type, times=None, sites=None, v
         input2 = input2.loc(axis=0)[sel_hydro_ids, :, :]
 
     ## Check freq_type and assign
-    _assign_mfreq(self, df_index, freq_type)
+    mfreq_dict = _create_mfreq(df_index, freq_type)
 
     ### Assign units
-    _assign_units(self, df_index, units)
+    units_dict = _create_units(df_index, units)
 
 #    ### Convert to series'
 #    if isinstance(qual_codes, str):
@@ -118,46 +120,28 @@ def add_data(self, data, dformat, hydro_id, freq_type, times=None, sites=None, v
 #    tsdata = input2['value']
 #    tsdata.name = 'tsdata'
 
-    ### Add data to hydro object
-    if add:
-        ### Remove base_stats if it exists
-        if hasattr(self, '_base_stats'):
-            delattr(self, '_base_stats')
-        if hasattr(self, 'tsdata'):
-            setattr(self, 'tsdata', input2.combine_first(self.tsdata).sort_index())
-        else:
-            setattr(self, 'tsdata', input2.sort_index())
-
-#        if isinstance(qual, pd.Series):
-#            if hasattr(self, 'qual_code'):
-#                setattr(self, 'qual_code', qual.combine_first(self.qual_code).sort_index())
-#            else:
-#                setattr(self, 'qual_code', qual.sort_index())
-
-        ## Reassign attributes
-        _import_attr(self)
-
-        ## Return
-        return self
+    ### Add data to new hydro object
+    new1 = self.copy()
+    if hasattr(new1, '_base_stats'):
+        delattr(new1, '_base_stats')
+    if hasattr(new1, 'tsdata'):
+        setattr(new1, 'tsdata', input2.combine_first(new1.tsdata).sort_index())
+        setattr(new1, 'mfreq', _append_mfreq(new1.mfreq, mfreq_dict))
+        setattr(new1, 'units', _append_units(new1.units, units_dict))
     else:
-        new1 = self.copy()
         setattr(new1, 'tsdata', input2.sort_index())
-#        if isinstance(qual, pd.Series):
-#            setattr(new1, 'qual_code', qual.sort_index())
-        _import_attr(new1)
-#        if hasattr(new1, 'site_geo_attr'):
-#            new1.get_site_geo_attr()
-        if hasattr(new1, 'geo_point'):
-            new1.add_geo_point(new1.geo_point, check=False)
-#        if hasattr(new1, 'geo_catch'):
-#            new1.add_geo_catch(new1.geo_catch, check=False)
-        return new1
+        setattr(new1, 'mfreq', mfreq_dict)
+        setattr(new1, 'units', units_dict)
+
+    ## Reassign attributes
+    _import_attr(new1)
+
+    ## Return
+    return new1
 
 
 ### Import helper functions
 
-
-### Functions applied after time series import to assign new attributes
 
 def _import_attr(self):
     ## Assign the list of available mtypes
@@ -192,7 +176,7 @@ def _import_attr(self):
 #        site_attr.index.name = 'site'
 #        setattr(self, 'site_attr', site_attr)
 
-def _assign_mfreq(self, df_index, freq_type):
+def _create_mfreq(df_index, freq_type):
     """
 
     """
@@ -218,10 +202,37 @@ def _assign_mfreq(self, df_index, freq_type):
             mfreq_s1.name = 'mfreq'
             mfreq_s1.index.names = ['hydro_id']
             mfreq_s = pd.Series(mfreq_s1[df_index.get_level_values(0)].values, index=df_index, name='mfreq')
-    setattr(self, 'mfreq', mfreq_s)
+    return mfreq_s
 
 
-def _assign_units(self, df_index, units):
+def _append_mfreq(old_mfreq, new_mfreq):
+    """
+
+    """
+    old_mfreq1 = old_mfreq.to_dict()
+    new_mfreq1 = new_mfreq.to_dict()
+
+    ### Check if the values are identical/different for the same hydro_id/site combo
+    dup1 = {i: new_mfreq1[i] != old_mfreq1[i] for i in new_mfreq1 if i in old_mfreq1}
+
+    if any(dup1.values()):
+        true1 = [i for i in dup1 if dup1[i]]
+        raise ValueError('Cannot have a different freq_type for an existing hydro_id/site combo. The problematic keys are ' + str(true1)[1:-1])
+
+    ### Append/update mfreq
+    old_mfreq1.update(new_mfreq1)
+
+    ### Convert to Series
+    mfreq_s = pd.DataFrame.from_dict(old_mfreq1, orient='index')[0]
+    mfreq_s.index = pd.MultiIndex.from_tuples(mfreq_s.index)
+    mfreq_s.name = 'mfreq'
+    mfreq_s.index.names = ['hydro_id', 'site']
+
+    ### Return
+    return mfreq_s
+
+
+def _create_units(df_index, units):
     """
 
     """
@@ -246,7 +257,29 @@ def _assign_units(self, df_index, units):
         hydro_id_units = hydro_id_units.drop('measurement', axis=1)['Units'].to_dict()
         for u in hydro_id_units:
             units_dict.update({u: ureg(hydro_id_units[u])})
-    setattr(self, 'units', units_dict)
+    return units_dict
+
+
+def _append_units(old_units, new_units):
+    """
+    Need to update!!!!
+    """
+    old_units1 = old_units.copy()
+
+    ### Check if the values are identical/different for the same hydro_id
+    dup1 = {i: new_units[i] != old_units1[i] for i in new_units if i in old_units1}
+
+    if any(dup1.values()):
+        true1 = [i for i in dup1 if dup1[i]]
+        convert_old = {i: old_units1[i] for i in true1}
+        convert_new = {i: new_units[i] for i in true1}
+        raise ValueError('Two identical hydro_ids have the same units. Will add conversion tool soon...')
+
+    ### Append/update units
+    old_units.update(new_units)
+
+    ### Return
+    return old_units
 
 
 ###################################################
@@ -256,17 +289,19 @@ def combine(self, hp):
     """
     Function to combine two hydro class objects.
     """
-    if 'qual_code' in hp.tsdata.columns:
-        qual1 = 'qual_code'
-    else:
-        qual1 = None
-    new1 = self.add_data(hp.tsdata.reset_index(), dformat='long', hydro_id='hydro_id', freq_type=hp.mfreq.to_dict(), times='time', sites='site', values='tsdata', units=hp.units, qual_codes=qual1)
+    new1 = self.copy()
+    if hasattr(new1, '_base_stats'):
+        delattr(new1, '_base_stats')
+    setattr(new1, 'tsdata', hp.tsdata.combine_first(new1.tsdata).sort_index())
+    setattr(new1, 'mfreq', _append_mfreq(new1.mfreq, hp.mfreq))
+    setattr(new1, 'units', _append_units(new1.units, hp.units))
     if hasattr(hp, 'site_attr'):
         new1.add_site_attr(hp.site_attr)
     if hasattr(hp, 'geo_point'):
         new1.add_geo_point(hp.geo_point, check=False)
     if hasattr(hp, 'geo_catch'):
         new1.add_geo_catch(hp.geo_catch, check=False)
+    _import_attr(new1)
     return new1
 
 
@@ -394,11 +429,11 @@ def rd_csv(self, csv_path, dformat, hydro_id, freq_type, multicolumn=False, time
         if multicolumn:
             ts = pd.read_csv(csv_path, parse_dates=True, infer_datetime_format=True, dayfirst=True, header=[0, 1], index_col=0)
         else:
-            ts = pd.read_csv(csv_path, parse_dates=[times], infer_datetime_format=True, dayfirst=True, header='infer')
+            ts = pd.read_csv(csv_path, parse_dates=True, infer_datetime_format=True, dayfirst=True, header='infer', index_col=0)
     else:
-        ts = pd.read_csv(csv_path, parse_dates=[times], infer_datetime_format=True, dayfirst=True, header='infer').reset_index()
-    self.add_data(ts, dformat=dformat, hydro_id=hydro_id, freq_type=freq_type, times=times, sites=sites, values=values, units=units, qual_codes=qual_codes)
-    return(self)
+        ts = pd.read_csv(csv_path, parse_dates=[times], infer_datetime_format=True, dayfirst=True, header='infer')
+    new1 = self.add_data(ts, dformat=dformat, hydro_id=hydro_id, freq_type=freq_type, times=times, sites=sites, values=values, units=units, qual_codes=qual_codes)
+    return new1
 
 
 def rd_netcdf(self, nc_path):

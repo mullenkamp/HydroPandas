@@ -14,7 +14,7 @@ from hydropandas.io.tools.general_ts import rd_ts
 py_dir = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 csv_files = ['test_long1.csv', 'test_wide1.csv', 'test_wide2.csv']
 #add_data_param = {'test_long1.csv': {'dformat': 'long', 'times': 'time', 'hydro_id': 'hydro_id', 'sites': 'site', 'values': 'data'}, 'test_wide1.csv': {'dformat': 'wide', 'hydro_id': 'hydro_id', 'freq_type': 'discrete', 'sites': 'site'}, 'test_wide2.csv': {'dformat': 'wide', 'hydro_id': 'river / flow / rec / qc', 'freq_type': 'discrete'}}
-rd_csv_param = {'test_long1.csv': {'freq_type': 'discrete', 'dformat': 'long', 'times': 'time', 'hydro_id': 'hydro_id', 'sites': 'site', 'values': 'data'}, 'test_wide1.csv': {'dformat': 'wide', 'hydro_id': 'hydro_id', 'freq_type': 'discrete', 'sites': 'site'}, 'test_wide2.csv': {'dformat': 'wide', 'hydro_id': 'river / flow / rec / qc', 'freq_type': 'discrete', 'units': 'm**3/s'}}
+rd_csv_param = {'test_long1.csv': {'freq_type': 'discrete', 'dformat': 'long', 'times': 'time', 'hydro_id': 'hydro_id', 'sites': 'site', 'values': 'data'}, 'test_wide1.csv': {'dformat': 'wide', 'hydro_id': 'hydro_id', 'freq_type': 'discrete', 'sites': 'site', 'multicolumn': True}, 'test_wide2.csv': {'dformat': 'wide', 'hydro_id': 'river / flow / rec / qc', 'freq_type': 'discrete', 'units': 'm**3/s'}}
 extra_csv = 'test_combine.csv'
 geo_shp = 'sites_geo.shp'
 export_keys = ['mtypes', 'sites']
@@ -60,46 +60,22 @@ def test_io_csv(csv):
     assert (len(h1._base_stats) > 4)
 
 
-#@pytest.mark.parametrize('csv', csv_files)
-#def test_io_csv(csv):
-#    tparam = param[csv].copy()
-#
-#    ## Read
-#    h1 = hydro().rd_csv(os.path.join(py_dir, csv), **tparam)
-#    h1._base_stats_fun()
-#    assert (len(h1._base_stats) > 4)
-#
-#    ## Write
-#    dformat = tparam['dformat']
-#    out_param = {}
-#    if dformat == 'long':
-#        out_param.update({'pivot': False})
-#    else:
-#        out_param.update({'pivot': True})
-#    h1.to_csv(os.path.join(py_dir, csv), **out_param)
-#
-#    ## Read
-#    h1 = hydro().rd_csv(os.path.join(py_dir, csv), **tparam)
-#    h1._base_stats_fun()
-#    assert (len(h1._base_stats) > 4)
-#
-#
-### Base import
-#tparam = param[csv_files[0]]
-#h1 = hydro().rd_csv(os.path.join(py_dir, csv_files[0]), **tparam)
-#h1._base_stats_fun()
-#h1_len = len(h1._base_stats)
-#
-### Combine test
-#h2 = hydro().rd_csv(os.path.join(py_dir, extra_csv), **tparam)
-#h2._base_stats_fun()
-#h2_len = len(h2._base_stats)
-#
-#
-#def test_combine():
-#    h3 = h1.combine(h2)
-#    h3._base_stats_fun()
-#    assert (len(h3._base_stats) == (h1_len + h2_len))
+## Base import
+tparam = rd_csv_param[csv_files[0]]
+h1 = hydro().rd_csv(os.path.join(py_dir, csv_files[0]), **tparam)
+h1._base_stats_fun()
+h1_len = len(h1._base_stats)
+
+## Combine test
+h2 = hydro().rd_csv(os.path.join(py_dir, extra_csv), **tparam)
+h2._base_stats_fun()
+h2_len = len(h2._base_stats)
+
+
+def test_combine():
+    h3 = h1.combine(h2)
+    h3._base_stats_fun()
+    assert (len(h3._base_stats) == (h1_len + h2_len))
 #
 ### Test geo import
 #geo1 = gpd.read_file(os.path.join(py_dir, geo_shp))[['index', 'geometry']]

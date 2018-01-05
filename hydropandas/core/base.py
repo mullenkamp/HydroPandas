@@ -93,6 +93,7 @@ all_hydro_ids.index.name = 'hydro_id'
 ######################################
 ### The main class
 
+
 class hydro(object):
     """
     A class to handle environmental time series data where a site has a measurement type, a time series, and a location.
@@ -102,13 +103,13 @@ class hydro(object):
 #    from core.classes.hydro.misc import _check_mtypes_sites, _mtype_check
 #    from core.classes.hydro.export_fun import to_csv, to_netcdf, to_shp
 #    from core.classes.hydro.ecan_import import get_geo_loc, _rd_hydstra, _rd_hydrotel, _rd_henry, get_data, get_site_geo_attr
-#    from copy import copy
+    from copy import copy
 #    from core.classes.hydro.tools.sw import malf7d, flow_reg
 #    from core.classes.hydro.tools.general import resample, stats
 #    from core.classes.hydro.tools.plot import plot_hydrograph, plot_reg
 #    from core.classes.hydro.tools.gw import gwl_reg
 #    from hydropandas.core.indexing import
-    from hydropandas.io.import_base import add_data, rd_csv
+    from hydropandas.io.import_base import add_data, rd_csv, combine
 
 #    @property
 #    def _constructor(self):
