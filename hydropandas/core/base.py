@@ -109,7 +109,8 @@ class hydro(object):
 #    from core.classes.hydro.tools.plot import plot_hydrograph, plot_reg
 #    from core.classes.hydro.tools.gw import gwl_reg
 #    from hydropandas.core.indexing import
-    from hydropandas.io.import_base import add_data, rd_csv, combine
+    from hydropandas.io.import_base import add_tsdata, rd_csv, combine
+    from hydropandas.core.indexing import sel_ts, sel
 
 #    @property
 #    def _constructor(self):

@@ -10,7 +10,7 @@ from hydropandas.core.base import resample_fun
 ### Selecting/indexing the time series data and returing a hydro class object
 
 
-def sel(self, mtypes=None, sites=None, require=None, resample=None, start=None, end=None):
+def sel(self, hydro_id=None, sites=None, require=None, start=None, end=None, return_qual_code=False):
     """
     Function to select data based on various input parameters and output a Hydro object.
 
@@ -34,10 +34,16 @@ def sel(self, mtypes=None, sites=None, require=None, resample=None, start=None, 
     Hydro
     """
 
-    sel_out = self.sel_ts(mtypes=mtypes, sites=sites, require=require, resample=resample, start=start, end=end)
+    sel_out = self.sel_ts(hydro_id=hydro_id, sites=sites, require=require, start=start, end=end, return_qual_code=return_qual_code)
     sel_out1 = sel_out.reset_index()
-    new1 = self.add_data(sel_out1, 'time', 'site', 'mtype', 'data', dformat='long', add=False)
-    return new1
+    if return_qual_code:
+        qual_codes = 'qual_codes'
+    else:
+        qual_codes = False
+    new1 = self.copy()
+    delattr(new1, 'tsdata')
+    new2 = new1.add_tsdata(sel_out1, dformat='long', hydro_id='hydro_id', freq_type=new1.mfreq.to_dict(), times='time', sites='site', values='value', units=new1.units, qual_codes=qual_codes)
+    return new2
 
 
 def __getitem__(self, key):
@@ -65,14 +71,14 @@ def sel_by_geo_attr(self, attr_dict, mtypes=None):
 ### Selecting/Indexing the time series data and returning a Pandas object
 
 
-def sel_ts(self, mtypes=None, sites=None, require=None, pivot=False, resample=None, start=None, end=None):
+def sel_ts(self, hydro_id=None, sites=None, require=None, pivot=False, start=None, end=None, return_qual_code=False):
     """
     Function to select data based on various input parameters and output a Pandas Series.
 
     Parameters
     ----------
-    mtypes : str or a list or ndarray of str
-        The mtypes that should be returned. Can also be a str or list of str of one of the four key mtype attributes (i.e. hydro feature, mtype, freq type, qual state). For example, inputting 'river_flow' will get you 'river_flow_cont_raw', 'river_flow_cont_qc', 'river_flow_disc_raw', and 'river_flow_disc_qc' if these exist in the hydro object.
+    hydro_id : str or a list or ndarray of str
+        The hydro_ids that should be returned. Can also be a str or list of str of one of the four key hydro_id attributes (i.e. hydro feature, hydro_id, freq type, qual state). For example, inputting 'river_flow' will get you 'river_flow_cont_raw', 'river_flow_cont_qc', 'river_flow_disc_raw', and 'river_flow_disc_qc' if these exist in the hydro object.
     sites : int, str, list, or ndarray
         The sites that should be returned.
     require : list or ndarray
@@ -91,47 +97,35 @@ def sel_ts(self, mtypes=None, sites=None, require=None, pivot=False, resample=No
     Series
         With a MultiIndex of mtype, site, and time
     """
-    if isinstance(mtypes, str):
-        mtypes = [mtypes]
-    if mtypes is None:
-        mtypes = slice(None)
-    elif isinstance(mtypes, (list, np.ndarray)):
-        mtypes = [i for i in self.mtypes if any([j in i for j in mtypes])]
+    if isinstance(hydro_id, str):
+        hydro_id = [hydro_id]
+    if hydro_id is None:
+        hydro_id = slice(None)
+    elif isinstance(hydro_id, (list, np.ndarray)):
+        hydro_id = [i for i in self.hydro_id if any([j in i for j in hydro_id])]
     else:
-        raise TypeError('mtypes must be a str, list, or ndarray')
+        raise TypeError('hydro_id must be a str, list, or ndarray')
     if sites is None:
         sites = slice(None)
-    sel_out1 = self.data.loc(axis=0)[mtypes, sites, start:end]
-    if require is not None:
-        mtypes2 = sel_out1.index.get_level_values('mtype').unique()
-        mtypes3 = [i for i in mtypes2 if all([j in list(self.mtypes_sites[i]) for j in require])]
-        sel_out1 = sel_out1.loc(axis=0)[mtypes3, :, :]
-    if sel_out1.empty:
-        return(sel_out1)
-    if resample is not None:
-        levels1 = sel_out1.index.get_level_values(0).unique()
-        agg_funs = {i: resample_fun[i] for i in levels1}
-        sel_out2 = pd.DataFrame()
-        if 'mean' in agg_funs.values():
-            mtypes_mean = [i for i in agg_funs if agg_funs[i] == 'mean']
-            df_mean = sel_out1.loc[mtypes_mean, :, :]
-            mean1 = df_mean.groupby([pd.Grouper(level='mtype'), pd.Grouper(level='site'), pd.Grouper(level='time', freq=resample)]).mean()
-            sel_out2 = mean1.copy()
-        if 'sum' in agg_funs.values():
-            mtypes_sum = [i for i in agg_funs if agg_funs[i] == 'sum']
-            df_sum = sel_out1.loc[mtypes_sum, :, :]
-            sum1 = df_sum.groupby([pd.Grouper(level='mtype'), pd.Grouper(level='site'), pd.Grouper(level='time', freq=resample)]).sum()
-            sel_out2 = pd.concat([sel_out2, sum1])
+    if return_qual_code:
+        sel_out1 = self.tsdata.loc(axis=0)[hydro_id, sites, start:end]
     else:
-        sel_out2 = sel_out1
+        sel_out1 = self.tsdata.loc(axis=0)[hydro_id, sites, start:end]['value']
+    if require is not None:
+        hydro_id2 = sel_out1.index.get_level_values('hydro_id').unique()
+        hydro_id3 = [i for i in hydro_id2 if all([j in list(self.hydroid_sites[i]) for j in require])]
+        sel_out1 = sel_out1.loc(axis=0)[hydro_id3, :, :]
+    if sel_out1.empty:
+        return sel_out1
+    sel_out1.index = sel_out1.index.remove_unused_levels()
     if pivot:
-        levels1 = sel_out2.index.get_level_values(0).unique()
+        levels1 = sel_out1.index.get_level_values(0).unique()
         if len(levels1) == 1:
-            sel_out2.index = sel_out2.index.droplevel('mtype')
-            sel_out2 = sel_out2.unstack('site')
+            sel_out1.index = sel_out1.index.droplevel('hydro_id')
+            sel_out1 = sel_out1.unstack('site')
         else:
-            sel_out2 = sel_out2.unstack(['mtype', 'site'])
-    return sel_out2
+            sel_out1 = sel_out1.unstack(['hydro_id', 'site'])
+    return sel_out1
 
 #mtypes = all_hydro_ids.loc[hydro_id1, ['measurement']]
 #hydro_id_units = pd.merge(mtypes, mtype_df[['Units']], right_index=True, left_on='measurement')

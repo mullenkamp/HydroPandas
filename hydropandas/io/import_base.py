@@ -22,7 +22,7 @@ mfreq_list = ['discrete', 'sum', 'mean']
 ### Primary import functions
 
 
-def add_data(self, data, dformat, hydro_id, freq_type, times=None, sites=None, values=None, units=None, qual_codes=None):
+def add_tsdata(self, data, dformat, hydro_id, freq_type, times=None, sites=None, values=None, units=None, qual_codes=None):
     """
     The general function to add time series data to the hydro class object.
 
@@ -95,7 +95,7 @@ def add_data(self, data, dformat, hydro_id, freq_type, times=None, sites=None, v
     input2['hydro_id'] = input2['hydro_id'].astype('category')
     input2['site'] = input2['site'].astype('category')
     input2 = input2.set_index(['hydro_id', 'site', 'time'])
-    df_index = input2.index.droplevel('time').drop_duplicates()
+    input2.index = input2.index.remove_unused_levels()
 
     ### Run additional checks
     ## Check hydro_ids
@@ -104,6 +104,7 @@ def add_data(self, data, dformat, hydro_id, freq_type, times=None, sites=None, v
     if any(~hydro_ids_bool):
         sel_hydro_ids = new_hydro_ids[hydro_ids_bool]
         input2 = input2.loc(axis=0)[sel_hydro_ids, :, :]
+    df_index = input2.index.droplevel('time').drop_duplicates()
 
     ## Check freq_type and assign
     mfreq_dict = _create_mfreq(df_index, freq_type)
@@ -180,22 +181,24 @@ def _create_mfreq(df_index, freq_type):
     """
 
     """
+    index_list = df_index.tolist()
     if isinstance(freq_type, str):
         if freq_type in mfreq_list:
             mfreq_s = pd.Series(freq_type, index=df_index, name='mfreq', dtype='category')
         else:
             raise ValueError('If freq_type is a str then it must be one of ' +  ', '.join(mfreq_list))
     elif isinstance(freq_type, dict):
-        if isinstance(freq_type.keys()[0], tuple):
-            mfreq_mis = [i for i in df_index.tolist() if i not in freq_type.keys()]
+        if isinstance(list(freq_type.keys())[0], tuple):
+            mfreq_mis = [i for i in index_list if i not in freq_type.keys()]
             if mfreq_mis:
                 raise ValueError('If freq_type is a dict with tuples as keys, then they must have the same combination of hydro_ids and sites as the input data. Missing tuples include ' + str(mfreq_mis)[1:-1])
-            mfreq_s = pd.DataFrame.from_dict(freq_type, orient='index')[0]
+            freq_type1 = {i: freq_type[i] for i in freq_type if i in index_list}
+            mfreq_s = pd.DataFrame.from_dict(freq_type1, orient='index')[0]
             mfreq_s.index = pd.MultiIndex.from_tuples(mfreq_s.index)
             mfreq_s.name = 'mfreq'
             mfreq_s.index.names = ['hydro_id', 'site']
         else:
-            mfreq_mis = [i for i in df_index.levels[0].tolist() if i not in freq_type.keys()]
+            mfreq_mis = [i for i in index_list if i not in freq_type.keys()]
             if mfreq_mis:
                 raise ValueError('If freq_type is a dict with hydro_ids as keys, then they must have the same number of hydro_ids as the input data. Missing hydro_ids include ' + str(mfreq_mis)[1:-1])
             mfreq_s1 = pd.DataFrame.from_dict(freq_type, orient='index')[0]
@@ -246,11 +249,12 @@ def _create_units(df_index, units):
         units_mis = [i for i in hydro_id1 if i not in units.keys()]
         if units_mis:
             raise ValueError('If units is a dict with hydro_ids as keys, then they must have the same number of hydro_ids as the input data. Missing hydro_ids include ' + str(units_mis)[1:-1])
-        if isinstance(units[units.keys()[0]], ureg.Quantity):
-            units_dict = units
+        units1 = {i: units[i] for i in units if i in hydro_id1}
+        if isinstance(units1[list(units1.keys())[0]], ureg.Quantity):
+            units_dict = units1
         else:
-            for u in units:
-                units_dict.update({u: ureg(units[u])})
+            for u in units1:
+                units_dict.update({u: ureg(units1[u])})
     else:
         mtypes = all_hydro_ids.loc[hydro_id1, ['measurement']]
         hydro_id_units = pd.merge(mtypes, mtype_df[['Units']], right_index=True, left_on='measurement')
@@ -273,7 +277,7 @@ def _append_units(old_units, new_units):
         true1 = [i for i in dup1 if dup1[i]]
         convert_old = {i: old_units1[i] for i in true1}
         convert_new = {i: new_units[i] for i in true1}
-        raise ValueError('Two identical hydro_ids have the same units. Will add conversion tool soon...')
+        raise ValueError('Two identical hydro_ids have the different units. Will add conversion tool soon...')
 
     ### Append/update units
     old_units.update(new_units)
@@ -432,7 +436,7 @@ def rd_csv(self, csv_path, dformat, hydro_id, freq_type, multicolumn=False, time
             ts = pd.read_csv(csv_path, parse_dates=True, infer_datetime_format=True, dayfirst=True, header='infer', index_col=0)
     else:
         ts = pd.read_csv(csv_path, parse_dates=[times], infer_datetime_format=True, dayfirst=True, header='infer')
-    new1 = self.add_data(ts, dformat=dformat, hydro_id=hydro_id, freq_type=freq_type, times=times, sites=sites, values=values, units=units, qual_codes=qual_codes)
+    new1 = self.add_tsdata(ts, dformat=dformat, hydro_id=hydro_id, freq_type=freq_type, times=times, sites=sites, values=values, units=units, qual_codes=qual_codes)
     return new1
 
 
