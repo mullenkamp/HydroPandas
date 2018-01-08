@@ -19,12 +19,14 @@ extra_csv = 'test_combine.csv'
 geo_shp = 'sites_geo.shp'
 export_keys = ['mtypes', 'sites']
 netcdf1 = 'test_netcdf1.nc'
+hdf1 = 'test_hdf.h5'
+hydro_id_units = {'river / flow / mfield / qc': 'm**3/s', 'river / flow / rec / qc': 'l/s', 'river / wl / rec / qc': 'cm'}
 
-units = {'river / flow / mfield / qc': 'm**3/s', 'river / flow / rec / qc': 'l/s', 'river / wl / rec / qc': 'cm'}
+#exist_units = h1.units.copy()
 
-py_dir = r'E:\ecan\git\HydroPandas\hydropandas\tests'
+#py_dir = r'E:\ecan\git\HydroPandas\hydropandas\tests'
 
-data = pd.read_csv(os.path.join(py_dir, csv_files[1]), parse_dates=True, infer_datetime_format=True, dayfirst=True, header=[0, 1], index_col=0)
+#data = pd.read_csv(os.path.join(py_dir, csv_files[1]), parse_dates=True, infer_datetime_format=True, dayfirst=True, header=[0, 1], index_col=0)
 
 #locals().update(add_data_param[csv_files[1]])
 #
@@ -32,8 +34,8 @@ data = pd.read_csv(os.path.join(py_dir, csv_files[1]), parse_dates=True, infer_d
 #
 #locals().update(add_data_param[csv_files[2]])
 #locals().update(add_data_param[csv_files[0]])
-freq_type = {('river / flow / rec / qc', '65101'): 'discrete', ('river / flow / rec / qc', '69505'): 'discrete', ('river / flow / mfield / qc', '66'): 'mean'}
-freq_type = {'river / flow / rec / qc': 'discrete', 'river / flow / mfield / qc': 'discrete', 'river / wl / rec / qc': 'mean'}
+#freq_type = {('river / flow / rec / qc', '65101'): 'discrete', ('river / flow / rec / qc', '69505'): 'discrete', ('river / flow / mfield / qc', '66'): 'mean'}
+#freq_type = {'river / flow / rec / qc': 'discrete', 'river / flow / mfield / qc': 'discrete', 'river / wl / rec / qc': 'mean'}
 
 
 @pytest.mark.parametrize('csv', csv_files)
@@ -76,17 +78,43 @@ def test_combine():
     h3 = h1.combine(h2)
     h3._base_stats_fun()
     assert (len(h3._base_stats) == (h1_len + h2_len))
-#
+
+
+### Test unit conversion
+def test_unit_conversion():
+    h4 = h1.to_units(hydro_id_units)
+    h4._base_stats_fun()
+    old_mean = h1._base_stats.loc['river / flow / rec / qc', 69505]['mean']
+    new_mean = h4._base_stats.loc['river / flow / rec / qc', 69505]['mean']
+    assert (new_mean >= 999 * old_mean)
+
+
 ### Test geo import
-#geo1 = gpd.read_file(os.path.join(py_dir, geo_shp))[['index', 'geometry']]
-#geo2 = geo1.set_index('index')
-#
-#
-#def test_add_geo_loc():
-#    h1.add_geo_loc(geo2)
-#    assert (len(h1.geo_loc) == 7)
-#
-#
+geo1 = gpd.read_file(os.path.join(py_dir, geo_shp))[['index', 'geometry']]
+geo2 = geo1.set_index('index')
+
+
+def test_add_geo_loc():
+    h1.add_geo_point(geo2)
+    assert (len(h1.geo_point) == 7)
+
+
+def test_io_hdf():
+    ## Read
+    h4 = hydro().rd_hdf(os.path.join(py_dir, hdf1))
+    h4._base_stats_fun()
+    assert (len(h4._base_stats) == 12)
+
+    ## Write
+    h4.to_hdf(os.path.join(py_dir, hdf1))
+
+    ## Read
+    h4 = hydro().rd_hdf(os.path.join(py_dir, hdf1))
+    h4._base_stats_fun()
+    assert (len(h4._base_stats) == 12)
+
+
+
 #def test_io_netcdf():
 #    ## Read
 #    h4 = hydro().rd_netcdf(os.path.join(py_dir, netcdf1))
@@ -100,10 +128,6 @@ def test_combine():
 #    h4 = hydro().rd_netcdf(os.path.join(py_dir, netcdf1))
 #    h4._base_stats_fun()
 #    assert (len(h4._base_stats) > 4)
-
-
-
-
 
 
 

@@ -109,8 +109,10 @@ class hydro(object):
 #    from core.classes.hydro.tools.plot import plot_hydrograph, plot_reg
 #    from core.classes.hydro.tools.gw import gwl_reg
 #    from hydropandas.core.indexing import
-    from hydropandas.io.import_base import add_tsdata, rd_csv, combine
+    from hydropandas.io.import_base import add_tsdata, rd_csv, combine, add_geo_point, add_geo_catch, _add_geo_data, _check_geo_sites, _check_crs, missing_geo_point_sites, rd_hdf
     from hydropandas.core.indexing import sel_ts, sel
+    from hydropandas.io.export_base import to_csv, to_hdf, to_shp
+    from hydropandas.util.unit_conversion import to_units
 
 #    @property
 #    def _constructor(self):

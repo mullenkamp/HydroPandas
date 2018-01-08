@@ -5,6 +5,7 @@ Functions to index and select data within the hydro class.
 import numpy as np
 import pandas as pd
 from hydropandas.core.base import resample_fun
+from hydropandas.util.unit_conversion import to_units as convert_units
 
 #########################################################
 ### Selecting/indexing the time series data and returing a hydro class object
@@ -71,7 +72,7 @@ def sel_by_geo_attr(self, attr_dict, mtypes=None):
 ### Selecting/Indexing the time series data and returning a Pandas object
 
 
-def sel_ts(self, hydro_id=None, sites=None, require=None, pivot=False, start=None, end=None, return_qual_code=False):
+def sel_ts(self, hydro_id=None, sites=None, require=None, pivot=False, start=None, end=None, to_units=None, return_qual_code=False):
     """
     Function to select data based on various input parameters and output a Pandas Series.
 
@@ -97,23 +98,26 @@ def sel_ts(self, hydro_id=None, sites=None, require=None, pivot=False, start=Non
     Series
         With a MultiIndex of mtype, site, and time
     """
+    h1 = self.copy()
     if isinstance(hydro_id, str):
         hydro_id = [hydro_id]
     if hydro_id is None:
         hydro_id = slice(None)
     elif isinstance(hydro_id, (list, np.ndarray)):
-        hydro_id = [i for i in self.hydro_id if any([j in i for j in hydro_id])]
+        hydro_id = [i for i in h1.hydro_id if any([j in i for j in hydro_id])]
     else:
         raise TypeError('hydro_id must be a str, list, or ndarray')
     if sites is None:
         sites = slice(None)
+    if isinstance(to_units, dict):
+        convert_units(h1, to_units, inplace=True)
     if return_qual_code:
-        sel_out1 = self.tsdata.loc(axis=0)[hydro_id, sites, start:end]
+        sel_out1 = h1.tsdata.loc(axis=0)[hydro_id, sites, start:end]
     else:
-        sel_out1 = self.tsdata.loc(axis=0)[hydro_id, sites, start:end]['value']
+        sel_out1 = h1.tsdata.loc(axis=0)[hydro_id, sites, start:end]['value']
     if require is not None:
         hydro_id2 = sel_out1.index.get_level_values('hydro_id').unique()
-        hydro_id3 = [i for i in hydro_id2 if all([j in list(self.hydroid_sites[i]) for j in require])]
+        hydro_id3 = [i for i in hydro_id2 if all([j in list(h1.hydroid_sites[i]) for j in require])]
         sel_out1 = sel_out1.loc(axis=0)[hydro_id3, :, :]
     if sel_out1.empty:
         return sel_out1
@@ -127,14 +131,6 @@ def sel_ts(self, hydro_id=None, sites=None, require=None, pivot=False, start=Non
             sel_out1 = sel_out1.unstack(['hydro_id', 'site'])
     return sel_out1
 
-#mtypes = all_hydro_ids.loc[hydro_id1, ['measurement']]
-#hydro_id_units = pd.merge(mtypes, mtype_df[['Units']], right_index=True, left_on='measurement')
-#hydro_id_units = hydro_id_units.drop('measurement', axis=1)['Units']
-
-#df_grp = df.groupby(level='hydro_id')['value']
-#        for name, group in df_grp:
-#            it_units = units[name]
-#            units_dict.update({name: Q_(group.values, it_units)})
 
 ##############################################################
 ### Selecting/indexing the geo data
