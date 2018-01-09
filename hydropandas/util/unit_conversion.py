@@ -20,7 +20,7 @@ def to_units(self, hydro_id_units, inplace=False):
 
     Returns
     -------
-    Hydro if inplace == False, else None
+    Hydro if inplace is False, else None
     """
     if not isinstance(hydro_id_units, dict):
         raise TypeError('hydro_id_units must be a dict of hydro_id to units')

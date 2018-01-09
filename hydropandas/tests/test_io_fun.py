@@ -18,7 +18,7 @@ rd_csv_param = {'test_long1.csv': {'freq_type': 'discrete', 'dformat': 'long', '
 extra_csv = 'test_combine.csv'
 geo_shp = 'sites_geo.shp'
 export_keys = ['mtypes', 'sites']
-netcdf1 = 'test_netcdf1.nc'
+#netcdf1 = 'test_netcdf1.nc'
 hdf1 = 'test_hdf.h5'
 hydro_id_units = {'river / flow / mfield / qc': 'm**3/s', 'river / flow / rec / qc': 'l/s', 'river / wl / rec / qc': 'cm'}
 

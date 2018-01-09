@@ -60,7 +60,7 @@ def rd_sql(server, database, table=None, col_names=None, where_col=None, where_v
         if col_names is not None:
             if isinstance(col_names, str):
                 col_names = [col_names]
-            col_names1 = ['[' + i.encode('ascii', 'ignore') + ']' for i in col_names]
+            col_names1 = ['[' + i.encode('ascii', 'ignore').decode() + ']' for i in col_names]
             col_stmt = ', '.join(col_names1)
         else:
             col_stmt = '*'
@@ -154,7 +154,7 @@ def rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resa
     ## Create ts statement and append earlier where statement
     if isinstance(groupby_cols, str):
         groupby_cols = [groupby_cols]
-    col_names1 = ['[' + i.encode('ascii', 'ignore') + ']' for i in groupby_cols]
+    col_names1 = ['[' + i.encode('ascii', 'ignore').decode() + ']' for i in groupby_cols]
     col_stmt = ', '.join(col_names1)
 
     ## Create sql stmt
@@ -274,14 +274,17 @@ def write_sql(df, server, database, table, dtype_dict, primary_keys=None, foreig
 
     for i in df.columns:
         dtype1 = dtype_dict[i]
-        if (dtype1 == 'DATE') | (dtype1 == 'DATETIME'):
-            time1 = pd.to_datetime(df[i]).dt.isoformat(' ')
+        if (dtype1 == 'DATE'):
+            time1 = pd.to_datetime(df[i]).dt.strftime('%Y-%m-%d')
+            df1.loc[:, i] = time1
+        elif (dtype1 == 'DATETIME'):
+            time1 = pd.to_datetime(df[i]).dt.strftime('%Y-%m-%d %H:%M:%S')
             df1.loc[:, i] = time1
         elif 'VARCHAR' in dtype1:
             try:
                 df1.loc[:, i] = df.loc[:, i].astype(str).str.replace('\'', '')
             except:
-                df1.loc[:, i] = df.loc[:, i].str.encode('utf-8', 'ignore').str.replace('\'', '')
+                df1.loc[:, i] = df.loc[:, i].str.encode('utf-8', 'ignore').decode().str.replace('\'', '')
         elif 'NUMERIC' in dtype1:
             df1.loc[:, i] = df.loc[:, i].astype(float)
         elif 'decimal' in dtype1:
@@ -361,6 +364,7 @@ def write_sql(df, server, database, table, dtype_dict, primary_keys=None, foreig
     except Exception as err:
         conn.rollback()
         conn.close()
+#        return tup2[i]
         raise err
 
 
@@ -406,7 +410,7 @@ def sql_where_stmts(where_col=None, where_val=None, where_op='AND', from_date=No
     if isinstance(from_date, str):
         from_date1 = pd.to_datetime(from_date, errors='coerce')
         if isinstance(from_date1, pd.Timestamp):
-            from_date2 = from_date1.isoformat().split('T')[0]
+            from_date2 = from_date1.strftime('%Y-%m-%d')
             where_from_date = date_col + " >= " + from_date2.join(['\'', '\''])
         else:
             where_from_date = ''
@@ -416,7 +420,7 @@ def sql_where_stmts(where_col=None, where_val=None, where_op='AND', from_date=No
     if isinstance(to_date, str):
         to_date1 = pd.to_datetime(to_date, errors='coerce')
         if isinstance(to_date1, pd.Timestamp):
-            to_date2 = to_date1.isoformat().split('T')[0]
+            to_date2 = to_date1.strftime('%Y-%m-%d')
             where_to_date = date_col + " <= " + to_date2.join(['\'', '\''])
         else:
             where_to_date = ''

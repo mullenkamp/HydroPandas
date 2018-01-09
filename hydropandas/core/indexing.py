@@ -11,7 +11,7 @@ from hydropandas.util.unit_conversion import to_units as convert_units
 ### Selecting/indexing the time series data and returing a hydro class object
 
 
-def sel(self, hydro_id=None, sites=None, require=None, start=None, end=None, return_qual_code=False):
+def sel(self, hydro_id=None, sites=None, require=None, start=None, end=None, to_units=None, return_qual_code=False):
     """
     Function to select data based on various input parameters and output a Hydro object.
 
@@ -23,19 +23,21 @@ def sel(self, hydro_id=None, sites=None, require=None, start=None, end=None, ret
         The sites that should be returned.
     require : list or ndarray
         A list of sites that must be in all of the mtypes that should be returned.
-    resample : str or None
-        Either None or the Pandas resampling code to resample the data (e.g. 'D' for daily, 'W' for weekly, 'M' for monthly). See http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases for more details.
     start : str
         The start date in the format '2001-01-01'.
     end : str
         The end date in the above format.
+    to_units: str or dict
+        The new units to convert the data to.
+    return_qual_code: bool
+        Should the quality codes be returned?
 
     Return
     ------
     Hydro
     """
 
-    sel_out = self.sel_ts(hydro_id=hydro_id, sites=sites, require=require, start=start, end=end, return_qual_code=return_qual_code)
+    sel_out = self.sel_ts(hydro_id=hydro_id, sites=sites, require=require, start=start, end=end, to_units=to_units, return_qual_code=return_qual_code)
     sel_out1 = sel_out.reset_index()
     if return_qual_code:
         qual_codes = 'qual_codes'
@@ -43,12 +45,12 @@ def sel(self, hydro_id=None, sites=None, require=None, start=None, end=None, ret
         qual_codes = False
     new1 = self.copy()
     delattr(new1, 'tsdata')
-    new2 = new1.add_tsdata(sel_out1, dformat='long', hydro_id='hydro_id', freq_type=new1.mfreq.to_dict(), times='time', sites='site', values='value', units=new1.units, qual_codes=qual_codes)
+    new2 = new1.add_tsdata(sel_out1, dformat='long', hydro_id='hydro_id', freq_type=new1.mfreq, times='time', sites='site', values='value', units=new1.units, qual_codes=qual_codes)
     return new2
 
 
 def __getitem__(self, key):
-    n3 = self.data.loc(axis=0)[key]
+    n3 = self.tsdata.loc(axis=0)[key]
     return n3
 
 
@@ -92,6 +94,10 @@ def sel_ts(self, hydro_id=None, sites=None, require=None, pivot=False, start=Non
         The start date in the format '2001-01-01'.
     end : str
         The end date in the above format.
+    to_units: str or dict
+        The new units to convert the data to.
+    return_qual_code: bool
+        Should the quality codes be returned?
 
     Return
     ------
@@ -162,7 +168,7 @@ def sel_ts(self, hydro_id=None, sites=None, require=None, pivot=False, start=Non
 def sel_sites_by_poly(self, poly, buffer_dis=0):
     from core.spatial.vector import sel_sites_poly
 
-    pts = self.geo_loc
+    pts = self.geo_point
     sites_sel = sel_sites_poly(pts, poly, buffer_dis).index.tolist()
     return sites_sel
 
@@ -220,7 +226,7 @@ def _comp_by_buffer(self, buffer_dis=None):
         raise ValueError('buffer_dis must be an integer.')
     if not hasattr(self, 'geo_loc'):
         raise ValueError('Add the geo locations of the sites.')
-    pts = self.geo_loc
+    pts = self.geo_point
     pts_buff = pts.buffer(buffer_dis)
     dict1 = {i: tuple(j for j in pts[pts.within(pts_buff.loc[i])].index.tolist()  if j != i) for i in pts_buff.index}
     setattr(self, 'comp_dict', dict1)
@@ -236,7 +242,7 @@ def _comp_by_catch(self):
     if not hasattr(self, 'geo_loc'):
         raise ValueError('Add the geo locations of the sites.')
     catch = self.geo_catch
-    pts = self.geo_loc
+    pts = self.geo_point
     dict1 = {i: tuple(j for j in pts[pts.within(catch.loc[i, 'geometry'])].index.tolist()  if j != i) for i in catch.index}
     setattr(self, 'comp_catch_dict', dict1)
     return self

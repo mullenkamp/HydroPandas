@@ -29,30 +29,47 @@ def add_tsdata(self, data, dformat, hydro_id, freq_type, times=None, sites=None,
 
     Input data can be either in 'wide' or 'long' dformat.
 
-    The 'wide' dformat is where the columns are the sites or both mtypes and sites as a MultiIndex column. 'time' should either be None if data.index is a DateTimeIndex or a DateTimeIndex. 'sites' should be None. If data has a MultiIndex column of mtypes and sites, they must be arranged in that order (top: mtypes, bottom: sites).
+    The 'wide' dformat is where the columns are the sites or both hydro_id and sites as a MultiIndex column. 'time' should be None as data.index must be a DateTimeIndex. 'sites' should be None. If data has a MultiIndex column of hydro_id and sites, they must be arranged in that order (top: hydro_id, bottom: sites).
 
-    The 'long' dformat should be a DataFrame with four columns: One column with a DatetimeIndex for 'time', one column with the site values as 'sites', one column with the mtypes values as 'mtypes', and one column with the data values as 'values'.
+    The 'long' dformat should be a DataFrame with four (or five) columns: One column with a DatetimeIndex for 'time', one column with the site values as 'sites', one column with the hydro_id values as 'hydro_id', and one column with the data values as 'values'. One further column for qual_codes can be added.
 
     Parameters
     ----------
     data : DataFrame
         A Pandas DataFrame in either long or wide format.
-    time : DateTimeIndex, str, or None
-        The time index reference. Depends on dformat.
-    sites : str, int, or None
-        The sites reference. Depends on dformat.
-    mtypes : str, int, or None
-        The mtypes reference. Depends on dformat.
-    values : str or None
-        Only needed for dformat = 'long'. The column name for the data values.
     dformat : 'wide' or 'long'
         The format of the data table to import.
+    hydro_id : str
+        A str to either reference a column/multiindex level or the actual hydro_id
+    freq_type : str or dict
+        Either a str or dict of the measurement frequency types (see below).
+    times : str or None
+        Either the time column for dformat 'long' or None.
+    sites : str or None
+        See above.
+    values : str or None
+        Either the data column for dformat 'long' or None.
+    units : str, dict, or None
+        The units of the data (see below).
     add : bool
         Should new data be appended to the existing object? If False, returns a new object.
 
     Returns
     -------
     Hydro
+
+    Notes
+    -----
+    freq_type
+        freq_type refers to how the measurement device measured the data. The measurement can either be discrete (i.e. instantaneous measurement) or an aggregate from the last measurement (i.e. accumulated rainfall). Values for the frequency type can be one of 'discrete', 'sum', or 'mean'.
+        If all hydro_ids and sites have the same freq_type, then freq_type is a str. Otherwise, freq_type should be dict with keys of either hydro_id or a tuple of hydro_id and site.
+
+    units
+        The hydro class handles conversions between units using the very nice Pint package [1]_. As such, units need to be defined for all hydro_ids. At the moment, different sites for one specific hydro_id cannot have different units. If nothing is passed to the units parameter, the default units are assigned to the hydro_ids.
+        Values for units can be in a variety of short hand strings. For example 'm/s', 'meters/second', 'meter', 'm**3/s'. For a more comprehensive list see Pint docs.
+        If the data contains a single hydro_id, then units is a str. When there are more than one hydro_id, a dictionary of hydro_id to units should be passed.
+
+    .. [1] Pint: https://pint.readthedocs.io
     """
 
     ### Convert input data to standarised long format for consumption
@@ -284,7 +301,13 @@ def _combine_tsdata(self, tsdata, mfreq_dict, units_dict):
 
 def combine(self, hydro):
     """
+    Function to combine two hydro objects.
 
+    hydro : hydro
+
+    Returns
+    -------
+    hydro
     """
     new1 = _combine_tsdata(self, hydro.tsdata, hydro.mfreq, hydro.units)
     if hasattr(hydro, 'site_attr'):
@@ -339,6 +362,16 @@ def _add_geo_data(self, geo, obj_name):
 
 
 def add_geo_point(self, geo, check=True):
+    """
+    Function to add geo points to a hydro object.
+
+    geo : str or GeoDataFrame
+        Either a str path to a point shapefile or a GeoDataFrame of points with the index as sites.
+
+    Returns
+    -------
+    None
+    """
     _add_geo_data(self, geo, 'geo_point')
     if check:
         _check_geo_sites(self, 'geo_point')
@@ -416,6 +449,16 @@ def _check_geo_sites(self, geo_name):
 def rd_csv(self, csv_path, dformat, hydro_id, freq_type, multicolumn=False, times=None, sites=None, values=None, units=None, qual_codes=None):
     """
     Simple function to read in time series data and make it regular if needed.
+
+    Parameters
+    ----------
+    csv_path : str
+        str path to the csv.
+    dformat : str
+        Either wide or long.
+    hydro_id : str
+        The hydro_id.
+    freq_type :
     """
     if dformat == 'wide':
         if multicolumn:
