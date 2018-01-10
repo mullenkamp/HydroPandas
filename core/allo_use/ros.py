@@ -2,15 +2,16 @@
 """
 Reliability of Supply and min flow restrictions functions.
 """
-from numpy import ndarray, in1d, nan, array, where
+from numpy import ndarray, in1d, nan, array, where, arange
 from ast import literal_eval, parse
 from pandas import read_csv, DataFrame, merge, concat, Series, MultiIndex, to_datetime, DateOffset, to_numeric
 from datetime import date, datetime
 
-from core.misc.misc import printf, select_sites, save_df
-from core.spatial.vector import sel_sites_poly
-from core.ecan_io.SQL_databases import sql_arg
-from core.ecan_io import rd_ts, rd_hydrotel, rd_sql, rd_sql_ts
+from hydropandas.util.misc import select_sites, save_df
+from hydropandas.tools.general.spatial.vector import sel_sites_poly
+from hydropandas.io.tools.sql_arg_class import sql_arg
+from hydropandas.io.tools.mssql import rd_sql, rd_sql_ts
+from hydropandas.io.tools.hydrotel import rd_hydrotel
 
 ### ROS and min flow restrictions
 
@@ -263,7 +264,7 @@ def min_max_trig(SiteID=None, is_active=True):
     periods['from_mon'] = periods['from_date'].dt.month
     periods['to_mon'] = periods['to_date'].dt.month
 
-    periods1 = periods.groupby(['SiteID', 'band_num', 'period']).apply(lambda x: Series(range(x.from_mon, x.to_mon + 1)))
+    periods1 = periods.groupby(['SiteID', 'band_num', 'period']).apply(lambda x: Series(arange(x.from_mon, x.to_mon + 1)))
     periods1.index = periods1.index.droplevel(3)
     periods1.name = 'mon'
     periods1 = periods1.reset_index().drop_duplicates(['SiteID', 'band_num', 'mon'])
@@ -282,18 +283,20 @@ def min_max_trig(SiteID=None, is_active=True):
     return (p_set_site, p_set)
 
 
-def low_flow_restr(sites_num=None, from_date=None, to_date=None):
+def low_flow_restr(sites_num=None, from_date=None, to_date=None, only_restr=True):
     """
     Function to determine the flow sites currently on restriction.
 
     Parameters
     ----------
-    sites_num: list or None
+    sites_num : list or None
         A list of sites to return, or all sites if None.
     from_date: str
         The start date in the format '2017-01-01'.
-    end_date: str
+    end_date : str
         The end date in the format '2017-01-01'.
+    only_restr : bool
+        Should only the sites that are on some kind of restriction be returned?
 
     Returns
     -------
@@ -357,8 +360,11 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None):
 
     sites = rd_sql(server1, database1, sites_table, sites_fields, {'isActive': [is_active]}, rename_cols=sites_names)
 
-    allo_values = range(100)
-    allo_values.extend(range(103, 110))
+    if only_restr:
+        allo_values = list(arange(100))
+        allo_values.extend(list(arange(103, 110)))
+    else:
+        allo_values = list(arange(110))
 
     restr_day = rd_sql_ts(server=server1, database=database1, table=restr_table, groupby_cols=['SiteID', 'BandNo'], date_col='RestrictionDate',  values_cols=['AsmtFlow', 'BandAllocation'], from_date=from_date, to_date=to_date, where_col={'BandAllocation': allo_values})
     restr_day = restr_day.reset_index()
@@ -387,7 +393,7 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None):
             raise ValueError('sites_num must be a list of strings')
 
     ## Periods by month
-    p_set_site, p_set = min_max_trig(restr_day.SiteID.tolist())
+    p_set_site, p_set = min_max_trig(restr_day.SiteID.unique().tolist())
 
     ## Trigger flows
     restr_day['mon'] = restr_day['date'].dt.month

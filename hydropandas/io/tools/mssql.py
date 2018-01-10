@@ -8,6 +8,7 @@ from pymssql import connect
 import pandas as pd
 import geopandas as gpd
 from hydropandas.util.misc import save_df
+from sqlalchemy import create_engine
 
 
 def rd_sql(server, database, table=None, col_names=None, where_col=None, where_val=None, where_op='AND', geo_col=False,
@@ -259,7 +260,7 @@ def write_sql(df, server, database, table, dtype_dict, primary_keys=None, foreig
     """
 
     #### Parameters and functions
-    py_sql = {'NUMERIC': float, 'DATE': str, 'DATETIME': str, 'INT': 'int32', 'smallint': 'int32', 'date': str, 'varchar': str, 'float': float, 'datetime': str, 'VARCHAR': str, 'FLOAT': float, 'smalldatetime': str, 'decimal': float}
+    py_sql = {'NUMERIC': float, 'DATE': str, 'DATETIME': str, 'INT': 'int32', 'smallint': 'int32', 'date': str, 'varchar': str, 'float': float, 'datetime': str, 'VARCHAR': str, 'FLOAT': float, 'smalldatetime': str, 'decimal': float, 'numeric': float, 'int': 'int32'}
 
     def chunker(seq, size):
         return ([seq[pos:pos + size] for pos in range(0, len(seq), size)])
@@ -274,20 +275,18 @@ def write_sql(df, server, database, table, dtype_dict, primary_keys=None, foreig
 
     for i in df.columns:
         dtype1 = dtype_dict[i]
-        if (dtype1 == 'DATE'):
+        if (dtype1 == 'DATE') | (dtype1 == 'date'):
             time1 = pd.to_datetime(df[i]).dt.strftime('%Y-%m-%d')
             df1.loc[:, i] = time1
-        elif (dtype1 == 'DATETIME'):
+        elif (dtype1 == 'DATETIME') | (dtype1 == 'datetime'):
             time1 = pd.to_datetime(df[i]).dt.strftime('%Y-%m-%d %H:%M:%S')
             df1.loc[:, i] = time1
-        elif 'VARCHAR' in dtype1:
+        elif ('VARCHAR' in dtype1) | ('varchar' in dtype1):
             try:
                 df1.loc[:, i] = df.loc[:, i].astype(str).str.replace('\'', '')
             except:
                 df1.loc[:, i] = df.loc[:, i].str.encode('utf-8', 'ignore').decode().str.replace('\'', '')
-        elif 'NUMERIC' in dtype1:
-            df1.loc[:, i] = df.loc[:, i].astype(float)
-        elif 'decimal' in dtype1:
+        elif ('NUMERIC' in dtype1) | ('numeric' in dtype1) | ('decimal' in dtype1):
             df1.loc[:, i] = df.loc[:, i].astype(float)
         elif not dtype1 in py_sql.keys():
             raise ValueError('dtype must be one of ' + str(py_sql.keys()))
@@ -365,6 +364,153 @@ def write_sql(df, server, database, table, dtype_dict, primary_keys=None, foreig
         conn.rollback()
         conn.close()
 #        return tup2[i]
+        raise err
+
+
+def to_mssql(df, server, database, table, index=False):
+    """
+    Function to append a DataFrame onto an existing mssql table.
+
+    Parameters
+    ----------
+    df : DataFrame
+        DataFrame to be saved.
+    server : str
+        The server name. e.g.: 'SQL2012PROD03'
+    database : str
+        The specific database within the server. e.g.: 'LowFlows'
+    table : str
+        The specific table within the database. e.g.: 'LowFlowSiteRestrictionDaily'
+    index : bool
+        Should the index be added as a column?
+
+    Returns
+    -------
+    None
+    """
+    ### Prepare the engine
+    eng_str = 'mssql+pymssql://' + server + '/' + database
+    engine = create_engine(eng_str)
+
+    ### Save to mssql table
+    df.to_sql(name=table, con=engine, if_exists='append', chunksize=1000, index=index)
+
+
+def create_mssql_table(server, database, table, dtype_dict, primary_keys=None, foreign_keys=None, foreign_table=None, drop_table=False):
+    """
+    Function to create a table in a mssql database.
+
+    Parameters
+    ----------
+    server : str
+        The server name. e.g.: 'SQL2012PROD03'
+    database : str
+        The specific database within the server. e.g.: 'LowFlows'
+    table : str
+        The specific table within the database. e.g.: 'LowFlowSiteRestrictionDaily'
+    dtype_dict : dict of str
+        Dictionary of df columns to the associated sql data type. Examples below.
+    primary_keys : str or list of str
+        Index columns to define uniqueness in the data structure.
+    foreign_keys : str or list of str
+        Columns to link to another table in the same database.
+    foreign_table: str
+        The table in the same database with the identical foreign key(s).
+    drop_table : bool
+        If the table already exists, should it be dropped?
+
+    Returns
+    -------
+    None
+    """
+    ### Make connection
+    conn = connect(server, database=database)
+    cursor = conn.cursor()
+
+    ### Primary keys
+    if isinstance(primary_keys, str):
+        primary_keys = [primary_keys]
+    if isinstance(primary_keys, list):
+        pkey_stmt = ", Primary key (" + ", ".join(primary_keys) + ")"
+    else:
+        pkey_stmt = ""
+
+    ### Foreign keys
+    if isinstance(foreign_keys, str):
+        foreign_keys = [foreign_keys]
+    if isinstance(foreign_keys, list):
+        fkey_stmt = ", Foreign key (" + ", ".join(foreign_keys) + ") " + "References " + foreign_table + "(" + ", ".join(foreign_keys) + ")"
+    else:
+        fkey_stmt = ""
+
+    ### Initial create table statement
+    d1 = [str(i) + ' ' + dtype_dict[i] for i in dtype_dict]
+    d2 = ', '.join(d1)
+    tab_create_stmt = "IF OBJECT_ID(" + str([str(table)])[1:-1] + ", 'U') IS NULL create table " + table + " (" + d2 + pkey_stmt + fkey_stmt + ")"
+
+    try:
+
+        ### Drop table option or check
+        if drop_table:
+            drop_stmt = "IF OBJECT_ID(" + str([str(table)])[1:-1] + ", 'U') IS NOT NULL DROP TABLE " + table
+            cursor.execute(drop_stmt)
+            conn.commit()
+        else:
+            check_tab_stmt = "IF OBJECT_ID(" + str([str(table)])[1:-1] + ", 'U') IS NOT NULL SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME=" +  str([str(table)])[1:-1]
+#            tab1 = pd.read_sql(check_tab_stmt, conn)
+            cursor.execute(check_tab_stmt)
+            list1 = [i for i in cursor]
+            if list1:
+                print('Table already exists. Returning the table info.')
+                df = pd.DataFrame(list1, columns=['columns', 'dtype'])
+                conn.close()
+                return df
+
+        ### Create table in database
+        cursor.execute(tab_create_stmt)
+        conn.commit()
+        conn.close()
+
+    except Exception as err:
+        conn.rollback()
+        conn.close()
+        raise err
+
+
+def del_mssql_table_rows(server, database, table, **kwargs):
+    """
+    Function to selectively delete rows from an mssql table.
+
+    Parameters
+    ----------
+    server : str
+        The server name. e.g.: 'SQL2012PROD03'
+    database : str
+        The specific database within the server. e.g.: 'LowFlows'
+    table : str
+        The specific table within the database. e.g.: 'LowFlowSiteRestrictionDaily'
+    **kwargs
+        Any kwargs that can be passed to sql_where_stmts.
+
+    Returns
+    -------
+    None
+    """
+    ### Make connection
+    conn = connect(server, database=database)
+    cursor = conn.cursor()
+
+    ### Make the delete statement
+    del_where_list = sql_where_stmts(**kwargs)
+    del_rows_stmt = "DELETE FROM " + table + " WHERE " + " AND ".join(del_where_list)
+
+    ### Delete rows
+    try:
+        cursor.execute(del_rows_stmt)
+        conn.commit()
+    except Exception as err:
+        conn.rollback()
+        conn.close()
         raise err
 
 

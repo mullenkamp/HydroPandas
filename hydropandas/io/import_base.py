@@ -51,8 +51,8 @@ def add_tsdata(self, data, dformat, hydro_id, freq_type, times=None, sites=None,
         Either the data column for dformat 'long' or None.
     units : str, dict, or None
         The units of the data (see below).
-    add : bool
-        Should new data be appended to the existing object? If False, returns a new object.
+    qual_codes : str or None
+        Only applies when dformat  == 'long'. The column name that contains the quality codes (optional).
 
     Returns
     -------

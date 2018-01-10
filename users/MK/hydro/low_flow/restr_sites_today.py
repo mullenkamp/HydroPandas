@@ -27,4 +27,5 @@ basic.to_csv(join(base_dir, output_csv1), index=False)
 complete.to_csv(join(base_dir, output_csv2), index=False)
 
 
+basic1, complete1 = low_flow_restr(from_date=today1, to_date=today1, False)
 

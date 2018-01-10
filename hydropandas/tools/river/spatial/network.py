@@ -99,13 +99,27 @@ def up_branch(df, index_col=1):
 
 
 #####################################################
-#### MFE REC streams network and catchments
+#### MFE REC streams network
 
 
-def find_upstream_rec(nzreach, rec_shp=r'\\fs02\ManagedShares2\Data\Surface Water\shared\GIS_base\vector\streams\rec-canterbury-2010.shp'):
+def find_upstream_rec(nzreach, rec_streams_shp):
     """
-    Function to estimate all of the reaches (and nodes) upstream of specific reaches. Input is a list/array/Series of NZREACH IDs.
+    Function to estimate all of the reaches (and nodes) upstream of specific reaches.
+
+    Parameters
+    ----------
+    nzreach : list, ndarray, Series of int
+        The NZ reach IDs
+    rec_streams_shp : str path or GeoDataFrame
+        str path to the REC streams shapefile or the equivelant GeoDataFrame.
+
+    Returns
+    -------
+    DataFrame
+
     """
+    if not isinstance(nzreach, (list, np.ndarray, pd.Series)):
+        raise TypeError('nzreach must be a list, ndarray or Series.')
 
     ### Parameters
 #    server = 'SQL2012PROD05'
@@ -115,11 +129,11 @@ def find_upstream_rec(nzreach, rec_shp=r'\\fs02\ManagedShares2\Data\Surface Wate
 #
 #    ### Load data
 #    rec = rd_sql(server, db, table, cols)
-    if isinstance(rec_shp, gpd.GeoDataFrame):
-        rec = rec_shp.copy().drop('geometry', axis=1)
-    elif isinstance(rec_shp, str):
-        if rec_shp.endswith('shp'):
-            rec = gpd.read_file(rec_shp).drop('geometry', axis=1)
+    if isinstance(rec_streams_shp, gpd.GeoDataFrame):
+        rec = rec_streams_shp.copy().drop('geometry', axis=1)
+    elif isinstance(rec_streams_shp, str):
+        if rec_streams_shp.endswith('shp'):
+            rec = gpd.read_file(rec_streams_shp).drop('geometry', axis=1)
     else:
         raise TypeError('rec_shp must be either a GeoDataFrame or a shapefile')
 
@@ -137,68 +151,4 @@ def find_upstream_rec(nzreach, rec_shp=r'\\fs02\ManagedShares2\Data\Surface Wate
     reaches = pd.concat(reaches_lst)
     reaches.set_index('start', inplace=True)
     return reaches
-
-
-def extract_rec_catch(reaches, rec_catch_shp=r'\\fs02\ManagedShares2\Data\Surface Water\shared\GIS_base\vector\catchments\river-environment-classification-watershed-canterbury-2010.shp'):
-    """
-    Function to extract the catchment polygons from the rec catchments layer. Appends to reaches layer.
-    """
-
-    ### Parameters
-#    server = 'SQL2012PROD05'
-#    db = 'GIS'
-#    table = 'MFE_NZTM_RECWATERSHEDCANTERBURY'
-#    cols = ['NZREACH']
-#
-    sites = reaches.NZREACH.unique().astype('int32').tolist()
-#
-#    ### Extract reaches from SQL
-#    catch1 = rd_sql(server, db, table, cols, where_col='NZREACH', where_val=sites, geo_col=True)
-#    catch2 = catch1.dissolve('NZREACH')
-    if isinstance(rec_catch_shp, gpd.GeoDataFrame):
-        catch0 = rec_catch_shp.copy()
-    elif isinstance(rec_catch_shp, str):
-        if rec_catch_shp.endswith('shp'):
-            catch0 = gpd.read_file(rec_catch_shp)
-    else:
-        raise TypeError('rec_shp must be either a GeoDataFrame or a shapefile')
-
-    catch1 = catch0[catch0.NZREACH.isin(sites)]
-    catch2 = catch1.dissolve('NZREACH').reset_index()[['NZREACH', 'geometry']]
-
-    ### Combine with original sites
-    catch3 = catch2.merge(reaches.reset_index(), on='NZREACH')
-    catch3.crs = catch0.crs
-
-    return catch3
-
-
-def agg_rec_catch(rec_catch):
-    """
-    Simple function to aggregate rec catchments.
-    """
-    rec_shed = rec_catch[['start', 'geometry']].dissolve('start')
-    rec_shed.index = rec_shed.index.astype('int32')
-    rec_shed['area'] = rec_shed.area
-    rec_shed.crs = rec_catch.crs
-    return rec_shed.reset_index()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
