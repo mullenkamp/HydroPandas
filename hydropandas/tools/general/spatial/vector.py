@@ -107,12 +107,15 @@ def pts_poly_join(pts, poly, poly_id_col):
     -------
     GeoDataFrame
     """
-
-    poly2 = poly[[poly_id_col, 'geometry']]
+    if isinstance(poly_id_col, str):
+        poly_id_col = [poly_id_col]
+    cols = poly_id_col.copy()
+    cols.extend(['geometry'])
+    poly2 = poly[cols]
     poly3 = poly2.dissolve(by=poly_id_col)
 
     join1 = sjoin(pts, poly3, how='inner', op='within')
-    join1.rename(columns={join1.columns[-1]: poly_id_col}, inplace=True)
+#    join1.rename(columns={join1.columns[-1]: poly_id_col}, inplace=True)
 
     return join1, poly3
 

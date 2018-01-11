@@ -9,11 +9,9 @@ import os
 import pandas as pd
 import geopandas as gpd
 from hydropandas.core.base import hydro
-from hydropandas.io.tools.general_ts import rd_ts
 
 py_dir = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 csv_files = ['test_long1.csv', 'test_wide1.csv', 'test_wide2.csv']
-#add_data_param = {'test_long1.csv': {'dformat': 'long', 'times': 'time', 'hydro_id': 'hydro_id', 'sites': 'site', 'values': 'data'}, 'test_wide1.csv': {'dformat': 'wide', 'hydro_id': 'hydro_id', 'freq_type': 'discrete', 'sites': 'site'}, 'test_wide2.csv': {'dformat': 'wide', 'hydro_id': 'river / flow / rec / qc', 'freq_type': 'discrete'}}
 rd_csv_param = {'test_long1.csv': {'freq_type': 'discrete', 'dformat': 'long', 'times': 'time', 'hydro_id': 'hydro_id', 'sites': 'site', 'values': 'data'}, 'test_wide1.csv': {'dformat': 'wide', 'hydro_id': 'hydro_id', 'freq_type': 'discrete', 'sites': 'site', 'multicolumn': True}, 'test_wide2.csv': {'dformat': 'wide', 'hydro_id': 'river / flow / rec / qc', 'freq_type': 'discrete', 'units': 'm**3/s'}}
 extra_csv = 'test_combine.csv'
 geo_shp = 'sites_geo.shp'

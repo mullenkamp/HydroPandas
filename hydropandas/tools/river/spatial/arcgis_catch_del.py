@@ -2,6 +2,10 @@
 """
 Functions to delineate catchments using arcpy.
 """
+import os, sys
+import pandas as pd
+import numpy as np
+import geopandas as gpd
 
 
 def catch_net(catch_sites_csv, catch_sites_col=['GRIDCODE', 'SITE']):
@@ -104,9 +108,7 @@ def arc_catch_del(WD, boundary_shp, sites_shp, site_num_col='site', point_dis=10
     -------
     None
     """
-
     # load in the necessary arcpy libraries to import arcpy
-    import sys
     sys.path.append('C:\\Python27\\ArcGIS10.4\\Lib\\site-packages')
     sys.path.append(r'C:\Program Files (x86)\ArcGIS\Desktop10.4\arcpy')
     sys.path.append(r'C:\Program Files (x86)\ArcGIS\Desktop10.4\ArcToolbox\Scripts')
@@ -117,7 +119,6 @@ def arc_catch_del(WD, boundary_shp, sites_shp, site_num_col='site', point_dis=10
     import arcpy
     from arcpy import env
     from arcpy.sa import Raster, Con, IsNull, FlowDirection, FlowAccumulation, Fill, SnapPourPoint, Watershed
-    import os
     #import ArcHydroTools as ah
 
     # Check out spatial analyst license
@@ -312,7 +313,6 @@ def arc_spatial_join(WD, site_num_col='site', pour_dis=20, export_dir='results',
     # Import packages
     import arcpy
     from arcpy import env
-    import os
 
     env.workspace = WD
     final_export_dir = export_dir
