@@ -11,8 +11,7 @@ from hydropandas.util.misc import save_df
 from sqlalchemy import create_engine
 
 
-def rd_sql(server, database, table=None, col_names=None, where_col=None, where_val=None, where_op='AND', geo_col=False,
-           from_date=None, to_date=None, date_col=None, rename_cols=None, stmt=None, export_path=None):
+def rd_sql(server, database, table=None, col_names=None, where_col=None, where_val=None, where_op='AND', geo_col=False, from_date=None, to_date=None, date_col=None, rename_cols=None, stmt=None, export_path=None):
     """
     Function to import data from an MSSQL database. Requires the pymssql package.
 
@@ -88,7 +87,7 @@ def rd_sql(server, database, table=None, col_names=None, where_col=None, where_v
         df.columns = rename_cols
 
     ## Read in geometry if required
-    if geo_col & (stmt is not None):
+    if geo_col & (stmt is None):
         geometry, proj = rd_sql_geo(server=server, database=database, table=table, where_lst=where_lst)
         df = gpd.GeoDataFrame(df, geometry=geometry, crs=proj)
 
@@ -363,7 +362,6 @@ def write_sql(df, server, database, table, dtype_dict, primary_keys=None, foreig
     except Exception as err:
         conn.rollback()
         conn.close()
-#        return tup2[i]
         raise err
 
 
@@ -398,7 +396,7 @@ def to_mssql(df, server, database, table, index=False):
 
 def create_mssql_table(server, database, table, dtype_dict, primary_keys=None, foreign_keys=None, foreign_table=None, drop_table=False):
     """
-    Function to create a table in a mssql database.
+    Function to create a table in an mssql database.
 
     Parameters
     ----------
@@ -508,6 +506,7 @@ def del_mssql_table_rows(server, database, table, **kwargs):
     try:
         cursor.execute(del_rows_stmt)
         conn.commit()
+        conn.close()
     except Exception as err:
         conn.rollback()
         conn.close()

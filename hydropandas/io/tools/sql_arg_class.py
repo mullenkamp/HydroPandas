@@ -46,7 +46,7 @@ class GW(object):
 
 class GIS(object):
     """
-    Tables with geometry.
+    Tables with a geometry field.
     """
     swaz_gis = {'server': 'SQL2012PROD05', 'database': 'GISPUBLIC', 'table': 'PLAN_NZTM_SURFACE_WATER_ALLOCATION_ZONES', 'col_names': ['ZONE_GROUP_NAME', 'ZONE_NAME'], 'rename_cols': ['swaz_grp', 'swaz'], 'geo_col': True}
     gwaz_gis = {'server': 'SQL2012PROD05', 'database': 'GISPUBLIC', 'table': 'PLAN_NZTM_GROUNDWATER_ALLOCATION_ZONES', 'col_names': ['Zone_Name'], 'rename_cols': ['gwaz'], 'geo_col': True}
@@ -56,6 +56,7 @@ class GIS(object):
     crc_gis = {'server': 'SQL2012PROD05', 'database': 'GIS_Accela', 'table': 'vCOCOA_NZTM_ResourceConsents', 'col_names': ['ConsentNo', 'ConsentType', 'NZTMX', 'NZTMY'], 'rename_cols': ['crc', 'crc_type', 'NZTMX', 'NZTMY'], 'geo_col': True}
     rec_gis = {'server': 'SQL2012PROD05', 'database': 'GIS', 'table': 'MFE_NZTM_REC', 'col_names': ['NZREACH', 'NZFNODE', 'NZTNODE', 'ORDER_'], 'rename_cols': ['NZREACH', 'NZFNODE', 'NZTNODE', 'order'], 'geo_col': True}
     rec_catch_gis = {'server': 'SQL2012PROD05', 'database': 'GIS', 'table': 'MFE_NZTM_RECWATERSHEDCANTERBURY', 'col_names': ['NZREACH'], 'geo_col': True}
+    lowflow_sites_gis = {'server': 'SQL2012PROD05', 'database': 'GIS', 'table': 'vLOWFLOWS_NZTM_MinimumFlows', 'col_names': ['SiteID', 'ReferenceNo'], 'rename_cols': ['SiteID', 'site'], 'geo_col': True}
 
 
 class lowflows(object):
@@ -79,11 +80,12 @@ class SW(object):
 ##################################################################
 ### Main class call
 
+
 class sql_arg(object):
     """
     Class container to retreive dictionaries to pass to rd_sql.
     """
-    from core.ecan_io.SQL_databases.sql_arg_class import _get_vars, consents, water_use, GW, SW, GIS, lowflows
+    from hydropandas.io.tools.sql_arg_class import _get_vars, consents, water_use, GW, SW, GIS, lowflows
 
     _code_dict = {'consents': consents, 'water_use': water_use, 'GW': GW, 'lowflows': lowflows, 'SW': SW, 'GIS': GIS}
 
@@ -94,14 +96,22 @@ class sql_arg(object):
         self.classes = classes
         self.codes = codes
 
-    def get_dict(self, code=None, fields=None, minimum=False):
+    def get_dict(self, code, fields=None, minimum=False):
         """
         Main function to retreive dictionaries to pass to rd_sql.
 
-        Arguments:
-        code -- Special dictionary code to retreive the dictionary parameters for SQL (str).\n
-        fields -- The dictionary keys that should be retreived (str or list). None returns all fields.\n
-        minimum -- Should only the server, database, and table values be returned?
+        Parameters
+        ----------
+        code : str
+            Special dictionary code to retreive the dictionary parameters for SQL.
+        fields : str, list of str, or None
+            The dictionary keys that should be retreived. None returns all fields.
+        minimum : bool
+            Should only the server, database, and table values be returned?
+
+        Returns
+        -------
+        dict to be passed to rd_sql
         """
         if isinstance(code, str):
             if code in self.codes:
@@ -121,38 +131,4 @@ class sql_arg(object):
 
     def __repr__(self):
         return(repr(self.classes))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
