@@ -3,9 +3,8 @@
 Functions to index and select data within the hydro class.
 """
 import numpy as np
-import pandas as pd
-from hydropandas.core.base import resample_fun
-from hydropandas.util.unit_conversion import to_units as convert_units
+# import pandas as pd
+# from hydropandas.core.base import resample_fun
 
 #########################################################
 ### Selecting/indexing the time series data and returing a hydro class object
@@ -116,7 +115,7 @@ def sel_ts(self, hydro_id=None, sites=None, require=None, pivot=False, start=Non
     if sites is None:
         sites = slice(None)
     if isinstance(to_units, dict):
-        convert_units(h1, to_units, inplace=True)
+        self.to_units(h1, to_units, inplace=True)
     if return_qual_code:
         sel_out1 = h1.tsdata.loc(axis=0)[hydro_id, sites, start:end]
     else:

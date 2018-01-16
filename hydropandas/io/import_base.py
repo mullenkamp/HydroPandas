@@ -11,9 +11,9 @@ from shapely.wkt import loads
 from shapely.geometry import Point
 from hydropandas.io.tools.mssql import rd_sql, rd_sql_ts
 from hydropandas.tools.general.spatial.vector import sel_sites_poly, xy_to_gpd
-from hydropandas.core.base import all_hydro_ids, mtype_df, ureg, Q_
-from hydropandas.core.indexing import _comp_by_catch
-from hydropandas.util.unit_conversion import to_units
+import pint
+
+ureg = pint.UnitRegistry()
 
 ########################################################
 #### Time series data
@@ -118,7 +118,7 @@ def add_tsdata(self, data, dformat, hydro_id, freq_type, times=None, sites=None,
     ### Run additional checks
     ## Check hydro_ids
     new_hydro_ids = input2.index.levels[0]
-    hydro_ids_bool = np.in1d(new_hydro_ids, all_hydro_ids.index)
+    hydro_ids_bool = np.in1d(new_hydro_ids, self.hydro_ids.index)
     if any(~hydro_ids_bool):
         sel_hydro_ids = new_hydro_ids[hydro_ids_bool]
         input2 = input2.loc(axis=0)[sel_hydro_ids, :, :]
@@ -128,7 +128,7 @@ def add_tsdata(self, data, dformat, hydro_id, freq_type, times=None, sites=None,
     mfreq_dict = _create_mfreq(df_index, freq_type)
 
     ### Assign units
-    units_dict = _create_units(df_index, units)
+    units_dict = _create_units(self, df_index, units)
 
 #    ### Convert to series'
 #    if isinstance(qual_codes, str):
@@ -235,7 +235,7 @@ def _append_mfreq(old_mfreq, new_mfreq):
     return old_mfreq
 
 
-def _create_units(df_index, units):
+def _create_units(self, df_index, units):
     """
     Add in dimensionality checks!!!
     """
@@ -256,15 +256,15 @@ def _create_units(df_index, units):
             for u in units1:
                 units_dict.update({u: ureg(units1[u])})
     else:
-        mtypes = all_hydro_ids.loc[hydro_id1, ['measurement']]
-        hydro_id_units = pd.merge(mtypes, mtype_df[['Units']], right_index=True, left_on='measurement')
+        mtypes = self.hydro_ids.loc[hydro_id1, ['measurement']]
+        hydro_id_units = pd.merge(mtypes, self.mtypes[['Units']], right_index=True, left_on='measurement')
         hydro_id_units = hydro_id_units.drop('measurement', axis=1)['Units'].to_dict()
         for u in hydro_id_units:
             units_dict.update({u: ureg(hydro_id_units[u])})
     return units_dict
 
 
-def _append_units(hydro, new_units):
+def _append_units(self, hydro, new_units):
     """
     Add in dimensionality checks!!!
     """
@@ -277,7 +277,7 @@ def _append_units(hydro, new_units):
         true1 = [i for i in dup1 if dup1[i]]
         convert_new = {i: new_units[i] for i in true1}
         print('Two identical hydro_ids have different units. Converting to new units...')
-        to_units(hydro, convert_new, inplace=True)
+        self.to_units(hydro, convert_new, inplace=True)
 
     ### Append/update units
     hydro.units.update(new_units)
@@ -295,7 +295,7 @@ def _combine_tsdata(self, tsdata, mfreq_dict, units_dict):
         delattr(new1, '_base_stats')
     setattr(new1, 'tsdata', tsdata.combine_first(new1.tsdata).sort_index())
     setattr(new1, 'mfreq', _append_mfreq(new1.mfreq, mfreq_dict))
-    _append_units(new1, units_dict)
+    _append_units(self, new1, units_dict)
 
     return new1
 
@@ -380,7 +380,7 @@ def add_geo_point(self, geo, check=True):
 def add_geo_catch(self, geo, check=True):
     if hasattr(self, 'geo_point'):
         _add_geo_data(self, geo, 'geo_catch')
-        _comp_by_catch(self)
+        self._comp_by_catch()
         if check:
             _check_crs(self)
             _check_geo_sites(self, 'geo_catch')

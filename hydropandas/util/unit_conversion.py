@@ -4,7 +4,9 @@ Created on Mon Jan  8 08:02:26 2018
 
 @author: MichaelEK
 """
-from hydropandas.core.base import all_hydro_ids, mtype_df, ureg, Q_
+import pint
+
+ureg = pint.UnitRegistry()
 
 
 def to_units(self, hydro_id_units, inplace=False):

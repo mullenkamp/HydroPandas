@@ -7,7 +7,7 @@ Created on Thu Oct 26 15:34:32 2017
 import os
 import pytest
 import geopandas as gpd
-from hydropandas.core.base import hydro
+from hydropandas.core.base import Hydro
 
 
 py_dir = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
@@ -17,7 +17,7 @@ hdf1 = 'test_hdf.h5'
 poly_shp = 'test_poly.shp'
 
 ## Read in data
-h1 = hydro().rd_hdf(os.path.join(py_dir, hdf1))
+h1 = Hydro().rd_hdf(os.path.join(py_dir, hdf1))
 h1._base_stats_fun()
 stats = h1._base_stats
 

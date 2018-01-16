@@ -8,7 +8,7 @@ import pytest
 import os
 import pandas as pd
 import geopandas as gpd
-from hydropandas.core.base import hydro
+from hydropandas.core.base import Hydro
 
 py_dir = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 csv_files = ['test_long1.csv', 'test_wide1.csv', 'test_wide2.csv']
@@ -22,7 +22,7 @@ hydro_id_units = {'river / flow / mfield / qc': 'm**3/s', 'river / flow / rec / 
 
 #exist_units = h1.units.copy()
 
-#py_dir = r'E:\ecan\git\HydroPandas\hydropandas\tests'
+py_dir = r'E:\ecan\git\HydroPandas\hydropandas\tests'
 
 #data = pd.read_csv(os.path.join(py_dir, csv_files[1]), parse_dates=True, infer_datetime_format=True, dayfirst=True, header=[0, 1], index_col=0)
 
@@ -41,7 +41,7 @@ def test_io_csv(csv):
     tparam = rd_csv_param[csv].copy()
 
     ## Read
-    h1 = hydro().rd_csv(os.path.join(py_dir, csv), **tparam)
+    h1 = Hydro().rd_csv(os.path.join(py_dir, csv), **tparam)
     h1._base_stats_fun()
     assert (len(h1._base_stats) > 4)
 
@@ -55,19 +55,19 @@ def test_io_csv(csv):
     h1.to_csv(os.path.join(py_dir, csv), **out_param)
 
     ## Read
-    h1 = hydro().rd_csv(os.path.join(py_dir, csv), **tparam)
+    h1 = Hydro().rd_csv(os.path.join(py_dir, csv), **tparam)
     h1._base_stats_fun()
     assert (len(h1._base_stats) > 4)
 
 
 ## Base import
 tparam = rd_csv_param[csv_files[0]]
-h1 = hydro().rd_csv(os.path.join(py_dir, csv_files[0]), **tparam)
+h1 = Hydro().rd_csv(os.path.join(py_dir, csv_files[0]), **tparam)
 h1._base_stats_fun()
 h1_len = len(h1._base_stats)
 
 ## Combine test
-h2 = hydro().rd_csv(os.path.join(py_dir, extra_csv), **tparam)
+h2 = Hydro().rd_csv(os.path.join(py_dir, extra_csv), **tparam)
 h2._base_stats_fun()
 h2_len = len(h2._base_stats)
 
@@ -99,7 +99,7 @@ def test_add_geo_loc():
 
 def test_io_hdf():
     ## Read
-    h4 = hydro().rd_hdf(os.path.join(py_dir, hdf1))
+    h4 = Hydro().rd_hdf(os.path.join(py_dir, hdf1))
     h4._base_stats_fun()
     assert (len(h4._base_stats) == 12)
 
@@ -107,7 +107,7 @@ def test_io_hdf():
     h4.to_hdf(os.path.join(py_dir, hdf1))
 
     ## Read
-    h4 = hydro().rd_hdf(os.path.join(py_dir, hdf1))
+    h4 = Hydro().rd_hdf(os.path.join(py_dir, hdf1))
     h4._base_stats_fun()
     assert (len(h4._base_stats) == 12)
 

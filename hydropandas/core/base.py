@@ -7,10 +7,8 @@ Created on Thu Feb 16 15:41:08 2017
 from collections import OrderedDict
 from itertools import product, chain
 import pandas as pd
-import pint
+from hydropandas.io.tools.mssql import to_mssql
 
-ureg = pint.UnitRegistry()
-Q_ = ureg.Quantity
 
 #######################################
 ### Lists and dictionaries for the master tables and associated data
@@ -46,11 +44,11 @@ mtype_list = [['Water Level', 'wl', 'Quantity', 'meter', 'The water level above 
 
 msource_list = [['Recorder', 'rec', 'Data collected and measured via an automatic recording device'],
                 ['Manual Field', 'mfield', 'Data collected and measured manually'],
-                ['Manual Lab', 'mlab', 'Data collected in the field, but measured in the lab'],
-                ['Synthetic', 'synth', 'Synthetic data']]
+                ['Manual Lab', 'mlab', 'Data collected in the field, but measured in the lab']]
 
 qual_state_list = [['RAW', 'raw', 'Unaltered data'],
-                   ['Quality Controlled', 'qc', 'Quality controlled data']]
+                   ['Quality Controlled', 'qc', 'Quality controlled data'],
+                   ['Synthetic', 'synth', 'Synthetic data']]
 
 feature_mtype_dict = OrderedDict((('river', ('wl', 'flow', 'abstr', 'T')),
                                   ('aq', ('wl', 'abstr', 'T')),
@@ -75,6 +73,16 @@ msource_df.set_index('MSourceShortName', inplace=True)
 qual_state_df = pd.DataFrame(qual_state_list, columns=['QualityStateLongName', 'QualityStateShortName', 'Description'])
 qual_state_df.set_index('QualityStateShortName', inplace=True)
 
+## Save to SQL server
+#server = 'SQL2012DEV01'
+#database = 'Hydro'
+#
+#to_mssql(feature_df, server, database, 'FeatureMaster', True)
+#to_mssql(mtype_df, server, database, 'MtypeMaster', True)
+#to_mssql(msource_df, server, database, 'MSourceMaster', True)
+#to_mssql(qual_state_df, server, database, 'QualityStateMaster', True)
+
+
 #######################################
 ### Hydro IDs table and the resampling function dict
 
@@ -94,7 +102,7 @@ all_hydro_ids.index.name = 'hydro_id'
 ### The main class
 
 
-class hydro(object):
+class Hydro(object):
     """
     A class to handle environmental time series data where a site has a measurement type, a time series, and a location.
     """
@@ -119,12 +127,12 @@ class hydro(object):
     ### General attributes
 
     ### Initial import and assignment function
-    def __init__(self, data=None, time=None, sites=None, mtypes=None, values=None, dformat=None):
+    def __init__(self, data=None, dformat=None, hydro_id=None, freq_type=None, times=None, sites=None, values=None, units=None, qual_codes=None):
         if data is None:
             pass
         else:
             ## Read in data
-            self.add_data(data=data, time=time, sites=sites, mtypes=mtypes, values=values, dformat=dformat)
+            self.add_tsdata(data=data, dformat=dformat, hydro_id=hydro_id, freq_type=freq_type, times=times, sites=sites, values=values, units=units, qual_codes=qual_codes)
 
     ### Call
 #    def __call__(self, data=None, time=None, sites=None, mtypes=None, values=None, dformat=None):
@@ -151,5 +159,11 @@ class hydro(object):
         stats1 = grp1.describe()[['min', '25%', '50%', '75%', 'mean', 'max', 'count']].round(2)
         out1 = pd.concat([stats1, start, end], axis=1)
         setattr(self, '_base_stats', out1)
+
+    ### Add in additional attributes
+#    setattr(self, 'all_hydro_ids', all_hydro_ids)
+#    setattr(self, 'mtypes', mtype_df)
+    hydro_ids = all_hydro_ids
+    mtypes = mtype_df
 
 

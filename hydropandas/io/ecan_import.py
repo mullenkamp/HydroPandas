@@ -2,17 +2,28 @@
 """
 Input and output functions specific to ECan systems.
 """
-
-from numpy import ndarray, in1d, dtype
-from geopandas import read_file
-from core.ecan_io.mssql import rd_sql
-from core.spatial.vector import xy_to_gpd
-from core.ecan_io.hydllp import rd_hydstra_db
-from core.ecan_io.flow import rd_hydrotel, rd_henry
-from pandas import Series, concat, to_numeric
+import numpy as np
+import pandas as pd
+import geopandas as gpd
+#from core.ecan_io.mssql import rd_sql
+#from core.spatial.vector import xy_to_gpd
+#from core.ecan_io.hydllp import rd_hydstra_db
+#from core.ecan_io.flow import rd_hydrotel, rd_henry
+from hydropandas.io.tools.mssql import to_mssql
 
 ############################################
 #### Database parameters
+server = 'SQL2012DEV01'
+database = 'Hydro'
+
+
+db_hydro_ids_list = [(1, 1, 1, 1, 'Hydrotel'), (1, 2, 1, 1, 'Hydrotel'), (1, 3, 1, 1, 'Hydrotel'), (1, 1, 1, 2, 'Hydstra'), (1, 2, 1, 2, 'Hydstra'), (1, 3, 1, 2, 'Hydstra'), (1, 1, 2, 2, 'Bgauging'), (1, 2, 2, 2, 'Bgauging'), (1, 9, 1, 1, 'Hilltop'), (2, 1, 1, 1, 'Hydrotel'), (2, 1, 1, 2, 'Hydstra'), (2, 9, 1, 1, 'Hilltop'), (2, 1, 2, 2, 'Wells'), (3, 8, 1, 1, 'Hydrotel'), (3, 8, 1, 2, 'Hydstra'), (5, 1, 1, 2, 'Hydstra')]
+
+db_hydro_ids_df = pd.DataFrame(db_hydro_ids_list, columns=['FeatureID', 'MtypeID', 'MSourceID', 'QualityStateID', 'DataSource'])
+
+to_mssql(db_hydro_ids_df, server, database, 'FeatureMtypeSource')
+
+
 
 prod_server03 = 'SQL2012PROD03'
 prod_server05 = 'SQL2012PROD05'
