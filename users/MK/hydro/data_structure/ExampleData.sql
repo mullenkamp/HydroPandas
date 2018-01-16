@@ -14,7 +14,7 @@ INSERT INTO Hydro.dbo.MtypeMaster (MtypeLongName, MtypeShortName, MtypeGroup, Un
 	('Flow', 'flow', 'Quantity', 'meter**3/second', 'volume per time'), ('Water Level', 'wl', 'Quanitity', 'meter', 'The water level above an arbitrary datum'),
 	('Nitrate Nitrogen', 'no3', 'Quality', 'mg/l', 'Nitrate nitrogen concentration')
 
-INSERT INTO Hydro.dbo.MeasurementSourceMaster (MSourceLongName, MSourceShortName, Description) VALUES
+INSERT INTO Hydro.dbo.MSourceMaster (MSourceLongName, MSourceShortName, Description) VALUES
 	('Recorder', 'rec', 'Automatic recording device in the field'), ('Manual field', 'mfield', 'Manually measured in the field'), 
 	('Manual Lab', 'mlab', 'Manually collected in the field and measured in the lab')	
 	
@@ -41,7 +41,7 @@ INSERT INTO Hydro.dbo.SiteFeature (SiteID, FeatureID, SiteFeatureNumber, SiteFea
 INSERT INTO Hydro.dbo.FeatureMtype (FeatureID, MtypeID, Units) VALUES
 	(1, 2, 'meter'), (1, 1, 'meter**3/second'), (1, 3, 'mg/l'), (2, 2, 'meter'), (2, 3, 'mg/l')
 	
-INSERT INTO Hydro.dbo.FeatureMtypeSource (FeatureID, MtypeID, MeasurementSourceID, QualityStateID, DataSource) VALUES
+INSERT INTO Hydro.dbo.FeatureMtypeSource (FeatureID, MtypeID, MSourceID, QualityStateID, DataSource) VALUES
 	(1, 1, 1, 1, 'Hydrotel'), (1, 1, 1, 2, 'Hydstra'), (1, 1, 2, 2, 'Bgauging'), (1, 3, 2, 2, 'Hilltop'), (2, 2, 2, 2, 'Wells'),
 	(2, 3, 2, 2, 'Hilltop')
 	

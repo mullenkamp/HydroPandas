@@ -42,7 +42,7 @@ def rd_sql(server, database, table=None, col_names=None, where_col=None, where_v
     rename_cols: list of str
         List of strings to rename the resulting DataFrame column names.
     stmt : str
-        Custom SQL statement to be directly passed to the database table. This will ignore all prior arguments except server and database.
+        Custom SQL statement to be directly passed to the database. This will ignore all prior arguments except server and database.
     export_path : str
         The export path for a csv file if desired. If None, then nothing is exported.
 
@@ -80,16 +80,17 @@ def rd_sql(server, database, table=None, col_names=None, where_col=None, where_v
         raise ValueError('stmt must either be an SQL string or None.')
 
     ## Create connection to database and execute sql statement
-    conn = connect(server, database=database)
-    df = pd.read_sql(stmt1, conn)
-    conn.close()
-    if rename_cols is not None:
-        df.columns = rename_cols
-
-    ## Read in geometry if required
     if geo_col & (stmt is None):
-        geometry, proj = rd_sql_geo(server=server, database=database, table=table, where_lst=where_lst)
-        df = gpd.GeoDataFrame(df, geometry=geometry, crs=proj)
+        df = rd_sql_geo(server=server, database=database, table=table, col_stmt=col_stmt, where_lst=where_lst)
+        if rename_cols is not None:
+            rename_cols.extend(['geometry'])
+            df.columns = rename_cols
+    else:
+        conn = connect(server, database=database)
+        df = pd.read_sql(stmt1, conn)
+        conn.close()
+        if rename_cols is not None:
+            df.columns = rename_cols
 
     ## save and return
     if export_path is not None:
@@ -555,7 +556,7 @@ def sql_where_stmts(where_col=None, where_val=None, where_op='AND', from_date=No
     if isinstance(from_date, str):
         from_date1 = pd.to_datetime(from_date, errors='coerce')
         if isinstance(from_date1, pd.Timestamp):
-            from_date2 = from_date1.strftime('%Y-%m-%d')
+            from_date2 = str(from_date1)
             where_from_date = date_col + " >= " + from_date2.join(['\'', '\''])
         else:
             where_from_date = ''
@@ -565,7 +566,7 @@ def sql_where_stmts(where_col=None, where_val=None, where_op='AND', from_date=No
     if isinstance(to_date, str):
         to_date1 = pd.to_datetime(to_date, errors='coerce')
         if isinstance(to_date1, pd.Timestamp):
-            to_date2 = to_date1.strftime('%Y-%m-%d')
+            to_date2 = str(to_date1)
             where_to_date = date_col + " <= " + to_date2.join(['\'', '\''])
         else:
             where_to_date = ''
@@ -576,7 +577,7 @@ def sql_where_stmts(where_col=None, where_val=None, where_op='AND', from_date=No
     where_lst = [i for i in where_stmt if len(i) > 0]
     if len(where_lst) == 0:
         where_lst = None
-    return (where_lst)
+    return where_lst
 
 
 def sql_ts_agg_stmt(table, groupby_cols, date_col, values_cols, resample_code, period=1, fun='mean', val_round=3,
@@ -684,7 +685,7 @@ def sql_del_rows_stmt(table, **kwargs):
     return stmt1
 
 
-def rd_sql_geo(server, database, table, where_lst=None):
+def rd_sql_geo(server, database, table, col_stmt, where_lst=None):
     """
     Function to extract the geometry and coordinate system from an SQL geometry field. Returns a shapely geometry object and a proj4 str.
 
@@ -716,18 +717,19 @@ def rd_sql_geo(server, database, table, where_lst=None):
     geo_srid = int(pd.read_sql(geo_srid_stmt, conn).iloc[0, 0])
     if where_lst is not None:
         if len(where_lst) > 0:
-            stmt2 = "SELECT " + geo_col + ".STGeometryN(1).ToString()" + " FROM " + table + " where " + " and ".join(
+            stmt2 = "SELECT " + col_stmt + ", (" + geo_col + ".STGeometryN(1).ToString()) as geometry" + " FROM " + table + " where " + " and ".join(
                 where_lst)
         else:
-            stmt2 = "SELECT " + geo_col + ".STGeometryN(1).ToString()" + " FROM " + table
+            stmt2 = "SELECT " + col_stmt + ", (" + geo_col + ".STGeometryN(1).ToString()) as geometry" + " FROM " + table
     else:
-        stmt2 = "SELECT " + geo_col + ".STGeometryN(1).ToString()" + " FROM " + table
+        stmt2 = "SELECT " + col_stmt + ", (" + geo_col + ".STGeometryN(1).ToString()) as geometry" + " FROM " + table
     df2 = pd.read_sql(stmt2, conn)
-    df2.columns = ['geometry']
     geo = [loads(x) for x in df2.geometry]
     proj4 = from_epsg_code(geo_srid).to_proj4()
+    geo_df = gpd.GeoDataFrame(df2.drop('geometry', axis=1), geometry=geo, crs=proj4)
+    conn.close()
 
-    return geo, proj4
+    return geo_df
 
 
 #def mssql_logging(log, process):

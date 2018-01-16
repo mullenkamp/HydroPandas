@@ -111,11 +111,13 @@ def pts_poly_join(pts, poly, poly_id_col):
         poly_id_col = [poly_id_col]
     cols = poly_id_col.copy()
     cols.extend(['geometry'])
-    poly2 = poly[cols]
-    poly3 = poly2.dissolve(by=poly_id_col)
+    poly2 = poly[cols].copy()
+    poly3 = poly2.dissolve(poly_id_col).reset_index()
 
-    join1 = sjoin(pts, poly3, how='inner', op='within')
-#    join1.rename(columns={join1.columns[-1]: poly_id_col}, inplace=True)
+    join1 = sjoin(pts.copy(), poly3.copy(), how='inner', op='within')
+    cols = set(pts.columns)
+    cols.update(set(poly3.columns))
+    join1.drop([i for i in join1.columns if i not in cols], axis=1, inplace=True)
 
     return join1, poly3
 

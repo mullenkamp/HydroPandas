@@ -57,6 +57,7 @@ class GIS(object):
     rec_gis = {'server': 'SQL2012PROD05', 'database': 'GIS', 'table': 'MFE_NZTM_REC', 'col_names': ['NZREACH', 'NZFNODE', 'NZTNODE', 'ORDER_'], 'rename_cols': ['NZREACH', 'NZFNODE', 'NZTNODE', 'order'], 'geo_col': True}
     rec_catch_gis = {'server': 'SQL2012PROD05', 'database': 'GIS', 'table': 'MFE_NZTM_RECWATERSHEDCANTERBURY', 'col_names': ['NZREACH'], 'geo_col': True}
     lowflow_sites_gis = {'server': 'SQL2012PROD05', 'database': 'GIS', 'table': 'vLOWFLOWS_NZTM_MinimumFlows', 'col_names': ['SiteID', 'ReferenceNo'], 'rename_cols': ['SiteID', 'site'], 'geo_col': True}
+    residual_sites_gis = {'server': 'SQL2012PROD05', 'database': 'GIS', 'table': 'vLOWFLOWS_NZTM_ResidualFlows', 'col_names': ['SiteID', 'ReferenceNo'], 'rename_cols': ['SiteID', 'site'], 'geo_col': True}
 
 
 class lowflows(object):

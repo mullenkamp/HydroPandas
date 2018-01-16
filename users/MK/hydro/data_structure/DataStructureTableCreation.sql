@@ -108,11 +108,12 @@ CREATE TABLE Hydro.dbo.FeatureMtypeSource (
 	   FeatureMtypeSourceID int identity(1, 1) NOT NULL,
 	   FeatureID int NOT NULL FOREIGN KEY REFERENCES FeatureMaster(FeatureID),
 	   MtypeID int NOT NULL FOREIGN KEY REFERENCES MtypeMaster(MtypeID),
-	   MeasurementSourceID int NOT NULL FOREIGN KEY REFERENCES MeasurementSourceMaster(MeasurementSourceID),
+	   MSourceID int NOT NULL FOREIGN KEY REFERENCES MSourceMaster(MSourceID),
 	   QualityStateID int NOT NULL FOREIGN KEY REFERENCES QualityStateMaster(QualityStateID),
+	   LoggingMethodID int NOT NULL FOREIGN KEY REFERENCES LoggingMethodMaster(LoggingMethodID),
 	   DataSource varchar(89) NOT NULL,
 	   PRIMARY KEY (FeatureMtypeSourceID),
-	   UNIQUE (FeatureID, MtypeID, MeasurementSourceID, QualityStateID),
+	   UNIQUE (FeatureID, MtypeID, MSourceID, QualityStateID),
 )
 
 CREATE TABLE Hydro.dbo.TSDataSite (
@@ -121,7 +122,6 @@ CREATE TABLE Hydro.dbo.TSDataSite (
 	   MtypeID int NOT NULL FOREIGN KEY REFERENCES MtypeMaster(MtypeID),
 	   MeasurementSourceID int NOT NULL FOREIGN KEY REFERENCES MeasurementSourceMaster(MeasurementSourceID),
 	   QualityStateID int NOT NULL FOREIGN KEY REFERENCES QualityStateMaster(QualityStateID),
-	   LoggingMethodID int NOT NULL FOREIGN KEY REFERENCES LoggingMethodMaster(LoggingMethodID),
 	   TSGroup varchar(19) NOT NULL,
 	   PRIMARY KEY (TSDataSiteID),
 	   UNIQUE (SiteFeatureID, MtypeID, MeasurementSourceID, QualityStateID)
@@ -199,9 +199,47 @@ CREATE TABLE Hydro.dbo.HydstraTSDataHourly (
 	   PRIMARY KEY (Site, HydstraCode, Time)
 )
 
+CREATE TABLE Hydro.dbo.HydrotelTSDataDaily (
+	   Site varchar(19) NOT NULL,
+	   HydroID varchar(29) NOT NULL,
+	   Time DATE NOT NULL,
+	   Value float,
+	   PRIMARY KEY (Site, HydroID, Time)
+)
+
+CREATE TABLE Hydro.dbo.WellsTSData (
+	   Site varchar(19) NOT NULL,
+	   HydroID varchar(29) NOT NULL,
+	   Time DATETIME NOT NULL,
+	   Value float,
+	   PRIMARY KEY (Site, HydroID, Time)
+)
+
+CREATE TABLE Hydro.dbo.LowFlowSiteRestr (
+	   site varchar(19) NOT NULL,
+	   date date NOT NULL,
+	   Waterway varchar(59) NOT NULL,
+	   Location varchar(59) NOT NULL,
+	   flow_method varchar(29) NOT NULL,
+	   days_since_flow_est int,
+	   flow numeric(10,3),
+	   crc_count int NOT NULL,
+	   min_trig numeric(10,3),
+	   max_trig numeric(10,3),
+	   restr_category varchar(9) NOT NULL,
+	   PRIMARY KEY (site, date)
+)
+
+create view FeatureMtypeSourceNames as
+select FeatureMtypeSourceID, FeatureShortName, MtypeShortName, MSourceShortName, QualityStateShortName, DataSource
+from FeatureMtypeSource
+inner join FeatureMaster on FeatureMtypeSource.FeatureID = FeatureMaster.FeatureID
+INNER join MtypeMaster on FeatureMtypeSource.MtypeID = MtypeMaster.MtypeID
+inner join MSourceMaster on FeatureMtypeSource.MSourceID = MSourceMaster.MSourceID
+inner join QualityStateMaster on FeatureMtypeSource.QualityStateID = QualityStateMaster.QualityStateID
+
 
 COMMIT
-
 
 
 

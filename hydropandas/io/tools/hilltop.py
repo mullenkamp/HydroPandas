@@ -6,7 +6,7 @@ Hilltop uses a fixed base date as 1940-01-01, while the standard unix/POSIT base
 # import Hilltop
 import os
 from configparser import ConfigParser
-from win32com.client import Dispatch
+from win32com.client import Dispatch, pywintypes
 # from lxml import etree
 import pandas as pd
 import numpy as np
@@ -257,6 +257,12 @@ def rd_ht_quan_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
     ### First read all of the sites in the hts file and select the ones to be read
     sites_df = rd_hilltop_sites(hts, sites=sites, mtypes=mtypes)
 
+    ### Select out the sites/mtypes within the date range
+    if isinstance(start, str):
+        sites_df = sites_df[sites_df.end_date >= start]
+    if isinstance(end, str):
+        sites_df = sites_df[sites_df.start_date <= end]
+
     ### Open the hts file
     dfile = Dispatch("Hilltop.DataRetrieval")
     try:
@@ -302,7 +308,7 @@ def rd_ht_quan_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
             time = []
             if dfile.getsinglevbs == 0:
                 t1 = dfile.value
-                if isinstance(t1, (str, unicode)):
+                if isinstance(t1, str):
                     print('site ' + site + ' has nonsense data')
                 else:
                     data.append(t1)
@@ -378,6 +384,12 @@ def rd_ht_wq_data(hts, sites=None, mtypes=None, start=None, end=None, dtl_method
     ### First read all of the sites in the hts file and select the ones to be read
     sites_df = rd_hilltop_sites(hts, sites=sites2, mtypes=mtypes, rem_wq_sample=False)
 
+    ### Select out the sites/mtypes within the date range
+    if isinstance(start, str):
+        sites_df = sites_df[sites_df.end_date >= start]
+    if isinstance(end, str):
+        sites_df = sites_df[sites_df.start_date <= end]
+
     ### Open the hts file
     wqr = Dispatch("Hilltop.WQRetrieval")
     dfile = Dispatch("Hilltop.DataFile")
@@ -389,23 +401,25 @@ def rd_ht_wq_data(hts, sites=None, mtypes=None, start=None, end=None, dtl_method
     ### Iterate through he hts file
     df_lst = []
     for i in sites_df.index:
-        site = sites_df.loc[i, 'site']
-        mtype = sites_df.loc[i, 'mtype']
+        site_data = sites_df.loc[i]
+        site = site_data['site']
+        mtype = site_data['mtype']
         if mtype == 'WQ Sample':
             continue
         wqr = dfile.FromWQSite(site, mtype)
 
         ## Set up start and end times and aggregation initiation
-        if (start is None):
+        if start is None:
             start1 = wqr.DataStartTime
         else:
-            start1 = start
+            start1 = pywintypes.TimeType.strptime(start, '%Y-%m-%d')
         if end is None:
             end1 = wqr.DataEndTime
         else:
-            end1 = end
+            end1 = pywintypes.TimeType.strptime(end, '%Y-%m-%d')
 
-        wqr.FromTimeRange(start1, end1)
+        if not wqr.FromTimeRange(start1, end1):
+            continue
 
         ## Extract data
         data = []
@@ -418,8 +432,8 @@ def rd_ht_wq_data(hts, sites=None, mtypes=None, start=None, end=None, dtl_method
             while wqr.GetNext:
                 data.append(wqr.value)
                 time.append(str(pytime_to_datetime(wqr.time)))
-                sample_p.append({sp: wqr.params(sp).encode('ascii', 'ignore') for sp in sample_params})
-                mtype_p.append({mp: wqr.params(mp).encode('ascii', 'ignore') for mp in mtype_params})
+                sample_p.append({sp: wqr.params(sp).encode('ascii', 'ignore').decode() for sp in sample_params})
+                mtype_p.append({mp: wqr.params(mp).encode('ascii', 'ignore').decode() for mp in mtype_params})
         else:
             while wqr.GetNext:
                 data.append(wqr.value)

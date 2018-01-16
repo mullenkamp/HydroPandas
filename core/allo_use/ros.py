@@ -242,7 +242,7 @@ def min_max_trig(SiteID=None, is_active=True):
     else:
         restr_val = rd_sql(server1, database1, min_flow_table, min_flow_fields, rename_cols=min_flow_names)
 
-    site_type = rd_sql(server1, database1, site_type_table, site_type_fields, {'isActive': [is_active], 'RestrictionType': ['LowFlow']}, rename_cols=site_type_names)
+    site_type = rd_sql(server1, database1, site_type_table, site_type_fields, {'isActive': [is_active]}, rename_cols=site_type_names)
 
     #######################################
     ### Process data
@@ -280,7 +280,7 @@ def min_max_trig(SiteID=None, is_active=True):
     p_set = pd.concat([p_min, p_max], axis=1).reset_index()
     p_set_site = pd.concat([p_min_site, p_max_site], axis=1).reset_index()
 
-    return (p_set_site, p_set)
+    return p_set_site, p_set
 
 
 def low_flow_restr(sites_num=None, from_date=None, to_date=None, only_restr=True):
@@ -322,9 +322,9 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None, only_restr=True
 
     ## Equivelant short names for analyses - Use these names!!!
     restr_names = ['SiteID', 'band_num', 'date', 'flow', 'band_allo']
-    sites_names = ['SiteID', 'site', 'Waterway', 'Location']
+    sites_names = ['SiteID', 'site', 'waterway', 'location']
     crc_names = ['SiteID', 'band_num', 'crc']
-    site_type_names = ['SiteID', 'band_num', 'restr_type']
+    site_type_names = ['SiteID', 'band_num', 'site_type']
     ass_names = ['SiteID', 'flow_method', 'applies_date', 'date']
 
     ## Databases
@@ -406,9 +406,9 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None, only_restr=True
     ## Combine restr with crc
     restr_crc = pd.merge(restr2, crc_count.reset_index(), on=['SiteID', 'band_num'])
 
-    ## Only low flow sites
-    lowflow_site = site_type[site_type.restr_type == 'LowFlow'].copy().drop('restr_type', axis=1)
-    restr_crc = pd.merge(restr_crc, lowflow_site, on=['SiteID', 'band_num'], how='inner')
+    ## Not only lowflow sites
+#    lowflow_site = site_type[site_type.restr_type == 'LowFlow'].copy().drop('restr_type', axis=1)
+    restr_crc = pd.merge(restr_crc, site_type, on=['SiteID', 'band_num'], how='inner')
 
     ## Add in how it was measured and when
     site_type1 = ass1[ass1.SiteID.isin(restr_day.SiteID.unique())].copy()
@@ -430,7 +430,7 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None, only_restr=True
     ## Aggregate to site and date
     grp1 = restr_crc.groupby(['SiteID', 'date'])
     crcs1 = grp1['crc_count'].sum()
-    flow_site = grp1[['flow', 'mon']].first()
+    flow_site = grp1[['site_type', 'flow', 'mon']].first()
     crc_flow = pd.concat([flow_site, crcs1], axis=1).reset_index()
 
     restr_sites1 = pd.merge(crc_flow, p_set_site, on=['SiteID', 'mon'], how='left').drop('mon', axis=1)
@@ -441,8 +441,8 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None, only_restr=True
     restr_sites1.loc[(restr_sites1['flow'] < restr_sites1['max_trig']) & (restr_sites1['flow'] > restr_sites1['min_trig']), 'restr_category'] = 'Partial'
 
     ## Add in site numbers
-    restr_crc_sites = pd.merge(sites1, restr_crc.drop('mon', axis=1), on='SiteID').drop('SiteID', axis=1).sort_values(['Waterway', 'date', 'min_trig'])
-    restr_sites = pd.merge(sites1, restr_sites1, on='SiteID').drop('SiteID', axis=1).sort_values(['Waterway', 'date', 'min_trig'])
+    restr_crc_sites = pd.merge(sites1, restr_crc.drop('mon', axis=1), on='SiteID').drop('SiteID', axis=1).sort_values(['waterway', 'date', 'min_trig'])
+    restr_sites = pd.merge(sites1, restr_sites1, on='SiteID').drop('SiteID', axis=1).sort_values(['waterway', 'date', 'min_trig'])
 
     ## Correct for duplicate primary keys
     restr_crc_sites.drop_duplicates(['site', 'band_num', 'date'], keep='last', inplace=True)
@@ -451,7 +451,7 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None, only_restr=True
     ######################################
     ### Return
 
-    return (restr_sites, restr_crc_sites)
+    return restr_sites, restr_crc_sites
 
 
 def priority_gaugings(num_previous_months=2):

@@ -9,10 +9,10 @@ import numpy as np
 import pandas as pd
 from datetime import date
 from hydropandas.util.misc import select_sites, save_df, rd_dir
-from hydropandas.io.tools.mssql import rd_sql, write_sql
+from hydropandas.io.tools.mssql import rd_sql, write_sql, to_mssql, del_mssql_table_rows
 
 
-def rd_hydstra(varto, sites=None, data_source='A', from_date=None, to_date=None, from_mod_date=None, to_mod_date=None, interval='day', qual_codes=[30, 20, 10, 11, 21, 18], concat_data=True, export=None):
+def rd_hydstra(varto, sites=None, data_source='A', from_date=None, to_date=None, from_mod_date=None, to_mod_date=None, interval='day', qual_codes=[30, 20, 10, 11, 21, 18], concat_data=False, export=None, code_convert=None):
     """
     Function to read in data from Hydstra's database using HYDLLP. This function extracts all sites with a specific variable code (varto).
 
@@ -36,7 +36,7 @@ def rd_hydstra(varto, sites=None, data_source='A', from_date=None, to_date=None,
         The frequency of the output data (year, month, day, hour, minute, second, period). If data_type is 'point', then interval cannot be 'period' (use anything else, it doesn't matter).
     qual_codes : list of int
         The quality codes for output.
-    export_path: str
+    export: str
         Path string where the data should be saved, or None to not save the data.
 
     Return
@@ -48,7 +48,7 @@ def rd_hydstra(varto, sites=None, data_source='A', from_date=None, to_date=None,
     device_data_type = {100: 'mean', 140: 'mean', 143: 'mean', 450: 'mean', 110: 'mean', 130: 'mean', 10: 'tot'}
 
     today1 = date.today()
-    dtype_dict = {'Site': 'varchar', 'HydstraCode': 'smallint', 'Time': 'date', 'Value': 'float', 'QualityCode': 'smallint', 'ModDate': 'date'}
+#    dtype_dict = {'Site': 'varchar', 'HydstraCode': 'smallint', 'Time': 'date', 'Value': 'float', 'QualityCode': 'smallint', 'ModDate': 'date'}
 
     ### Determine the period lengths for all sites and variables
     sites_var_period = hydstra_sites_var_periods(varto=varto, sites=sites, data_source=data_source)
@@ -58,10 +58,12 @@ def rd_hydstra(varto, sites=None, data_source='A', from_date=None, to_date=None,
     ### Restrict period ranges - optional
     if isinstance(from_date, str):
         from_date1 = pd.Timestamp(from_date)
+        sites_var_period = sites_var_period[sites_var_period.to_date > from_date1]
         from_date_df = sites_var_period.from_date.apply(lambda x: x if x > from_date1 else from_date1)
         sites_var_period['from_date'] = from_date_df
     if isinstance(to_date, str):
         to_date1 = pd.Timestamp(to_date)
+        sites_var_period = sites_var_period[sites_var_period.from_date > to_date1]
         to_date_df = sites_var_period.to_date.apply(lambda x: x if x > to_date1 else to_date1)
         sites_var_period['to_date'] = to_date_df
 
@@ -70,11 +72,16 @@ def rd_hydstra(varto, sites=None, data_source='A', from_date=None, to_date=None,
         sites_block = sites_var_period[sites_var_period.varfrom == sites_var_period.varto]
         varto_block = sites_block.varto.unique().astype('int32').tolist()
 
-        chg1 = hydstra_data_changes(varto_block, sites_block.site.unique(), from_mod_date=from_mod_date, to_mod_date=to_mod_date).drop('to_date', axis=1)
+        chg1 = hydstra_data_changes(varto_block, sites_block.site.unique(), from_mod_date=from_mod_date, to_mod_date=to_mod_date)
+        if not chg1.empty:
+            chg1 = chg1.drop('to_date', axis=1)
         if 140 in varto_list:
             sites_flow = sites_var_period[(sites_var_period.varfrom != sites_var_period.varto) & (sites_var_period.varto == 140)]
             chg2 = rating_changes(sites_flow.site.unique().tolist(), from_mod_date=from_mod_date, to_mod_date=to_mod_date)
             chg1 = pd.concat([chg1, chg2])
+        if chg1.empty:
+            print('No data has been changed since last export')
+            return None
 
         chg1.rename(columns={'from_date': 'mod_date'}, inplace=True)
         chg3 = pd.merge(sites_var_period, chg1, on=['site', 'varfrom', 'varto'])
@@ -112,12 +119,19 @@ def rd_hydstra(varto, sites=None, data_source='A', from_date=None, to_date=None,
         df.loc[:, 'QualityCode'] = df['QualityCode'].astype('int32')
         df.loc[:, 'HydstraCode'] = df['HydstraCode'].astype('int32')
         df.loc[:, 'ModDate'] = today1
+        code_name = 'HydstraCode'
+        if isinstance(code_convert, dict):
+            df.replace({'HydstraCode': code_convert}, inplace=True)
+            df.rename(columns={'HydstraCode': 'FeatureMtypeSourceID'}, inplace=True)
+            code_name = 'FeatureMtypeSourceID'
         if isinstance(export, dict):
             df = df.reset_index()
-            from_date1 = str(df.Time.min().date())
+            from_date1 = str(df.Time.min())
             to_date1 = str(df.Time.max())
-            del_rows_dict = {'where_col': {'Site': [str(tup.site)], 'HydstraCode': [str(df['HydstraCode'][0])]}, 'from_date':from_date1, 'to_date': to_date1, 'date_col': 'Time'}
-            write_sql(df, dtype_dict=dtype_dict, del_rows_dict=del_rows_dict, drop_table=False, create_table=False, **export)
+            del_rows_dict = {'where_col': {'Site': [str(tup.site)], code_name: [str(df[code_name][0])]}, 'from_date':from_date1, 'to_date': to_date1, 'date_col': 'Time'}
+            del_rows_dict.update(export)
+            del_mssql_table_rows(**del_rows_dict)
+            to_mssql(df, **export)
         elif isinstance(export, str):
             if export.endswith('.h5'):
                 try:
