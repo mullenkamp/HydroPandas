@@ -580,8 +580,7 @@ def sql_where_stmts(where_col=None, where_val=None, where_op='AND', from_date=No
     return where_lst
 
 
-def sql_ts_agg_stmt(table, groupby_cols, date_col, values_cols, resample_code, period=1, fun='mean', val_round=3,
-                    where_lst=None):
+def sql_ts_agg_stmt(table, groupby_cols, date_col, values_cols, resample_code, period=1, fun='mean', val_round=3, where_lst=None):
     """
     Function to create an SQL statement to pass to an SQL driver to resample a time series table.
 
@@ -634,11 +633,7 @@ def sql_ts_agg_stmt(table, groupby_cols, date_col, values_cols, resample_code, p
         where_stmt = ""
 
     if isinstance(resample_code, str):
-        stmt1 = "SELECT " + groupby_str + ", DATEADD(" + pandas_dict[resample_code] + ", DATEDIFF(" + pandas_dict[
-            resample_code] + ", 0, " + date_col + ")/ " + str(period) + " * " + str(
-            period) + ", 0) AS " + date_col + ", " + values_str + " FROM " + table + where_stmt + " GROUP BY " + groupby_str + ", DATEADD(" + \
-                pandas_dict[resample_code] + ", DATEDIFF(" + pandas_dict[
-                    resample_code] + ", 0, " + date_col + ")/ " + str(period) + " * " + str(period) + ", 0)"
+        stmt1 = "SELECT " + groupby_str + ", DATEADD(" + pandas_dict[resample_code] + ", DATEDIFF(" + pandas_dict[resample_code] + ", 0, " + date_col + ")/ " + str(period) + " * " + str(period) + ", 0) AS " + date_col + ", " + values_str + " FROM " + table + where_stmt + " GROUP BY " + groupby_str + ", DATEADD(" + pandas_dict[resample_code] + ", DATEDIFF(" + pandas_dict[resample_code] + ", 0, " + date_col + ")/ " + str(period) + " * " + str(period) + ", 0)"
     else:
         groupby_cols_lst.extend([date_col])
         groupby_cols_lst.extend(values_cols)

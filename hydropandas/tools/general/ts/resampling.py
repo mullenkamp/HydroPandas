@@ -35,6 +35,38 @@ def discrete_resample(df, pd_res_code, **kwargs):
     return out1
 
 
+def grp_ts_agg(df, grp_col, ts_col, freq_code):
+    """
+    Simple function to aggregate time series with dataframes with a single column of sites and a column of times.
+
+    Parameters
+    ----------
+    df : DataFrame
+        Dataframe with a datetime column.
+    grp_col : str or list of str
+        Column name that contains the sites.
+    ts_col : str
+        The column name of the datetime column.
+    freq_code : str
+        The pandas frequency code for the aggregation (e.g. 'M', 'A-JUN').
+
+    Returns
+    -------
+    Pandas resample object
+    """
+
+    df1 = df.copy()
+    if type(df[ts_col].iloc[0]) is pd.Timestamp:
+        df1.set_index(ts_col, inplace=True)
+        if type(grp_col) is list:
+            grp_col.extend([pd.TimeGrouper(freq_code)])
+        else:
+            grp_col = [grp_col, pd.TimeGrouper(freq_code)]
+        df_grp = df1.groupby(grp_col)
+        return (df_grp)
+    else:
+        print('Make one column a timeseries!')
+
 #def resample(self, resample_code='A-JUN', fun='mean'):
 #    """
 #    Time series resampling function. Returns a Hydro class object with resampled data.
