@@ -49,5 +49,50 @@ INSERT INTO Hydro.dbo.TSDataSite (SiteFeatureID, MtypeID, MeasurementSourceID, Q
 	(1, 1, 1, 1, 1, 'Numeric'), (1, 1, 1, 2, 3, 'Numeric'), (1, 1, 2, 2, 1, 'Numeric'), (1, 3, 2, 2, 1, 'Character'), (2, 2, 2, 2, 1, 'Numeric'),
 	(2, 3, 2, 2, 1, 'Character')	
 	
+INSERT INTO Hydro.dbo.FeatureMtypeSource (FeatureID, MtypeID, MSourceID, QualityStateID, DataSource) VALUES
+	(3, 4, 1, 2, 'NIWA'), (3, 4, 1, 3, 'Aqualinc'), (3, 5, 1, 2, 'NIWA'), (3, 5, 1, 3, 'Aqualinc'),
+	(3, 21, 1, 2, 'NIWA'), (3, 21, 1, 3, 'Aqualinc'), (3, 22, 1, 2, 'NIWA'), (3, 22, 1, 3, 'Aqualinc'),
+	(3, 8, 1, 3, 'Aqualinc'), (3, 11, 1, 3, 'Aqualinc'), (3, 23, 1, 2, 'NIWA'), (3, 23, 1, 3, 'Aqualinc'),
+	(3, 24, 1, 2, 'NIWA'), (3, 24, 1, 3, 'Aqualinc'), (3, 25, 1, 2, 'NIWA'), (3, 25, 1, 3, 'Aqualinc')
 	
+INSERT INTO Hydro.dbo.FeatureMtypeSource (FeatureID, MtypeID, MSourceID, QualityStateID, DataSource) VALUES
+	(3, 11, 1, 2, 'NIWA')
+	
+INSERT INTO Hydro.dbo.MtypeMaster (MtypeLongName, MtypeShortName, MtypeGroup, Units, Description) VALUES
+	('Temperature at 9', 'T_9', 'Quality', 'degC', 'Temperature at 9am'), ('Penman ET', 'PenmanET', 'Quantity', 'mm', 'ET estimated via the NIWA Penman method'),
+    ('Vapour Pressure', 'P_vap', 'Quantity', 'hectopascals', 'Vapour pressure as calculated from dewpoint Temperature'),
+    ('Wind run', 'U_run', 'Quantity', 'km', 'The distance travelled by the wind over the day'),
+    ('Wind speed at 9', 'U_2_9', 'Quantity', 'm/s', 'Wind speed at 2m at 9am')
+	
+INSERT INTO Hydro.dbo.HydstraQualCodeLink VALUES
+ (10, 600), (11, 600), (18, 520), (20, 500), (21, 500), (30, 400), (31, 400), (40, 300), (50, 200), (60, 100)
+
+
+select * from  Hydro.dbo.HydstraTSDataDaily
+where Site=69607 and FeatureMtypeSourceID=5    
+
+
+update [est_allo_usage_2017-09-28_alt1]
+set [est_allo_usage_2017-09-28_alt1].mon_usage_m3 = new2.new1
+from (select NULLIF(mon_usage_m3, -1) as new1
+from [est_allo_usage_2017-09-28_alt]) as new2
+
+
+select NULLIF(mon_usage_m3, -1) as new1
+from Hydro.dbo.[est_allo_usage_2017-09-28_alt]
+
+select * into [est_allo_usage_2017-09-28_alt1]
+from [est_allo_usage_2017-09-28_alt]
+
+select *
+from Hydro.dbo.[est_allo_usage_2017-09-28_alt]
+
+update [est_allo_usage_2017-09-28_alt1]
+set mon_usage_m3 = NULL
+where mon_usage_m3 = -1
+
+
+
+
+
 COMMIT

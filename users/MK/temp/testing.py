@@ -1617,15 +1617,73 @@ d = dict([('two', 2), ('one', 1), ('three', 3)])
 e = dict({'three': 3, 'one': 1, 'two': 2})
 a == b == c == d == e
 
+###############################
+#### Aqualinc met data
+
+import pandas as pd
+
+tsv = r'E:\ecan\shared\projects\aqualinc_niwa_met_data\AqualincCTSEData_ECan_area.tsv'
+tsv2 = r'E:\ecan\shared\projects\aqualinc_niwa_met_data\AqualincCTSEData_ECan_area_clean.tsv'
+
+f1 = pd.read_table(tsv)
+
+f1.replace({'Origin': {'original': '0'}}, inplace=True)
+l1 = f1.Origin.astype(str).tolist()
+
+l2 = [i.split(' ')[0] for i in l1]
+
+f1.Origin = l2
+f1.Origin = f1.Origin.astype('int32')
+
+f1.to_csv(tsv2, sep='\t', index=False)
+
+#################################
+### Usage data
+
+file1 = r'E:\ecan\shared\base_data\usage\usage_daily_all.h5'
+file2 = r'E:\ecan\shared\base_data\usage\ht_usage_daily.h5'
+file3 = r'E:\ecan\shared\base_data\usage\allo_est_use_mon.h5'
+file3 = r'E:\ecan\shared\base_data\usage\sd_est_all_mon_vol.h5'
+file5 = r'E:\ecan\shared\base_data\usage\allo_gis.csv'
+
+csv1 = r'E:\ecan\shared\base_data\usage\usage_daily_all.csv'
+csv2 = r'E:\ecan\shared\base_data\usage\ht_usage_daily.csv'
+csv3 = r'E:\ecan\shared\base_data\usage\est_allo_usage_2017-09-28_alt.csv'
+csv4 = r'E:\ecan\shared\base_data\usage\allo_gis_2017-10-02.csv'
+
+usage1 = pd.read_hdf(file1)
+usage2 = usage1.reset_index()
+usage2.columns = ['Site', 'Time', 'Value']
+
+usage2.Site = usage2.Site.str.replace('"', '')
+usage2.Site = usage2.Site.str.replace(',', '')
+
+usage2.to_csv(csv1, index=False)
+
+est1 = pd.read_hdf(file3)
+
+#est1.date = pd.to_datetime(est1.date)
+est1.time = pd.to_datetime(est1.time)
+est1.loc[est1.mon_usage_m3.isnull(), 'mon_usage_m3'] = -1
+
+est1.to_csv(csv3, index=False)
+
+allo1 = pd.read_csv(file5)
+
+dup1 = allo1[allo1.duplicated(['crc', 'take_type', 'allo_block', 'wap', 'use_type'], keep=False)].sort_values(['crc', 'take_type', 'allo_block', 'wap', 'use_type'])
+allo2 = allo1.drop_duplicates(['crc', 'take_type', 'allo_block', 'wap', 'use_type']).copy()
+
+allo2.from_date = allo2.from_date.astype(str).str.replace('nan', '')
+allo2.to_date = allo2.to_date.astype(str).str.replace('nan', '')
+
+allo2.to_csv(csv4, index=False)
 
 
+########################################
+### hdf fix
+py_dir = r'E:\ecan\git\HydroPandas\hydropandas\tests'
 
-
-
-
-
-
-
+hdf1 = 'test_hdf.h5'
 
 
 
