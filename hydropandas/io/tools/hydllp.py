@@ -12,7 +12,7 @@ from hydropandas.util.misc import select_sites, save_df, rd_dir
 from hydropandas.io.tools.mssql import rd_sql, write_sql, to_mssql, del_mssql_table_rows
 
 
-def rd_hydstra(varto, sites=None, data_source='A', from_date=None, to_date=None, from_mod_date=None, to_mod_date=None, interval='day', qual_codes=[30, 20, 10, 11, 21, 18], concat_data=False, export=None, code_convert=None):
+def rd_hydstra(varto, sites=None, data_source='A', from_date=None, to_date=None, from_mod_date=None, to_mod_date=None, interval='day', qual_codes=[30, 20, 10, 11, 21, 18], concat_data=False, export=None, code_convert=None, qual_code_convert=None):
     """
     Function to read in data from Hydstra's database using HYDLLP. This function extracts all sites with a specific variable code (varto).
 
@@ -35,9 +35,15 @@ def rd_hydstra(varto, sites=None, data_source='A', from_date=None, to_date=None,
     interval : str
         The frequency of the output data (year, month, day, hour, minute, second, period). If data_type is 'point', then interval cannot be 'period' (use anything else, it doesn't matter).
     qual_codes : list of int
-        The quality codes for output.
+        The hydstra quality codes for output.
+    consat_data : bool
+        Shoud the data be concat and returned?
     export: str
         Path string where the data should be saved, or None to not save the data.
+    code_convert : dict
+        A dict to convert the hydstra mtype codes to other codes.
+    qual_code_convert : dict
+        A dict to convert the hydstra quality codes to another set of codes.
 
     Return
     ------
@@ -47,7 +53,7 @@ def rd_hydstra(varto, sites=None, data_source='A', from_date=None, to_date=None,
     ### Parameters
     device_data_type = {100: 'mean', 140: 'mean', 143: 'mean', 450: 'mean', 110: 'mean', 130: 'mean', 10: 'tot'}
 
-    today1 = date.today()
+#    today1 = date.today()
 #    dtype_dict = {'Site': 'varchar', 'HydstraCode': 'smallint', 'Time': 'date', 'Value': 'float', 'QualityCode': 'smallint', 'ModDate': 'date'}
 
     ### Determine the period lengths for all sites and variables
@@ -110,25 +116,41 @@ def rd_hydstra(varto, sites=None, data_source='A', from_date=None, to_date=None,
         if df.empty:
             continue
         df['HydstraCode'] = varto
+        site1 = str(tup.site).replace('_', '/')
+
+        ## Convert code 143 to code 140
         if varto == 143:
             df.loc[:, 'data'] = df.loc[:, 'data'] * 0.001
             df['HydstraCode'] = 140
+
+        ## Convert GW well sites to their proper name
+        if varto in [110]:
+            df.index = df.index.set_levels([site1], 'site')
+
         ### Make sure the data types are correct
         df.rename(columns={'data': 'Value', 'qual_code': 'QualityCode'}, inplace=True)
         df.index.rename(['Site', 'Time'], inplace=True)
         df.loc[:, 'QualityCode'] = df['QualityCode'].astype('int32')
         df.loc[:, 'HydstraCode'] = df['HydstraCode'].astype('int32')
-        df.loc[:, 'ModDate'] = today1
+#        df.loc[:, 'ModDate'] = today1
         code_name = 'HydstraCode'
+
+        ## Convert Hydstra mtype codes to other codes if desired
         if isinstance(code_convert, dict):
             df.replace({'HydstraCode': code_convert}, inplace=True)
             df.rename(columns={'HydstraCode': 'FeatureMtypeSourceID'}, inplace=True)
             code_name = 'FeatureMtypeSourceID'
+
+        ## Convert Hydstra quality codes to NEMS codes
+        if isinstance(qual_code_convert, dict):
+            df.replace({'QualityCode': qual_code_convert}, inplace=True)
+
+        ### Export options
         if isinstance(export, dict):
             df = df.reset_index()
             from_date1 = str(df.Time.min())
             to_date1 = str(df.Time.max())
-            del_rows_dict = {'where_col': {'Site': [str(tup.site)], code_name: [str(df[code_name][0])]}, 'from_date':from_date1, 'to_date': to_date1, 'date_col': 'Time'}
+            del_rows_dict = {'where_col': {'Site': [site1], code_name: [str(df[code_name][0])]}, 'from_date':from_date1, 'to_date': to_date1, 'date_col': 'Time'}
             del_rows_dict.update(export)
             del_mssql_table_rows(**del_rows_dict)
             to_mssql(df, **export)
