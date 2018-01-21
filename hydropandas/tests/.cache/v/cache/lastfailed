@@ -1,4 +1,5 @@
 {
+  "test_indexing.py": true,
   "test_indexing.py::test_sel_ts[None-False-None-66-river_flow_disc_qc]": true,
   "test_indexing.py::test_sel_ts[None-False-None-sites0-river_flow_cont_qc]": true,
   "test_indexing.py::test_sel_ts[None-False-require1-sites0-river_flow_cont_qc]": true,

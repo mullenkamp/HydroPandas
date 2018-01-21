@@ -12,13 +12,13 @@ from hydropandas.core.base import Hydro
 
 py_dir = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 csv_files = ['test_long1.csv', 'test_wide1.csv', 'test_wide2.csv']
-rd_csv_param = {'test_long1.csv': {'freq_type': 'discrete', 'dformat': 'long', 'times': 'time', 'hydro_id': 'hydro_id', 'sites': 'site', 'values': 'data'}, 'test_wide1.csv': {'dformat': 'wide', 'hydro_id': 'hydro_id', 'freq_type': 'discrete', 'sites': 'site', 'multicolumn': True}, 'test_wide2.csv': {'dformat': 'wide', 'hydro_id': 'river / flow / rec / qc', 'freq_type': 'discrete', 'units': 'm**3/s'}}
+rd_csv_param = {'test_long1.csv': {'freq_type': 'discrete', 'dformat': 'long', 'times': 'time', 'hydro_id': 'hydro_id', 'sites': 'site', 'values': 'data'}, 'test_wide1.csv': {'dformat': 'wide', 'hydro_id': 'hydro_id', 'freq_type': 'discrete', 'sites': 'site', 'multicolumn': True}, 'test_wide2.csv': {'dformat': 'wide', 'hydro_id': 'river / flow / rec / prime', 'freq_type': 'discrete', 'units': 'm**3/s'}}
 extra_csv = 'test_combine.csv'
 geo_shp = 'sites_geo.shp'
 export_keys = ['mtypes', 'sites']
 #netcdf1 = 'test_netcdf1.nc'
 hdf1 = 'test_hdf.h5'
-hydro_id_units = {'river / flow / mfield / qc': 'm**3/s', 'river / flow / rec / qc': 'l/s', 'river / wl / rec / qc': 'cm'}
+hydro_id_units = {'river / flow / mfield / prime': 'm**3/s', 'river / flow / rec / prime': 'l/s', 'river / wl / rec / prime': 'cm'}
 
 #exist_units = h1.units.copy()
 
