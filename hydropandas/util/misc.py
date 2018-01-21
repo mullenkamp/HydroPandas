@@ -145,3 +145,27 @@ def rd_dir(data_dir, ext, file_num_names=False, ignore_case=True):
     else:
         return files
 
+
+def time_switch(x):
+    """
+    Convenience codes to convert for time text to pandas time codes.
+    """
+    return {
+        'min': 'Min',
+        'mins': 'Min',
+        'minute': 'Min',
+        'minutes': 'Min',
+        'hour': 'H',
+        'hours': 'H',
+        'day': 'D',
+        'days': 'D',
+        'week': 'W',
+        'weeks': 'W',
+        'month': 'M',
+        'months': 'M',
+        'year': 'A',
+        'years': 'A',
+        'water year': 'A-JUN',
+        'water years': 'A-JUN',
+    }.get(x, 'A')
+

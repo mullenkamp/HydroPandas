@@ -10,7 +10,7 @@ import numpy as np
 ### Selecting/indexing the time series data and returing a hydro class object
 
 
-def sel(self, hydro_id=None, sites=None, require=None, start=None, end=None, to_units=None, return_qual_code=False):
+def sel(self, hydro_id=None, feature=None, msource=None, mtype=None, mtype_sec=None, sites=None, require=None, start=None, end=None, to_units=None, return_qual_code=False):
     """
     Function to select data based on various input parameters and output a Hydro object.
 
@@ -36,7 +36,7 @@ def sel(self, hydro_id=None, sites=None, require=None, start=None, end=None, to_
     Hydro
     """
 
-    sel_out = self.sel_ts(hydro_id=hydro_id, sites=sites, require=require, start=start, end=end, to_units=to_units, return_qual_code=return_qual_code)
+    sel_out = self.sel_ts(hydro_id=hydro_id, feature=feature, msource=msource, mtype=mtype, mtype_sec=mtype_sec, sites=sites, require=require, start=start, end=end, to_units=to_units, return_qual_code=return_qual_code)
     sel_out1 = sel_out.reset_index()
     if return_qual_code:
         qual_codes = 'qual_codes'
@@ -73,7 +73,7 @@ def sel_by_geo_attr(self, attr_dict, mtypes=None):
 ### Selecting/Indexing the time series data and returning a Pandas object
 
 
-def sel_ts(self, hydro_id=None, sites=None, require=None, pivot=False, start=None, end=None, to_units=None, return_qual_code=False):
+def sel_ts(self, hydro_id=None, feature=None, msource=None, mtype=None, mtype_sec=None, sites=None, require=None, pivot=False, start=None, end=None, to_units=None, return_qual_code=False):
     """
     Function to select data based on various input parameters and output a Pandas Series.
 
@@ -104,14 +104,20 @@ def sel_ts(self, hydro_id=None, sites=None, require=None, pivot=False, start=Non
         With a MultiIndex of mtype, site, and time
     """
     h1 = self.copy()
-    if isinstance(hydro_id, str):
-        hydro_id = [hydro_id]
     if hydro_id is None:
-        hydro_id = slice(None)
-    elif isinstance(hydro_id, (list, np.ndarray)):
+        if isinstance(feature, (str, list)) | isinstance(msource, (str, list)) | isinstance(mtype, (str, list)) | isinstance(mtype_sec, (str, list)):
+            rev_hydro = self.hydro_ids.reset_index().set_index(['feature', 'msource', 'mtype', 'mtype_sec'])
+            set1 = [feature, msource, mtype, mtype_sec]
+            set2 = tuple([slice(None) if i is None else i for i in set1])
+            hydro_id = rev_hydro.loc(axis=0)[set2].hydro_id.tolist()
+        else:
+            hydro_id = slice(None)
+    elif isinstance(hydro_id, str):
+        hydro_id = [hydro_id]
+    if isinstance(hydro_id, (list, np.ndarray)):
         hydro_id = [i for i in h1.hydro_id if any([j in i for j in hydro_id])]
     else:
-        raise TypeError('hydro_id must be a str, list, or ndarray')
+        raise TypeError('At least one of hydro_id, feature, msource, mtype, or mtype_sec must be strings or lists of strings.')
     if sites is None:
         sites = slice(None)
     if isinstance(to_units, dict):

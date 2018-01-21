@@ -36,18 +36,23 @@ mtype_list = [['Water Level', 'wl', 'Quantity', 'meter', 'The water level above 
               ['Relative Humidity Min', 'RH_min', 'Quality', '', 'Min relative humidity'],
               ['Relative Humidity Max', 'RH_max', 'Quality', '', 'Max relative humidity'],
               ['Relative Humidity Mean', 'RH_mean', 'Quality', '', 'Mean relative humidity'],
-              ['Wind Speed', 'U_z', 'Quantity', 'm/s', 'Wind speed in length per unit time'],
-              ['Barometric Pressure', 'P', 'Quantity', 'kPa', 'Barometric Pressure'],
+              ['Wind Speed', 'U_2', 'Quantity', 'm/s', 'Wind speed at 2m in length per unit time'],
+              ['Barometric Pressure', 'P_baro', 'Quantity', 'kPa', 'Barometric Pressure'],
               ['n sun hours', 'n_sun', 'Quantity', 'hour', 'Number of sunshine hours per day'],
               ['ET Actual', 'ET', 'Quantity', 'mm', 'Actual Evapotranspiration'],
-              ['ET Reference', 'ETo', 'Quantity', 'mm', 'Reference Evapotranspiration']]
+              ['ET Reference', 'ETo', 'Quantity', 'mm', 'Reference Evapotranspiration'],
+              ['Temperature at 9', 'T_9', 'Quality', 'degC', 'Temperature at 9am'],
+              ['Penman ET', 'PenmanET', 'Quantity', 'mm', 'ET estimated via the NIWA Penman method'],
+              ['Vapour Pressure', 'P_vap', 'Quantity', 'hectopascals', 'Vapour pressure as calculated from dewpoint Temperature'],
+              ['Wind run', 'U_run', 'Quantity', 'km', 'The distance travelled by the wind over the day'],
+              ['Wind speed at 9', 'U_2_9', 'Quantity', 'm/s', 'Wind speed at 2m at 9am']]
 
 msource_list = [['Recorder', 'rec', 'Data collected and measured via an automatic recording device'],
                 ['Manual Field', 'mfield', 'Data collected and measured manually'],
                 ['Manual Lab', 'mlab', 'Data collected in the field, but measured in the lab']]
 
-qual_state_list = [['RAW', 'raw', 'Unaltered data'],
-                   ['Quality Controlled', 'qc', 'Quality controlled data'],
+mtype_sec_list = [['RAW', 'raw', 'Unaltered data'],
+                   ['Primary', 'prime', 'Primary data/quality controlled'],
                    ['Synthetic', 'synth', 'Synthetic data']]
 
 feature_mtype_dict = OrderedDict((('river', ('wl', 'flow', 'abstr', 'T')),
@@ -70,8 +75,8 @@ mtype_df.set_index('MTypeShortName', inplace=True)
 msource_df = pd.DataFrame(msource_list, columns=['MSourceLongName', 'MSourceShortName', 'Description'])
 msource_df.set_index('MSourceShortName', inplace=True)
 
-qual_state_df = pd.DataFrame(qual_state_list, columns=['QualityStateLongName', 'QualityStateShortName', 'Description'])
-qual_state_df.set_index('QualityStateShortName', inplace=True)
+mtype_sec_df = pd.DataFrame(mtype_sec_list, columns=['MtypeSecLongName', 'MtypeSecShortName', 'Description'])
+mtype_sec_df.set_index('MtypeSecShortName', inplace=True)
 
 ## Save to SQL server
 #server = 'SQL2012DEV01'
@@ -86,7 +91,7 @@ qual_state_df.set_index('QualityStateShortName', inplace=True)
 #######################################
 ### Hydro IDs table and the resampling function dict
 
-fields_list1 = [list(product([i], feature_mtype_dict[i], msource_df.index.tolist(), qual_state_df.index.tolist())) for i in feature_mtype_dict]
+fields_list1 = [list(product([i], feature_mtype_dict[i], msource_df.index.tolist(), mtype_sec_df.index.tolist())) for i in feature_mtype_dict]
 
 fields_list = list(chain.from_iterable(fields_list1))
 
@@ -95,8 +100,9 @@ hydro_ids = OrderedDict((' / '.join(i), i) for i in fields_list)
 resample_fun = OrderedDict((' / '.join(i), resample_mtype_fun[i[1]]) for i in fields_list)
 
 all_hydro_ids = pd.DataFrame(fields_list, index=hydro_ids.keys(), dtype='category')
-all_hydro_ids.columns = ['feature', 'measurement', 'source', 'quality']
+all_hydro_ids.columns = ['feature', 'mtype', 'msource', 'mtype_sec']
 all_hydro_ids.index.name = 'hydro_id'
+
 
 ######################################
 ### The main class
@@ -127,12 +133,10 @@ class Hydro(object):
     ### General attributes
 
     ### Initial import and assignment function
-    def __init__(self, data=None, dformat=None, hydro_id=None, freq_type=None, times=None, sites=None, values=None, units=None, qual_codes=None):
+    def __init__(self, data=None):
         if data is None:
             pass
-        else:
-            ## Read in data
-            self.add_tsdata(data=data, dformat=dformat, hydro_id=hydro_id, freq_type=freq_type, times=times, sites=sites, values=values, units=units, qual_codes=qual_codes)
+
 
     ### Call
 #    def __call__(self, data=None, time=None, sites=None, mtypes=None, values=None, dformat=None):
