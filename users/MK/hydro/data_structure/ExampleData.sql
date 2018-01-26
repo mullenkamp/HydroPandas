@@ -91,8 +91,9 @@ update [est_allo_usage_2017-09-28_alt1]
 set mon_usage_m3 = NULL
 where mon_usage_m3 = -1
 
-
-
-
-
+SELECT table_schema, table_name, column_name, data_type, character_maximum_length,
+    is_nullable, column_default, numeric_precision, numeric_scale
+FROM information_schema.columns
+ORDER BY table_schema, table_name, ordinal_position
+  
 COMMIT

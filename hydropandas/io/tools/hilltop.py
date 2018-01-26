@@ -305,11 +305,10 @@ def rd_ht_quan_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
                 end1 = dfile.DataEndTime
             else:
                 end1 = end
+            if not dfile.FromTimeRange(start1, end1):
+                continue
             if (agg_period is not None):
-                dfile.FromTimeRange(start1, end1)
                 dfile.SetMode(agg_val, str(agg_n) + ' ' + agg_period)
-            else:
-                dfile.FromTimeRange(start1, end1)
 
             ## Extract data
             data = []
@@ -333,10 +332,12 @@ def rd_ht_quan_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
         df1 = pd.concat(df_lst)
         df1.loc[:, 'time'] = pd.to_datetime(df1.loc[:, 'time'])
         df2 = df1.set_index(['mtype', 'site', 'time']).data * unit_convert[unit]
-        if output_site_data:
-            return df2, sites_df
-        else:
-            return df2
+    else:
+        df2 = pd.DataFrame([], index=['mtype', 'site', 'time'])
+    if output_site_data:
+        return df2, sites_df
+    else:
+        return df2
 
 
 def rd_ht_wq_data(hts, sites=None, mtypes=None, start=None, end=None, dtl_method=None, output_site_data=False, mtype_params=None, sample_params=None):
@@ -744,7 +745,7 @@ def convert_site_names(names, rem_m=True):
 
 def proc_ht_use_data(ht_data, n_std=4):
     """
-    Function for parse_ht_xml to process the data and aggregate it to a defined resolution.
+    Function to process the water usage data at daily resolution.
     """
 
     ### Groupby mtypes and sites
@@ -776,7 +777,7 @@ def proc_ht_use_data(ht_data, n_std=4):
                 outliers = abs(diff1 - diff1.mean()) > (diff1.std() * n_std)
                 diff1.loc[outliers] = np.nan
                 vol = diff1
-        elif mtype == 'Abstraction Volume':
+        elif mtype in ['Compliance Volume', 'Volume']:
             outliers = abs(data - data.mean()) > (data.std() * n_std)
             data.loc[outliers] = np.nan
             vol = data

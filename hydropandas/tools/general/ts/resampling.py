@@ -59,9 +59,9 @@ def grp_ts_agg(df, grp_col, ts_col, freq_code):
     if type(df[ts_col].iloc[0]) is pd.Timestamp:
         df1.set_index(ts_col, inplace=True)
         if type(grp_col) is list:
-            grp_col.extend([pd.TimeGrouper(freq_code)])
+            grp_col.extend([pd.Grouper(freq=freq_code)])
         else:
-            grp_col = [grp_col, pd.TimeGrouper(freq_code)]
+            grp_col = [grp_col, pd.Grouper(freq=freq_code)]
         df_grp = df1.groupby(grp_col)
         return (df_grp)
     else:

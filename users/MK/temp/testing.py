@@ -1560,6 +1560,10 @@ from pint import UnitRegistry
 ureg = UnitRegistry()
 Q_ = ureg.Quantity
 
+mtypes = rd_sql('sql2012dev01', 'Hydro', 'MtypeMaster')
+
+m3 = mtypes.loc[8, 'Units']
+ureg(m3)
 
 ########################################
 ### Statsmodels
@@ -1684,6 +1688,7 @@ allo2.to_csv(csv4, index=False)
 py_dir = r'E:\ecan\git\HydroPandas\hydropandas\tests'
 
 hdf1 = 'test_hdf.h5'
+
 
 
 

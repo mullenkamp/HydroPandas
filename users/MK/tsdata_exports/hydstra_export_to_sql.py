@@ -59,8 +59,9 @@ for j in grp_dict:
         log1 = pd.DataFrame([[today2, grp_dict[j]['export']['table'], 'pass', 'all good', last_date1]], columns=['Time', 'HydroTable', 'RunResult', 'Comment', 'FromTime'])
         to_mssql(log1, **sql_log)
     except Exception as err:
-        print(err)
-        log2 = pd.DataFrame([[today2, grp_dict[j]['export']['table'], 'fail', str(err)], last_date1], columns=['Time', 'HydroTable', 'RunResult', 'Comment', 'FromTime'])
+        err1 = err
+        print(err1)
+        log2 = pd.DataFrame([[today2, grp_dict[j]['export']['table'], 'fail', str(err1), last_date1]], columns=['Time', 'HydroTable', 'RunResult', 'Comment', 'FromTime'])
         to_mssql(log2, **sql_log)
 
 

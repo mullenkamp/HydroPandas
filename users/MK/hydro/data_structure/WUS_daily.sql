@@ -41,7 +41,7 @@ CREATE TABLE Hydro.dbo.WusTSDataDaily (
 --group by UsageSite, FeatureMtypeSourceID, TimestampTo
 
 insert into Hydro.dbo.WusTSDataDaily
-select UsageSite AS Site, FeatureMtypeSourceID, TimestampTo as Time, AVG(Usage) as Value, MAX(DataQuality) as QualityCode
+select UPPER(LTRIM(RTRIM(UsageSite))) AS Site, FeatureMtypeSourceID, TimestampTo as Time, AVG(Usage) as Value, MAX(DataQuality) as QualityCode
 from WUS.dbo.WUS_Fact_WaterUsageDaily
 inner join WUS.dbo.WUS_Fact_WaterUsageHeader on WUS_Fact_WaterUsageDaily.FactWaterUsageHeaderID = WUS_Fact_WaterUsageHeader.FactWaterUsageHeaderID
 inner join (select WAP, max(Activity) as WusCode from DataWarehouse.dbo.D_ACC_Act_Water_TakeWaterWAPAlloc where WAP!='Migration: Not Classified'
@@ -49,6 +49,36 @@ group by WAP) as WapCode on WUS_Fact_WaterUsageHeader.UsageSite = WapCode.WAP
 inner join Hydro.dbo.WusLink on WapCode.WusCode = WusLink.WusCode
 group by UsageSite, FeatureMtypeSourceID, TimestampTo
 order by Site, FeatureMtypeSourceID, Time
+
+CREATE TABLE [dbo].[HilltopTSUsageDaily] (
+Site varchar(19),
+FeatureMtypeSourceID int FOREIGN KEY REFERENCES FeatureMtypeSource(FeatureMtypeSourceID),
+Time date,
+Value real,
+QualityCode smallint
+primary key (Site, FeatureMtypeSourceID, Time))
+
+--CREATE TABLE [dbo].[TSUsageDaily] (
+--Site varchar(19),
+--FeatureMtypeSourceID int FOREIGN KEY REFERENCES FeatureMtypeSource(FeatureMtypeSourceID),
+--Time date,
+--Value real,
+--QualityCode smallint
+--primary key (Site, FeatureMtypeSourceID, Time))
+
+create view vTSUsageDaily as
+select * from (select * from WusTSDataDaily
+UNION
+select * from HilltopTSUsageDaily) as u
+EXCEPT
+select WusTSDataDaily.Site, WusTSDataDaily.FeatureMtypeSourceID, WusTSDataDaily.Time, WusTSDataDaily.Value, WusTSDataDaily.QualityCode from WusTSDataDaily
+inner JOIN (select Site, FeatureMtypeSourceID, Time from WusTSDataDaily
+INTERSECT
+select Site, FeatureMtypeSourceID, Time from HilltopTSUsageDaily) as i on i.Site = WusTSDataDaily.Site and 
+i.FeatureMtypeSourceID = WusTSDataDaily.FeatureMtypeSourceID and 
+i.Time = WusTSDataDaily.Time
+
+
 
 
 

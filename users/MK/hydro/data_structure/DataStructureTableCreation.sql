@@ -3,18 +3,30 @@ BEGIN TRANSACTION
 CREATE TABLE Hydro.dbo.DataProviderMaster (
        DataProviderID int identity(1, 1) NOT NULL,
        DataProvider varchar(99) NOT NULL,
-       Description varchar(99) NOT NULL
+       SystemID varchar(99),
+       Description varchar(99) NOT NULL,
        PRIMARY KEY (DataProviderID),
-       UNIQUE (DataProvider)
+)
+
+CREATE TABLE Hydro.dbo.SiteLinkMaster (
+	EcanSiteID varchar(29) NOT NULL,
+    SiteID int NOT NULL FOREIGN KEY REFERENCES SiteMaster(SiteID),
+    DataProviderID int NOT NULL FOREIGN KEY REFERENCES DataProviderMaster(DataProviderID)
+    PRIMARY KEY (EcanSiteID)
 )
 
 CREATE TABLE Hydro.dbo.SiteMaster (
-       SiteID int identity(1, 1) NOT NULL,
-       Status varchar(79) NOT NULL,
-       Hazards varchar(79),
-       Owner varchar(99) NOT NULL,
-       DataProviderID int NOT NULL FOREIGN KEY REFERENCES DataProviderMaster(DataProviderID),
-       Description varchar(99)
+       SiteID int NOT NULL,
+       Status varchar(99),
+       Hazards varchar(99),
+       DateEstablished datetime,
+       DateDecommissioned datetime,
+       Owner varchar(299),
+       StreetAddress varchar(299),
+       Locality varchar(299),	
+       NZTMX float not null,
+       NZTMY float not null,
+       Description varchar(699)
        PRIMARY KEY (SiteID)
 )
 
@@ -75,7 +87,7 @@ CREATE TABLE Hydro.dbo.TSParamMaster (
 CREATE TABLE Hydro.dbo.FeatureAttrMaster (
        FeatureAttrID int identity(1, 1) NOT NULL,
        FeatureID int NOT NULL FOREIGN KEY REFERENCES FeatureMaster(FeatureID),
-       FeatureAttrName varchar(79) NOT NULL,
+       FeatureAttrName varchar(99) NOT NULL,
        Description varchar(99) NOT NULL,
        PRIMARY KEY (FeatureAttrID),
        UNIQUE (FeatureID, FeatureAttrName)
@@ -90,7 +102,7 @@ CREATE TABLE Hydro.dbo.FeatureMtype (
 CREATE TABLE Hydro.dbo.SiteFeatureAttr (
 	   SiteID int NOT NULL FOREIGN KEY REFERENCES SiteMaster(SiteID),
 	   FeatureAttrID int NOT NULL FOREIGN KEY REFERENCES FeatureAttrMaster(FeatureAttrID),
-	   Value varchar(89) NOT NULL,
+	   Value varchar(299) NOT NULL,
 	   PRIMARY KEY (SiteID, FeatureAttrID)
 )	
 
@@ -111,7 +123,7 @@ CREATE TABLE Hydro.dbo.FeatureMtypeSource (
 	   MSourceID int NOT NULL FOREIGN KEY REFERENCES MSourceMaster(MSourceID),
 	   QualityStateID int NOT NULL FOREIGN KEY REFERENCES MtypeSecMaster(MtypeSecID),
 	   LoggingMethodID int NOT NULL FOREIGN KEY REFERENCES LoggingMethodMaster(LoggingMethodID),
-	   DataSource varchar(89) NOT NULL,
+	   DataProviderID int NOT NULL FOREIGN KEY REFERENCES DataProviderMaster(DataProviderID),
 	   PRIMARY KEY (FeatureMtypeSourceID),
 	   UNIQUE (FeatureID, MtypeID, MSourceID, QualityStateID),
 )
@@ -169,13 +181,17 @@ CREATE TABLE Hydro.dbo.TSDataSecondary (
 	   PRIMARY KEY (TSDataSiteID, TSParamID, Time)
 )
 
+
+
 create view FeatureMtypeSourceNames as
-select FeatureMtypeSourceID, FeatureShortName, MtypeShortName, MSourceShortName, MtypeSecShortName, DataSource
+select FeatureMtypeSourceID, FeatureShortName, MtypeShortName, MSourceShortName, MtypeSecShortName, LoggingMethodName, DataProvider, SystemID
 from FeatureMtypeSource
 inner join FeatureMaster on FeatureMtypeSource.FeatureID = FeatureMaster.FeatureID
 INNER join MtypeMaster on FeatureMtypeSource.MtypeID = MtypeMaster.MtypeID
 inner join MSourceMaster on FeatureMtypeSource.MSourceID = MSourceMaster.MSourceID
 inner join MtypeSecMaster on FeatureMtypeSource.MtypeSecID = MtypeSecMaster.MtypeSecID
+inner join LoggingMethodMaster on FeatureMtypeSource.LoggingMethodID = LoggingMethodMaster.LoggingMethodID
+inner join DataProviderMaster on DataProviderMaster.DataProviderID = FeatureMtypeSource.DataProviderID
 
 CREATE TABLE Hydro.dbo.ExtractionLog (
 	   RunTime DATETIME NOT NULL,
@@ -188,9 +204,18 @@ CREATE TABLE Hydro.dbo.ExtractionLog (
 
 --select distinct Variable from Hydro.dbo.NiwaAquaAtmosTSDataDaily
 
-alter table Hydro.dbo.ExtractionLog
-add FromTime datetime;
+alter table FeatureMtypeSource
+alter column DataProviderID int NOT NULL 
 
+alter table FeatureMtypeSource
+add FOREIGN KEY (DataProviderID) REFERENCES DataProviderMaster(DataProviderID)
+
+
+
+SELECT
+     name, object_id, create_date, modify_date
+FROM
+     sys.tables
 
 COMMIT
 

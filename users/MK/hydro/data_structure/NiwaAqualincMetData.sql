@@ -32,13 +32,13 @@ INSERT INTO Hydro.dbo.NiwaAquaAtmosSynthLink (FeatureMtypeSourceID, NiwaAquaAtmo
 	(27, 'SolRad'), (29, 'VapourP'), (31, 'WindRun'), (33, 'NineWind')
 	
 create view NiwaAquaAtmosRecTSDataDaily AS
-select Site, FeatureMtypeSourceID, Date as Time, Value
+select Site, FeatureMtypeSourceID, Date as Time, Value, 200 as QualityCode
 from Hydro.dbo.NiwaAquaAtmosTSDataBase 
 inner join NiwaAquaAtmosRecLink on NiwaAquaAtmosTSDataBase.Variable = NiwaAquaAtmosRecLink.NiwaAquaAtmosCode
 where Origin=0;
 
 create view NiwaAquaAtmosSynthTSDataDaily AS
-select Site, FeatureMtypeSourceID, Date as Time, Value
+select Site, FeatureMtypeSourceID, Date as Time, Value, 200 as QualityCode
 from Hydro.dbo.NiwaAquaAtmosTSDataBase 
 inner join NiwaAquaAtmosSynthLink on NiwaAquaAtmosTSDataBase.Variable = NiwaAquaAtmosSynthLink.NiwaAquaAtmosCode;
 
@@ -47,12 +47,36 @@ select * from NiwaAquaAtmosRecTSDataDaily
 UNION
 select * from NiwaAquaAtmosSynthTSDataDaily;
 
+select Site, FeatureMtypeSourceID, Date as Time, Value, 200 as QualityCode
+INTO NiwaAquaAtmosRecTSDataDaily
+from Hydro.dbo.NiwaAquaAtmosTSDataBase 
+inner join NiwaAquaAtmosRecLink on NiwaAquaAtmosTSDataBase.Variable = NiwaAquaAtmosRecLink.NiwaAquaAtmosCode
+where Origin=0;
 
-inner join NiwaAquaAtmosSynthLink on NiwaAquaAtmosTSDataBase.Variable = NiwaAquaAtmosSynthLink.NiwaAquaAtmosCode
+select Site, FeatureMtypeSourceID, Date as Time, Value, 200 as QualityCode
+INTO NiwaAquaAtmosSynthTSDataDaily
+from Hydro.dbo.NiwaAquaAtmosTSDataBase 
+inner join NiwaAquaAtmosSynthLink on NiwaAquaAtmosTSDataBase.Variable = NiwaAquaAtmosSynthLink.NiwaAquaAtmosCode;
+
+select Site, FeatureMtypeSourceID, Time, Value, QualityCode
+into NiwaAquaAtmosTSDataDaily
+from
+(select * from NiwaAquaAtmosRecTSDataDaily
+UNION
+select * from NiwaAquaAtmosSynthTSDataDaily) as u
+
+alter table NiwaAquaAtmosTSDataDaily
+alter column Site varchar(29) not null
+
+alter table NiwaAquaAtmosTSDataDaily
+add primary key (Site, FeatureMtypeSourceID, Time)
 
 
 
-sp_rename 'NiwaAquaAtmosSites.Agent', 'Site', 'COLUMN';
+
+
+
+
 
 alter table NiwaAquaAtmosSites
 alter column Site int not null;
