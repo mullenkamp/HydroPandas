@@ -509,7 +509,7 @@ def hydstra_site_mod_time(sites=None):
 # Define a context manager generator
 # that creates and releases the connection to the hydstra server
 @contextlib.contextmanager
-def openHyDb(ini_path='Y:/Hydstra/prod/hyd/', dll_path='Y:/Hydstra/prod/hyd/sys/run/', username='', password=''):
+def openHyDb(ini_path=r'\\fileservices02\ManagedShares\Data\Hydstra\prod\hyd', dll_path=r'\\fileservices02\ManagedShares\Data\Hydstra\prod\hyd\sys\run', username='', password=''):
     hyd = Hydllp(dll_path=dll_path, ini_path=ini_path)
     try:
         hyd.login(username, password)
