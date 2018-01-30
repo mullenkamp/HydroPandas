@@ -47,6 +47,8 @@ last_date1 = str(rd_sql(stmt=max_date_stmt, **sql_daily).loc[0][0].date())
 #last_date1 = '2017-12-28'
 #today2 = '2017-12-28 00:00:00'
 
+print('Last sucessful date is ' + last_date1)
+
 #############################################
 ### Iterate through hydstra codes and save as hdf files
 

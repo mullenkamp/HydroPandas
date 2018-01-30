@@ -16,7 +16,7 @@ where SITE_ID != '+'
 and NZTMX is not null 
 and NZTMY is not null
 
-create view vWell_details as
+create view vWellsSites as
 select cast(WELL_NO as varchar(29)) as Site, ShortStatus as Status, cast(NULL as varchar(99)) as Hazards, cast(Date_Drilled as datetime) as DateEstablished, cast(Date_Defunct as datetime) as DateDecommissioned,
 OWNER as Owner, ROAD_OR_STREET as StreetAddress, LOCALITY as Locality, 4 as DataProviderID, cast(NZTMX as float) as NZTMX, cast(NZTMY as float) as NZTMY, LOCATION as Description
 from Wells.dbo.WELL_DETAILS
@@ -30,7 +30,7 @@ select * from
 UNION ALL
 select * from vSQSites
 UNION ALL
-select * from vWell_details) as u
+select * from vWellsSites) as u
 
 select cast(row_number() over (order by Site) as int) as SiteID, Site, Status, Hazards, DateEstablished, DateDecommissioned, Owner, StreetAddress, Locality, DataProviderID, NZTMX, NZTMY, Description
 into Hydro.dbo.SiteLinkTemp
@@ -43,7 +43,6 @@ from SiteLinkTemp
 insert into Hydro.dbo.SiteLinkMaster
 select Site as EcanSiteID, SiteID, DataProviderID
 from SiteLinkTemp
-
 
 
 

@@ -1,5 +1,17 @@
 /* TS data summary tables */
 
+create table TSDataNumericSumm (
+	Site varchar(29) not null FOREIGN KEY REFERENCES SiteLinkMaster(EcanSiteID),
+	FeatureMtypeSourceID int NOT NULL FOREIGN KEY REFERENCES FeatureMtypeSource(FeatureMtypeSourceID),
+	Min float not null,
+	Mean float not null,
+	Max float not null,
+	Count float not null,
+	FromDate datetime not null,
+	ToDate datetime not null
+	primary key (Site, FeatureMtypeSourceID)
+	)
+	
 create table TSDataNumericDailySumm (
 	Site varchar(29) not null FOREIGN KEY REFERENCES SiteLinkMaster(EcanSiteID),
 	FeatureMtypeSourceID int NOT NULL FOREIGN KEY REFERENCES FeatureMtypeSource(FeatureMtypeSourceID),
@@ -9,6 +21,18 @@ create table TSDataNumericDailySumm (
 	Count float not null,
 	FromDate date not null,
 	ToDate date not null
+	primary key (Site, FeatureMtypeSourceID)
+	)
+	
+create table TSDataNumericHourlySumm (
+	Site varchar(29) not null FOREIGN KEY REFERENCES SiteLinkMaster(EcanSiteID),
+	FeatureMtypeSourceID int NOT NULL FOREIGN KEY REFERENCES FeatureMtypeSource(FeatureMtypeSourceID),
+	Min float not null,
+	Mean float not null,
+	Max float not null,
+	Count float not null,
+	FromDate datetime not null,
+	ToDate datetime not null
 	primary key (Site, FeatureMtypeSourceID)
 	)
 	
@@ -29,9 +53,11 @@ from vTSDataNumericDaily
 where Site='BU25/5066'
 
 
+select max(Time)
+from vBgaugingTSData
 
-
-
+select max(Time)
+from vWellsTSData
 
 
 

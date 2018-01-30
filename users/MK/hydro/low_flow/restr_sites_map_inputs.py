@@ -7,7 +7,7 @@ Created on Tue Dec 05 09:34:22 2017
 import numpy as np
 from datetime import date
 from core.allo_use.ros import low_flow_restr
-from hydropandas.io.tools.mssql import to_mssql, create_mssql_table, rd_sql
+from hydropandas.io.tools.mssql import to_mssql, create_mssql_table, rd_sql, del_mssql_table_rows
 
 ############################################
 ### Parameters
@@ -22,6 +22,7 @@ sql_site_band_dict = {'server': 'SQL2012DEV01', 'database': 'Hydro', 'table': 'L
 
 ###########################################
 ### Run function
+print('Querying LowFlows db')
 
 today1 = str(date.today())
 
@@ -39,8 +40,15 @@ basic, complete = low_flow_restr(from_date=today1, to_date=today1, only_restr=Fa
 #tab2 = create_mssql_table(dtype_dict=site_band_dtype_dict, primary_keys=site_band_pkey, **sql_site_band_dict)
 
 ## Save data
+print('Saving data')
+
+del_mssql_table_rows(from_date=today1, to_date=today1, date_col='date', **sql_site_dict)
+del_mssql_table_rows(from_date=today1, to_date=today1, date_col='date', **sql_site_band_dict)
+
 to_mssql(basic, **sql_site_dict)
 to_mssql(complete, **sql_site_band_dict)
+
+print('Success')
 
 
 
