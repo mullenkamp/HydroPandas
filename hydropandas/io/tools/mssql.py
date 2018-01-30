@@ -501,7 +501,10 @@ def del_mssql_table_rows(server, database, table, **kwargs):
 
     ### Make the delete statement
     del_where_list = sql_where_stmts(**kwargs)
-    del_rows_stmt = "DELETE FROM " + table + " WHERE " + " AND ".join(del_where_list)
+    if isinstance(del_where_list, list):
+        del_rows_stmt = "DELETE FROM " + table + " WHERE " + " AND ".join(del_where_list)
+    elif del_where_list is None:
+        del_rows_stmt = "DELETE FROM " + table
 
     ### Delete rows
     try:
