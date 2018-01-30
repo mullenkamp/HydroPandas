@@ -5,6 +5,7 @@ Created on Tue Dec 05 09:34:22 2017
 @author: MichaelEK
 """
 import numpy as np
+import pandas as pd
 from datetime import date
 from core.allo_use.ros import low_flow_restr
 from hydropandas.io.tools.mssql import to_mssql, create_mssql_table, rd_sql, del_mssql_table_rows
@@ -19,37 +20,46 @@ sql_site_band_dict = {'server': 'SQL2012DEV01', 'database': 'Hydro', 'table': 'L
 
 #site_pkey = ['site', 'date']
 #site_band_pkey = ['site', 'band_num', 'date']
+sql_log = {'server': 'SQL2012DEV01', 'database': 'Hydro', 'table': 'ExtractionLog'}
 
 ###########################################
 ### Run function
-print('Querying LowFlows db')
-
 today1 = str(date.today())
 
-basic, complete = low_flow_restr(from_date=today1, to_date=today1, only_restr=False)
+try:
+    print('Querying LowFlows db')
 
-## Backfill if needed
-#basic, complete = low_flow_restr(from_date='2017-10-01', to_date='2018-01-14', only_restr=False)
-#basic.apply(lambda x: x.astype(str).str.len().max())
-#basic['days_since_flow_est'] = np.nan
-#complete['days_since_flow_est'] = np.nan
+    basic, complete = low_flow_restr(from_date=today1, to_date=today1, only_restr=False)
 
-### mssql stuff
-## Create table
-#tab1 = create_mssql_table(dtype_dict=site_dtype_dict, primary_keys=site_pkey, **sql_site_dict)
-#tab2 = create_mssql_table(dtype_dict=site_band_dtype_dict, primary_keys=site_band_pkey, **sql_site_band_dict)
+    ## Backfill if needed
+    #basic, complete = low_flow_restr(from_date='2017-10-01', to_date='2018-01-14', only_restr=False)
+    #basic.apply(lambda x: x.astype(str).str.len().max())
+    #basic['days_since_flow_est'] = np.nan
+    #complete['days_since_flow_est'] = np.nan
 
-## Save data
-print('Saving data')
+    ### mssql stuff
+    ## Create table
+    #tab1 = create_mssql_table(dtype_dict=site_dtype_dict, primary_keys=site_pkey, **sql_site_dict)
+    #tab2 = create_mssql_table(dtype_dict=site_band_dtype_dict, primary_keys=site_band_pkey, **sql_site_band_dict)
 
-del_mssql_table_rows(from_date=today1, to_date=today1, date_col='date', **sql_site_dict)
-del_mssql_table_rows(from_date=today1, to_date=today1, date_col='date', **sql_site_band_dict)
+    ## Save data
+    print('Saving data')
 
-to_mssql(basic, **sql_site_dict)
-to_mssql(complete, **sql_site_band_dict)
+    del_mssql_table_rows(from_date=today1, to_date=today1, date_col='date', **sql_site_dict)
+    del_mssql_table_rows(from_date=today1, to_date=today1, date_col='date', **sql_site_band_dict)
 
-print('Success')
+    to_mssql(basic, **sql_site_dict)
+    to_mssql(complete, **sql_site_band_dict)
 
+    print('Success')
+
+    log1 = pd.DataFrame([[today1, sql_site_dict['table'], 'pass', 'all good', today1], [today1, sql_site_band_dict['table'], 'pass', 'all good', today1]], columns=['Time', 'HydroTable', 'RunResult', 'Comment', 'FromTime'])
+    to_mssql(log1, **sql_log)
+except Exception as err:
+    err1 = err
+    print(err1)
+    log2 = pd.DataFrame([[today1, sql_site_dict['table'], 'pass', str(err1), today1], [today1, sql_site_band_dict['table'], 'pass', str(err1), today1]], columns=['Time', 'HydroTable', 'RunResult', 'Comment', 'FromTime'])
+    to_mssql(log2, **sql_log)
 
 
 
