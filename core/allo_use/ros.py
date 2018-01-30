@@ -428,7 +428,7 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None, only_restr=True
     sites1.loc[num1.isnull(), 'flow_method'] = 'GW manual'
 
     ## Aggregate to site and date
-    grp1 = restr_crc.groupby(['SiteID', 'date'])
+    grp1 = restr_crc.sort_values('site_type').groupby(['SiteID', 'date'])
     crcs1 = grp1['crc_count'].sum()
     flow_site = grp1[['site_type', 'flow', 'mon']].first()
     crc_flow = pd.concat([flow_site, crcs1], axis=1).reset_index()
