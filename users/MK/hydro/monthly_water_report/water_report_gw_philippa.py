@@ -6,7 +6,7 @@ Created on Mon Jul 17 16:27:09 2017
 """
 
 import sys
-sys.path.append(r'C:\git\Ecan.Science.Python.Base')
+sys.path.remove('E:\\ecan\\git\\HydroPandas')
 
 from geopandas import read_file, sjoin
 from pandas import DateOffset, to_datetime, concat, merge, cut, DataFrame, MultiIndex, Series, read_csv
