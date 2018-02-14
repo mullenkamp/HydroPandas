@@ -252,7 +252,7 @@ def rd_ht_quan_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
 
     agg_name_dict = {'sum': 4, 'count': 5, 'mean': 1}
     agg_unit_dict = {'l/s': 1, 'm3/s': 1, 'm3/hour': 1, 'mm': 1, 'm3': 4}
-    unit_convert = {'l/s': 0.001, 'm3/s': 1, 'm3/hour': 1, 'mm': 1, 'm3': 4}
+    unit_convert = {'l/s': 0.001, 'm3/s': 1, 'm3/hour': 1, 'mm': 1, 'm3': 1}
 
     ### First read all of the sites in the hts file and select the ones to be read
     sites_df = rd_hilltop_sites(hts, sites=sites, mtypes=mtypes)
@@ -433,10 +433,10 @@ def rd_ht_wq_data(hts, sites=None, mtypes=None, start=None, end=None, dtl_method
         ## Extract data
         data = []
         time = []
+        sample_p = []
 
         test_params = sites_df[sites_df.site == site].mtype.unique()
         if ('WQ Sample' in test_params) & (isinstance(mtype_params, list) | isinstance(sample_params, list)):
-            sample_p = []
             mtype_p = []
             while wqr.GetNext:
                 data.append(wqr.value)
