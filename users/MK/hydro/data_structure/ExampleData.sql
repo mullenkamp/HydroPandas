@@ -97,3 +97,27 @@ FROM information_schema.columns
 ORDER BY table_schema, table_name, ordinal_position
   
 COMMIT
+
+select * from Hydro.dbo.HilltopWQMtypes 
+pivot (
+max(Value) for Param in ([data], [Lab Method], [Lab Name])) as piv1
+
+
+select * from Hydro.dbo.NiwaAquaAtmosTSDataDaily
+where Site = 10332 and FeatureMtypeSourceID = 18 and Time > '2010-01-01'
+
+select * from NiwaAquaAtmosTSDataDaily where Site in (10332, 10530) and FeatureMtypeSourceID = 25
+
+select OBJECT_ID('HilltopWQSites', 'U')
+
+
+
+
+
+
+
+
+
+
+
+
