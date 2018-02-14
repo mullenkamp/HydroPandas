@@ -43,7 +43,7 @@ sites_pkeys = ['SiteID', 'MeasurementType']
 samples_pkeys = ['SiteID', 'Param', 'CollectionTime']
 mtypes_pkeys = ['SiteID', 'MeasurementType', 'Param', 'CollectionTime']
 
-base_dir = r'\\fs02\ManagedShares2\Data\Surface Water\shared\base_data'
+#base_dir = r'\\fs02\ManagedShares2\Data\Surface Water\shared\base_data'
 
 gw_wq_sites_h5 = 'gw_wq_sites.h5'
 gw_wq_samples_h5 = 'gw_wq_samples.h5'
@@ -52,6 +52,9 @@ gw_wq_mtypes_h5 = 'gw_wq_mtypes.h5'
 sw_wq_sites_h5 = 'sw_wq_sites.h5'
 sw_wq_samples_h5 = 'sw_wq_samples.h5'
 sw_wq_mtypes_h5 = 'sw_wq_mtypes.h5'
+
+sql_log = {'server': 'SQL2012DEV01', 'database': 'Hydro', 'table': 'ExtractionLog'}
+
 
 ##############################################
 ### Determine lastest date if sites table exists

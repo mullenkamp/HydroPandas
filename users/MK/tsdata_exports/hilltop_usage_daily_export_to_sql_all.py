@@ -67,18 +67,10 @@ try:
     print('Processing data')
     ht_sites = pd.concat(ht_sites_lst)
     ht_sites = ht_sites.drop_duplicates().drop('divisor', axis=1)
-    #ht_data = concat(ht_data_lst)
-
-    #ht_data1 = ht_data.reset_index()
-
-    #ht_sites.to_csv(os.path.join(output_base, sites_csv), index=False, encoding='utf8')
-
-    #ht_data = rd_hilltop_data(hts1, sites=None, mtypes=None, start=None, end=None, agg_period='day', agg_n=1, fun=None)
 
     ht_site_names = convert_site_names(ht_sites.site)
 
     ht2 = proc_ht_use_data(ht_data, n_std=20)
-    #ht2.to_csv(os.path.join(output_base, out_data_w_m), header=True, encoding='utf8')
 
     ht3 = ht2.reset_index()
     site_names = ht3.site
@@ -88,7 +80,6 @@ try:
     ht4 = ht3[ht3.site.notnull()].copy()
     ht4.rename(columns={'site': 'Site', 'time': 'Time', 'data': 'Value'}, inplace=True)
 
-    #ht5 = ht4.groupby(['Site', 'Time']).Value.sum().round(2)
     ht5 = grp_ts_agg(ht4, 'Site', 'Time', 'D').sum().round(2)
 
     ###################################################

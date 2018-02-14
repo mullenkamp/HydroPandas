@@ -1689,15 +1689,33 @@ py_dir = r'E:\ecan\git\HydroPandas\hydropandas\tests'
 
 hdf1 = 'test_hdf.h5'
 
+hts = r'\\hilltop01\Hilltop\Data\Telemetry\WaterMetrics.hts'
+h2 = rd_ht_quan_data(hts, sites=['BU26/0009-M1'], agg_period='day', output_site_data=False, exclude_mtype=['Regularity'])
 
 
+########################################
+### Spatialite
 
+import sys
+sys.path.insert(0, r'E:\programs\spatialite')
 
+import sqlite
 
+with sqlite3.connect(":memory:") as conn:
+    conn.enable_load_extension(True)
+    conn.load_extension("mod_spatialite")
 
+with sqlite3.connect(":memory:") as conn:
+    conn.enable_load_extension(True)
+    conn.load_extension("spatialite")
 
+connR = sqlite3.connect(':memory:')
 
+connR.enable_load_extension(True)
+connR.load_extension(r'C:\temp\spatialite\spatialite\mod_spatialite.dll')
 
+connR.execute('SELECT load_extension("spatialite.dll")')
+connR.execute('SELECT load_extension("mod_spatialite")')
 
 
 
