@@ -183,7 +183,7 @@ CREATE TABLE Hydro.dbo.TSDataSecondary (
 
 
 
-create view FeatureMtypeSourceNames as
+create view vFeatureMtypeSourceShortNames as
 select FeatureMtypeSourceID, FeatureShortName, MtypeShortName, MSourceShortName, MtypeSecShortName, LoggingMethodName, DataProvider, SystemID
 from FeatureMtypeSource
 inner join FeatureMaster on FeatureMtypeSource.FeatureID = FeatureMaster.FeatureID
@@ -192,6 +192,17 @@ inner join MSourceMaster on FeatureMtypeSource.MSourceID = MSourceMaster.MSource
 inner join MtypeSecMaster on FeatureMtypeSource.MtypeSecID = MtypeSecMaster.MtypeSecID
 inner join LoggingMethodMaster on FeatureMtypeSource.LoggingMethodID = LoggingMethodMaster.LoggingMethodID
 inner join DataProviderMaster on DataProviderMaster.DataProviderID = FeatureMtypeSource.DataProviderID
+
+create view vFeatureMtypeSourceLongNames as
+select FeatureMtypeSourceID, FeatureLongName, MtypeLongName, MSourceLongName, MtypeSecLongName, LoggingMethodName, DataProvider, SystemID
+from FeatureMtypeSource
+inner join FeatureMaster on FeatureMtypeSource.FeatureID = FeatureMaster.FeatureID
+INNER join MtypeMaster on FeatureMtypeSource.MtypeID = MtypeMaster.MtypeID
+inner join MSourceMaster on FeatureMtypeSource.MSourceID = MSourceMaster.MSourceID
+inner join MtypeSecMaster on FeatureMtypeSource.MtypeSecID = MtypeSecMaster.MtypeSecID
+inner join LoggingMethodMaster on FeatureMtypeSource.LoggingMethodID = LoggingMethodMaster.LoggingMethodID
+inner join DataProviderMaster on DataProviderMaster.DataProviderID = FeatureMtypeSource.DataProviderID
+
 
 CREATE TABLE Hydro.dbo.ExtractionLog (
 	   RunTime DATETIME NOT NULL,

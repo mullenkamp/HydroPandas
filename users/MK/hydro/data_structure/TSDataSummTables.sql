@@ -36,7 +36,7 @@ create table TSDataNumericHourlySumm (
 	primary key (Site, FeatureMtypeSourceID)
 	)
 	
-insert into TSDataNumericDailySumm
+insert into TSDataNumericDailySummTemp
 select Site, FeatureMtypeSourceID, min(Value) as Min, avg(Value) as Mean, max(Value) as Max, count(Value) as Count, min(Time) as FromDate, max(Time) as ToDate
 from vTSDataNumericDaily
 group by Site, FeatureMtypeSourceID
@@ -60,7 +60,17 @@ select max(Time)
 from vWellsTSData
 
 
-
+create table TSDataNumericDailySummTemp (
+	Site varchar(29) not null,
+	FeatureMtypeSourceID int NOT NULL FOREIGN KEY REFERENCES FeatureMtypeSource(FeatureMtypeSourceID),
+	Min float not null,
+	Mean float not null,
+	Max float not null,
+	Count float not null,
+	FromDate date not null,
+	ToDate date not null
+	primary key (Site, FeatureMtypeSourceID)
+	)
 
 
 
