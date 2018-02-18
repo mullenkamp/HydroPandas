@@ -5,16 +5,46 @@ Hilltop uses a fixed base date as 1940-01-01, while the standard unix/POSIT base
 """
 # import Hilltop
 import os
+from datetime import datetime
 from configparser import ConfigParser
 from win32com.client import Dispatch, pywintypes
 # from lxml import etree
 import pandas as pd
 import numpy as np
-import geopandas as gpd
-from hydropandas.io.tools.mssql import rd_sql
-from hydropandas.util.misc import select_sites, pytime_to_datetime, time_switch
-from hydropandas.tools.general.spatial.vector import xy_to_gpd, sel_sites_poly
-from datetime import datetime
+
+#####################################################
+### Additional functions
+
+def pytime_to_datetime(pytime):
+    """
+    Function to convert a PyTime object to a datetime object.
+    """
+
+    dt1 = datetime(year=pytime.year, month=pytime.month, day=pytime.day, hour=pytime.hour, minute=pytime.minute)
+    return dt1
+
+def time_switch(x):
+    """
+    Convenience codes to convert for time text to pandas time codes.
+    """
+    return {
+        'min': 'Min',
+        'mins': 'Min',
+        'minute': 'Min',
+        'minutes': 'Min',
+        'hour': 'H',
+        'hours': 'H',
+        'day': 'D',
+        'days': 'D',
+        'week': 'W',
+        'weeks': 'W',
+        'month': 'M',
+        'months': 'M',
+        'year': 'A',
+        'years': 'A',
+        'water year': 'A-JUN',
+        'water years': 'A-JUN',
+    }.get(x, 'A')
 
 #####################################################
 #### New method - not ready yet...
@@ -125,6 +155,15 @@ from datetime import datetime
 def parse_dsn(dsn_path):
     """
     Function to parse a dsn file and all sub-dsn files into paths to hts files. Returns a list of hts paths.
+
+    Parameters
+    ----------
+    dsn_path : str
+        Path to the dsn file.
+
+    Returns
+    -------
+    List of path strings to hts files.
     """
 
     base_path = os.path.dirname(dsn_path)
@@ -143,23 +182,31 @@ def parse_dsn(dsn_path):
             hts1.extend([i for i in files1 if i.endswith('.hts')])
             dsn1.remove(f)
             dsn1[0:0] = [i for i in files1 if i.endswith('.dsn')]
-    return(hts1)
+    return hts1
 
 
 def rd_hilltop_sites(hts, sites=None, mtypes=None, rem_wq_sample=True):
     """
     Function to read the site names, measurement types, and units of a Hilltop hts file. Returns a DataFrame.
 
-    Arguments:\n
-    hts -- Path to the hts file (str).\n
-    sites -- A list of site names within the hts file.\n
-    mtypes -- A list of measurement types that should be returned.
+    Parameters
+    ----------
+    hts : str
+        Path to the hts file.
+    sites : list
+        A list of site names within the hts file.
+    mtypes : list
+        A list of measurement types that should be returned.
+
+    Returns
+    -------
+    DataFrame
     """
 
-    if sites is not None:
-        sites = select_sites(sites)
-    if mtypes is not None:
-        mtypes = select_sites(mtypes)
+    if not isinstance(sites, list):
+        raise TypeError('sites must be a list')
+    if not isinstance(mtypes, list):
+        raise TypeError('mtypes must be a list')
 
     cat = Dispatch("Hilltop.Catalogue")
     if not cat.Open(hts):
@@ -217,7 +264,7 @@ def rd_hilltop_sites(hts, sites=None, mtypes=None, rem_wq_sample=True):
         sites_df = sites_df[~(sites_df.mtype == 'WQ Sample')]
     dfile.Close()
     cat.Close()
-    return(sites_df)
+    return sites_df
 
 
 def rd_ht_quan_data(hts, sites=None, mtypes=None, start=None, end=None, agg_period=None, agg_n=1, fun=None, output_site_data=False, exclude_mtype=None):
@@ -366,32 +413,8 @@ def rd_ht_wq_data(hts, sites=None, mtypes=None, start=None, end=None, dtl_method
     DataFrame
     """
 
-#    agg_unit_dict = {'l/s': 1, 'm3/s': 1, 'm3/hour': 1, 'mm': 1, 'm3': 4}
-#    unit_convert = {'l/s': 0.001, 'm3/s': 1, 'm3/hour': 1, 'mm': 1, 'm3': 4}
-
-    sites1 = select_sites(sites)
-
-    #### Extract by polygon
-    if isinstance(sites1, gpd.GeoDataFrame):
-        ## Surface water sites
-        sw_sites_tab = rd_sql('SQL2012PROD05', 'Squalarc', 'SITES', col_names=['SITE_ID', 'NZTMX', 'NZTMY'])
-        sw_sites_tab.columns = ['site', 'NZTMX', 'NZTMY']
-        gdf_sw_sites = xy_to_gpd('site', 'NZTMX', 'NZTMY', sw_sites_tab)
-        sites1a = sites1.to_crs(gdf_sw_sites.crs)
-        sw_sites2 = sel_sites_poly(gdf_sw_sites, sites1a).drop('geometry', axis=1)
-
-        ## Groundwater sites
-        gw_sites_tab = rd_sql('SQL2012PROD05', 'Wells', 'WELL_DETAILS', col_names=['WELL_NO', 'NZTMX', 'NZTMY'])
-        gw_sites_tab.columns = ['site', 'NZTMX', 'NZTMY']
-        gdf_gw_sites = xy_to_gpd('site', 'NZTMX', 'NZTMY', gw_sites_tab)
-        gw_sites2 = sel_sites_poly(gdf_gw_sites, sites1a).drop('geometry', axis=1)
-
-        sites2 = sw_sites2.site.append(gw_sites2.site).astype(str).tolist()
-    else:
-        sites2 = sites1
-
     ### First read all of the sites in the hts file and select the ones to be read
-    sites_df = rd_hilltop_sites(hts, sites=sites2, mtypes=mtypes, rem_wq_sample=False)
+    sites_df = rd_hilltop_sites(hts, sites=sites, mtypes=mtypes, rem_wq_sample=False)
 
     ### Select out the sites/mtypes within the date range
     if isinstance(start, str):
