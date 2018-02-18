@@ -6,7 +6,7 @@ Created on Thu Aug 03 15:37:50 2017
 """
 import os
 import pandas as pd
-from datetime import date
+from datetime import datetime
 #from core.ecan_io.hilltop import rd_hilltop_data, rd_hilltop_sites, proc_ht_use_data, convert_site_names
 from hydropandas.io.tools.hilltop import rd_hilltop_sites, rd_ht_quan_data, convert_site_names, proc_ht_use_data
 from hydropandas.util.misc import rd_dir, save_df
@@ -25,6 +25,8 @@ sql_wap_use = {'server': 'SQL2012DEV01', 'database': 'DataWarehouse', 'table': '
 
 take_type_dict = {'Take Groundwater': 12, 'Take Surface Water': 9, 'Divert Surface Water': 9}
 
+time_format = '%Y-%m-%d %H:%M:%S'
+
 #last_date_stmt = "SELECT name, object_id, create_date, modify_date FROM sys.tables where name='HilltopTSUsageDaily'"
 #last_date_stmt = "select max(Time) from ExtractionLog where HydroTable='HilltopTSUsageDaily' and RunResult='pass'"
 
@@ -33,13 +35,16 @@ take_type_dict = {'Take Groundwater': 12, 'Take Surface Water': 9, 'Divert Surfa
 sql_export = {'table': 'HilltopTSUsageDaily', 'server': 'SQL2012DEV01', 'database': 'Hydro'}
 sql_log = {'server': 'SQL2012DEV01', 'database': 'Hydro', 'table': 'ExtractionLog'}
 
+today = datetime.today()
+
 try:
 
     ########################################################
     #### Get last date of extraction
 
 #    last_date1 = str(rd_sql(stmt=last_date_stmt, **sql_export).loc[0][0].date())
-    today1 = str(date.today())
+
+    today1 = str(today.date())
 
     ####################################################
     print('Extracting data from Hilltop')
@@ -127,14 +132,18 @@ try:
     to_mssql(ht8, **sql_export)
 
     ## log
-    log1 = pd.DataFrame([[today1, sql_export['table'], 'pass', 'all good', min_time]], columns=['Time', 'HydroTable', 'RunResult', 'Comment', 'FromTime'])
+    run_time_start = today.strftime(time_format)
+    run_time_end = datetime.today().strftime(time_format)
+    log1 = pd.DataFrame([[run_time_start, sql_export['table'], 'pass', 'all good', min_time, run_time_end]], columns=['Time', 'HydroTable', 'RunResult', 'Comment', 'FromTime', 'RunTimeEnd'])
     to_mssql(log1, **sql_log)
     print('complete')
 
 except Exception as err:
     err1 = err
     print(err1)
-    log2 = pd.DataFrame([[today1, sql_export['table'], 'fail', str(err1), min_time]], columns=['Time', 'HydroTable', 'RunResult', 'Comment', 'FromTime'])
+    run_time_start = today.strftime(time_format)
+    run_time_end = datetime.today().strftime(time_format)
+    log2 = pd.DataFrame([[run_time_start, sql_export['table'], 'fail', str(err1), min_time, run_time_end]], columns=['Time', 'HydroTable', 'RunResult', 'Comment', 'FromTime', 'RunTimeEnd'])
     to_mssql(log2, **sql_log)
 
 
