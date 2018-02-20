@@ -193,20 +193,15 @@ def rd_hilltop_sites(hts, sites=None, mtypes=None, rem_wq_sample=True):
     ----------
     hts : str
         Path to the hts file.
-    sites : list
+    sites : list or None
         A list of site names within the hts file.
-    mtypes : list
+    mtypes : list or None
         A list of measurement types that should be returned.
 
     Returns
     -------
     DataFrame
     """
-
-    if not isinstance(sites, list):
-        raise TypeError('sites must be a list')
-    if not isinstance(mtypes, list):
-        raise TypeError('mtypes must be a list')
 
     cat = Dispatch("Hilltop.Catalogue")
     if not cat.Open(hts):

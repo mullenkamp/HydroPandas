@@ -2,11 +2,9 @@
 """
 Functions for importing mssql data.
 """
-from shapely.wkt import loads
 from pycrs.parser import from_epsg_code
 from pymssql import connect
 import pandas as pd
-import geopandas as gpd
 from hydropandas.util.misc import save_df
 from sqlalchemy import create_engine
 
@@ -705,6 +703,8 @@ def rd_sql_geo(server, database, table, col_stmt, where_lst=None):
     str
         The second output is a proj4 str of the projection system.
     """
+    import geopandas as gpd
+    from shapely.wkt import loads
 
     ## Create connection to database
     conn = connect(server, database=database)

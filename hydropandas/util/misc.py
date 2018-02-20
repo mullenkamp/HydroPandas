@@ -8,7 +8,7 @@ import patoolib, fnmatch, os
 from datetime import datetime
 import pandas as pd
 import numpy as np
-import geopandas as gpd
+#import geopandas as gpd
 
 ##########################################
 ### Base stats for the default view of the class (once data has been loaded)
@@ -117,10 +117,7 @@ def select_sites(x):
     elif isinstance(x, pd.DataFrame):
         x1 = x.iloc[:, 0].values.copy()
     elif isinstance(x, str):
-        if x.endswith('.shp'):
-            x1 = gpd.read_file(x).copy()
-        else:
-            x1 = pd.read_csv(x).iloc[:, 0].values.copy()
+        x1 = pd.read_csv(x).iloc[:, 0].values.copy()
     elif x is None:
         x1 = x
     else:
