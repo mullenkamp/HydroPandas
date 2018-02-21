@@ -269,11 +269,11 @@ def min_max_trig(SiteID=None, is_active=True):
     periods1.name = 'mon'
     periods1 = periods1.reset_index().drop_duplicates(['SiteID', 'band_num', 'mon'])
 
-    periods2 = pd.merge(periods1, restr_val, on=['SiteID', 'band_num', 'period']).drop('period', axis=1)
-    p_min = periods2[~periods2.allo_perc.isin([103, 105, 106, 107, 108, 109])].groupby(['SiteID', 'band_num', 'mon']).min()['trig_level'].round(3)
-    p_min.name = 'min_trig'
-    p_max = periods2.groupby(['SiteID', 'band_num', 'mon']).max()['trig_level'].round(3)
-    p_max.name = 'max_trig'
+    periods2 = pd.merge(periods1, all_trig.reset_index(), on=['SiteID', 'band_num', 'period']).drop('period', axis=1)
+    p_min = periods2[~periods2.allo_perc.isin([103, 105, 106, 107, 108, 109])].groupby(['SiteID', 'band_num', 'mon']).min()
+    p_min.columns = ['min_allo_perc', 'min_trig']
+    p_max = periods2.groupby(['SiteID', 'band_num', 'mon']).max()
+    p_max.columns = ['max_allo_perc', 'max_trig']
 
     p_min_site = p_min.reset_index().groupby(['SiteID', 'mon'])['min_trig'].min()
     p_max_site = p_max.reset_index().groupby(['SiteID', 'mon'])['max_trig'].max()
@@ -313,6 +313,7 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None, only_restr=True
 
     is_active = True
     hour1 = datetime.now().hour
+    today1 = date.today()
 
     ## Query fields - Be sure to use single quotes for the names!!!
     restr_fields = ['SiteID', 'RestrictionDate', 'BandNo', 'BandAllocation', 'AsmtFlow']
@@ -417,7 +418,10 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None, only_restr=True
     corr_sites1 = telem_corr_sites(tel_sites2.astype('int32').tolist())
     corr_sites2 = sites.loc[sites.site.isin(corr_sites1), 'SiteID']
     site_type1.loc[site_type1.SiteID.isin(corr_sites2), 'flow_method'] = 5
-    site_type1['days_since_flow_est'] = (pd.to_datetime(to_date) - site_type1.date).dt.days
+    if to_date is not None:
+        site_type1['days_since_flow_est'] = (pd.to_datetime(to_date) - site_type1.date).dt.days
+    else:
+        site_type1['days_since_flow_est'] = (pd.to_datetime(today1) - site_type1.date).dt.days
     if (hour1 >= 17) | (hour1 < 14):
         site_type1['days_since_flow_est'] = site_type1['days_since_flow_est'] - 1
 
@@ -441,7 +445,7 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None, only_restr=True
     restr_sites1.loc[(restr_sites1['flow'] < restr_sites1['max_trig']) & (restr_sites1['flow'] > restr_sites1['min_trig']), 'restr_category'] = 'Partial'
 
     ## Add in site numbers
-    restr_crc_sites = pd.merge(sites1, restr_crc.drop('mon', axis=1), on='SiteID').drop('SiteID', axis=1).sort_values(['waterway', 'date', 'min_trig'])
+    restr_crc_sites = pd.merge(sites1, restr_crc.drop(['mon', 'min_allo_perc', 'max_allo_perc'], axis=1), on='SiteID').drop('SiteID', axis=1).sort_values(['waterway', 'date', 'min_trig'])
     restr_sites = pd.merge(sites1, restr_sites1, on='SiteID').drop('SiteID', axis=1).sort_values(['waterway', 'date', 'min_trig'])
 
     ## Correct for duplicate primary keys
@@ -937,7 +941,7 @@ def crc_band_flow(site_lst=None, crc_lst=None, names=False):
     else:
         sel2 = sel1
 
-    return(sel2)
+    return sel2
 
 
 def ros_freq(ros, period='water year', min_days=245, norm=False):

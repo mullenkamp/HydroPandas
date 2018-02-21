@@ -205,15 +205,19 @@ inner join DataProviderMaster on DataProviderMaster.DataProviderID = FeatureMtyp
 
 
 CREATE TABLE Hydro.dbo.ExtractionLog (
-	   RunTime DATETIME NOT NULL,
+	   RunTimeStart DATETIME NOT NULL,
+	   RunTimeEnd DATETIME,
 	   FromTime DATETIME,
 	   HydroTable varchar(79) NOT NULL,
 	   RunResult varchar(9) NOT NULL,
-	   Comment varchar(99) NOT NULL,
-	   PRIMARY KEY (Time, HydroTable)
+	   Comment varchar(299),
+	   PRIMARY KEY (RunTimeStart, HydroTable)
 )
 
 --select distinct Variable from Hydro.dbo.NiwaAquaAtmosTSDataDaily
+
+alter table ExtractionLog
+add RunTimeEnd DATETIME;
 
 alter table FeatureMtypeSource
 alter column DataProviderID int NOT NULL 

@@ -106,7 +106,7 @@ max(Value) for Param in ([data], [Lab Method], [Lab Name])) as piv1
 select * from Hydro.dbo.NiwaAquaAtmosTSDataDaily
 where Site = 10332 and FeatureMtypeSourceID = 18 and Time > '2010-01-01'
 
-select * from NiwaAquaAtmosTSDataDaily where Site in (10332, 10530) and FeatureMtypeSourceID = 25
+select * from NiwaAquaAtmosTSDataDaily where Site in (10332, 10530) and FeatureMtypeSourceID = 38
 
 select OBJECT_ID('HilltopWQSites', 'U')
 
