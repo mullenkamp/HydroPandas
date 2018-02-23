@@ -64,7 +64,7 @@ def flow_stats(df, below_median=False, export_path=None):
                  "End date", "Min date", "Max Date", "Zero days", "Missing days",
                  "Missing ratio", "Tot data yrs"]
     temp1 = pd.concat([min1, quarter1, median1, mean1, quarter3, max1], axis=1).round(3)
-    temp2 = pd.concat([first_time.astype('string'), last_time.astype('string'), min_time.astype('string'), max_time.astype('string'), zero_count, mis_days, mis_days_ratio.round(3), years.round(1)], axis=1)
+    temp2 = pd.concat([first_time.astype(str), last_time.astype(str), min_time.astype(str), max_time.astype(str), zero_count, mis_days, mis_days_ratio.round(3), years.round(1)], axis=1)
     df2 = pd.concat([temp1, temp2], axis=1)
 
     ### Add in the average number of days below median if specified

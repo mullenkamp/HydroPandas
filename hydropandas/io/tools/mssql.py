@@ -201,6 +201,7 @@ def rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resa
         raise ValueError('No data was found in the database for the parameters given.')
 
     ## set the index
+    df[date_col] = pd.to_datetime(df[date_col])
     groupby_cols.append(date_col)
     df1 = df.set_index(groupby_cols).sort_index()
 

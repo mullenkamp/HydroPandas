@@ -8,7 +8,7 @@ import os
 import pandas as pd
 import numpy as np
 #from pymssql import connect
-from datetime import datetime
+from datetime import datetime, timedelta
 #from sqlalchemy import create_engine
 from re import search, IGNORECASE, findall
 from hydropandas.io.tools.mssql import rd_sql, to_mssql, del_mssql_table_rows
@@ -182,7 +182,7 @@ try:
         to_mssql(ht8, **sql_export)
 
     else:
-        min_time = today1
+        min_time = today1 - timedelta(days=1)
 
     ## log
     run_time_start = today.strftime(time_format)

@@ -14,6 +14,7 @@ from hydropandas.io.tools.mssql import to_mssql, create_mssql_table, del_mssql_t
 ## Import
 hts_gw = r'\\hilltop01\Hilltop\Data\WQGroundwater.hts'
 hts_sw = r'\\hilltop01\Hilltop\Data\WQSurfacewater.hts'
+hts_files = [r'\\hilltop01\Hilltop\Data\WQGroundwater.hts', r'\\hilltop01\Hilltop\Data\WQSurfacewater.hts']
 
 sample_params_list = ['Project', 'Cost Code', 'Technician', 'Sample ID', 'Sample Comment', 'Field Comment', 'Sample Appearance', 'Sample Colour', 'Sample Odour', 'Water Colour', 'Water Clarity']
 mtype_params_list = ['Lab Method', 'Lab Name']
@@ -67,6 +68,9 @@ try:
 
     mtype_list = list(mtype_params_list)
     mtype_list.append('data')
+
+#    for hts in hts_files:
+
 
     ## GW
     gw_wq_data, gw_sites_info = rd_ht_wq_data(hts_gw, output_site_data=True, sample_params=sample_params_list, mtype_params=mtype_params_list)
