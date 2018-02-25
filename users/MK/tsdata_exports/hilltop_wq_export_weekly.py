@@ -5,8 +5,8 @@ Created on Tue Oct 03 08:51:46 2017
 @author: MichaelEK
 """
 from os import path, getcwd
-import numpy as np
-import pandas as pd
+from numpy import ceil, array_split
+from pandas import concat, DataFrame
 from configparser import ConfigParser
 from datetime import datetime
 from hydropandas.io.tools.hilltop import rd_ht_wq_data, rd_hilltop_sites
@@ -108,7 +108,7 @@ try:
         sites_info2['SiteID'] = sites_info2['SiteID'].str.upper()
         sites_dict.update({hts: sites_info2})
 
-    sites_all = pd.concat(list(sites_dict.values()))
+    sites_all = concat(list(sites_dict.values()))
 
     # Check for duplicate sites/mytpes
     dups = sites_all[sites_all.duplicated(sites_pkeys)]
@@ -127,8 +127,8 @@ try:
         hts_sites = sites_dict[hts].copy()
 
         sites1 = hts_sites.SiteID.unique()
-        n_chunks = np.ceil(len(sites1) / float(sites_chunk))
-        sites2 = np.array_split(sites1, n_chunks)
+        n_chunks = ceil(len(sites1) / float(sites_chunk))
+        sites2 = array_split(sites1, n_chunks)
 
         ## Chunk out the data and into MSSQL
 
@@ -155,14 +155,14 @@ try:
             to_mssql(wq_data_mtype, server, database, mtypes_table)
 
     ## log
-    log1 = pd.DataFrame([[today1, server, 'Python WQ upload', '1', 'INFO', 'python', 'completed successfully']], columns=['Date', 'Server', 'Application', 'Thread', 'Level', 'Logger', 'Message'])
+    log1 = DataFrame([[today1, server, 'Python WQ upload', '1', 'INFO', 'python', 'completed successfully']], columns=['Date', 'Server', 'Application', 'Thread', 'Level', 'Logger', 'Message'])
     to_mssql(log1, log_server, log_database, log_table)
     print('complete')
 
 except Exception as err:
     err1 = err
     print(err1)
-    log2 = pd.DataFrame([[today1, server, 'Python WQ upload', '1', 'INFO', 'python', str(err1)]], columns=['Date', 'Server', 'Application', 'Thread', 'Level', 'Logger', 'Message'])
+    log2 = DataFrame([[today1, server, 'Python WQ upload', '1', 'INFO', 'python', str(err1)]], columns=['Date', 'Server', 'Application', 'Thread', 'Level', 'Logger', 'Message'])
     to_mssql(log2, log_server, log_database, log_table)
     print('fail')
 

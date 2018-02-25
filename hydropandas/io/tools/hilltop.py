@@ -9,11 +9,12 @@ from datetime import datetime
 from configparser import ConfigParser
 from win32com.client import Dispatch, pywintypes
 # from lxml import etree
-import pandas as pd
-import numpy as np
+from pandas import concat, to_datetime, to_numeric, DataFrame, merge
+from numpy import nan
 
 #####################################################
 ### Additional functions
+
 
 def pytime_to_datetime(pytime):
     """
@@ -22,6 +23,7 @@ def pytime_to_datetime(pytime):
 
     dt1 = datetime(year=pytime.year, month=pytime.month, day=pytime.day, hour=pytime.hour, minute=pytime.minute)
     return dt1
+
 
 def time_switch(x):
     """
@@ -254,7 +256,7 @@ def rd_hilltop_sites(hts, sites=None, mtypes=None, rem_wq_sample=True):
                     unit1 = ''
                 sites_lst.append([site_name, ds_name, mtype1, unit1, divisor, str(start1), str(end1)])
 
-    sites_df = pd.DataFrame(sites_lst, columns=['site', 'data_source', 'mtype', 'unit', 'divisor', 'start_date', 'end_date'])
+    sites_df = DataFrame(sites_lst, columns=['site', 'data_source', 'mtype', 'unit', 'divisor', 'start_date', 'end_date'])
     if rem_wq_sample:
         sites_df = sites_df[~(sites_df.mtype == 'WQ Sample')]
     dfile.Close()
@@ -338,7 +340,7 @@ def rd_ht_quan_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
                 continue
             if (start is None):
                 if (agg_period is not None):
-                    start1 = str(pd.to_datetime(start_time).ceil(str(agg_n) + time_switch(agg_period)).date())
+                    start1 = str(to_datetime(start_time).ceil(str(agg_n) + time_switch(agg_period)).date())
                 else:
                     start1 = dfile.DataStartTime
             else:
@@ -366,16 +368,16 @@ def rd_ht_quan_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
                         data.append(dfile.value)
                         time.append(str(pytime_to_datetime(dfile.time)))
                     if data:
-                        df_temp = pd.DataFrame({'time': time, 'data': data, 'site': site, 'mtype': mtype})
+                        df_temp = DataFrame({'time': time, 'data': data, 'site': site, 'mtype': mtype})
                         df_lst.append(df_temp)
 
     dfile.Close()
     if df_lst:
-        df1 = pd.concat(df_lst)
-        df1.loc[:, 'time'] = pd.to_datetime(df1.loc[:, 'time'])
+        df1 = concat(df_lst)
+        df1.loc[:, 'time'] = to_datetime(df1.loc[:, 'time'])
         df2 = df1.set_index(['mtype', 'site', 'time']).data * unit_convert[unit]
     else:
-        df2 = pd.DataFrame([], index=['mtype', 'site', 'time'])
+        df2 = DataFrame([], index=['mtype', 'site', 'time'])
     if output_site_data:
         return df2, sites_df
     else:
@@ -467,17 +469,17 @@ def rd_ht_wq_data(hts, sites=None, mtypes=None, start=None, end=None, dtl_method
                 time.append(str(pytime_to_datetime(wqr.time)))
 
         if data:
-            df_temp = pd.DataFrame({'time': time, 'data': data, 'site': site, 'mtype': mtype})
+            df_temp = DataFrame({'time': time, 'data': data, 'site': site, 'mtype': mtype})
             if sample_p:
-                df_temp = pd.concat([df_temp, pd.DataFrame(sample_p), pd.DataFrame(mtype_p)], axis=1)
+                df_temp = concat([df_temp, DataFrame(sample_p), DataFrame(mtype_p)], axis=1)
             df_lst.append(df_temp)
 
     dfile.Close()
     wqr.close()
     if df_lst:
-        data = pd.concat(df_lst)
-        data.loc[:, 'time'] = pd.to_datetime(data.loc[:, 'time'])
-        data1 = pd.to_numeric(data.loc[:, 'data'], errors='coerce')
+        data = concat(df_lst)
+        data.loc[:, 'time'] = to_datetime(data.loc[:, 'time'])
+        data1 = to_numeric(data.loc[:, 'data'], errors='coerce')
         data.loc[data1.notnull(), 'data'] = data1[data1.notnull()]
 #        data.loc[:, 'data'].str.replace('*', '')
         data = data.reset_index(drop=True)
@@ -488,7 +490,7 @@ def rd_ht_wq_data(hts, sites=None, mtypes=None, start=None, end=None, dtl_method
             if less1.sum() > 0:
                 less1.loc[less1.isnull()] = False
                 data2 = data.copy()
-                data2.loc[less1, 'data'] = pd.to_numeric(data.loc[less1, 'data'].str.replace('<', ''), errors='coerce') * 0.5
+                data2.loc[less1, 'data'] = to_numeric(data.loc[less1, 'data'].str.replace('<', ''), errors='coerce') * 0.5
                 if dtl_method == 'standard':
                     data3 = data2
                 if dtl_method == 'trend':
@@ -499,7 +501,7 @@ def rd_ht_wq_data(hts, sites=None, mtypes=None, start=None, end=None, dtl_method
                     count_dtl.name = 'dtl_count'
                     count_dtl_val = df1.groupby('mtype')['data'].nunique()
                     count_dtl_val.name = 'dtl_val_count'
-                    combo1 = pd.concat([count1, count_dtl, count_dtl_val], axis=1, join='inner')
+                    combo1 = concat([count1, count_dtl, count_dtl_val], axis=1, join='inner')
                     combo1['dtl_ratio'] = (combo1['dtl_count'] / combo1['tot_count']).round(2)
 
                     ## conditionals
@@ -507,7 +509,7 @@ def rd_ht_wq_data(hts, sites=None, mtypes=None, start=None, end=None, dtl_method
                     over_40 = data['mtype'].isin(param2.index)
 
                     ## Calc detection limit values
-                    data3 = pd.merge(data, combo1['dtl_ratio'].reset_index(), on='mtype', how='left')
+                    data3 = merge(data, combo1['dtl_ratio'].reset_index(), on='mtype', how='left')
                     data3.loc[:, 'data_dtl'] = data2['data']
 
                     max_dtl_val = data2[over_40 & less1].groupby('mtype')['data'].transform('max')
@@ -545,7 +547,7 @@ def rd_ht_wq_data(hts, sites=None, mtypes=None, start=None, end=None, dtl_method
 #             del elem.getparent()[0]
 #
 #     ### Return
-#     df = pd.DataFrame([sites, mtypes]).transpose()
+#     df = DataFrame([sites, mtypes]).transpose()
 #     df.columns = ['site', 'mtype']
 #     return(df)
 #
@@ -557,7 +559,7 @@ def rd_ht_wq_data(hts, sites=None, mtypes=None, start=None, end=None, dtl_method
 #
 #     ### Base parameters
 #     rem_s = 10958*24*60*60
-#     corr = pd.read_csv(corr_csv)
+#     corr = read_csv(corr_csv)
 #     xml_name = basename(xml)
 #
 #     ### Select corrections
@@ -750,13 +752,13 @@ def convert_site_names(names, rem_m=True):
         names_len_bool = list_names1.apply(lambda x: len(x)) == 1
         names2 = names1.copy()
         names2[names_len_bool] = list_names1[names_len_bool].apply(lambda x: x[0])
-        names2[~names_len_bool] = np.nan
+        names2[~names_len_bool] = nan
     else:
         list_names1 = names1.str.findall('[A-Z]+\d\d/\d\d\d\d\s*-\s*M\d*')
         names_len_bool = list_names1.apply(lambda x: len(x)) == 1
         names2 = names1.copy()
         names2[names_len_bool] = list_names1[names_len_bool].apply(lambda x: x[0])
-        names2[~names_len_bool] = np.nan
+        names2[~names_len_bool] = nan
 
     return names2
 
@@ -777,7 +779,7 @@ def proc_ht_use_data(ht_data, n_std=4):
 
         ### Select the process sequence based on the mtype and convert to period volume
 
-        data[data < 0] = np.nan
+        data[data < 0] = nan
 
         if mtype == 'Water Meter':
             ## Check to determine whether it is cumulative or period volume
@@ -787,21 +789,21 @@ def proc_ht_use_data(ht_data, n_std=4):
             neg_ratio = sum(neg_index.values)/count1
             if neg_ratio > 0.1:
                 outliers = abs(data - data.mean()) > (data.std() * n_std)
-                data[outliers] = np.nan
+                data[outliers] = nan
                 vol = data
             else:
                 # Replace the negative values with zero and the very large values
                 diff1[diff1 < 0] = data[diff1 < 0]
                 outliers = abs(diff1 - diff1.mean()) > (diff1.std() * n_std)
-                diff1.loc[outliers] = np.nan
+                diff1.loc[outliers] = nan
                 vol = diff1
         elif mtype in ['Compliance Volume', 'Volume']:
             outliers = abs(data - data.mean()) > (data.std() * n_std)
-            data.loc[outliers] = np.nan
+            data.loc[outliers] = nan
             vol = data
         elif mtype == 'Flow':
             outliers = abs(data - data.mean()) > (data.std() * n_std)
-            data.loc[outliers] = np.nan
+            data.loc[outliers] = nan
 
 #            # Determine the diff index
 #            t1 = Series(data.index).diff().dt.seconds.shift(-1)
@@ -812,13 +814,13 @@ def proc_ht_use_data(ht_data, n_std=4):
             vol = (data * 60*60*24).fillna(method='ffill').round(4)
         elif mtype == 'Average Flow':
             outliers = abs(data - data.mean()) > (data.std() * n_std)
-            data.loc[outliers] = np.nan
+            data.loc[outliers] = nan
             vol = (data * 24).fillna(method='ffill').round(4)
 
         res1.append(vol)
 
     ### Convert to dataframe
-    df1 = pd.concat(res1).reset_index()
+    df1 = concat(res1).reset_index()
 
     ### Drop the mtypes level and uppercase the sites
     df2 = df1.drop('mtype', axis=1)
