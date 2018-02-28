@@ -2,11 +2,28 @@
 """
 Functions for importing mssql data.
 """
+from os import path
 from pycrs.parser import from_epsg_code
 from pymssql import connect
-import pandas as pd
-from hydropandas.util.misc import save_df
+from pandas import concat, DataFrame, read_sql, to_datetime, Timestamp
 from sqlalchemy import create_engine
+
+
+def save_df(df, path_str, index=True, header=True):
+    """
+    Function to save a dataframe based on the path_str extension. The path_str must  either end in csv or h5.
+
+    df -- Pandas DataFrame.\n
+    path_str -- File path (str).\n
+    index -- Should the row index be saved? Only necessary for csv.
+    """
+
+    path1 = path.splitext(path_str)
+
+    if path1[1] in '.h5':
+        df.to_hdf(path_str, 'df', mode='w')
+    if path1[1] in '.csv':
+        df.to_csv(path_str, index=index, header=header)
 
 
 def rd_sql(server, database, table=None, col_names=None, where_col=None, where_val=None, where_op='AND', geo_col=False, from_date=None, to_date=None, date_col=None, rename_cols=None, stmt=None, export_path=None):
@@ -85,7 +102,7 @@ def rd_sql(server, database, table=None, col_names=None, where_col=None, where_v
             df.columns = rename_cols
     else:
         conn = connect(server, database=database)
-        df = pd.read_sql(stmt1, conn)
+        df = read_sql(stmt1, conn)
         conn.close()
         if rename_cols is not None:
             df.columns = rename_cols
@@ -174,7 +191,7 @@ def rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resa
             stmt1 = "SELECT " + cols_count_str + " FROM " + table + " GROUP BY " + col_stmt + " HAVING count(" + values_cols + ") >= " + str(
                 min_count)
 
-        up_sites = pd.read_sql(stmt1, conn)[groupby_cols[0]].tolist()
+        up_sites = read_sql(stmt1, conn)[groupby_cols[0]].tolist()
         up_sites = [str(i) for i in up_sites]
 
         if not up_sites:
@@ -193,7 +210,7 @@ def rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resa
                                     where_lst=where_lst)
 
     ## Create connection to database and execute sql statement
-    df = pd.read_sql(sql_stmt1, conn)
+    df = read_sql(sql_stmt1, conn)
     conn.close()
 
     ## Check to see if any data was found
@@ -201,7 +218,7 @@ def rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resa
         raise ValueError('No data was found in the database for the parameters given.')
 
     ## set the index
-    df[date_col] = pd.to_datetime(df[date_col])
+    df[date_col] = to_datetime(df[date_col])
     groupby_cols.append(date_col)
     df1 = df.set_index(groupby_cols).sort_index()
 
@@ -275,10 +292,10 @@ def write_sql(df, server, database, table, dtype_dict, primary_keys=None, foreig
     for i in df.columns:
         dtype1 = dtype_dict[i]
         if (dtype1 == 'DATE') | (dtype1 == 'date'):
-            time1 = pd.to_datetime(df[i]).dt.strftime('%Y-%m-%d')
+            time1 = to_datetime(df[i]).dt.strftime('%Y-%m-%d')
             df1.loc[:, i] = time1
         elif (dtype1 == 'DATETIME') | (dtype1 == 'datetime'):
-            time1 = pd.to_datetime(df[i]).dt.strftime('%Y-%m-%d %H:%M:%S')
+            time1 = to_datetime(df[i]).dt.strftime('%Y-%m-%d %H:%M:%S')
             df1.loc[:, i] = time1
         elif ('VARCHAR' in dtype1) | ('varchar' in dtype1):
             try:
@@ -365,7 +382,7 @@ def write_sql(df, server, database, table, dtype_dict, primary_keys=None, foreig
         raise err
 
 
-def to_mssql(df, server, database, table, index=False):
+def to_mssql(df, server, database, table, index=False, dtype=None):
     """
     Function to append a DataFrame onto an existing mssql table.
 
@@ -381,6 +398,8 @@ def to_mssql(df, server, database, table, index=False):
         The specific table within the database. e.g.: 'LowFlowSiteRestrictionDaily'
     index : bool
         Should the index be added as a column?
+    dtype : dict of column name to SQL type, default None
+        Optional specifying the datatype for columns. The SQL type should be a SQLAlchemy type.
 
     Returns
     -------
@@ -391,7 +410,7 @@ def to_mssql(df, server, database, table, index=False):
     engine = create_engine(eng_str)
 
     ### Save to mssql table
-    df.to_sql(name=table, con=engine, if_exists='append', chunksize=1000, index=index)
+    df.to_sql(name=table, con=engine, if_exists='append', chunksize=1000, index=index, dtype=dtype)
 
 
 def create_mssql_table(server, database, table, dtype_dict, primary_keys=None, foreign_keys=None, foreign_table=None, drop_table=False):
@@ -455,12 +474,12 @@ def create_mssql_table(server, database, table, dtype_dict, primary_keys=None, f
             conn.commit()
         else:
             check_tab_stmt = "IF OBJECT_ID(" + str([str(table)])[1:-1] + ", 'U') IS NOT NULL SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME=" +  str([str(table)])[1:-1]
-#            tab1 = pd.read_sql(check_tab_stmt, conn)
+#            tab1 = read_sql(check_tab_stmt, conn)
             cursor.execute(check_tab_stmt)
             list1 = [i for i in cursor]
             if list1:
                 print('Table already exists. Returning the table info.')
-                df = pd.DataFrame(list1, columns=['columns', 'dtype'])
+                df = DataFrame(list1, columns=['columns', 'dtype'])
                 conn.close()
                 return df
 
@@ -556,8 +575,8 @@ def sql_where_stmts(where_col=None, where_val=None, where_op='AND', from_date=No
         where_stmt = []
 
     if isinstance(from_date, str):
-        from_date1 = pd.to_datetime(from_date, errors='coerce')
-        if isinstance(from_date1, pd.Timestamp):
+        from_date1 = to_datetime(from_date, errors='coerce')
+        if isinstance(from_date1, Timestamp):
             from_date2 = str(from_date1)
             where_from_date = date_col + " >= " + from_date2.join(['\'', '\''])
         else:
@@ -566,8 +585,8 @@ def sql_where_stmts(where_col=None, where_val=None, where_op='AND', from_date=No
         where_from_date = ''
 
     if isinstance(to_date, str):
-        to_date1 = pd.to_datetime(to_date, errors='coerce')
-        if isinstance(to_date1, pd.Timestamp):
+        to_date1 = to_datetime(to_date, errors='coerce')
+        if isinstance(to_date1, Timestamp):
             to_date2 = str(to_date1)
             where_to_date = date_col + " <= " + to_date2.join(['\'', '\''])
         else:
@@ -704,16 +723,16 @@ def rd_sql_geo(server, database, table, col_stmt, where_lst=None):
     str
         The second output is a proj4 str of the projection system.
     """
-    import geopandas as gpd
+    from geopandas import GeoDataFrame
     from shapely.wkt import loads
 
     ## Create connection to database
     conn = connect(server, database=database)
 
     geo_col_stmt = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME=" + "\'" + table + "\'" + " AND DATA_TYPE='geometry'"
-    geo_col = str(pd.read_sql(geo_col_stmt, conn).iloc[0, 0])
+    geo_col = str(read_sql(geo_col_stmt, conn).iloc[0, 0])
     geo_srid_stmt = "select distinct " + geo_col + ".STSrid from " + table
-    geo_srid = int(pd.read_sql(geo_srid_stmt, conn).iloc[0, 0])
+    geo_srid = int(read_sql(geo_srid_stmt, conn).iloc[0, 0])
     if where_lst is not None:
         if len(where_lst) > 0:
             stmt2 = "SELECT " + col_stmt + ", (" + geo_col + ".STGeometryN(1).ToString()) as geometry" + " FROM " + table + " where " + " and ".join(
@@ -722,10 +741,10 @@ def rd_sql_geo(server, database, table, col_stmt, where_lst=None):
             stmt2 = "SELECT " + col_stmt + ", (" + geo_col + ".STGeometryN(1).ToString()) as geometry" + " FROM " + table
     else:
         stmt2 = "SELECT " + col_stmt + ", (" + geo_col + ".STGeometryN(1).ToString()) as geometry" + " FROM " + table
-    df2 = pd.read_sql(stmt2, conn)
+    df2 = read_sql(stmt2, conn)
     geo = [loads(x) for x in df2.geometry]
     proj4 = from_epsg_code(geo_srid).to_proj4()
-    geo_df = gpd.GeoDataFrame(df2.drop('geometry', axis=1), geometry=geo, crs=proj4)
+    geo_df = GeoDataFrame(df2.drop('geometry', axis=1), geometry=geo, crs=proj4)
     conn.close()
 
     return geo_df

@@ -1717,6 +1717,59 @@ connR.load_extension(r'C:\temp\spatialite\spatialite\mod_spatialite.dll')
 connR.execute('SELECT load_extension("spatialite.dll")')
 connR.execute('SELECT load_extension("mod_spatialite")')
 
+########################################
+### bgauging comments export
+
+from hydropandas.io.tools.mssql import rd_sql
+
+server = 'SQL2012PROD05'
+database = 'Bgauging'
+table = 'Data'
+
+export_csv = r'E:\ecan\local\Projects\requests\tony\2018-02-28\bgauging_comments.csv'
+
+comments = rd_sql(server, database, table)
+
+comments2 = comments.loc[:, comments.columns != 'timestamp']
+
+comments2.to_csv(export_csv, index=False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

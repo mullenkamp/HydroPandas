@@ -264,7 +264,7 @@ def rd_hilltop_sites(hts, sites=None, mtypes=None, rem_wq_sample=True):
     return sites_df
 
 
-def rd_ht_quan_data(hts, sites=None, mtypes=None, start=None, end=None, agg_period=None, agg_n=1, fun=None, output_site_data=False, exclude_mtype=None):
+def rd_ht_quan_data(hts, sites=None, mtypes=None, start=None, end=None, agg_period=None, agg_n=1, fun=None, output_site_data=False, exclude_mtype=None, sites_df=None):
     """
     Function to read data from an hts file and optionally select specific sites and aggregate the data.
 
@@ -288,6 +288,8 @@ def rd_ht_quan_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
         The resampling function.
     output_site_data : bool
         Should the sites data be output?
+    sites_df : DataFrame
+        The DataFrame return from the rd_hilltop_sites function. If this is passed than rd_hilltop_sites is not run.
 
     Returns
     -------
@@ -299,7 +301,8 @@ def rd_ht_quan_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
     unit_convert = {'l/s': 0.001, 'm3/s': 1, 'm3/hour': 1, 'mm': 1, 'm3': 1}
 
     ### First read all of the sites in the hts file and select the ones to be read
-    sites_df = rd_hilltop_sites(hts, sites=sites, mtypes=mtypes)
+    if not isinstance(sites_df, DataFrame):
+        sites_df = rd_hilltop_sites(hts, sites=sites, mtypes=mtypes)
     sites_df = sites_df[sites_df.unit.isin(list(agg_unit_dict.keys()))]
     if isinstance(exclude_mtype, list):
         sites_df = sites_df[~sites_df.mtype.isin(exclude_mtype)]
@@ -384,7 +387,7 @@ def rd_ht_quan_data(hts, sites=None, mtypes=None, start=None, end=None, agg_peri
         return df2
 
 
-def rd_ht_wq_data(hts, sites=None, mtypes=None, start=None, end=None, dtl_method=None, output_site_data=False, mtype_params=None, sample_params=None):
+def rd_ht_wq_data(hts, sites=None, mtypes=None, start=None, end=None, dtl_method=None, output_site_data=False, mtype_params=None, sample_params=None, sites_df=None):
     """
     Function to read data from an hts file and optionally select specific sites and aggregate the data.
 
@@ -404,6 +407,8 @@ def rd_ht_wq_data(hts, sites=None, mtypes=None, start=None, end=None, dtl_method
         The method to use to convert values under a detection limit to numeric. None does no conversion. 'standard' takes half of the detection limit. 'trend' is meant as an output for trend analysis with includes an additional column dtl_ratio referring to the ratio of values under the detection limit.
     output_site_data : bool
         Should the site data be output?
+    sites_df : DataFrame
+        The DataFrame return from the rd_hilltop_sites function. If this is passed than rd_hilltop_sites is not run.
 
     Returns
     -------
@@ -411,7 +416,8 @@ def rd_ht_wq_data(hts, sites=None, mtypes=None, start=None, end=None, dtl_method
     """
 
     ### First read all of the sites in the hts file and select the ones to be read
-    sites_df = rd_hilltop_sites(hts, sites=sites, mtypes=mtypes, rem_wq_sample=False)
+    if not isinstance(sites_df, DataFrame):
+        sites_df = rd_hilltop_sites(hts, sites=sites, mtypes=mtypes, rem_wq_sample=False)
 
     ### Select out the sites/mtypes within the date range
     if isinstance(start, str):
