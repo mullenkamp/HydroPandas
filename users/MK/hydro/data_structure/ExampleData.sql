@@ -111,7 +111,12 @@ select * from NiwaAquaAtmosTSDataDaily where Site in (10332, 10530) and FeatureM
 select OBJECT_ID('HilltopWQSites', 'U')
 
 
-
+select * 
+from Hydro.dbo.HilltopWQMtypes
+where SiteID = 'SQ00049'
+	and CollectionTime = '2015-10-29 08:54:00'
+	and Param = 'data'
+	and MeasurementType = 'Dissolved Reactive Phosphorus'
 
 
 
