@@ -6,21 +6,37 @@ Created on Fri Jun 17 15:17:37 2016
 
 Template script for naturalisation and misc stats.
 """
-
+from os import path
 from pandas import read_table, DataFrame, concat, merge, Timedelta, datetime, to_datetime, DateOffset, date_range, Timestamp, read_csv, to_numeric
 from hydropandas.tools.river.ts.naturalisation import stream_nat
 from hydropandas.tools.river.ts.stats import flow_stats, malf7d
 from hydropandas.plotting.river.sw import hydrograph_plot
+from hydropandas.io.tools.mssql import rd_sql_ts
 
 ############################################
 #### Parameters
 
-sites = [69618, 69607, 69619, 69615, 69614, 69635, 69602, 69644]
+base_dir = r'E:\ecan\local\Projects\requests\dan\2018-03-02'
+sites_csv = 'site_data.csv'
+
+server = 'SQL2012DEV01'
+database = 'Hydro'
+table = 'HydstraTSDataDaily'
 
 pivot = True
 
-export_path = r'S:\Surface Water\shared\projects\otop\naturalisation\nat_test1.csv'
-export_allo_data = r'S:\Surface Water\shared\projects\otop\naturalisation\nat_test_data.csv'
+export_path = 'flow_nat_otop_2018-03-02.csv'
+export_allo_data = 'nat_allo_usage_2018-03-02.csv'
+
+###########################################
+### Read in flow ts and site data
+
+sites = read_csv(path.join(base_dir, sites_csv))
+
+flow = rd_sql_ts(server, database, table, ['Site'], 'Time', 'Value', where_col={'Site': sites.site.tolist(), 'FeatureMtypeSourceID': [5]}).Value
+flow.name = 'flow'
+flow.index.names = ['site', 'time']
+flow.index.set_levels(flow.index.levels[0].astype(int), 'site', inplace=True)
 
 ###########################################
 #### Run stream naturalization
@@ -29,8 +45,8 @@ export_allo_data = r'S:\Surface Water\shared\projects\otop\naturalisation\nat_te
 flow_nat = stream_nat(sites, pivot=pivot, export_path=export_path)
 
 ## Return the allo/usage time series in addition to the naturalised flows
-flow_nat, allo_use = stream_nat(sites, pivot=pivot, return_data=True, export_path=export_path)
-allo_use.to_csv(export_allo_data, index=False)
+flow_nat, allo_use = stream_nat(sites.site.tolist(), flow_csv=flow, pivot=pivot, return_data=True, export_path=path.join(base_dir, export_path))
+allo_use.to_csv(path.join(base_dir, export_allo_data), index=False)
 
 ###########################################
 #### Run other stats

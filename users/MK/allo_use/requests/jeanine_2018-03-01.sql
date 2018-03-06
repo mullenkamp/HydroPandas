@@ -12,7 +12,7 @@ order by Site, Time
 
 select catch_grp, Time, sum(Value) as WUsage 
 from Hydro.dbo.vTSUsageDaily
-inner join (select wap, catch_grp
+inner join (select distinct wap, catch_grp
 				from Hydro.dbo.[allo_gis_2017-10-02]
 				where catch_grp in (664, 651)) as a1 
 			on a1.wap = vTSUsageDaily.Site
@@ -20,6 +20,24 @@ group by catch_grp, Time
 order by catch_grp, Time
 
 
+
+select * from Hydro.dbo.est_allo_usage_2017_09_28 where wap in ('M33/0241', 'M33/0322')
+
+select * 
+from Hydro.dbo.est_allo_usage_2017_09_28
+where wap in (select wap
+				from Hydro.dbo.[allo_gis_2017-10-02]
+				where crc in ('CRC951305'))
+
+
+select catch_grp, time, sum(mon_allo_m3) as mon_allo_m3, sum(mon_restr_allo_m3) as mon_restr_allo_m3, sum(mon_usage_m3) as mon_usage_m3,
+	sum(usage_est) as usage_est, sum(sd_usage) as sd_usage
+from Hydro.dbo.est_allo_usage_2017_09_28
+inner join (select distinct wap, catch_grp
+				from Hydro.dbo.[allo_gis_2017-10-02]
+				where catch_grp in (664, 651)) as a1 
+			on a1.wap = est_allo_usage_2017_09_28.wap
+group by catch_grp, time
 
 
 

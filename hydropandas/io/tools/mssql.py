@@ -3,10 +3,10 @@
 Functions for importing mssql data.
 """
 from os import path
-from pycrs.parser import from_epsg_code
 from pymssql import connect
-from pandas import concat, DataFrame, read_sql, to_datetime, Timestamp
+from pandas import concat, DataFrame, read_sql, to_datetime, Timestamp, datetime
 from sqlalchemy import create_engine
+from numpy import arange
 
 
 def save_df(df, path_str, index=True, header=True):
@@ -494,7 +494,7 @@ def create_mssql_table(server, database, table, dtype_dict, primary_keys=None, f
         raise err
 
 
-def del_mssql_table_rows(server, database, table, **kwargs):
+def del_mssql_table_rows(server, database, table=None, pk_df=None, stmt=None, **kwargs):
     """
     Function to selectively delete rows from an mssql table.
 
@@ -504,8 +504,12 @@ def del_mssql_table_rows(server, database, table, **kwargs):
         The server name. e.g.: 'SQL2012PROD03'
     database : str
         The specific database within the server. e.g.: 'LowFlows'
-    table : str
+    table : str or None if stmt is a str
         The specific table within the database. e.g.: 'LowFlowSiteRestrictionDaily'
+    pk_df : DataFrame
+        A DataFrame of the primary keys of the table for the rows that should be removed. Will override anything in the kwargs.
+    stmt : str
+        SQL delete statement. Will override everything except server and database.
     **kwargs
         Any kwargs that can be passed to sql_where_stmts.
 
@@ -519,7 +523,28 @@ def del_mssql_table_rows(server, database, table, **kwargs):
 
     ### Make the delete statement
     del_where_list = sql_where_stmts(**kwargs)
-    if isinstance(del_where_list, list):
+    if isinstance(stmt, str):
+        del_rows_stmt = stmt
+    elif isinstance(pk_df, DataFrame):
+        pk_df1 = pk_df.copy()
+        d1 = pk_df1.dtypes.apply(lambda x: x.name)
+        dt_bool = d1 == 'datetime64[ns]'
+        if any(dt_bool):
+            pk_df1.loc[:, dt_bool] = pk_df1.loc[:, dt_bool].astype(str)
+        l1 = pk_df1.values.tolist()
+        l2 = [tuple(i) for i in l1]
+        val_str = str(l2)[1:-1]
+        sel_t1 = "select * from (values " + val_str + ") as t1 "
+        cols = pk_df1.columns.tolist()
+        cols_str = str(tuple(cols)).replace('\'', '')
+        tab_where = [table + '.' + i for i in cols]
+        t1_where = ['t1.' + i for i in cols]
+        where_list = [t1_where[i] + ' = ' + tab_where[i] for i in arange(len(cols))]
+        where_stmt = " where " + " and ".join(where_list)
+        exists_stmt = "(" + sel_t1 + cols_str + where_stmt + ")"
+
+        del_rows_stmt = "DELETE FROM " + table + " where exists " + exists_stmt
+    elif isinstance(del_where_list, list):
         del_rows_stmt = "DELETE FROM " + table + " WHERE " + " AND ".join(del_where_list)
     elif del_where_list is None:
         del_rows_stmt = "DELETE FROM " + table
@@ -725,6 +750,7 @@ def rd_sql_geo(server, database, table, col_stmt, where_lst=None):
     """
     from geopandas import GeoDataFrame
     from shapely.wkt import loads
+    from pycrs.parser import from_epsg_code
 
     ## Create connection to database
     conn = connect(server, database=database)

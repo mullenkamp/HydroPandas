@@ -6,7 +6,6 @@ Created on Tue Oct 03 08:51:46 2017
 """
 from time import sleep, time
 from os import path, getcwd
-from win32com.client import Dispatch
 from numpy import ceil, array_split
 from pandas import concat, DataFrame, merge, to_datetime
 from configparser import ConfigParser
@@ -35,8 +34,8 @@ ini1.read([path.join(py_dir, path.splitext(__file__)[0] + '.ini')])
 
 hts_files = [i.strip() for i in ini1.get('Input', 'hts_files').split(',')]
 
-sample_params_list = ['Project', 'Cost Code', 'Technician', 'Sample ID', 'Sample Comment', 'Field Comment', 'Sample Appearance', 'Sample Colour', 'Sample Odour', 'Water Colour', 'Water Clarity']
-mtype_params_list = ['Lab Method', 'Lab Name']
+#sample_params_list = ['Project', 'Cost Code', 'Technician', 'Sample ID', 'Sample Comment', 'Field Comment', 'Sample Appearance', 'Sample Colour', 'Sample Odour', 'Water Colour', 'Water Clarity']
+#mtype_params_list = ['Lab Method', 'Lab Name']
 
 sample_params_list = [i.strip() for i in ini1.get('Input', 'sample_params_list').split(',')]
 mtype_params_list = [i.strip() for i in ini1.get('Input', 'mtype_params_list').split(',')]
@@ -88,7 +87,7 @@ try:
         sites_info1 = rd_hilltop_sites(hts)
         sites_info2 = sites_info1.drop(['data_source', 'divisor'], axis=1)
         sites_info2.rename(columns=col_name_convert, inplace=True)
-        sites_info2['SiteID'] = sites_info2['SiteID'].str.upper()
+#        sites_info2['SiteID'] = sites_info2['SiteID'].astype(str)
         sites_dict.update({hts: sites_info2})
 
     sites_all = concat(list(sites_dict.values())).reset_index(drop=True)
@@ -130,8 +129,11 @@ try:
     site_combo = merge(sites_all, old_site_data, on=sites_pkeys, how='outer', suffixes=['_1', '_2'], indicator=True)
     bad_old_site = site_combo[site_combo._merge == 'right_only']
     if not bad_old_site.empty:
-        del_mssql_table_rows(server, database, sites_table, where_col={'SiteID': bad_old_site.SiteID.tolist(), 'MeasurementType': bad_old_site.MeasurementType.tolist()})
+#        raise ValueError('did not work')
+        del_mssql_table_rows(server, database, sites_table, pk_df=bad_old_site[['SiteID', 'MeasurementType']])
         site_combo = site_combo[site_combo._merge != 'right_only']
+        print('These sites were removed')
+        print(bad_old_site)
 
     site_combo.set_index(sites_pkeys, inplace=True)
     new_set = site_combo[['Units_1', 'FromDate_1', 'ToDate_1']].copy()
@@ -141,9 +143,10 @@ try:
 
     wq_data_site1 = new_set.loc[(new_set[['FromDate', 'ToDate']] != old_set[['FromDate', 'ToDate']]).any(1)].reset_index().copy()
     if not wq_data_site1.empty:
-        del_mssql_table_rows(server, database, sites_table, where_col={'SiteID': wq_data_site1.SiteID.unique().tolist(), 'MeasurementType': wq_data_site1.MeasurementType.unique().tolist()})
+        del_mssql_table_rows(server, database, sites_table, pk_df=wq_data_site1[['SiteID', 'MeasurementType']])
         to_mssql(wq_data_site1, server, database, sites_table)
         print(str(len(wq_data_site1)) + ' sites updated')
+        print(wq_data_site1)
 
     ### Extract ts data
     print('Extract ts data')
@@ -176,6 +179,9 @@ try:
 
             wq_data1 = wq_data.melt(['site', 'mtype', 'time'], var_name='Param', value_name='Value')
             wq_data1['Value'] = wq_data1['Value'].astype(str)
+            wq_data1['site'] = wq_data1['site'].astype(str)
+            wq_data1['mtype'] = wq_data1['mtype'].astype(str)
+            wq_data1['Param'] = wq_data1['Param'].astype(str)
 
             wq_data_mtype = wq_data1[wq_data1['Param'].isin(mtype_list)].copy()
 
@@ -198,13 +204,13 @@ try:
             sample_combo = merge(wq_data_sample, old_sample_data, on=samples_pkeys, how='outer')
             bad_old_sample = sample_combo[sample_combo.Value.isnull()]
             if not bad_old_sample.empty:
-                del_mssql_table_rows(server, database, samples_table, where_col={'SiteID': bad_old_sample.SiteID.tolist(), 'CollectionTime': bad_old_sample.CollectionTime.tolist(), 'Param': bad_old_sample.Param.tolist()})
+                del_mssql_table_rows(server, database, samples_table, pk_df=bad_old_sample[['SiteID', 'Param', 'CollectionTime']])
                 sample_combo = sample_combo[sample_combo.Value.notnull()]
 
             wq_data_sample1 = sample_combo[sample_combo.Value != sample_combo.old].drop('old', axis=1).copy()
 
             if not wq_data_sample1.empty:
-                del_mssql_table_rows(server, database, samples_table, where_col={'SiteID': wq_data_sample1.SiteID.unique().tolist(), 'CollectionTime': wq_data_sample1.CollectionTime.tolist(), 'Param': wq_data_sample1.Param.unique().tolist()})
+                del_mssql_table_rows(server, database, samples_table, pk_df=wq_data_sample1[['SiteID', 'Param', 'CollectionTime']])
                 to_mssql(wq_data_sample1, server, database, samples_table, dtype={'Value': String})
                 print(str(len(wq_data_sample1)) + ' samples updated')
 
@@ -214,14 +220,14 @@ try:
             mtype_combo = merge(wq_data_mtype, old_mtype_data, on=mtypes_pkeys, how='outer')
             bad_old_mtype = mtype_combo[mtype_combo.Value.isnull()]
             if not bad_old_mtype.empty:
-                del_mssql_table_rows(server, database, mtypes_table, where_col={'SiteID': bad_old_mtype.SiteID.tolist(), 'CollectionTime': bad_old_mtype.CollectionTime.tolist(), 'Param': bad_old_mtype.Param.tolist(), 'MeasurementType': bad_old_mtype.MeasurementType.tolist()})
+                del_mssql_table_rows(server, database, mtypes_table, pk_df=bad_old_mtype[['SiteID', 'MeasurementType', 'Param', 'CollectionTime']])
                 mtype_combo = mtype_combo[mtype_combo.Value.notnull()]
 
             wq_data_mtype1 = mtype_combo[mtype_combo.Value != mtype_combo.old].drop('old', axis=1).copy()
 
             if not wq_data_mtype1.empty:
-                del_mssql_table_rows(server, database, mtypes_table, where_col={'SiteID': wq_data_mtype1.SiteID.unique().tolist(), 'CollectionTime': wq_data_mtype1.CollectionTime.tolist(), 'Param': wq_data_mtype1.Param.unique().tolist(), 'MeasurementType': wq_data_mtype1.MeasurementType.unique().tolist()})
-                to_mssql(wq_data_mtype1, server, database, mtypes_table, dtype={'Value': String})
+                del_mssql_table_rows(server, database, mtypes_table, pk_df=wq_data_mtype1[['SiteID', 'MeasurementType', 'Param', 'CollectionTime']])
+                to_mssql(wq_data_mtype1, server, database, mtypes_table)
                 print(str(len(wq_data_mtype1)) + ' measurements updated')
 
     ### log

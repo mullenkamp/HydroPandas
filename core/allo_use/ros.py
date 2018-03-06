@@ -663,16 +663,23 @@ def restr_days(select, period='A-JUN', months=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
         df.index = df.dates
         df_grp = df[df.band_restr == num].resample(period)
         df_count = df_grp['band_restr'].count()
-        return(df_count)
+        return df_count
 
     restr1_grp = restr1.groupby(['SiteID', 'band_num'])
 
     partial1 = restr1_grp.apply(sp_count, 101)
+    partial1.name = 'partial'
     full1 = restr1_grp.apply(sp_count, 102)
+    full1.name = 'full'
 #    no1 = restr1_grp.apply(sp_count, 103)
 
     tot1 = pd.concat([partial1, full1], axis=1)
-    tot1.columns = ['partial', 'full']
+    tot1.index.names = ['SiteID', 'band_num', 'dates']
+    if partial1.empty:
+        tot1['partial'] = 0
+    if full1.empty:
+        tot1['full'] = 0
+#    tot1.columns = ['partial', 'full']
 
     tot2 = tot1.reset_index()
 

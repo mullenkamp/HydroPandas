@@ -18,12 +18,14 @@ server = 'SQL2012dev01'
 database = 'Hydro'
 table = 'LowFlowRestrSite'
 
-from_date = '2016-10-01'
-to_date = '2017-01-31'
+from_date = '2017-10-01'
+to_date = '2018-01-31'
+
+include_flow_methods = ['Correlated from Telem', 'Gauged', 'Telemetered', 'Visually Gauged']
 
 export_path = r'E:\ecan\local\Projects\requests\helen\2018-02-27'
-export_name_fancy = '2016-2017_restrictions_fancy.png'
-export_name = '2016-2017_restrictions.png'
+export_name_fancy = '2017-2018_restrictions_fancy_v02.png'
+export_name = '2017-2018_restrictions_v02.png'
 export_man_calc_sites = 'lowflow_sites.csv'
 
 ####################################
@@ -31,6 +33,7 @@ export_man_calc_sites = 'lowflow_sites.csv'
 
 lowflow1 = rd_sql(server, database, table, where_col={'site_type': ['LowFlow']}, from_date=from_date, to_date=to_date, date_col='date')
 lowflow1['date'] = pd.to_datetime(lowflow1['date'])
+lowflow2 = lowflow1[lowflow1.flow_method.isin(include_flow_methods)].copy()
 
 #full_restr1 = lowflow1[lowflow1.restr_category == 'Full'].groupby('date')['restr_category'].count()
 #full_restr1.name = 'Full'
@@ -46,7 +49,7 @@ lowflow1['date'] = pd.to_datetime(lowflow1['date'])
 #restr2.name = 'Number of sites on restriction'
 #restr3 = restr2.reset_index().copy()
 
-restr2 = lowflow1.groupby(['restr_category', 'flow_method', 'date'])['site'].count()
+restr2 = lowflow2.groupby(['restr_category', 'flow_method', 'date'])['site'].count()
 restr2.name = 'Number of low flow sites on restriction'
 
 restr2 = restr2.loc[['Full', 'Partial']]
@@ -91,7 +94,7 @@ plot2 = ax.get_figure()
 plot2.savefig(path.join(export_path, export_name_fancy))
 
 ### Non-fancy plot
-restr2 = lowflow1.groupby(['restr_category', 'date'])['site'].count()
+restr2 = lowflow2.groupby(['restr_category', 'date'])['site'].count()
 restr2.name = 'Number of low flow sites on restriction'
 
 restr2 = restr2.loc[['Full', 'Partial']]
@@ -127,9 +130,9 @@ plot2.savefig(path.join(export_path, export_name))
 
 
 ### Manually calc sites
-man_calc_sites = lowflow1.loc[(lowflow1.date == to_date), ['site', 'waterway', 'location', 'flow_method']]
-man_calc_sites.to_csv(path.join(export_path, export_man_calc_sites), index=False)
-
+#man_calc_sites = lowflow1.loc[(lowflow1.date == to_date), ['site', 'waterway', 'location', 'flow_method']]
+#man_calc_sites.to_csv(path.join(export_path, export_man_calc_sites), index=False)
+#
 
 
 

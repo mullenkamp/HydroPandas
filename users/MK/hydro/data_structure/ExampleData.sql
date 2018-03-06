@@ -91,32 +91,14 @@ update [est_allo_usage_2017-09-28_alt1]
 set mon_usage_m3 = NULL
 where mon_usage_m3 = -1
 
-SELECT table_schema, table_name, column_name, data_type, character_maximum_length,
-    is_nullable, column_default, numeric_precision, numeric_scale
-FROM information_schema.columns
-ORDER BY table_schema, table_name, ordinal_position
+
   
 COMMIT
 
-select * from Hydro.dbo.HilltopWQMtypes 
-pivot (
-max(Value) for Param in ([data], [Lab Method], [Lab Name])) as piv1
 
 
-select * from Hydro.dbo.NiwaAquaAtmosTSDataDaily
-where Site = 10332 and FeatureMtypeSourceID = 18 and Time > '2010-01-01'
-
-select * from NiwaAquaAtmosTSDataDaily where Site in (10332, 10530) and FeatureMtypeSourceID = 38
-
-select OBJECT_ID('HilltopWQSites', 'U')
 
 
-select * 
-from Hydro.dbo.HilltopWQMtypes
-where SiteID = 'SQ00049'
-	and CollectionTime = '2015-10-29 08:54:00'
-	and Param = 'data'
-	and MeasurementType = 'Dissolved Reactive Phosphorus'
 
 
 

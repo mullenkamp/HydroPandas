@@ -9,7 +9,7 @@ from hydropandas.tools.general.spatial.vector import pts_poly_join
 from hydropandas.util.misc import select_sites, save_df
 
 
-def stream_nat(sites, catch_shp=r'P:\cant_catch_delin\recorders\catch_del.shp', include_gw=True, max_date='2015-06-30', sd_hdf='S:/Surface Water/shared/base_data/usage/sd_est_all_mon_vol.h5', flow_csv=None, crc_shp=r'S:\Surface Water\shared\GIS_base\vector\allocations\allo_gis.shp', catch_col='site', pivot=False, return_data=False, export_path=None):
+def stream_nat(sites, catch_shp=r'S:\Surface Water\shared\GIS_base\vector\catchments\catch_delin_recorders.shp', include_gw=True, max_date='2015-06-30', sd_hdf='S:/Surface Water/shared/base_data/usage/sd_est_all_mon_vol.h5', flow_csv=None, crc_shp=r'S:\Surface Water\shared\GIS_base\vector\allocations\allo_gis.shp', catch_col='site', pivot=False, return_data=False, export_path=None):
     """
     Function to naturalize stream flows from monthly sums of usage.
 
@@ -49,6 +49,7 @@ def stream_nat(sites, catch_shp=r'P:\cant_catch_delin\recorders\catch_del.shp', 
 
     ## Stream depletion
     sd = pd.read_hdf(sd_hdf)
+    sd.time = pd.to_datetime(sd.time)
     if include_gw:
         sd1 = sd[sd.time <= max_date]
     else:
@@ -73,6 +74,8 @@ def stream_nat(sites, catch_shp=r'P:\cant_catch_delin\recorders\catch_del.shp', 
         flow.name = 'flow'
         flow.index = flow.index.reorder_levels(['site', 'time'])
         flow = flow.sort_index()
+    elif isinstance(flow_csv, pd.Series):
+        flow = flow_csv.copy()
     else:
         raise ValueError('Pass something useful to flow_csv.')
 

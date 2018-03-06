@@ -1734,15 +1734,25 @@ comments2 = comments.loc[:, comments.columns != 'timestamp']
 
 comments2.to_csv(export_csv, index=False)
 
+########################################
+### NIWA site data
 
+from pandas import read_csv, to_numeric
+from numpy import nan
 
+sites_csv = r'E:\ecan\shared\GIS_base\vector\hydro_sites\niwa_station_list.csv'
+sites_summ_csv = r'E:\ecan\shared\GIS_base\vector\hydro_sites\niwa_timeseries_list.csv'
 
+sites = read_csv(sites_csv)
+sites1 = sites[sites['Recording authority'].isin(['NIWA', nan])].copy()
 
+sites1['Name'] = sites1['Name'].str.strip()
+len(sites1.Name.unique())
+sites1['Name'][sites1['Name'].duplicated()]
+sites['Name'][sites['Name'].isnull()]
 
-
-
-
-
+sites1['Identifier'] = to_numeric(sites1['Identifier'], errors='coerce', downcast='integer')
+sites2 = sites1[sites1.Identifier.notnull()].copy()
 
 
 

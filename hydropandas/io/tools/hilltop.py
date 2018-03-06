@@ -3,12 +3,11 @@
 Hilltop read functions.
 Hilltop uses a fixed base date as 1940-01-01, while the standard unix/POSIT base date is 1970-01-01.
 """
-# import Hilltop
 import os
 from datetime import datetime
 from configparser import ConfigParser
 from win32com.client import Dispatch, pywintypes
-# from lxml import etree
+#from lxml import etree
 from pandas import concat, to_datetime, to_numeric, DataFrame, merge
 from numpy import nan
 
@@ -52,102 +51,103 @@ def time_switch(x):
 #### New method - not ready yet...
 
 
-# def ht_sites(hts, sites=None):
-#     """
-#     Function to read all of the sites in an hts file and the associated site info.
-#
-#     hts -- Path to hts file (str).\n
-#     sites -- Optional list, array, series of site names to return.
-#     """
-#
-#     dfile1 = Hilltop.Connect(hts)
-#     site_lst = Hilltop.SiteList(dfile1)
-#
-#     if not site_lst:
-#         print('No sites in ' + hts)
-#         return(DataFrame())
-#
-#     if sites is not None:
-#         sites1 = select_sites(sites)
-#         site_lst = [i for i in site_lst if i in sites1]
-#
-#     site_info = DataFrame()
-#
-#     for i in site_lst:
-#         try:
-#             info1 = Hilltop.MeasurementList(dfile1, i)
-#         except SystemError:
-# #            print('Site ' + str(i) + " didn't work")
-#             continue
-#         info1.loc[:, 'site'] = i
-#         site_info = concat([site_info, info1])
-#     site_info.reset_index(drop=True, inplace=True)
-#
-#     site_info.loc[:, 'Start Time'] = to_datetime(site_info.loc[:, 'Start Time'], format='%d-%b-%Y %H:%M:%S')
-#     site_info.loc[:, 'End Time'] = to_datetime(site_info.loc[:, 'End Time'], format='%d-%b-%Y %H:%M:%S')
-#
-#     len_all = len(site_lst)
-#     len_got = len(site_info.site.unique())
-#     print('Missing ' + str(len_all - len_got) + ' sites, which is ' + str(round(100 * ((len_all - len_got)/len_all), 1)) + '% of the total')
-#
-#     Hilltop.Disconnect(dfile1)
-#     return(site_info)
-#
-#
-# def ht_get_data(hts, sites=None, from_date=None, to_date=None, agg_method='Average', interval='1 day', alignment='00:00', output_missing_sites=False):
-#     """
-#
-#     """
-#
-#     site_info = ht_sites(hts, sites=sites)
-#
-#     if isinstance(from_date, str):
-#         from_date1 = to_datetime(from_date).strftime('%d-%b-%Y %H:%M')
-#     else:
-#         from_date1 = ''
-#     if isinstance(to_date, str):
-#         to_date1 = to_datetime(to_date).strftime('%d-%b-%Y %H:%M')
-#     else:
-#         to_date1 = ''
-#
-#     data1 = []
-#     missing_site_data = DataFrame()
-#
-#     dfile1 = Hilltop.Connect(hts)
-#     for i in site_info.index:
-#         site = site_info.loc[i, 'site']
-#         mtype = site_info.loc[i, 'Measurement']
-#
-#         d1 = Hilltop.GetData(dfile1, site, mtype, from_date1, to_date1, method=agg_method, interval=interval, alignment=alignment)
-#
-#         if d1.empty:
-#             missing_site_data = concat([missing_site_data, site_info.loc[i]])
-# #            print('No data for site ' + str(site) + ' and mtype ' + str(mtype))
-#             continue
-#
-#         if (interval == '1 day') & (alignment == '00:00'):
-#             d1.index = d1.index.normalize()
-#         d1.name = 'data'
-#         d1.index.name = 'time'
-#         d2 = d1.reset_index()
-#         d2.loc[:, 'site'] = site
-#         d2.loc[:, 'mtype'] = mtype
-#         print(site, mtype)
-#
-#         data1.append(d2)
-#
-#     try:
-#         data2 = concat(data1)
-#     except MemoryError:
-#         print('Not enough memory for a 32bit application')
-#
-#     if missing_site_data.empty:
-#         print('No missing data for any sites/mtypes')
-#     else:
-#         print('No data for ' + str(len(missing_site_data)) + ' sites/mtype combos')
-#         if output_missing_sites:
-#             return(data2, missing_site_data)
-#     return(data2)
+def ht_sites(hts, sites=None):
+    """
+    Function to read all of the sites in an hts file and the associated site info.
+
+    hts -- Path to hts file (str).\n
+    sites -- Optional list, array, series of site names to return.
+    """
+    import Hilltop
+
+    dfile1 = Hilltop.Connect(hts)
+    site_list = Hilltop.SiteList(dfile1)
+
+    if not site_list:
+        print('No sites in ' + hts)
+        return(DataFrame())
+
+    if isinstance(sites, list):
+        site_list = [i for i in site_list if i in sites]
+
+    site_info = DataFrame()
+
+    for i in site_list:
+        try:
+            info1 = Hilltop.MeasurementList(dfile1, i)
+        except SystemError as err:
+            print('Site ' + str(i) + " didn't work. Error: " + str(err))
+            continue
+        info1.loc[:, 'site'] = i.encode('ascii', 'ignore').decode()
+        site_info = concat([site_info, info1])
+    site_info.reset_index(drop=True, inplace=True)
+
+    site_info.loc[:, 'Start Time'] = to_datetime(site_info.loc[:, 'Start Time'], format='%d-%b-%Y %H:%M:%S')
+    site_info.loc[:, 'End Time'] = to_datetime(site_info.loc[:, 'End Time'], format='%d-%b-%Y %H:%M:%S')
+
+    len_all = len(site_list)
+    len_got = len(site_info.site.unique())
+    print('Missing ' + str(len_all - len_got) + ' sites, which is ' + str(round(100 * ((len_all - len_got)/len_all), 1)) + '% of the total')
+
+    Hilltop.Disconnect(dfile1)
+    return site_info
+
+
+def ht_get_data(hts, sites=None, from_date=None, to_date=None, agg_method='Average', interval='1 day', alignment='00:00', output_missing_sites=False):
+    """
+
+    """
+    import Hilltop
+
+    site_info = ht_sites(hts, sites=sites)
+
+    if isinstance(from_date, str):
+        from_date1 = to_datetime(from_date).strftime('%d-%b-%Y %H:%M')
+    else:
+        from_date1 = ''
+    if isinstance(to_date, str):
+        to_date1 = to_datetime(to_date).strftime('%d-%b-%Y %H:%M')
+    else:
+        to_date1 = ''
+
+    data1 = []
+    missing_site_data = DataFrame()
+
+    dfile1 = Hilltop.Connect(hts)
+    for i in site_info.index:
+        site = site_info.loc[i, 'site']
+        mtype = site_info.loc[i, 'Measurement']
+
+        d1 = Hilltop.GetData(dfile1, site, mtype, from_date1, to_date1, method=agg_method, interval=interval, alignment=alignment)
+
+        if d1.empty:
+            missing_site_data = concat([missing_site_data, site_info.loc[i]])
+            print('No data for site ' + str(site) + ' and mtype ' + str(mtype))
+            continue
+
+        if (interval == '1 day') & (alignment == '00:00'):
+            d1.index = d1.index.normalize()
+        d1.name = 'data'
+        d1.index.name = 'time'
+        d2 = d1.reset_index()
+        d2.loc[:, 'site'] = site
+        d2.loc[:, 'mtype'] = mtype
+        print(site, mtype)
+
+        data1.append(d2)
+
+    try:
+        data2 = concat(data1)
+    except MemoryError:
+        print('Not enough memory for a 32bit application')
+
+    if missing_site_data.empty:
+        print('No missing data for any sites/mtypes')
+    else:
+        print('No data for ' + str(len(missing_site_data)) + ' sites/mtype combos')
+        if output_missing_sites:
+            return(data2, missing_site_data)
+    return data2
 
 
 ######################################################
@@ -220,7 +220,7 @@ def rd_hilltop_sites(hts, sites=None, mtypes=None, rem_wq_sample=True):
     ### Iterate through all sites/datasources/mtypes
     cat.StartSiteEnum
     while cat.GetNextSite:
-        site_name = cat.SiteName
+        site_name = str(cat.SiteName.encode('ascii', 'ignore').decode())
         if sites is None:
             pass
         elif site_name in sites:
@@ -228,7 +228,7 @@ def rd_hilltop_sites(hts, sites=None, mtypes=None, rem_wq_sample=True):
         else:
             continue
         while cat.GetNextDataSource:
-            ds_name = cat.DataSource
+            ds_name = str(cat.DataSource.encode('ascii', 'ignore').decode())
             try:
                 start1 = pytime_to_datetime(cat.DataStartTime)
                 end1 = pytime_to_datetime(cat.DataEndTime)
@@ -240,7 +240,7 @@ def rd_hilltop_sites(hts, sites=None, mtypes=None, rem_wq_sample=True):
                 else:
                     print('No site data for ' + site_name + '...for some reason...')
             while cat.GetNextMeasurement:
-                mtype1 = cat.Measurement
+                mtype1 = str(cat.Measurement.encode('ascii', 'ignore').decode())
                 if mtype1 == 'Item2':
                     continue
                 elif mtypes is None:
@@ -250,7 +250,7 @@ def rd_hilltop_sites(hts, sites=None, mtypes=None, rem_wq_sample=True):
                 else:
                     continue
                 divisor = cat.Divisor
-                unit1 = cat.Units
+                unit1 = str(cat.Units.encode('ascii', 'ignore').decode())
                 if unit1 == '%':
 #                    print('Site ' + name1 + ' has no units')
                     unit1 = ''
@@ -465,13 +465,13 @@ def rd_ht_wq_data(hts, sites=None, mtypes=None, start=None, end=None, dtl_method
         if ('WQ Sample' in test_params) & (isinstance(mtype_params, list) | isinstance(sample_params, list)):
             mtype_p = []
             while wqr.GetNext:
-                data.append(wqr.value)
+                data.append(str(wqr.value.encode('ascii', 'ignore').decode()))
                 time.append(str(pytime_to_datetime(wqr.time)))
-                sample_p.append({sp: wqr.params(sp).encode('ascii', 'ignore').decode() for sp in sample_params})
-                mtype_p.append({mp: wqr.params(mp).encode('ascii', 'ignore').decode() for mp in mtype_params})
+                sample_p.append({sp: str(wqr.params(sp).encode('ascii', 'ignore').decode()) for sp in sample_params})
+                mtype_p.append({mp: str(wqr.params(mp).encode('ascii', 'ignore').decode()) for mp in mtype_params})
         else:
             while wqr.GetNext:
-                data.append(wqr.value)
+                data.append(str(wqr.value.encode('ascii', 'ignore').decode()))
                 time.append(str(pytime_to_datetime(wqr.time)))
 
         if data:
@@ -533,216 +533,216 @@ def rd_ht_wq_data(hts, sites=None, mtypes=None, start=None, end=None, dtl_method
             return data3
 
 
-# def rd_ht_xml_sites(xml):
-#     """
-#     Function to read a Hilltop xml file and return the site names. The xml file should be a complete export of an hts file.
-#     """
-#
-#     ### Parse xml
-#     root = etree.iterparse(xml, tag='Measurement')
-#
-#     ### Iterate
-#     sites = []
-#     mtypes = []
-#     for event, elem in root:
-#         sites.append(elem.values()[0])
-#         ds = elem.find('DataSource')
-#         mtypes.append(ds.values()[0])
-#         elem.clear()
-#         while elem.getprevious() is not None:
-#             del elem.getparent()[0]
-#
-#     ### Return
-#     df = DataFrame([sites, mtypes]).transpose()
-#     df.columns = ['site', 'mtype']
-#     return(df)
-#
-#
-# def parse_ht_xml(xml, ht_fun, select=None, corr_csv=r'C:\ecan\hilltop\ht_corrections.csv'):
-#     """
-#     Function to read a Hilltop xml file and apply a function on each individual site time series. The input to the function is a single pandas time series. The output should be a Series or DataFrame. Specific sites with specific mtypes can be passed in the form of a two column DataFrame with headers as 'site' and 'mtype'.
-#     """
-#
-#     ### Base parameters
-#     rem_s = 10958*24*60*60
-#     corr = read_csv(corr_csv)
-#     xml_name = basename(xml)
-#
-#     ### Select corrections
-#     corr1 = corr[corr.file_name == xml_name]
-#
-#     ### Parse xml
-#     root = etree.iterparse(xml, tag='Measurement')
-#
-#     ### Iterate
-#     results1 = []
-#     for event, elem in root:
-#         ## Get data
-#         site = elem.values()[0]
-#         mtype = elem.find('DataSource').values()[0]
-#
-#         if (select is not None):
-#             if (not isinstance(select, DataFrame)):
-#                 raise ValueError('Make sure the input is a DataFrame with two columns!')
-#             elif all(select.columns == ['site', 'mtype']):
-#                 site_check = any([set([site, mtype]) == set([select.loc[i].site, select.loc[i].mtype]) for i in select.index])
-#                 if not site_check:
-#                     continue
-#
-# #        units = elem.find('DataSource').find('ItemInfo').find('Units').text
-#         site_data = [j.text.split() for j in elem.find('Data').findall('V')]
-#
-#         ## Convert to dataframe
-#         o2 = DataFrame(site_data, columns=['date', 'val'])
-#         o2.loc[:,['date', 'val']] = o2.loc[:,['date', 'val']].astype(float)
-#         o2.loc[:, 'date'] = to_datetime(o2.loc[:, 'date'] - rem_s, unit='s')
-#         o2.set_index('date', inplace=True)
-#
-#         ## Make corrections
-#         corr_index = (corr1.orig_site == site) & (corr1.orig_mtype == mtype)
-#         if any(corr_index):
-#             site, mtype = corr1.loc[corr_index, ['new_site', 'new_mtype']].values.tolist()[0]
-#
-#         ## Clear element from memory
-#         elem.clear()
-#         while elem.getprevious() is not None:
-#             del elem.getparent()[0]
-#
-#         ## Do stats
-#         stats1 = ht_fun(o2, mtype, site)
-#
-#         ## Add additional site specific columns/data
-# #        stats1.loc[:, 'site'] = site
-# #        stats1.loc[:, 'mtype'] = mtype
-# #        stats1.loc[:, 'units'] = units
-#
-#         ## Append
-#         results1.append(stats1)
-#
-#     ### Combine data
-#     df_out = concat(results1)
-#
-#     ### Return
-#     return(df_out)
+def rd_ht_xml_sites(xml):
+    """
+    Function to read a Hilltop xml file and return the site names. The xml file should be a complete export of an hts file.
+    """
+
+    ### Parse xml
+    root = etree.iterparse(xml, tag='Measurement')
+
+    ### Iterate
+    sites = []
+    mtypes = []
+    for event, elem in root:
+        sites.append(elem.values()[0])
+        ds = elem.find('DataSource')
+        mtypes.append(ds.values()[0])
+        elem.clear()
+        while elem.getprevious() is not None:
+            del elem.getparent()[0]
+
+    ### Return
+    df = DataFrame([sites, mtypes]).transpose()
+    df.columns = ['site', 'mtype']
+    return(df)
 
 
-# def data_check_fun(data, mtype, site):
-#     """
-#     Various data checks on the hilltop data. This function should be an input to parse_ht_xml.
-#     """
+#def parse_ht_xml(xml, ht_fun, select=None, corr_csv=r'C:\ecan\hilltop\ht_corrections.csv'):
+#    """
+#    Function to read a Hilltop xml file and apply a function on each individual site time series. The input to the function is a single pandas time series. The output should be a Series or DataFrame. Specific sites with specific mtypes can be passed in the form of a two column DataFrame with headers as 'site' and 'mtype'.
+#    """
 #
-#     def infer_freq1(x):
-#         if len(x) > 7:
-#             freq1 = infer_freq(x.index[3:6], warn=False)
-#         else:
-#             freq1 = None
-#         return(freq1)
+#    ### Base parameters
+#    rem_s = 10958*24*60*60
+#    corr = read_csv(corr_csv)
+#    xml_name = basename(xml)
 #
-#     ## Run stat checks
-#     first1 = data.index.min()
-#     last1 = data.index.max()
-#     n_neg = (data < 0).sum()[0]
-#     n_zero = (data == 0).sum()[0]
-#     count1 = data.count()[0]
-#     freq = infer_freq1(data)
-#     neg_ratio = round(n_neg/float(count1), 2)
-#     zero_ratio = round(n_zero/float(count1), 2)
+#    ### Select corrections
+#    corr1 = corr[corr.file_name == xml_name]
 #
-#     ## Construct output
-#     out1 = [first1, last1, freq, count1, n_neg, n_zero, neg_ratio, zero_ratio]
-#     out_names = ['start_date', 'end_date', 'time_res', 'n_data', 'n_neg', 'n_zero', 'n_neg/n_data', 'n_zero/n_data']
-#     df_out = DataFrame([out1], columns=out_names)
-#     df_out.loc[:, 'site'] = site
-#     df_out.loc[:, 'mtype'] = mtype
+#    ### Parse xml
+#    root = etree.iterparse(xml, tag='Measurement')
 #
-#     ### return
-#     return(df_out)
+#    ### Iterate
+#    results1 = []
+#    for event, elem in root:
+#        ## Get data
+#        site = elem.values()[0]
+#        mtype = elem.find('DataSource').values()[0]
 #
+#        if (select is not None):
+#            if (not isinstance(select, DataFrame)):
+#                raise ValueError('Make sure the input is a DataFrame with two columns!')
+#            elif all(select.columns == ['site', 'mtype']):
+#                site_check = any([set([site, mtype]) == set([select.loc[i].site, select.loc[i].mtype]) for i in select.index])
+#                if not site_check:
+#                    continue
 #
-# def iter_xml_dir(fpath, stats_fun, with_xml=False, select=None, export=False, export_name='results.csv'):
+##        units = elem.find('DataSource').find('ItemInfo').find('Units').text
+#        site_data = [j.text.split() for j in elem.find('Data').findall('V')]
 #
-#     ### Read files in directory
-#     files = rd_dir(fpath, 'xml')
+#        ## Convert to dataframe
+#        o2 = DataFrame(site_data, columns=['date', 'val'])
+#        o2.loc[:,['date', 'val']] = o2.loc[:,['date', 'val']].astype(float)
+#        o2.loc[:, 'date'] = to_datetime(o2.loc[:, 'date'] - rem_s, unit='s')
+#        o2.set_index('date', inplace=True)
 #
-#     ### Iterate through each file
-#     list_out = []
-#     for i in files:
-#         print(i)
-#         if select is None:
-#             out1 = parse_ht_xml(join(fpath, i), stats_fun)
-#         elif isinstance(select, DataFrame) & (len(select.columns) == 3):
-#             select1 = select.loc[select.file_name == i, ['site', 'mtype']]
-#             out1 = parse_ht_xml(join(fpath, i), stats_fun, select1)
-#         if with_xml:
-#             out1['xml'] = [i] * len(out1)
-#         list_out.append(out1)
+#        ## Make corrections
+#        corr_index = (corr1.orig_site == site) & (corr1.orig_mtype == mtype)
+#        if any(corr_index):
+#            site, mtype = corr1.loc[corr_index, ['new_site', 'new_mtype']].values.tolist()[0]
 #
-#     ### Combine
-#     df_out = concat(list_out)
-#     df_out.index.name = 'date'
+#        ## Clear element from memory
+#        elem.clear()
+#        while elem.getprevious() is not None:
+#            del elem.getparent()[0]
 #
-#     ### Export and return
-#     if export:
-#         df_out.to_csv(join(fpath, export_name), encoding='utf-8')
-#     return(df_out)
+#        ## Do stats
+#        stats1 = ht_fun(o2, mtype, site)
 #
+#        ## Add additional site specific columns/data
+##        stats1.loc[:, 'site'] = site
+##        stats1.loc[:, 'mtype'] = mtype
+##        stats1.loc[:, 'units'] = units
 #
-# def all_data_fun(data, mtype, site):
-#     """
-#     Function for parse_ht_xml to return all data.
-#     """
-#     data.loc[:, 'site'] = site
-#     data.loc[:, 'mtype'] = mtype
-#     return(data)
+#        ## Append
+#        results1.append(stats1)
+#
+#    ### Combine data
+#    df_out = concat(results1)
+#
+#    ### Return
+#    return(df_out)
 #
 #
-# def proc_use_data(data, mtype, site, time_period='D', n_std=4):
-#     """
-#     Function for parse_ht_xml to process the data and aggregate it to a defined resolution.
-#     """
+#def data_check_fun(data, mtype, site):
+#    """
+#    Various data checks on the hilltop data. This function should be an input to parse_ht_xml.
+#    """
 #
-#     ### Select the process sequence based on the mtype and convert to period volume
-#     data[data < 0] = nan
-#     count1 = float(data.count().values[0])
+#    def infer_freq1(x):
+#        if len(x) > 7:
+#            freq1 = infer_freq(x.index[3:6], warn=False)
+#        else:
+#            freq1 = None
+#        return(freq1)
 #
-#     if mtype == 'Water Meter':
-#         ## Check to determine whether it is cumulative or period volume
-#         diff1 = data.diff()[1:]
-#         neg_index = diff1 < 0
-#         neg_ratio = sum(neg_index.values)/count1
-#         if neg_ratio > 0.1:
-#             outliers = abs(data - data.mean()) > (data.std() * n_std)
-#             data[outliers] = nan
-#             vol = data
-#         else:
-#             # Replace the negative values with zero and the very large values
-#             diff1[diff1 < 0] = data[diff1 < 0]
-#             outliers = abs(diff1 - diff1.mean()) > (diff1.std() * n_std)
-#             diff1[outliers] = nan
-#             vol = diff1
-#     elif (mtype == 'Abstraction Volume') | (mtype == 'Average Flow'):
-#         outliers = abs(data - data.mean()) > (data.std() * n_std)
-#         data[outliers] = nan
-#         vol = data
-#     elif mtype == 'Flow':
-#         outliers = abs(data - data.mean()) > (data.std() * n_std)
-#         data[outliers] = nan
+#    ## Run stat checks
+#    first1 = data.index.min()
+#    last1 = data.index.max()
+#    n_neg = (data < 0).sum()[0]
+#    n_zero = (data == 0).sum()[0]
+#    count1 = data.count()[0]
+#    freq = infer_freq1(data)
+#    neg_ratio = round(n_neg/float(count1), 2)
+#    zero_ratio = round(n_zero/float(count1), 2)
 #
-#         # Determine the diff index
-#         t1 = Series(data.index).diff().dt.seconds.shift(-1)
-#         t1.iloc[-1] = t1.iloc[-2]
-#         t1.index = data.index
-#         # Convert to volume
-#         vol = data.multiply(t1, axis=0) * 0.001
+#    ## Construct output
+#    out1 = [first1, last1, freq, count1, n_neg, n_zero, neg_ratio, zero_ratio]
+#    out_names = ['start_date', 'end_date', 'time_res', 'n_data', 'n_neg', 'n_zero', 'n_neg/n_data', 'n_zero/n_data']
+#    df_out = DataFrame([out1], columns=out_names)
+#    df_out.loc[:, 'site'] = site
+#    df_out.loc[:, 'mtype'] = mtype
 #
-#     ## Estimate the NAs
-#     vol2 = vol.fillna(method='ffill')
+#    ### return
+#    return(df_out)
 #
-#     ## Resample the volumes
-#     vol_res = vol2.resample(time_period).sum()
-#     vol_res.loc[:, 'site'] = site
 #
-#     return(vol_res)
+#def iter_xml_dir(fpath, stats_fun, with_xml=False, select=None, export=False, export_name='results.csv'):
+#
+#    ### Read files in directory
+#    files = rd_dir(fpath, 'xml')
+#
+#    ### Iterate through each file
+#    list_out = []
+#    for i in files:
+#        print(i)
+#        if select is None:
+#            out1 = parse_ht_xml(join(fpath, i), stats_fun)
+#        elif isinstance(select, DataFrame) & (len(select.columns) == 3):
+#            select1 = select.loc[select.file_name == i, ['site', 'mtype']]
+#            out1 = parse_ht_xml(join(fpath, i), stats_fun, select1)
+#        if with_xml:
+#            out1['xml'] = [i] * len(out1)
+#        list_out.append(out1)
+#
+#    ### Combine
+#    df_out = concat(list_out)
+#    df_out.index.name = 'date'
+#
+#    ### Export and return
+#    if export:
+#        df_out.to_csv(join(fpath, export_name), encoding='utf-8')
+#    return(df_out)
+#
+#
+#def all_data_fun(data, mtype, site):
+#    """
+#    Function for parse_ht_xml to return all data.
+#    """
+#    data.loc[:, 'site'] = site
+#    data.loc[:, 'mtype'] = mtype
+#    return(data)
+#
+#
+#def proc_use_data(data, mtype, site, time_period='D', n_std=4):
+#    """
+#    Function for parse_ht_xml to process the data and aggregate it to a defined resolution.
+#    """
+#
+#    ### Select the process sequence based on the mtype and convert to period volume
+#    data[data < 0] = nan
+#    count1 = float(data.count().values[0])
+#
+#    if mtype == 'Water Meter':
+#        ## Check to determine whether it is cumulative or period volume
+#        diff1 = data.diff()[1:]
+#        neg_index = diff1 < 0
+#        neg_ratio = sum(neg_index.values)/count1
+#        if neg_ratio > 0.1:
+#            outliers = abs(data - data.mean()) > (data.std() * n_std)
+#            data[outliers] = nan
+#            vol = data
+#        else:
+#            # Replace the negative values with zero and the very large values
+#            diff1[diff1 < 0] = data[diff1 < 0]
+#            outliers = abs(diff1 - diff1.mean()) > (diff1.std() * n_std)
+#            diff1[outliers] = nan
+#            vol = diff1
+#    elif (mtype == 'Abstraction Volume') | (mtype == 'Average Flow'):
+#        outliers = abs(data - data.mean()) > (data.std() * n_std)
+#        data[outliers] = nan
+#        vol = data
+#    elif mtype == 'Flow':
+#        outliers = abs(data - data.mean()) > (data.std() * n_std)
+#        data[outliers] = nan
+#
+#        # Determine the diff index
+#        t1 = Series(data.index).diff().dt.seconds.shift(-1)
+#        t1.iloc[-1] = t1.iloc[-2]
+#        t1.index = data.index
+#        # Convert to volume
+#        vol = data.multiply(t1, axis=0) * 0.001
+#
+#    ## Estimate the NAs
+#    vol2 = vol.fillna(method='ffill')
+#
+#    ## Resample the volumes
+#    vol_res = vol2.resample(time_period).sum()
+#    vol_res.loc[:, 'site'] = site
+#
+#    return(vol_res)
 
 
 def convert_site_names(names, rem_m=True):

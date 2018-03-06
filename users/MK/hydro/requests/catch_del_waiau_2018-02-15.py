@@ -16,7 +16,7 @@ from hydropandas.util.misc import select_sites
 rec_catch_shp = r'E:\ecan\shared\GIS_base\vector\catchments\river-environment-classification-watershed-canterbury-2010.shp'
 rec_streams_shp = r'E:\ecan\shared\GIS_base\vector\streams\river-environment-classification-canterbury-2010.shp'
 
-base_dir = r'E:\ecan\local\Projects\requests\jeanine\2018-02-15'
+base_dir = r'E:\ecan\local\Projects\requests\dan\2018-03-02'
 
 sites_shp = 'sites.shp'
 catch_del_shp = 'catch_del.shp'
