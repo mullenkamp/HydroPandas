@@ -27,6 +27,7 @@ export_path = r'E:\ecan\local\Projects\requests\helen\2018-02-27'
 export_name_fancy = '2017-2018_restrictions_fancy_v02.png'
 export_name = '2017-2018_restrictions_v02.png'
 export_man_calc_sites = 'lowflow_sites.csv'
+export_sel2 = 'lowflow_restr_2017-10-01.csv'
 
 ####################################
 ### extract data
@@ -134,7 +135,8 @@ plot2.savefig(path.join(export_path, export_name))
 #man_calc_sites.to_csv(path.join(export_path, export_man_calc_sites), index=False)
 #
 
-
+set2 = lowflow2[(lowflow2.date == '2017-10-01') & (lowflow2.restr_category != 'No')]
+set2.to_csv(path.join(export_path, export_sel2), index=False)
 
 
 
