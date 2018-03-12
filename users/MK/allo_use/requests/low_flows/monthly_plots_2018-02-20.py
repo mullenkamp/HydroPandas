@@ -19,13 +19,13 @@ database = 'Hydro'
 table = 'LowFlowRestrSite'
 
 from_date = '2017-10-01'
-to_date = '2018-01-31'
+to_date = '2018-02-28'
 
 include_flow_methods = ['Correlated from Telem', 'Gauged', 'Telemetered', 'Visually Gauged']
 
-export_path = r'E:\ecan\local\Projects\requests\helen\2018-02-27'
-export_name_fancy = '2017-2018_restrictions_fancy_v02.png'
-export_name = '2017-2018_restrictions_v02.png'
+export_path = r'S:\Surface Water\shared\requests\helen\2018-02-27'
+export_name_fancy = '2017-2018_restrictions_fancy_v03.png'
+export_name = '2017-2018_restrictions_v03.png'
 export_man_calc_sites = 'lowflow_sites.csv'
 export_sel2 = 'lowflow_restr_2017-10-01.csv'
 
@@ -36,19 +36,12 @@ lowflow1 = rd_sql(server, database, table, where_col={'site_type': ['LowFlow']},
 lowflow1['date'] = pd.to_datetime(lowflow1['date'])
 lowflow2 = lowflow1[lowflow1.flow_method.isin(include_flow_methods)].copy()
 
-#full_restr1 = lowflow1[lowflow1.restr_category == 'Full'].groupby('date')['restr_category'].count()
-#full_restr1.name = 'Full'
-#
-#partial_restr1 = lowflow1[lowflow1.restr_category == 'Partial'].groupby('date')['restr_category'].count()
-#partial_restr1.name = 'Partial'
-#
-#restr1 = pd.concat([full_restr1, partial_restr1], axis=1)
-#restr1.index = pd.to_datetime(restr1.index)
-#restr1.columns.name = 'Restriction Type'
+site_restr1 = lowflow2.groupby(['site', 'restr_category'])['crc_count'].count()
+site_restr1.name = 'count'
+max_days = (pd.to_datetime(to_date) - pd.to_datetime(from_date)).days + 1
+max_days1 = site_restr1.groupby(level=['site']).transform('sum')
+site_restr2 = (site_restr1/max_days1).round(3).unstack('restr_category')
 
-#restr2 = restr1.stack()
-#restr2.name = 'Number of sites on restriction'
-#restr3 = restr2.reset_index().copy()
 
 restr2 = lowflow2.groupby(['restr_category', 'flow_method', 'date'])['site'].count()
 restr2.name = 'Number of low flow sites on restriction'
@@ -64,9 +57,13 @@ full_color = sns.color_palette('Blues')
 partial_color = sns.color_palette('Greens')
 no_color = sns.color_palette('Greys')
 
+d1 = restr4.columns.to_frame()
+full_n = len(d1.loc['Full'])
+partial_n = len(d1.loc['Partial'])
+
 all_colors = []
-all_colors.extend(full_color)
-all_colors.extend(partial_color)
+all_colors.extend(full_color[:full_n])
+all_colors.extend(partial_color[:partial_n])
 #all_colors.extend(no_color)
 
 ### Plots

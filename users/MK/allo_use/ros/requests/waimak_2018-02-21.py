@@ -15,7 +15,7 @@ from hydropandas.tools.river.ts.stats import flow_stats
 ##############################################
 ### Parameters
 
-base_dir = r'E:\ecan\shared\projects\waimak\data\2018-02-21'
+base_dir = r'S:\Surface Water\shared\projects\waimak\data\2018-02-21'
 
 flow_csv = 'recorded_est_flows.csv'
 min_flow_trigs_csv = 'min_flow_trigs.csv'
