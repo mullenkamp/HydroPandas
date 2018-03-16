@@ -1,0 +1,8 @@
+name: LowFlowRestr
+dependencies:
+- python>=3.6
+- pandas
+- sqlalchemy
+- pip
+- pip:
+  - https://download.lfd.uci.edu/pythonlibs/u2yrk7ps/pymssql-2.1.3-cp36-cp36m-win_amd64.whl

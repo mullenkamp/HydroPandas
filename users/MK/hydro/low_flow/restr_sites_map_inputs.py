@@ -7,7 +7,7 @@ Created on Tue Dec 05 09:34:22 2017
 import numpy as np
 import pandas as pd
 from datetime import datetime
-from core.allo_use.ros import low_flow_restr
+from core.allo_use.low_flows import low_flow_restr
 from hydropandas.io.tools.mssql import to_mssql, create_mssql_table, rd_sql, del_mssql_table_rows
 
 ############################################
