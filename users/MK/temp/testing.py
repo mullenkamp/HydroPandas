@@ -1726,7 +1726,7 @@ server = 'SQL2012PROD05'
 database = 'Bgauging'
 table = 'Data'
 
-export_csv = r'E:\ecan\local\Projects\requests\tony\2018-02-28\bgauging_comments.csv'
+export_csv = r'D:\users\mikek\Projects\requests\tony\2018-02-28\bgauging_comments_v02.csv'
 
 comments = rd_sql(server, database, table)
 

@@ -1,0 +1,10 @@
+name: HilltopSiteInfo
+channels:
+- conda-forge
+- defaults
+- mullenkamp
+dependencies:
+- python
+- pandas
+- pdsql
+- hilltop-py

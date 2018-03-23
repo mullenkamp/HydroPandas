@@ -3,10 +3,72 @@
 Functions for importing mssql data.
 """
 from os import path
-from pymssql import connect
-from pandas import concat, DataFrame, read_sql, to_datetime, Timestamp, datetime
+from pandas import DataFrame, read_sql, to_datetime, Timestamp
 from sqlalchemy import create_engine
 from numpy import arange
+
+
+def create_eng(db_type, server, database, username=None, password=None):
+    """
+    Function to create an sqlalchemy engine.
+
+    Parameters
+    ----------
+    db_type : str
+        The type of database to connect to. Options include mssql, postgresql, oracle, mysql, and sqlite.
+    server : str
+        The server name. e.g.: 'SQL2012PROD03'
+    database : str
+        The specific database within the server. e.g.: 'LowFlows'
+    username : str or None
+        Either the username or None when not needed.
+    password : str or None
+        Either the password or None when not needed.
+
+    Returns
+    -------
+    sqlalchemy engine
+
+    Notes
+    -----
+    If pymssql is installed, create_eng will use the package instead of pyodbc.
+    """
+    if isinstance(username, str):
+        up = username
+        if isinstance(password, str):
+            up = up + ':' + password
+        up = up + '@'
+    else:
+        up = ''
+    if db_type == 'mssql':
+        try:
+            import pymssql
+            eng_str = 'mssql+pymssql://' + up + server + '/' + database
+            engine = create_engine(eng_str)
+        except ImportError:
+            driver1 = '?driver=ODBC+Driver+13+for+SQL+Server'
+            eng_str = 'mssql+pyodbc://' + up + server + '/' + database + driver1
+            engine = create_engine(eng_str)
+            try:
+                engine.connect()
+            except:
+                driver2 = '?driver=ODBC+Driver+11+for+SQL+Server'
+                eng_str = 'mssql+pyodbc://' + up + server + '/' + database + driver2
+                engine = create_engine(eng_str)
+                engine.connect()
+    elif db_type == 'postgresql':
+        eng_str = 'postgresql://' + up + server + '/' + database
+        engine = create_engine(eng_str)
+    elif db_type == 'oracle':
+        eng_str = 'oracle://' + up + server + '/' + database
+        engine = create_engine(eng_str)
+    elif db_type == 'mysql':
+        eng_str = 'mysql+mysqldb://' + up + server + '/' + database
+        engine = create_engine(eng_str)
+    elif db_type == 'sqlite':
+        engine = create_engine('sqlite:///:memory:')
+
+    return engine
 
 
 def save_df(df, path_str, index=True, header=True):
@@ -101,9 +163,8 @@ def rd_sql(server, database, table=None, col_names=None, where_col=None, where_v
             rename_cols.extend(['geometry'])
             df.columns = rename_cols
     else:
-        conn = connect(server, database=database)
-        df = read_sql(stmt1, conn)
-        conn.close()
+        engine = create_eng('mssql', server, database)
+        df = read_sql(stmt1, engine)
         if rename_cols is not None:
             df.columns = rename_cols
 
@@ -179,7 +240,7 @@ def rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resa
                                 where_lst=where_lst)
 
     ## Create connection to database
-    conn = connect(server, database=database)
+    engine = create_eng('mssql', server, database)
 
     ## Make minimum count selection
     if (min_count is not None) & isinstance(min_count, int) & (len(groupby_cols) == 1):
@@ -191,7 +252,7 @@ def rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resa
             stmt1 = "SELECT " + cols_count_str + " FROM " + table + " GROUP BY " + col_stmt + " HAVING count(" + values_cols + ") >= " + str(
                 min_count)
 
-        up_sites = read_sql(stmt1, conn)[groupby_cols[0]].tolist()
+        up_sites = read_sql(stmt1, engine)[groupby_cols[0]].tolist()
         up_sites = [str(i) for i in up_sites]
 
         if not up_sites:
@@ -210,8 +271,7 @@ def rd_sql_ts(server, database, table, groupby_cols, date_col, values_cols, resa
                                     where_lst=where_lst)
 
     ## Create connection to database and execute sql statement
-    df = read_sql(sql_stmt1, conn)
-    conn.close()
+    df = read_sql(sql_stmt1, engine)
 
     ## Check to see if any data was found
     if df.empty:
@@ -337,47 +397,44 @@ def write_sql(df, server, database, table, dtype_dict, primary_keys=None, foreig
     columns1 = str(tuple(df1.columns.tolist())).replace('\'', '')
     insert_stmt1 = "insert into " + table + " " + columns1 + " values "
 
-    conn = connect(server, database=database)
-    cursor = conn.cursor()
+    engine = create_eng('mssql', server, database)
+    conn = engine.connect()
     stmt_dict = {}
+
+    trans = conn.begin()
     try:
 
         #### Drop table if it exists
         if drop_table:
             drop_stmt = "IF OBJECT_ID(" + str([str(table)])[1:-1] + ", 'U') IS NOT NULL DROP TABLE " + table
-            cursor.execute(drop_stmt)
-            conn.commit()
+            conn.execute(drop_stmt)
             stmt_dict.update({'drop_stmt': drop_stmt})
 
         #### Create table in database
         if create_table:
-            cursor.execute(tab_create_stmt)
-            conn.commit()
+            conn.execute(tab_create_stmt)
             stmt_dict.update({'tab_create_stmt': tab_create_stmt})
 
         #### Delete rows
         if isinstance(del_rows_dict, dict):
             del_where_list = sql_where_stmts(**del_rows_dict)
             del_rows_stmt = "DELETE FROM " + table + " WHERE " + " AND ".join(del_where_list)
-            cursor.execute(del_rows_stmt)
-            conn.commit()
+            conn.execute(del_rows_stmt)
 
         #### Insert data into table
         for i in range(len(tup2)):
             rows = ",".join(tup2[i])
             insert_stmt2 = insert_stmt1 + rows
-            cursor.execute(insert_stmt2)
+            conn.execute(insert_stmt2)
             stmt_dict.update({'insert' + str(i+1): insert_stmt2})
-        conn.commit()
 
-        #### Close everything!
-        cursor.close()
+        trans.commit()
         conn.close()
 
         if output_stmt:
             return stmt_dict
     except Exception as err:
-        conn.rollback()
+        trans.rollback()
         conn.close()
         raise err
 
@@ -406,8 +463,7 @@ def to_mssql(df, server, database, table, index=False, dtype=None):
     None
     """
     ### Prepare the engine
-    eng_str = 'mssql+pymssql://' + server + '/' + database
-    engine = create_engine(eng_str)
+    engine = create_eng('mssql', server, database)
 
     ### Save to mssql table
     df.to_sql(name=table, con=engine, if_exists='append', chunksize=1000, index=index, dtype=dtype)
@@ -441,8 +497,8 @@ def create_mssql_table(server, database, table, dtype_dict, primary_keys=None, f
     None
     """
     ### Make connection
-    conn = connect(server, database=database)
-    cursor = conn.cursor()
+    engine = create_eng('mssql', server, database)
+    conn = engine.connect()
 
     ### Primary keys
     if isinstance(primary_keys, str):
@@ -465,18 +521,18 @@ def create_mssql_table(server, database, table, dtype_dict, primary_keys=None, f
     d2 = ', '.join(d1)
     tab_create_stmt = "IF OBJECT_ID(" + str([str(table)])[1:-1] + ", 'U') IS NULL create table " + table + " (" + d2 + pkey_stmt + fkey_stmt + ")"
 
+    trans = conn.begin()
     try:
 
         ### Drop table option or check
         if drop_table:
             drop_stmt = "IF OBJECT_ID(" + str([str(table)])[1:-1] + ", 'U') IS NOT NULL DROP TABLE " + table
-            cursor.execute(drop_stmt)
-            conn.commit()
+            conn.execute(drop_stmt)
         else:
             check_tab_stmt = "IF OBJECT_ID(" + str([str(table)])[1:-1] + ", 'U') IS NOT NULL SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME=" +  str([str(table)])[1:-1]
 #            tab1 = read_sql(check_tab_stmt, conn)
-            cursor.execute(check_tab_stmt)
-            list1 = [i for i in cursor]
+            conn.execute(check_tab_stmt)
+            list1 = [i for i in conn]
             if list1:
                 print('Table already exists. Returning the table info.')
                 df = DataFrame(list1, columns=['columns', 'dtype'])
@@ -484,12 +540,12 @@ def create_mssql_table(server, database, table, dtype_dict, primary_keys=None, f
                 return df
 
         ### Create table in database
-        cursor.execute(tab_create_stmt)
-        conn.commit()
+        conn.execute(tab_create_stmt)
+        trans.commit()
         conn.close()
 
     except Exception as err:
-        conn.rollback()
+        trans.rollback()
         conn.close()
         raise err
 
@@ -518,8 +574,8 @@ def del_mssql_table_rows(server, database, table=None, pk_df=None, stmt=None, **
     None
     """
     ### Make connection
-    conn = connect(server, database=database)
-    cursor = conn.cursor()
+    engine = create_eng('mssql', server, database)
+    conn = engine.connect()
 
     ### Make the delete statement
     del_where_list = sql_where_stmts(**kwargs)
@@ -550,12 +606,13 @@ def del_mssql_table_rows(server, database, table=None, pk_df=None, stmt=None, **
         del_rows_stmt = "DELETE FROM " + table
 
     ### Delete rows
+    trans = conn.begin()
     try:
-        cursor.execute(del_rows_stmt)
-        conn.commit()
+        conn.execute(del_rows_stmt)
+        trans.commit()
         conn.close()
     except Exception as err:
-        conn.rollback()
+        trans.rollback()
         conn.close()
         raise err
 
@@ -753,12 +810,12 @@ def rd_sql_geo(server, database, table, col_stmt, where_lst=None):
     from pycrs.parser import from_epsg_code
 
     ## Create connection to database
-    conn = connect(server, database=database)
+    engine = create_eng('mssql', server, database)
 
     geo_col_stmt = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME=" + "\'" + table + "\'" + " AND DATA_TYPE='geometry'"
-    geo_col = str(read_sql(geo_col_stmt, conn).iloc[0, 0])
+    geo_col = str(read_sql(geo_col_stmt, engine).iloc[0, 0])
     geo_srid_stmt = "select distinct " + geo_col + ".STSrid from " + table
-    geo_srid = int(read_sql(geo_srid_stmt, conn).iloc[0, 0])
+    geo_srid = int(read_sql(geo_srid_stmt, engine).iloc[0, 0])
     if where_lst is not None:
         if len(where_lst) > 0:
             stmt2 = "SELECT " + col_stmt + ", (" + geo_col + ".STGeometryN(1).ToString()) as geometry" + " FROM " + table + " where " + " and ".join(
@@ -767,11 +824,10 @@ def rd_sql_geo(server, database, table, col_stmt, where_lst=None):
             stmt2 = "SELECT " + col_stmt + ", (" + geo_col + ".STGeometryN(1).ToString()) as geometry" + " FROM " + table
     else:
         stmt2 = "SELECT " + col_stmt + ", (" + geo_col + ".STGeometryN(1).ToString()) as geometry" + " FROM " + table
-    df2 = read_sql(stmt2, conn)
+    df2 = read_sql(stmt2, engine)
     geo = [loads(x) for x in df2.geometry]
     proj4 = from_epsg_code(geo_srid).to_proj4()
     geo_df = GeoDataFrame(df2.drop('geometry', axis=1), geometry=geo, crs=proj4)
-    conn.close()
 
     return geo_df
 
