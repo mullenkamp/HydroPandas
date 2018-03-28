@@ -1699,7 +1699,7 @@ h2 = rd_ht_quan_data(hts, sites=['BU26/0009-M1'], agg_period='day', output_site_
 import sys
 sys.path.insert(0, r'E:\programs\spatialite')
 
-import sqlite
+import sqlite3
 
 with sqlite3.connect(":memory:") as conn:
     conn.enable_load_extension(True)
