@@ -131,7 +131,7 @@ try:
                         continue
 
                 sdata = sdata[sdata.mtype != 'Regularity']
-                sdata['hts_file'] = j
+                sdata['hts_file'] = j.split('.hts')[0]
                 sdata['folder'] = i
                 ht_sites_lst.append(sdata)
 
@@ -139,29 +139,47 @@ try:
     print('processing')
     ht_sites = concat(ht_sites_lst).copy()
     ht_sites = ht_sites.drop_duplicates().drop('divisor', axis=1)
-
     ht_sites['wap'] = convert_site_names(ht_sites.site)
     ht_sites['date'] = Timestamp(yest.date())
     end_dates = to_datetime(ht_sites['end_date']).copy()
+    days_since = (Timestamp(today.date()) - end_dates).dt.days
     data_yest = end_dates >= Timestamp(yest.date())
     data_yest2 = end_dates >= Timestamp(yest.date() - timedelta(1))
+    ht_sites['days_since_last_data'] = days_since
     ht_sites['data_yesterday'] = data_yest
     ht_sites['data_2_days_ago'] = data_yest2
     ht_sites['in_accela'] = ht_sites['wap'].isin(allo_wap.Site)
 
     ## Summary table
-    n_uniq_sites = len(ht_sites['site'].unique())
-    n_uniq_waps = len(ht_sites['wap'].unique())
-    n_yest = len(ht_sites.loc[ht_sites['data_yesterday'], 'site'].unique())
-    n_yest2 = len(ht_sites.loc[ht_sites['data_2_days_ago'], 'site'].unique())
-    n_yest_wap = len(ht_sites.loc[ht_sites['data_yesterday'], 'wap'].unique())
-    n_yest2_wap = len(ht_sites.loc[ht_sites['data_2_days_ago'], 'wap'].unique())
-    n_accela = len(ht_sites.loc[~ht_sites['in_accela'] & ht_sites['wap'].notnull(), 'wap'].unique())
-    n_no_wap = len(ht_sites.loc[ht_sites['wap'].isnull(), 'site'].unique())
-    n_tel = len(ht_sites.loc[ht_sites['folder'] == 'Telemetry', 'site'].unique())
+    ht_sites2 = ht_sites.sort_values('end_date', ascending=False).drop_duplicates('site').copy()
+    n_uniq_sites = len(ht_sites2['site'].unique())
+    n_uniq_waps = len(ht_sites2['wap'].unique())
+    n_yest = len(ht_sites2.loc[ht_sites2['data_yesterday'], 'site'].unique())
+    n_yest2 = len(ht_sites2.loc[ht_sites2['data_2_days_ago'], 'site'].unique())
+    n_yest_wap = len(ht_sites2.loc[ht_sites2['data_yesterday'], 'wap'].unique())
+    n_yest2_wap = len(ht_sites2.loc[ht_sites2['data_2_days_ago'], 'wap'].unique())
+    n_accela = len(ht_sites2.loc[~ht_sites2['in_accela'] & ht_sites2['wap'].notnull(), 'wap'].unique())
+    n_no_wap = len(ht_sites2.loc[ht_sites2['wap'].isnull(), 'site'].unique())
+    n_tel = len(ht_sites2.loc[ht_sites2['folder'] == 'Telemetry', 'site'].unique())
 
     summ_list = [str(yest.date()), run_time_start, n_uniq_sites, n_uniq_waps, n_tel, n_accela, n_no_wap, n_yest, n_yest2, n_yest_wap, n_yest2_wap]
     summ_df = DataFrame([summ_list], columns=summ_col)
+
+    ## Tel summary table
+    tel_data = ht_sites2[ht_sites2.folder == 'Telemetry'].copy()
+    hts_grp = tel_data.groupby('hts_file')
+    hts_yest = hts_grp['data_yesterday'].sum().astype(int)
+    hts_yest2 = hts_grp['data_2_days_ago'].sum().astype(int)
+
+    yest1 = tel_data[tel_data['data_yesterday']]
+
+    wo1 = tel_data[tel_data.hts_file == 'WaterOutlook']
+
+    tel_data[tel_data['days_since_last_data'] <= 30].groupby('hts_file')['site'].count()
+
+
+
+
 
     ### Save to SQL
     ## create tables if needed
