@@ -1,0 +1,7 @@
+MtypeSecID,MtypeSecLongName,MtypeSecShortName,Description
+1,Primary,prime,Primary dataset/quality controlled
+2,RAW,raw,Unaltered data
+3,Correlated,corr,Data estimated from correlations to other sites
+8,Synthetic,synth,Generic synthetic
+12,Synthetic Aquilinc,aqua,Synthetic data from Aqualinc
+13,Primary NIWA,prime_niwa,Quality controlled monitoring data from NIWA

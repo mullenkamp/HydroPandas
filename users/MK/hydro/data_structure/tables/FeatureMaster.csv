@@ -1,0 +1,6 @@
+FeatureID,FeatureLongName,FeatureShortName,Description
+1,River,river,A flowing freshwater surface water body
+2,Aquifer,aq,"An underground layer of water-bearing permeable rock, rock fractures or unconsolidated materials"
+3,Atmosphere,atmos,The shpere of vapour surrounding our panet
+4,Soil,soil,The unsaturated zone of unconsolidated sediment directly below our feet
+5,Lake,lake,A freshwater body with little flowing movement

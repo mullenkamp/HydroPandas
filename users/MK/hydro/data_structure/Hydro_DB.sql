@@ -70,5 +70,34 @@ select *
 from HilltopWQSites
 where SiteID = 'SQ30212'
 
+select Site, HType, Time, count(*)
+from
+(select cast(u.STN as VARCHAR(19)) AS Site, cast(HType as VARCHAR(19)) as HType,
+(u.MEAS_DATE + cast(STUFF(RIGHT('0000' + CAST(isnull(IIF(cast(u.END_TIME as int) > 0, cast(u.END_TIME as int), 0), 0) AS VARCHAR(4)), 4), 3, 0, ':') as datetime)) as Time, 
+u.Value, QUALITY as QualityCode, (u.DATEMOD + cast(STUFF(RIGHT('0000' + CAST(isnull(IIF(u.TIMEMOD > 0, u.TIMEMOD, 0), 0) AS VARCHAR(4)), 4), 3, 0, ':') as datetime)) as ModTime
+from Hydstra.dbo.GAUGINGS
+unpivot
+(Value for HType in (M_GH, FLOW, TEMP)) as u
+) as bg1
+	group by Site, HType, Time
+	having count(*) >1
 
 
+CREATE TABLE HydstraArchive.dbo.FeatureMtype (
+       FeatureID int NOT NULL,
+       MtypeID int NOT NULL,
+       PRIMARY KEY (FeatureID, MtypeID),
+)	
+
+CREATE TABLE HydstraArchive.dbo.TSDataSecondary (
+	   TSDataSiteID int NOT NULL,
+	   TSParamID int NOT NULL,
+	   Time DATETIME NOT NULL,
+	   Value varchar(99),
+	   PRIMARY KEY (TSDataSiteID, TSParamID, Time),
+	   FOREIGN KEY (TSDataSiteID, TSParamID) REFERENCES FeatureMtype (FeatureID, MtypeID)
+)
+	
+	
+	
+	
