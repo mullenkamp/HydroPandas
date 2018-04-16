@@ -302,7 +302,7 @@ def reg_plot(x, y, freq='day', n_periods=1, fun='mean', min_ratio=0.75, digits=3
     from numpy import nan, log
     from core.stats.reg import lin_reg
     import seaborn as sns
-    from core.ts import w_resample
+    from core.ts.ts import w_resample
     from pandas import concat
     import matplotlib.pyplot as plt
 

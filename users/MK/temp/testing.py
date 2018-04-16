@@ -1756,11 +1756,23 @@ sites2 = sites1[sites1.Identifier.notnull()].copy()
 
 
 ########################################
-###
+### NIWA sites
+
+import pandas as pd
+import os
+import numpy as np
+
+base_dir = r'E:\ecan\shared\GIS_base\vector\hydro_sites'
+
+sites = 'niwa_station_list.csv'
+output1 = 'niwa_only_stations.csv'
 
 
+s1 = pd.read_csv(os.path.join(base_dir, sites))
 
+s2 = s1[s1['Recording authority'].isin([np.nan, 'NIWA'])]
 
+s2.to_csv(os.path.join(base_dir, output1), index=False)
 
 
 
