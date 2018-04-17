@@ -5,9 +5,10 @@ channels:
 - mullenkamp
 dependencies:
 - python=3.6
-- pyhydllp=1.0.2
+- pyhydllp
 - pandas
 - numpy
 - seaborn
 - tk
 - matplotlib
+- pdsql
