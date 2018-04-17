@@ -21,13 +21,13 @@ root = tk.Tk().withdraw() # create a Tk root window
 ## Modify parameters
 sites = [70105, 69607]
 
-#base_dir = r'E:\ecan\shared\projects\sw_audits'
+base_dir = r'S:\Surface Water\shared\projects\sw_audits'
 
 site = simpledialog.askinteger("Input", "Type in a site", minvalue=0)
 
 sites = [site]
 
-base_dir = filedialog.askdirectory(initialdir=os.getcwd(), title='Select the output directory', mustexist=True)
+base_dir = filedialog.askdirectory(initialdir=base_dir, title='Select the output directory', mustexist=True)
 
 
 ## Base parameters - do not modify unless you know why
