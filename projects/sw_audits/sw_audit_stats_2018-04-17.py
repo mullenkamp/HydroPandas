@@ -29,7 +29,6 @@ sites = [site]
 
 base_dir = filedialog.askdirectory(initialdir=base_dir, title='Select the output directory', mustexist=True)
 
-
 ## Base parameters - do not modify unless you know why
 ini_path = r'\\fileservices02\ManagedShares\Data\Hydstra\prod\hyd'
 dll_path = r'\\fileservices02\ManagedShares\Data\Hydstra\prod\hyd\sys\run'

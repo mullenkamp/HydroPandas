@@ -1775,6 +1775,11 @@ s2 = s1[s1['Recording authority'].isin([np.nan, 'NIWA'])]
 s2.to_csv(os.path.join(base_dir, output1), index=False)
 
 
+#####################################
+### Kivy test
+
+
+
 
 
 
