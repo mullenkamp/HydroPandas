@@ -350,14 +350,14 @@ def low_flow_restr(sites_num=None, from_date=None, to_date=None, only_restr=True
     database1 = 'LowFlows'
 
     # daily restrictions
-    restr_table = 'LowFlows.dbo.LowFlowSiteRestrictionDaily'
+    restr_table = 'LowFlowSiteRestrictionDaily'
     restr_where = {'SnapshotType': ['Live']}
 
     # Sites info
     sites_table = 'LowFlowSite'
 
     # crc, sites, and bands
-    crc_table = 'LowFlows.dbo.vLowFlowConsents2'
+    crc_table = 'vLowFlowConsents2'
 
     # lowflow or residual flow site
     site_type_table = 'LowFlowSiteBand'

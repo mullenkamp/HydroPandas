@@ -8,7 +8,7 @@ create table TSDataNumericSumm (
 	Max float not null,
 	Count float not null,
 	FromDate datetime not null,
-	ToDate datetime not null
+	ToDate datetime not null,
 	primary key (Site, FeatureMtypeSourceID)
 	)
 	
@@ -20,7 +20,7 @@ create table TSDataNumericDailySumm (
 	Max float not null,
 	Count float not null,
 	FromDate date not null,
-	ToDate date not null
+	ToDate date not null,
 	primary key (Site, FeatureMtypeSourceID)
 	)
 	

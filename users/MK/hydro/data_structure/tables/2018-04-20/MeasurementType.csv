@@ -1,0 +1,26 @@
+MTypeID,MTypeLongName,MTypeShortName,MTypeGroup,Units,LoggingMethodID,Description
+1,Water Level,wl,Quantity,meter,1,The water level above an arbitrary datum
+2,Flow,flow,Quantity,m**3/s,1,Water flow
+3,Temperature,T,Quality,degC,1,Instantaneous temperature
+4,Temperature Max,T_max,Quality,degC,5,Max temperature
+5,Temperature Min,T_min,Quality,degC,4,Min temperature
+6,Temperature Mean,T_mean,Quality,degC,3,Mean temperature
+7,Temperature dew,T_dew,Quality,degC,1,Dew point temperature
+8,Precipitation,precip,Quantity,mm,2,depth/height of water
+9,Abstraction,abstr,Quantity,m**3,2,Volume of water abstracted
+10,Net Radiation,R_n,Quantity,MJ/m**2,2,Net Radiation
+11,Shortwave Radiation,R_s,Quantity,MJ/m**2,2,Shortwave Radiation
+12,Soil heat flux,G,Quantity,MJ/m**2,2,Net soil heat flux
+13,Relative Humidity Min,RH_min,Quality,,4,Min relative humidity
+14,Relative Humidity Max,RH_max,Quality,,5,Max relative humidity
+15,Relative Humidity Mean,RH_mean,Quality,,3,Mean relative humidity
+16,Wind Speed,U_z,Quantity,m/s,1,Wind speed in length per unit time
+17,Barometric Pressure,P_baro,Quantity,kPa,1,Barometric Pressure
+18,n sun hours,n_sun,Quantity,hour,2,Number of sunshine hours per day
+19,ET Actual,ET,Quantity,mm,2,Actual Evapotranspiration
+20,ET Reference,ETo,Quantity,mm,2,Reference Evapotranspiration
+21,Temperature at 9,T_9,Quality,degC,1,Temperature at 9am
+22,Penman ET,PenmanET,Quantity,mm,2,ET estimated via the NIWA Penman method
+23,Vapour Pressure,P_vap,Quantity,hectopascals,1,Vapour pressure as calculated from dewpoint Temperature
+24,Wind run,U_run,Quantity,km,2,The distance travelled by the wind over the day
+25,Wind speed at 9,U_2_9,Quantity,m/s,1,Wind speed at 2m at 9am

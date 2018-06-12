@@ -1,0 +1,5 @@
+DataCodeID,DataCode,Description
+1,Primary,Primary dataset/quality controlled
+2,RAW,Unaltered data
+3,Correlated,Data estimated from correlations to other sites
+4,Synthetic,Generic synthetic

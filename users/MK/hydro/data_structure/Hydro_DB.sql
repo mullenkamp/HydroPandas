@@ -99,5 +99,241 @@ CREATE TABLE HydstraArchive.dbo.TSDataSecondary (
 )
 	
 	
-	
+select getdate()
+
+
+select NZTMX, NZTMY, max(SiteZ) as SiteZ
+from
+(select round(NZTMX, 0) as NZTMX, round(NZTMY, 0) as NZTMY, round(SiteZ, 3) as SiteZ
+from ExternalSite) as m
+group by NZTMX, NZTMY
+
+
+select *
+from Hydro.dbo.SiteLink
+where ExtSiteID not in 
+(select DISTINCT Site
+from Hydro.dbo.HydstraTSDataDaily)
+
+select DISTINCT Site
+from Hydro.dbo.HydstraTSDataDaily
+where Site not in
+(select ExtSiteID
+from Hydro.dbo.SiteLink)
+
+
+select SiteNumber, NZTMX, NZTMY, Altitude
+FROM Bgauging.dbo.RSITES
+where SiteNumber in ('66429', '66423', '69644')
+
+select *
+from Hydro.dbo.HydstraTSDataDaily
+where Site = '3452533'
+
+update Hydro.dbo.HydstraTSDataDaily
+set Site = '3496686'
+where Site = '34966867'
+
+update Hydro.dbo.HydstraTSDataDaily
+set Site = '3452533'
+where Site = '34525337'
+
+update Hydro.dbo.HydstraTSDataHourly
+set Site = '3496686'
+where Site = '34966867'
+
+update Hydro.dbo.HydstraTSDataHourly
+set Site = '3452533'
+where Site = '34525337'
+
+alter table Hydro.dbo.HydstraTSDataDaily
+add ModDate datetime default getdate();
+
+update Hydro.dbo.HydstraTSDataDaily
+set ModDate = getdate();
+
+alter table Hydro.dbo.HydstraTSDataHourly
+add ModDate datetime default getdate();
+
+update Hydro.dbo.HydstraTSDataHourly
+set ModDate = getdate();
+
+select *
+from Hydro.dbo.ExternalSite
+where ExtSiteID in ('3452533', '3496686')
+
+
+
+select Site, TIDEDA_FLAG, Time, avg(Value) as Value, min(QualityCode) as QualityCode, max(stamp) as stamp
+from
+(select UPPER(LTRIM(RTRIM(WELL_NO))) AS Site, TIDEDA_FLAG, DATE_READ as Time, DEPTH_TO_WATER as Value, 200 as QualityCode, cast(timestamp as int) as stamp
+from Wells.dbo.DTW_READINGS) as wells1
+where Value is not null 
+	and Value > -990
+	and TIDEDA_FLAG in ('N', 'F')
+group by Site, TIDEDA_FLAG, Time
+
+DELETE from Hydro.dbo.temp_up_table
+
+merge TSDataNumeric 
+using temp_up_table on (TSDataNumeric.ExtSiteID = temp_up_table.ExtSiteID and 
+						TSDataNumeric.DatasetTypeID = temp_up_table.DatasetTypeID and  
+						TSDataNumeric.DateTime = temp_up_table.DateTime) 
+when matched then update set TSDataNumeric.Value = temp_up_table.Value, 
+							TSDataNumeric.QualityCode = temp_up_table.QualityCode, 
+							TSDataNumeric.ModDate = temp_up_table.ModDate 
+WHEN NOT MATCHED BY TARGET THEN INSERT (ExtSiteID, DateTime, DatasetTypeID, Value, QualityCode, ModDate) 
+values (temp_up_table.ExtSiteID, temp_up_table.DateTime, temp_up_table.DatasetTypeID, temp_up_table.Value, temp_up_table.QualityCode, temp_up_table.ModDate);
+
+
+select sites.MetConnectID, sites.SiteString, sites.TidedaID, grid.PredictionDateTime, grid.ReadingDateTime, grid.HourlyRainfall
+from MetConnect.dbo.RainFallPredictionSitesGrid as sites
+inner join MetConnect.dbo.RainFallPredictionsGrid as grid
+on sites.MetConnectID = grid.MetConnectID
+
+select sites.MetConnectID, sites.SiteString, sites.TidedaID, grid.PredictionDateTime, grid.ReadingDateTime, grid.HourlyRainfall
+from MetConnect.dbo.RainFallPredictionSitesGrid as sites
+inner join MetConnect.dbo.RainFallPredictions as grid
+on sites.MetConnectID = grid.MetConnectID
+where grid.PredictionDateTime > '2017-12-05'
+
+DELETE from Hydro.dbo.TSDataNumericDaily
+DELETE from Hydro.dbo.TSDataNumericHourly
+DELETE from Hydro.dbo.SiteLink
+DELETE from Hydro.dbo.Site
+DELETE from Hydro.dbo.ExternalSite
+
+update Hydro.dbo.ExternalSite
+set ModDate = '2018-04-27 00:00:00'
+where ModDate is NULL
+
+
+select max(RunTimeStart) from HydroLog where HydroTable='ExternalSite' and RunResult='pass' and ExtSystem='Hydro'
+
+merge Site using temp_up_table on (Site.ExtSiteID = temp_up_table.ExtSiteID) when matched then update set Site.SiteID = temp_up_table.SiteID;
+
+merge TSDataNumeric using temp_up_table on (TSDataNumeric.ExtSiteID = temp_up_table.ExtSiteID and TSDataNumeric.DatasetTypeID = temp_up_table.DatasetTypeID and TSDataNumeric.DateTime = temp_up_table.DateTime) when matched then update set TSDataNumeric.Value = temp_up_table.Value, TSDataNumeric.QualityCode = temp_up_table.QualityCode, TSDataNumeric.ModDate = temp_up_table.ModDate WHEN NOT MATCHED BY TARGET THEN INSERT (ExtSiteID, DateTime, DatasetTypeID, Value, QualityCode, ModDate) values (temp_up_table.ExtSiteID, temp_up_table.DateTime, temp_up_table.DatasetTypeID, temp_up_table.Value, temp_up_table.QualityCode, temp_up_table.ModDate);
+
+select distinct FeatureMtypeSourceID
+from Hydro.dbo.WusTSDataDaily
+
+select *
+from Hydro.dbo.WusTSDataDaily
+where QualityCode = 150
+
+update WusTSDataDaily
+set QualityCode = 200
+where QualityCode = 150
+
+ALTER TABLE Hydro.dbo.ExternalSite
+ADD SiteID int FOREIGN KEY REFERENCES Site(SiteID);
+
+update es
+set SiteID = sk.SiteID
+from Hydro.dbo.ExternalSite as es
+inner join SiteLink as sk
+on es.ExtSiteID = sk.ExtSiteID
+
+
+ALTER TABLE Hydro.dbo.TSDataNumericDaily
+DROP CONSTRAINT FK__TSDataNum__ExtSi__6DF7358C;
+
+ALTER TABLE Hydro.dbo.TSDataNumericDaily
+ADD FOREIGN KEY (ExtSiteID) REFERENCES ExternalSite(ExtSiteID);
+
+ALTER TABLE Hydro.dbo.TSDataNumericHourly
+DROP CONSTRAINT FK__TSDataNum__ExtSi__683E5C36;
+
+ALTER TABLE Hydro.dbo.TSDataNumericHourly
+ADD FOREIGN KEY (ExtSiteID) REFERENCES ExternalSite(ExtSiteID);
+
+select distinct Site
+from Hydro.dbo.NiwaAquaAtmosTSDataDaily
+where Site not in (select ExtSiteID from ExternalSite)
+
+select *
+from Hydro.dbo.TSDataNumericDailySumm
+where ExtSiteID in (
+	select ExtSiteID
+	from Hydro.dbo.TSDataNumericDailySumm
+	where DatasetTypeID in (18, 20, 34, 28))
+order by ExtSiteID, DatasetTypeID
+
+select *
+from Hydro.dbo.TSDataNumericDailySumm
+where DatasetTypeID = 34
+order by ExtSiteID, DatasetTypeID
+
+delete from Hydro.dbo.WQMeasurements
+delete from Hydro.dbo.WQSamples
+delete from Hydro.dbo.WQSites
+
+insert into WQSites (ExtSiteID, MeasurementType, Units, FromDate, ToDate)
+select SiteID, MeasurementType, Units, FromDate, ToDate from HilltopWQSites
+
+insert into WQSamples (ExtSiteID, CollectionTime, SampleParam, Value)
+select SiteID, CollectionTime, Param, Value from HilltopWQSamples
+
+insert into WQMeasurements (ExtSiteID, MeasurementType, CollectionTime, MTypeParam, Value)
+select SiteID, MeasurementType, CollectionTime, Param, Value from Hydro.dbo.HilltopWQMtypes
+
+delete from WQMeasurements
+where Value = ''
+
+delete from WQSamples
+where Value = ''
+
+
+select * into HydstraArchive.dbo.TSDataNumeric1
+from Hydro.dbo.TSDataNumeric
+
+
+delete from HydstraArchive.dbo.TSDataNumeric1
+
+insert into HydstraArchive.dbo.TSDataNumeric1 WITH(TABLOCK) (ExtSiteID, DatasetTypeID, DateTime, Value, QualityCode, ModDate) 
+select ExtSiteID, DatasetTypeID, DateTime, Value, QualityCode, ModDate from Hydro.dbo.TSDataNumeric
+
+select *
+from Hydro.dbo.TSDataNumericDaily
+where DatasetTypeID = 12 and DateTime > '2018-05-14' 
+order by ModDate DESC
+
+delete from Hydro.dbo.HilltopUsageSiteDataLog
+where date = '2018-05-24'
+
+select * 
+from LowFlowRestrSite
+where date = '2018-05-31' and flow_method = 'Telemetered' and days_since_flow_est > 0
+order by days_since_flow_est desc
+
+delete from Hydro.dbo.WQTSSample
+where Value IS NULL
+
+ALTER TABLE Hydro.dbo.LowFlowRestrSite
+ADD FOREIGN KEY (site) REFERENCES ExternalSite(ExtSiteID);
+
+ALTER TABLE Hydro.dbo.LowFlowRestrSite
+ALTER COLUMN site varchar(29) not null;
+
+ALTER TABLE Hydro.dbo.LowFlowRestrSite
+DROP CONSTRAINT PK_Person;
+
+ALTER TABLE Hydro.dbo.CrcAllo
+ALTER COLUMN return_period float;
+
+select *
+from ExternalSite
+where ExtSiteID in
+	(select distinct wap from CrcWapAllo)
+
+
+
+
+
+
+
+
+
+
+
 	

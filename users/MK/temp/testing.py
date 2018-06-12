@@ -1720,13 +1720,13 @@ connR.execute('SELECT load_extension("mod_spatialite")')
 ########################################
 ### bgauging comments export
 
-from hydropandas.io.tools.mssql import rd_sql
+from pdsql.mssql import rd_sql
 
 server = 'SQL2012PROD05'
 database = 'Bgauging'
 table = 'Data'
 
-export_csv = r'D:\users\mikek\Projects\requests\tony\2018-02-28\bgauging_comments_v02.csv'
+export_csv = r'E:\ecan\local\Projects\requests\tony\2018-05-30\bgauging_comments_2018-05-30.csv'
 
 comments = rd_sql(server, database, table)
 
@@ -1776,21 +1776,215 @@ s2.to_csv(os.path.join(base_dir, output1), index=False)
 
 
 #####################################
-### Kivy test
+### nasa data
+
+import os
+import xarray as xr
+
+base_dir = r'C:\Users\michaelek\Downloads\3B42 Daily 20171018'
+
+nc1 = '3B42_Daily.20171018.7.nc4.nc4'
+
+data1 = xr.open_dataset(os.path.join(base_dir, nc1))
 
 
+#####################################
+### Comparison of Bgauging sites to Hydstra sites
+
+import os
+import numpy as np
+import pandas as pd
+from pdsql import mssql
+
+base_dir = r'E:\ecan\local\Projects\requests\tony\2018-05-01'
+export_mis_bg = 'sites_missing_in_BG.csv'
+export_zero_hy = 'sites_without_loc_hydstra.csv'
+export_bad_loc = 'sites_mismatch_location.csv'
 
 
+bg1 = mssql.rd_sql('sql2012prod04', 'bgauging', 'rsites', ['SiteNumber', 'NZTMX', 'NZTMY', 'Altitude'], rename_cols=['site', 'x', 'y', 'z'])
+bg2 = bg1[bg1.site > 0].copy()
+bg2.x = bg2.x.round()
+bg2.y = bg2.y.round()
+bg2.z[bg2.z <= 0] = 0
+bg2.z[bg2.z.isnull()] = 0
+bg2 = bg2.sort_values('site')
+
+hy1 = mssql.rd_sql('sql2012prod03', 'hydstra', 'site', ['station', 'easting', 'northing', 'elev'], rename_cols=['site', 'x', 'y', 'z'])
+hy1.site = pd.to_numeric(hy1.site, errors='coerce')
+hy2 = hy1[hy1.site > 0].copy()
+hy2.x = hy2.x.round()
+hy2.y = hy2.y.round()
+hy2.z[hy2.z <= 0] = 0
+hy2.z[hy2.z.isnull()] = 0
+hy2 = hy2.sort_values('site')
+
+not_bg = hy2[~hy2.site.isin(bg2.site)]
+
+not_hy = bg2[~bg2.site.isin(hy2.site)]
+
+zero_loc_hy = hy2[(hy2.x < 1000000) | (hy2.y < 4700000)]
+
+merge1 = pd.merge(bg2, hy2, on='site', suffixes=['_bg', '_hy'])
+
+#bad_loc = merge1[(merge1.x_bg != merge1.x_hy) | (merge1.y_bg != merge1.y_hy) | (merge1.z_bg != merge1.z_hy)]
+
+merge1['x_diff'] = merge1.x_bg - merge1.x_hy
+merge1['y_diff'] = merge1.y_bg - merge1.y_hy
+merge1['z_diff'] = merge1.z_bg - merge1.z_hy
+
+bad_loc = merge1[(merge1.x_diff != 0 ) | (merge1.y_diff != 0) | (merge1.z_diff != 0)].sort_values(['x_diff', 'y_diff'])
+
+## Save
+not_bg.to_csv(os.path.join(base_dir, export_mis_bg), index=False)
+zero_loc_hy.to_csv(os.path.join(base_dir, export_zero_hy), index=False)
+bad_loc.to_csv(os.path.join(base_dir, export_bad_loc), index=False)
+
+###############################################
+### Hilltop testing
+
+import Hilltop
+import pandas as pd
+from hilltoppy.hilltop import ht_sites
+from time import time
+from hilltoppy import rd_ht_quan_data, rd_hilltop_sites
+
+hts = '\\\\hilltop01\\Hilltop\\Data\\WQSurfacewater.hts'
+hts2 = r'H:\Data\Telemetry\Boraman.hts'
+hts2 = r'H:\Data\Telemetry\Loncel.hts'
+export_res1 = r'E:\ecan\local\Projects\requests\mark_rodgers\2018-05-16\dup_measurements.csv'
+
+start1 = time()
+dfile = Hilltop.Connect(hts2)
+sites = Hilltop.SiteList(dfile)
+
+dataset_list = []
+
+for s in sites:
+    mtype = Hilltop.MeasurementList(dfile, s)
+    mtype['site'] = s
+    dataset_list.append(mtype)
+
+datasets = pd.concat(dataset_list)
+Hilltop.Disconnect(dfile)
+end1 = time()
+end1 - start1
+
+d1 = datasets.tail()
+
+d1.to_csv(export_res1, index=False)
+
+tsdata_list = []
+for m in d1.index:
+    m1 = d1.loc[m]
+    s1 = Hilltop.GetData(dfile, m1.site, m1.Measurement, '', '')
+
+start2 = time()
+datasets1 = ht_sites(hts2)
+end2 = time()
+end2 - start2
+
+sm = datasets1.loc[[28]]
+
+s1 = ht_get_data(hts2, site_info=sm)
+
+sites = ['I40/0596-M1']
+sites = ['L36/1764-M1']
+
+start1 = time()
+s1 = ht_get_data(hts2, sites=sites)
+end1 = time()
+end1 - start1
+
+start2 = time()
+s2 = rd_ht_quan_data(hts2, sites=sites, agg_period='day')
+end2 = time()
+end2 - start2
+
+sites_df = rd_hilltop_sites(hts2, sites=sites)
+
+s1[(s1.time > '2017-02-23') & (s1.mtype == 'Regularity [Abstraction Volume]')]
+s1[s1.time > '2017-10-20']
+s1[(s1.time > '2017-02-23')]
+
+s1 = ht_get_data(hts2, sites=sites, agg_period='day')
+
+sites = None
+from_date = '2018-01-01'
+to_date = '2018-05-01'
+agg_method='Average'
+agg_n=1
+agg_period='day'
+alignment='00:00'
+output_missing_sites=False
+site_info=None
 
 
+####################################################
+### Hydstra summary
+
+import pandas as pd
+from pdsql import mssql
+import os
+
+### Parameters
+
+server = 'sql2012dev01'
+database = 'hydro'
+ts_daily_table = 'TSDataNumericDaily'
+ts_hourly_table = 'TSDataNumericHourly'
+ts_summ_table = 'TSDataNumericDailySumm'
+lf_table = 'LowFlowRestrSite'
+sites_table = 'ExternalSite'
+
+lf_date = '2018-05-21'
+min_date = '2018-01-01'
+min_count = 10
+
+datasets = [5, 4]
+
+export_dir = r'E:\ecan\local\Projects\requests\tony\2018-05-22'
+export_summ1 = 'hydstra_summ_stats.csv'
+
+summ_data = mssql.rd_sql(server, database, ts_summ_table, where_col={'DatasetTypeID': datasets})
+
+wl_data = summ_data[(summ_data.DatasetTypeID == 4) & (summ_data.ToDate >= min_date)].copy()
+flow_data = summ_data[(summ_data.DatasetTypeID == 5) & (summ_data.ToDate >= min_date)].copy()
+
+summ_data1 = summ_data.sort_values('ToDate', ascending=False)
+
+summ_data1.to_csv(os.path.join(export_dir, export_summ1), index=False)
 
 
+##################################################
+### SKlearn
+
+from sklearn.datasets import load_iris
+from sklearn.feature_selection import SelectKBest, chi2, f_classif, f_regression
+iris = load_iris()
+X, y = iris.data, iris.target
+X.shape
+
+X_new = SelectKBest(chi2, k=1).fit_transform(X, y)
+X_new.shape
 
 
+################################################
+### low flows
 
+from pdsql import mssql
 
+server = 'sql2012dev01'
+database = 'Hydro'
 
+lf_site_table = 'LowFlowRestrSite'
+site_table = 'ExternalSite'
 
+lf_site = mssql.rd_sql(server, database, lf_site_table, where_col={'date': ['2018-06-11']})
+
+site = mssql.rd_sql(server, database, site_table)
+
+lf_site[~lf_site.site.isin(site.ExtSiteID)]
 
 
 

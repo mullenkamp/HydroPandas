@@ -85,9 +85,7 @@ def flow_stats(df, below_median=False, export_path=None):
     return df2
 
 
-def malf7d(df, w_month='JUN', max_missing=90, malf_min=0.9, intervals=[10, 20, 30, 40], return_alfs=False,
-           num_years=False, export_path=None, export_name_malf='malf.csv', export_name_alf='alf.csv',
-           export_name_mis='alf_missing_data.csv'):
+def malf7d(df, w_month='JUN', max_missing=90, malf_min=0.9, intervals=[10, 20, 30, 40], return_alfs=False, num_years=False, export_path=None, export_name_malf='malf.csv', export_name_alf='alf.csv', export_name_mis='alf_missing_data.csv'):
     """
     Function to create a 7 day mean annual low flow estimate from flow time
     series.

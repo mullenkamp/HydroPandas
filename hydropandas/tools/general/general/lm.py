@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Functions for regressions.
+Functions/Class for regressions.
 """
-
-
 from __future__ import division
 import numpy as np
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 import pandas as pd
-from itertools import combinations
+from itertools import combinations, product
 from scipy import stats, log, exp, mean, sqrt
 from statsmodels.tools import eval_measures
 from copy import copy
@@ -114,7 +112,7 @@ class LM(object):
                 y = model1.y
 
             if model1.timeindex:
-                both1 = pd.concat([x, y[yi]], axis=1).dropna()
+                both1 = pd.concat([x, y[yi]], axis=1, join='inner')
             else:
                 both1 = pd.concat([x, y[yi]], axis=1)
 
@@ -122,6 +120,7 @@ class LM(object):
 #                raise ValueError('No or not enough data is available to run the OLS')
                 print('Dep variable ' + str(yi) + ' has no or not enough data available to run the OLS. Returning None...')
                 best1.update({yi: None})
+                continue
 
             combos = set(combinations(x_names, n_ind))
 
@@ -129,23 +128,33 @@ class LM(object):
             models_mae = {}
             xy_dict = {}
             for xi in combos:
-                x_df = both1[list(xi)]
-                y_df = both1[yi]
+                x_set = list(xi)
+                full_set = list(x_set)
+                full_set.extend([yi])
+                xy_df1 = both1[full_set].dropna()
+                if xy_df1.empty | (len(xy_df1) < min_obs):
+                    continue
+                x_df = xy_df1[x_set]
+                y_df = xy_df1[yi]
 
-                xy_dict.update({yi: {'x': x_df, 'y': y_df}})
+                xy_dict.update({xi: {'x': x_df, 'y': y_df}})
 
                 x_df = sm.add_constant(x_df)
                 model = sm.OLS(y_df, x_df).fit()
                 models.update({xi: model})
-                mae1 = eval_measures.meanabs(model.predict(), y_df)
+                mae1 = eval_measures.rmse(model.predict(), y_df)
                 models_mae.update({np.round(mae1, 6): xi})
 
-            best_x = models_mae[np.min(models_mae.keys())]
+            if not models_mae:
+                print('Not enough data available for regression, returning None.')
+                return None
+
+            best_x = models_mae[np.min(list(models_mae.keys()))]
             bestm = models[best_x]
             best1.update({yi: bestm})
 #            best_xy.update({yi: xy_dict[yi]})
 
-            xy_orig = xy_dict[yi].copy()
+            xy_orig = xy_dict[best_x].copy()
             predict1 = bestm.predict()
             if log_x:
                 xy_orig.update({'x': xy_orig['x'].apply(exp)})

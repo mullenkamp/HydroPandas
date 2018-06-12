@@ -3,7 +3,7 @@
 General time series functions.
 """
 from pandas.core.groupby import SeriesGroupBy, GroupBy
-from pandas import infer_freq, TimeGrouper, Timestamp, Grouper, DataFrame
+from pandas import infer_freq, Timestamp, Grouper, DataFrame
 from numpy import nan, array
 from os import path
 from core.misc.misc import time_switch
@@ -53,7 +53,7 @@ def tsreg(ts, freq=None, interp=False):
     if interp:
         ts1 = ts1.interpolate('time')
 
-    return (ts1)
+    return ts1
 
 
 def w_agg(x, fun='sum', axis=1):
@@ -86,11 +86,11 @@ def grp_ts_agg(df, grp_col, ts_col, freq_code):
     if type(df[ts_col].iloc[0]) is Timestamp:
         df1.set_index(ts_col, inplace=True)
         if type(grp_col) is list:
-            grp_col.extend([TimeGrouper(freq_code)])
+            grp_col.extend([Grouper(level=ts_col, freq=freq_code)])
         else:
-            grp_col = [grp_col, TimeGrouper(freq_code)]
+            grp_col = [grp_col, Grouper(level=ts_col, freq=freq_code)]
         df_grp = df1.groupby(grp_col)
-        return (df_grp)
+        return df_grp
     else:
         print('Make one column a timeseries!')
 
@@ -188,8 +188,7 @@ def w_resample(x, period='water year', n_periods=1, fun='sum', min_ratio=0.75, a
     return (res1.round(digits))
 
 
-def res(ts, dformat, wide_index=[0, 1], period='water year', n_periods=1, fun='sum', min_ratio=0.75, agg=False,
-        agg_fun='mean', digits=3, interp=False, export=False, export_path='', export_name='precip_stats.csv'):
+def res(ts, dformat, wide_index=[0, 1], period='water year', n_periods=1, fun='sum', min_ratio=0.75, agg=False, agg_fun='mean', digits=3, interp=False, export=False, export_path='', export_name='precip_stats.csv'):
     """
     Function to resample time series precip or flow data.
 
@@ -228,8 +227,7 @@ def res(ts, dformat, wide_index=[0, 1], period='water year', n_periods=1, fun='s
         if sum(df.index.levels[0].duplicated()) > 0:
             raise ValueError("Duplicate stations!!! Please check!!!")
 
-        df_grp = df.groupby(
-            [Grouper(level=wide_index[0]), Grouper(level=wide_index[1], freq=str(n_periods) + time_switch(period))])
+        df_grp = df.groupby([Grouper(level=wide_index[0]), Grouper(level=wide_index[1], freq=str(n_periods) + time_switch(period))])
 
     else:
         raise ValueError('dformat must be either long or wide')
