@@ -327,13 +327,109 @@ where ExtSiteID in
 	(select distinct wap from CrcWapAllo)
 
 
+SELECT geometry::Point(NZTMY, NZTMX, 2193) as GEOM
+FROM Hydro.dbo.ExternalSite
+
+alter table Hydro.dbo.ExternalSite 
+add Shape as geometry::Point(NZTMX, NZTMY, 2193);
+
+alter table Hydro.dbo.Site
+add Shape as geometry::Point(NZTMX, NZTMY, 2193);
+
+alter table Hydro.dbo.ExternalSite 
+add ExtSiteName varchar(299)
+
+alter table Hydro.dbo.ExternalSite 
+add
+   CatchmentName varchar(99),
+   CatchmentNumber int,
+   CatchmentGroupName varchar(99),
+   CatchmentGroupNumber int,
+   SwazName varchar(99),
+   SwazGroupName varchar(99),
+   SwazSubRegionalName varchar(99),
+   GwazName varchar(99),
+   CwmsName varchar(99)
 
 
 
 
 
 
+select *
+from Hydro.dbo.ExternalSite
+where CatchmentName like '%ahuriri river%'
 
+select *
+from Hydro.dbo.CrcWapAllo
+where wap in (
+	select ExtSiteID 
+	from Hydro.dbo.ExternalSite
+	where CatchmentName like '%ahuriri river%'
+	)
+
+
+select *
+from Hydro.dbo.CrcAllo
+where crc in (
+	select distinct crc
+	from Hydro.dbo.CrcWapAllo
+	where wap in (
+		select ExtSiteID 
+		from Hydro.dbo.ExternalSite
+		where CatchmentName like '%ahuriri river%'
+		)
+	)
+
+
+
+alter table CrcWapAllo
+alter column take_type varchar(29) not null
+
+alter table CrcAllo
+alter column take_type varchar(29) not null
+
+update CrcAllo
+set max_vol = NULL
+where max_vol <= 0
+
+
+alter table Hydro.dbo.ExternalSite 
+drop column Shape
+
+delete from Hydro.dbo.TSDataNumericDaily
+where QualityCode = 100
+
+delete from Hydro.dbo.TSDataNumericHourly
+where QualityCode = 100
+
+
+SELECT        ds.DatasetTypeID, dbo.Feature.Feature, dbo.MeasurementType.MeasurementType, dbo.CollectionType.CollectionType, dbo.DataCode.DataCode, dbo.DataProvider.DataProvider
+FROM  Hydro.dbo.DatasetType as ds  INNER JOIN
+                         dbo.Feature ON ds.FeatureID = dbo.Feature.FeatureID INNER JOIN
+                         dbo.MeasurementType ON ds.MTypeID = dbo.MeasurementType.MTypeID INNER JOIN
+                         dbo.CollectionType ON ds.CTypeID = dbo.CollectionType.CTypeID INNER JOIN
+                         dbo.DataCode ON ds.DataCodeID = dbo.DataCode.DataCodeID INNER JOIN
+                         dbo.DataProvider ON ds.DataProviderID = dbo.DataProvider.DataProviderID
+                         
+                         
+select tsdata.ExtSiteID,
+	tsdata.DatasetTypeID,
+	min(tsdata.Value) as Min,
+	avg(tsdata.Value) as Mean,
+	max(tsdata.Value) as Max,
+	count(tsdata.Value) as Count,
+	min(tsdata.[DateTime]) as FromDate,
+	max(tsdata.[DateTime]) as ToDate
+from TSDataNumeric as tsdata
+inner join
+	(select distinct ExtSiteID, DatasetTypeID
+	 from TSDataNumeric
+	 where ModDate >= '2018-06-27') as set1
+on tsdata.ExtSiteID = set1.ExtSiteID
+and tsdata.DatasetTypeID = set1.DatasetTypeID
+where tsdata.Value is not NULL
+group by tsdata.ExtSiteID, tsdata.DatasetTypeID
 
 
 	
