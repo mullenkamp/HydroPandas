@@ -7,8 +7,8 @@ Created on Tue Dec 05 09:34:22 2017
 import numpy as np
 import pandas as pd
 from datetime import datetime
-from core.allo_use.low_flows import low_flow_restr
-from pdsql import to_mssql, create_table, rd_sql, del_table_rows
+from low_flows import low_flow_restr
+from pdsql.mssql import to_mssql, create_table, rd_sql, del_table_rows
 
 ############################################
 ### Parameters

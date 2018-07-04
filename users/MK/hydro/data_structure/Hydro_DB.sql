@@ -333,6 +333,36 @@ FROM Hydro.dbo.ExternalSite
 alter table Hydro.dbo.ExternalSite 
 add Shape as geometry::Point(NZTMX, NZTMY, 2193);
 
+alter table Hydro.dbo.ExternalSite 
+add Shape geometry
+
+update Hydro.dbo.ExternalSite 
+set Shape = geometry::Point(NZTMX, NZTMY, 2193);
+
+CREATE SPATIAL INDEX si_ExternalSite_shape
+	   ON dbo.ExternalSite(Shape)
+	   USING GEOMETRY_AUTO_GRID
+	   WITH 
+	   ( 
+	         BOUNDING_BOX= (xmin=165, ymin=-48, xmax=180, ymax=-34)
+	   );
+
+alter table Hydro.dbo.Site 
+add Shape geometry
+
+update Hydro.dbo.Site 
+set Shape = geometry::Point(NZTMX, NZTMY, 2193);
+
+CREATE SPATIAL INDEX si_Site_shape
+	   ON dbo.Site(Shape)
+	   USING GEOMETRY_AUTO_GRID
+	   WITH 
+	   ( 
+	         BOUNDING_BOX= (xmin=165, ymin=-48, xmax=180, ymax=-34)
+	   );
+
+
+
 alter table Hydro.dbo.Site
 add Shape as geometry::Point(NZTMX, NZTMY, 2193);
 
@@ -397,6 +427,9 @@ where max_vol <= 0
 alter table Hydro.dbo.ExternalSite 
 drop column Shape
 
+alter table Hydro.dbo.Site 
+drop column Shape
+
 delete from Hydro.dbo.TSDataNumericDaily
 where QualityCode = 100
 
@@ -431,5 +464,60 @@ and tsdata.DatasetTypeID = set1.DatasetTypeID
 where tsdata.Value is not NULL
 group by tsdata.ExtSiteID, tsdata.DatasetTypeID
 
+
+select SiteID, ex.ExtSiteID, summ.DatasetTypeID, summ.Min, summ.Mean, summ.Max, summ.Count, summ.FromDate, summ.ToDate
+from Hydro.dbo.ExternalSite as ex
+inner join Hydro.dbo.TSDataNumericDailySumm as summ on summ.ExtSiteID = ex.ExtSiteID
+
+SELECT SiteID, es.ExtSiteID, ds.DatasetTypeID, Feature.Feature, MeasurementType.MeasurementType, 
+	CollectionType.CollectionType, DataCode.DataCode, DataProvider.DataProvider, summ.Min, 
+	round(summ.Mean, 3), summ.Max, summ.Count, summ.FromDate, summ.ToDate
+FROM ExternalSite as es INNER JOIN
+	dbo.TSDataNumericDailySumm as summ on summ.ExtSiteID = es.ExtSiteID inner join
+	dbo.DatasetType as ds on ds.DatasetTypeID = summ.DatasetTypeID inner join
+	dbo.Feature ON ds.FeatureID = dbo.Feature.FeatureID INNER JOIN
+	dbo.MeasurementType ON ds.MTypeID = dbo.MeasurementType.MTypeID INNER JOIN
+	dbo.CollectionType ON ds.CTypeID = dbo.CollectionType.CTypeID INNER JOIN
+	dbo.DataCode ON ds.DataCodeID = dbo.DataCode.DataCodeID INNER JOIN
+	dbo.DataProvider ON ds.DataProviderID = dbo.DataProvider.DataProviderID
+
+
+select distinct hts_file
+from Hydro.dbo.HilltopUsageSiteDataLog
+
+delete from Hydro.dbo.HilltopUsageSiteDataLog
+where date = '2018-07-02'
+
+delete from Hydro.dbo.HilltopUsageSiteSummLog
+where date = '2018-07-02'
+
+
+alter table Hydro.dbo.DatasetType
+add DatasetTypeName varchar(99)
+
+SELECT ds.DatasetTypeID, Feature.Feature, MeasurementType.MeasurementType, 
+	CollectionType.CollectionType, DataCode.DataCode, DataProvider.DataProvider
+FROM DatasetType as ds INNER JOIN
+	Feature ON ds.FeatureID = Feature.FeatureID INNER JOIN
+	MeasurementType ON ds.MTypeID = MeasurementType.MTypeID INNER JOIN
+	CollectionType ON ds.CTypeID = CollectionType.CTypeID INNER JOIN
+	DataCode ON ds.DataCodeID = DataCode.DataCodeID INNER JOIN
+	DataProvider ON ds.DataProviderID = DataProvider.DataProviderID
+order by ds.DatasetTypeID
+
+
+update Hydro.dbo.DatasetType
+set DatasetType.DatasetTypeName = 
+concat(Feature.Feature, ' - ',  MeasurementType.MeasurementType, ' - ',
+	CollectionType.CollectionType,' - ', DataCode.DataCode,' - ', DataProvider.DataProvider)
+FROM DatasetType as ds INNER JOIN
+	Feature ON ds.FeatureID = Feature.FeatureID INNER JOIN
+	MeasurementType ON ds.MTypeID = MeasurementType.MTypeID INNER JOIN
+	CollectionType ON ds.CTypeID = CollectionType.CTypeID INNER JOIN
+	DataCode ON ds.DataCodeID = DataCode.DataCodeID INNER JOIN
+	DataProvider ON ds.DataProviderID = DataProvider.DataProviderID
+	
+	
+	
 
 	

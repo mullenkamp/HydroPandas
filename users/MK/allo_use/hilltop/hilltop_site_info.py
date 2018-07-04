@@ -10,7 +10,7 @@ from pandas import concat, DataFrame, Timestamp, to_datetime
 from configparser import ConfigParser
 from datetime import datetime, timedelta
 from re import search, IGNORECASE, findall
-from pdsql.mssql import rd_sql, to_mssql, create_mssql_table, del_mssql_table_rows
+from pdsql.mssql import rd_sql, to_mssql, create_table, del_table_rows
 from hilltoppy.com import rd_hilltop_sites
 from hilltoppy.util import convert_site_names
 
@@ -132,6 +132,7 @@ try:
 
                 sdata = sdata[sdata.mtype != 'Regularity']
                 sdata['hts_file'] = j.split('.hts')[0]
+                i.replace('\\', '-')
                 sdata['folder'] = i
                 ht_sites_lst.append(sdata)
 
@@ -141,10 +142,11 @@ try:
     ht_sites = ht_sites.drop_duplicates().drop('divisor', axis=1)
     ht_sites['wap'] = convert_site_names(ht_sites.site)
     ht_sites['date'] = Timestamp(yest.date())
-    end_dates = to_datetime(ht_sites['end_date']).copy()
-    days_since = (Timestamp(today.date()) - end_dates).dt.days
-    data_yest = end_dates >= Timestamp(yest.date())
-    data_yest2 = end_dates >= Timestamp(yest.date() - timedelta(1))
+    ht_sites['start_date'] = to_datetime(ht_sites['start_date'], errors='coerce')
+    ht_sites['end_date'] = to_datetime(ht_sites['end_date'], errors='coerce')
+    days_since = (Timestamp(today.date()) - ht_sites['end_date']).dt.days
+    data_yest = ht_sites['end_date'] >= Timestamp(yest.date())
+    data_yest2 = ht_sites['end_date'] >= Timestamp(yest.date() - timedelta(1))
     ht_sites['days_since_last_data'] = days_since
     ht_sites['data_yesterday'] = data_yest
     ht_sites['data_2_days_ago'] = data_yest2
@@ -177,31 +179,27 @@ try:
 
     tel_data[tel_data['days_since_last_data'] <= 30].groupby('hts_file')['site'].count()
 
-
-
-
-
     ### Save to SQL
     ## create tables if needed
     summ_bool1 = rd_sql(server, database, stmt="select OBJECT_ID('" + summ_table_name + "', 'U')").loc[0][0] is None
     data_bool1 = rd_sql(server, database, stmt="select OBJECT_ID('" + data_table_name + "', 'U')").loc[0][0] is None
 
     if summ_bool1:
-        create_mssql_table(server, database, summ_table_name, dtype_dict=summ_dtype, primary_keys=summ_pkeys)
+        create_table(server, database, summ_table_name, dtype_dict=summ_dtype, primary_keys=summ_pkeys)
 
     if data_bool1:
-        create_mssql_table(server, database, data_table_name, dtype_dict=data_dtype, primary_keys=data_pkeys)
+        create_table(server, database, data_table_name, dtype_dict=data_dtype, primary_keys=data_pkeys)
 
     ## Save data
     to_mssql(summ_df, server, database, summ_table_name)
-#    to_mssql(ht_sites, server, database, data_table_name)
+    to_mssql(ht_sites, server, database, data_table_name)
 
     ## log
     run_time_end = datetime.today().strftime(time_format)
     log1 = DataFrame([[run_time_start, summ_table_name, 'pass', 'all good', str(yest.date()), run_time_end]], columns=['Time', 'HydroTable', 'RunResult', 'Comment', 'FromTime', 'RunTimeEnd'])
     to_mssql(log1, log_server, log_database, log_table)
-#    log2 = DataFrame([[run_time_start, data_table_name, 'pass', 'all good', str(yest.date()), run_time_end]], columns=['Time', 'HydroTable', 'RunResult', 'Comment', 'FromTime', 'RunTimeEnd'])
-#    to_mssql(log2, log_server, log_database, log_table)
+    log2 = DataFrame([[run_time_start, data_table_name, 'pass', 'all good', str(yest.date()), run_time_end]], columns=['Time', 'HydroTable', 'RunResult', 'Comment', 'FromTime', 'RunTimeEnd'])
+    to_mssql(log2, log_server, log_database, log_table)
     print('complete')
 
 except Exception as err:
@@ -210,6 +208,6 @@ except Exception as err:
     run_time_start = today.strftime(time_format)
     run_time_end = datetime.today().strftime(time_format)
     log3 = DataFrame([[run_time_start, summ_table_name, 'fail', str(err1), str(today), run_time_end]], columns=['Time', 'HydroTable', 'RunResult', 'Comment', 'FromTime', 'RunTimeEnd'])
-    to_mssql(log3)
+    to_mssql(log3, log_server, log_database, log_table)
 
 

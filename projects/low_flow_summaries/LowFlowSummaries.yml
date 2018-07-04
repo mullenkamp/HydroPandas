@@ -1,10 +1,9 @@
-name: HilltopSiteInfo
+name: LowFlowSumm
 channels:
 - conda-forge
 - mullenkamp
 - defaults
 dependencies:
-- python
+- python=3.6
 - pandas
 - pdsql
-- hilltop-py

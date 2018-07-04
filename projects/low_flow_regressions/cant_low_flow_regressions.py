@@ -14,6 +14,9 @@ from shapely.geometry import Point
 import pickle
 from hydrolm.lm import LM
 from seaborn import regplot
+import matplotlib.pyplot as plt
+
+plt.ioff()
 
 ############################################
 ### Parameters
@@ -40,7 +43,8 @@ datasets = [5, 8]
 qual_codes = [200, 400, 500, 520, 600]
 
 export_dir = r'E:\ecan\shared\projects\low_flow_regressions'
-export_summ1 = 'summary_2018-05-28_alt.csv'
+fig_sub_dir = 'plots'
+export_summ1 = 'summary_2018-06-29.csv'
 
 ############################################
 ### Extract summary data and determine the appropriate sites to use
@@ -148,6 +152,11 @@ for s in range(1, 4):
 
             site_res = [i, nrmse1, adjr2, nobs, y_range, fvalue, fpvalue, dep_sites]
             res_list.append(site_res)
+
+            ## Plots
+            fig = model1.plot_ccpr_grid(i)
+            fig.savefig(os.path.join(export_dir, fig_sub_dir, i + '_' + str(s) + '.png'), bbox_inches='tight')
+            plt.close(fig)
 
     res_site1 = pd.DataFrame(res_list, columns=cols).set_index('site')
     res_list_df.append(res_site1)

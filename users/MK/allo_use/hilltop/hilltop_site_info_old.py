@@ -178,6 +178,9 @@ try:
     tel_data[tel_data['days_since_last_data'] <= 30].groupby('hts_file')['site'].count()
 
 
+
+
+
     ### Save to SQL
     ## create tables if needed
     summ_bool1 = rd_sql(server, database, stmt="select OBJECT_ID('" + summ_table_name + "', 'U')").loc[0][0] is None
@@ -191,14 +194,14 @@ try:
 
     ## Save data
     to_mssql(summ_df, server, database, summ_table_name)
-    to_mssql(ht_sites, server, database, data_table_name)
+#    to_mssql(ht_sites, server, database, data_table_name)
 
     ## log
     run_time_end = datetime.today().strftime(time_format)
     log1 = DataFrame([[run_time_start, summ_table_name, 'pass', 'all good', str(yest.date()), run_time_end]], columns=['Time', 'HydroTable', 'RunResult', 'Comment', 'FromTime', 'RunTimeEnd'])
     to_mssql(log1, log_server, log_database, log_table)
-    log2 = DataFrame([[run_time_start, data_table_name, 'pass', 'all good', str(yest.date()), run_time_end]], columns=['Time', 'HydroTable', 'RunResult', 'Comment', 'FromTime', 'RunTimeEnd'])
-    to_mssql(log2, log_server, log_database, log_table)
+#    log2 = DataFrame([[run_time_start, data_table_name, 'pass', 'all good', str(yest.date()), run_time_end]], columns=['Time', 'HydroTable', 'RunResult', 'Comment', 'FromTime', 'RunTimeEnd'])
+#    to_mssql(log2, log_server, log_database, log_table)
     print('complete')
 
 except Exception as err:
