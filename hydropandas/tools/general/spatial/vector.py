@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 from geopandas.tools import sjoin
-from pycrs import parser
+from pycrsx import parser
 from shapely.geometry import Point, Polygon
 from hydropandas.util.misc import select_sites
 from hydropandas.io.tools.mssql import rd_sql

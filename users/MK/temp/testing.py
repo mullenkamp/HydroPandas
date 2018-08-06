@@ -1726,7 +1726,7 @@ server = 'SQL2012PROD05'
 database = 'Bgauging'
 table = 'Data'
 
-export_csv = r'E:\ecan\local\Projects\requests\tony\2018-06-25\bgauging_comments_2018-06-25.csv'
+export_csv = r'E:\ecan\local\Projects\requests\tony\2018-07-30\bgauging_comments_2018-07-30.csv'
 
 comments = rd_sql(server, database, table)
 
@@ -1985,6 +1985,51 @@ lf_site = mssql.rd_sql(server, database, lf_site_table, where_col={'date': ['201
 site = mssql.rd_sql(server, database, site_table)
 
 lf_site[~lf_site.site.isin(site.ExtSiteID)]
+
+###############################################
+### Hilltop usage
+
+import hilltoppy.web_service as wb
+
+base_url = 'http://wateruse.ecan.govt.nz'
+hts = 'WaterUse.hts'
+#site = 'I40/0610-M1'
+site = 'L36/1313-M1'
+measurement=None
+
+#site1 = 'I40/0610-M1'
+
+m1 = wb.measurement_list('http://wateruse.ecan.govt.nz', 'WaterUse.hts', site1)
+
+m1 = wb.measurement_list('http://wateruse.ecan.govt.nz', 'WaterUse.hts', site)
+
+wb.build_url('http://wateruse.ecan.govt.nz', 'WaterUse.hts', 'MeasurementList', site)
+
+data1 = wb.get_data(
+
+#############################################
+### Hydstra checks
+
+from pyhydllp import hyd
+
+ini_path = r'\\fileservices02\ManagedShares\Data\Hydstra\prod\hyd'
+dll_path = r'\\fileservices02\ManagedShares\Data\Hydstra\prod\hyd\sys\run'
+
+hyd1 = hyd(ini_path, dll_path, username='MIKE', password='Pass2018')
+
+chg1 = hyd1.ts_data_changes([100], ['1071110'], from_mod_date='2018-07-01')
+
+
+##########################################
+### hilltop
+
+from hilltoppy import web_service
+
+
+web_service.get_data
+
+
+
 
 
 

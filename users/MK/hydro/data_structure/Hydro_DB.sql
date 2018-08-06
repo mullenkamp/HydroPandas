@@ -517,7 +517,25 @@ FROM DatasetType as ds INNER JOIN
 	DataCode ON ds.DataCodeID = DataCode.DataCodeID INNER JOIN
 	DataProvider ON ds.DataProviderID = DataProvider.DataProviderID
 	
-	
+
+select tsdata.ExtSiteID,
+	tsdata.DatasetTypeID,
+	min(tsdata.Value) as Min,
+	avg(tsdata.Value) as Mean,
+	max(tsdata.Value) as Max,
+	count(tsdata.Value) as Count,
+	min(tsdata.[DateTime]) as FromDate,
+	max(tsdata.[DateTime]) as ToDate
+from TSDataNumericDaily as tsdata
+inner join
+	(select distinct ExtSiteID, DatasetTypeID
+	 from TSDataNumericDaily
+	 where ModDate >= '2018-06-01') as set1
+on tsdata.ExtSiteID = set1.ExtSiteID
+and tsdata.DatasetTypeID = set1.DatasetTypeID
+where tsdata.Value is not NULL
+group by tsdata.ExtSiteID, tsdata.DatasetTypeID
+       
 	
 
 	
