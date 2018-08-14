@@ -536,6 +536,19 @@ and tsdata.DatasetTypeID = set1.DatasetTypeID
 where tsdata.Value is not NULL
 group by tsdata.ExtSiteID, tsdata.DatasetTypeID
        
-	
+ALTER TABLE Hydro.dbo.TSDataNumericDailySumm
+ALTER COLUMN FromDate date
+
+ALTER TABLE Hydro.dbo.TSDataNumericDailySumm
+ALTER COLUMN ToDate date
+
+CREATE TABLE SiteFeature (
+       ExtSiteID varchar(29) NOT NULL FOREIGN KEY REFERENCES ExternalSite(ExtSiteID),
+       FeatureID int not null FOREIGN KEY REFERENCES Feature(FeatureID),
+       Parameter varchar(99) not null,
+       Value varchar(299) not null,
+       ModDate datetime not null default getdate(),
+       PRIMARY KEY (ExtSiteID, FeatureID)
+)
 
 	

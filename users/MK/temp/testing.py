@@ -1995,8 +1995,12 @@ base_url = 'http://wateruse.ecan.govt.nz'
 hts = 'WaterUse.hts'
 #site = 'I40/0610-M1'
 site = 'L36/1313-M1'
-measurement=None
-
+site = 'K37/2393-M1'
+measurement='Compliance Volume'
+from_date = '2013-01-15'
+to_date = '2013-01-24'
+agg_method = 'Total'
+agg_interval = '1 day'
 #site1 = 'I40/0610-M1'
 
 m1 = wb.measurement_list('http://wateruse.ecan.govt.nz', 'WaterUse.hts', site1)
@@ -2005,7 +2009,8 @@ m1 = wb.measurement_list('http://wateruse.ecan.govt.nz', 'WaterUse.hts', site)
 
 wb.build_url('http://wateruse.ecan.govt.nz', 'WaterUse.hts', 'MeasurementList', site)
 
-data1 = wb.get_data(
+wb.build_url('http://wateruse.ecan.govt.nz', 'WaterUse.hts', 'GetData', site, measurement, from_date, to_date, agg_method=agg_method, agg_interval=agg_interval)
+
 
 #############################################
 ### Hydstra checks
@@ -2021,12 +2026,7 @@ chg1 = hyd1.ts_data_changes([100], ['1071110'], from_mod_date='2018-07-01')
 
 
 ##########################################
-### hilltop
 
-from hilltoppy import web_service
-
-
-web_service.get_data
 
 
 
