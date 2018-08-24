@@ -548,7 +548,33 @@ CREATE TABLE SiteFeature (
        Parameter varchar(99) not null,
        Value varchar(299) not null,
        ModDate datetime not null default getdate(),
-       PRIMARY KEY (ExtSiteID, FeatureID)
+       PRIMARY KEY (ExtSiteID, FeatureID, Parameter)
 )
+
+select DatasetTypeID, Feature, MeasurementType, CollectionType, DataCode, DataProvider
+from DatasetType as ds
+inner join Feature on ds.FeatureID = Feature.FeatureID
+INNER join MeasurementType on ds.MTypeID = MeasurementType.MTypeID
+inner join CollectionType on ds.CTypeID = CollectionType.CTypeID
+inner join DataCode on ds.DataCodeID = DataCode.DataCodeID
+inner join DataProvider on ds.DataProviderID = DataProvider.DataProviderID
+where Feature = 'atmosphere' and MeasurementType = 'precipitation' and CollectionType = 'recorder' and DataCode = 'raw' and DataProvider = 'niwa'
+
+delete from Hydro.dbo.TSDataNumericDaily
+where DatasetTypeID in (10, 424, 1, 3, 2, 14)
+
+delete from Hydro.dbo.TSDataNumericHourly
+where DatasetTypeID in (10, 424, 1, 3, 2, 14)
+
+SELECT CAST(GETDATE() + 1 AS DATE)
+
+select DatasetTypeID, Feature, MeasurementType, CollectionType, DataCode, DataProvider
+from DatasetType as ds
+inner join Feature on ds.FeatureID = Feature.FeatureID
+INNER join MeasurementType on ds.MTypeID = MeasurementType.MTypeID
+inner join CollectionType on ds.CTypeID = CollectionType.CTypeID
+inner join DataCode on ds.DataCodeID = DataCode.DataCodeID
+inner join DataProvider on ds.DataProviderID = DataProvider.DataProviderID
+where DatasetTypeName is null
 
 	

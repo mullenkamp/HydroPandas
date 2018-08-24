@@ -28,14 +28,14 @@ def discrete_resample(df, pd_res_code, **kwargs):
 
     Returns
     -------
-    Pandas resampling class
+    Pandas resampling object
     """
     df1 = (df + df.shift(-1))/2
     out1 = df1.resample(pd_res_code, **kwargs)
     return out1
 
 
-def grp_ts_agg(df, grp_col, ts_col, freq_code):
+def grp_ts_agg(df, grp_col, ts_col, freq_code, discrete=False):
     """
     Simple function to aggregate time series with dataframes with a single column of sites and a column of times.
 
@@ -49,6 +49,8 @@ def grp_ts_agg(df, grp_col, ts_col, freq_code):
         The column name of the datetime column.
     freq_code : str
         The pandas frequency code for the aggregation (e.g. 'M', 'A-JUN').
+    discrete : bool
+        Is the data discrete? Will use proper resampling using linear interpolation.
 
     Returns
     -------
@@ -58,10 +60,14 @@ def grp_ts_agg(df, grp_col, ts_col, freq_code):
     df1 = df.copy()
     if type(df[ts_col].iloc[0]) is pd.Timestamp:
         df1.set_index(ts_col, inplace=True)
-        if type(grp_col) is list:
-            grp_col.extend([pd.Grouper(freq=freq_code)])
+        if isinstance(grp_col, str):
+            grp_col = [grp_col]
         else:
-            grp_col = [grp_col, pd.Grouper(freq=freq_code)]
+            grp_col = grp_col[:]
+        if discrete:
+            val_cols = [c for c in df1.columns if c not in grp_col]
+            df1[val_cols] = (df1[val_cols] + df1[val_cols].shift(-1))/2
+        grp_col.extend([pd.Grouper(freq=freq_code)])
         df_grp = df1.groupby(grp_col)
         return (df_grp)
     else:
