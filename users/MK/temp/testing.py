@@ -2026,11 +2026,16 @@ chg1 = hyd1.ts_data_changes([100], ['1071110'], from_mod_date='2018-07-01')
 
 
 ##########################################
+from pyhydrotel import get_ts_data, get_sites_mtypes
 
+server = 'sql2012prod05'
+database = 'hydrotel'
 
+sites = ['71132']
 
+get_sites_mtypes(server, database, 'water level', sites)
 
-
+d1 = get_ts_data(server, database, 'water level', sites)
 
 
 
