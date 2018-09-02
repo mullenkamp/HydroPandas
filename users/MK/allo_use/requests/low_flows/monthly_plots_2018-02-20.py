@@ -6,7 +6,7 @@ Created on Tue Feb 20 12:46:41 2018
 """
 from os import path
 import pandas as pd
-from hydropandas.io.tools.mssql import rd_sql
+from pdsql.mssql import rd_sql
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -19,13 +19,13 @@ database = 'Hydro'
 table = 'LowFlowRestrSite'
 
 from_date = '2017-10-01'
-to_date = '2018-02-28'
+to_date = '2018-04-30'
 
 include_flow_methods = ['Correlated from Telem', 'Gauged', 'Telemetered', 'Visually Gauged']
 
-export_path = r'S:\Surface Water\shared\requests\helen\2018-02-27'
-export_name_fancy = '2017-2018_restrictions_fancy_v03.png'
-export_name = '2017-2018_restrictions_v03.png'
+export_path = r'E:\ecan\shared\projects\mon_water_report\2018-09-03'
+export_name_fancy = '2017-2018_restrictions_fancy.png'
+export_name = '2017-2018_restrictions.png'
 export_man_calc_sites = 'lowflow_sites.csv'
 export_sel2 = 'lowflow_restr_2017-10-01.csv'
 
@@ -132,8 +132,8 @@ plot2.savefig(path.join(export_path, export_name))
 #man_calc_sites.to_csv(path.join(export_path, export_man_calc_sites), index=False)
 #
 
-set2 = lowflow2[(lowflow2.date == '2017-10-01') & (lowflow2.restr_category != 'No')]
-set2.to_csv(path.join(export_path, export_sel2), index=False)
+#set2 = lowflow2[(lowflow2.date == '2017-10-01') & (lowflow2.restr_category != 'No')]
+#set2.to_csv(path.join(export_path, export_sel2), index=False)
 
 
 

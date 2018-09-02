@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon May 21 09:56:57 2018
+Created on Wed Aug 29 08:37:45 2018
 
 @author: MichaelEK
 """
+
+import os
+import pandas as pd
+from pdsql import mssql
+import statsmodels as sm
+from pandas.plotting import autocorrelation_plot
+from matplotlib import pyplot
 import numpy as np
 import pandas as pd
 from pdsql import mssql
@@ -16,8 +23,100 @@ from hydrolm.lm import LM
 from seaborn import regplot
 import matplotlib.pyplot as plt
 from statsmodels import robust
+from sklearn import datasets, svm
+from sklearn.feature_selection import SelectPercentile, f_classif, f_regression, mutual_info_regression
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel, Sum
+from sklearn.linear_model import HuberRegressor, Ridge, LinearRegression
+from itertools import combinations
+from scipy import stats, special
 
-plt.ioff()
+
+def tsreg(ts, freq=None, interp=False, maxgap=None):
+    """
+    Function to regularize a time series object (pandas).
+    The first three indeces must be regular for freq=None!!!
+
+    ts -- pandas time series dataframe.\n
+    freq -- Either specify the known frequency of the data or use None and
+    determine the frequency from the first three indices.\n
+    interp -- Interpolation method.
+    """
+
+    if freq is None:
+        freq = pd.infer_freq(ts.index[:3])
+    ts1 = ts.resample(freq).mean()
+    if isinstance(interp, str):
+        ts1 = ts1.interpolate(interp, limit=maxgap)
+
+    return ts1
+
+server = 'sql2012test01'
+database = 'hydro'
+ts_table = 'TSDataNumericDaily'
+
+sites = ['69302']
+datasets = [5]
+
+tsdata1 = mssql.rd_sql(server, database, ts_table, ['ExtSiteID', 'DatasetTypeID', 'DateTime', 'Value'], where_col={'ExtSiteID': sites, 'DatasetTypeID': datasets})
+tsdata1.DateTime = pd.to_datetime(tsdata1.DateTime)
+
+tsdata2 = tsdata1.drop(['ExtSiteID', 'DatasetTypeID'], axis=1).set_index('DateTime').Value
+tsdata3 = tsreg(tsdata2, freq='D', interp='time')
+
+tsdata3.plot()
+
+autocorrelation_plot(tsdata3)
+pyplot.show()
+d1 = sm.tsa.seasonal.seasonal_decompose(tsdata3)
+#m1 = sm.tsa.ar_model.AR(tsdata2, freq='D')
+#f1 = m1.fit(m1)
+
+m1 = sm.tsa.arima_model.ARIMA(tsdata3, freq='D', order=(50, 1, 2))
+fit1 = m1.fit(m1, display=0)
+
+#######################
+from __future__ import print_function
+import numpy as np
+from scipy import stats
+import pandas as pd
+import matplotlib.pyplot as plt
+
+import statsmodels.api as sm
+
+from statsmodels.graphics.api import qqplot
+
+print(sm.datasets.sunspots.NOTE)
+
+dta = sm.datasets.sunspots.load_pandas().data
+
+dta.index = pd.Index(sm.tsa.datetools.dates_from_range('1700', '2008'))
+del dta["YEAR"]
+
+dta.values.squeeze()
+
+pacf = sm.graphics.tsa.plot_pacf
+
+
+pacf(tsdata3[:500])
+
+
+arma_mod20 = sm.tsa.ARMA(tsdata3[:500], (8,0)).fit(disp=False)
+print(arma_mod20.params)
+fig = plt.figure(figsize=(12,8))
+ax = fig.add_subplot(111)
+ax = arma_mod20.resid.plot(ax=ax);
+
+#########################################
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
+
+# NBER recessions
+from pandas_datareader.data import DataReader
+from datetime import datetime
+usrec = DataReader('USREC', 'fred', start=datetime(1947, 1, 1), end=datetime(2013, 4, 1))
 
 ############################################
 ### Parameters
@@ -30,11 +129,13 @@ ts_summ_table = 'TSDataNumericDailySumm'
 lf_table = 'LowFlowRestrSite'
 sites_table = 'ExternalSite'
 
+
 lf_date = '2018-05-28'
 recent_date = '2018-01-01'
 min_date = '2000-01-01'
 min_count = 8
 search_dis = 50000
+n_ind = 2
 
 dep_loss = 0.04
 nobs_loss = 0.002
@@ -95,6 +196,7 @@ site_xy1 = gpd.GeoDataFrame(site_xy['ExtSiteID'], geometry=geometry, crs=2193)
 gauge_xy = site_xy1[site_xy1.ExtSiteID.isin(gauge_sites.ExtSiteID)].set_index('ExtSiteID').copy()
 rec_xy = site_xy1[site_xy1.ExtSiteID.isin(rec_sites.ExtSiteID)].set_index('ExtSiteID').copy()
 
+
 ###########################################
 ### Iterate through the low flow sites
 
@@ -114,10 +216,10 @@ for g in gauge_sites.ExtSiteID.tolist():
     g_data = mssql.rd_sql(server, database, ts_daily_table, ['ExtSiteID', 'DateTime', 'Value'], where_col={'DatasetTypeID': man_datasets, 'ExtSiteID': [g], 'QualityCode': qual_codes}, from_date=min_date, date_col='DateTime')
     g_data.DateTime = pd.to_datetime(g_data.DateTime)
     g_data.loc[g_data.Value <= 0, 'Value'] = np.nan
-    g_data.loc[g_data.Value > max_trig*5, 'Value'] = np.nan
+    g_data.loc[g_data.Value > max_trig*2, 'Value'] = np.nan
     r_data = mssql.rd_sql(server, database, ts_daily_table, ['ExtSiteID', 'DateTime', 'Value'], where_col={'DatasetTypeID': rec_datasets, 'ExtSiteID': near_rec_sites.index.tolist(), 'QualityCode': qual_codes}, from_date=min_date, date_col='DateTime')
     r_data.DateTime = pd.to_datetime(r_data.DateTime)
-    r_data.loc[r_data.Value <= 0, 'Value'] = np.nan
+    r_data.loc[r_data.Vaalue <= 0, 'Value'] = np.nan
 
     ## Re-organise the datasets
     g_data1 = g_data.pivot_table('Value', 'DateTime', 'ExtSiteID')
@@ -128,24 +230,34 @@ for g in gauge_sites.ExtSiteID.tolist():
     if len(set1) < min_count:
         continue
 
-    ## regressions!
-    lm1 = LM(r_data1, g_data1)
-    ols1 = lm1.run('ols', 1, x_transform=None, y_transform=None, min_obs=min_count)
-    ols1_log = lm1.run('ols', 1, x_transform='log', y_transform='log', min_obs=min_count)
-    ols1_bc = lm1.run('ols', 1, x_transform='boxcox', y_transform='boxcox', min_obs=min_count)
-#    rlm1 = lm1.run('rlm', 1, x_transform=None, y_transform=None, min_obs=min_count)
-#    rlm1_log = lm1.run('rlm', 1, x_transform='log', y_transform='log', min_obs=min_count)
-#    rlm1_bc = lm1.run('rlm', 1, x_transform='boxcox', y_transform='boxcox', min_obs=min_count)
+    x_names = r_data1.columns.tolist()
 
-#    rlm3_bc = lm1.run('rlm', 3, x_transform='boxcox', y_transform='boxcox', min_obs=min_count)
-    ols2 = lm1.run('ols', 2, x_transform=None, y_transform=None, min_obs=min_count)
-    ols3 = lm1.run('ols', 3, x_transform=None, y_transform=None, min_obs=min_count)
-    ols3_log = lm1.run('ols', 3, x_transform='log', y_transform='log', min_obs=min_count)
-    ols3_bc = lm1.run('ols', 3, x_transform='boxcox', y_transform='boxcox', min_obs=min_count)
-    ols2_bc = lm1.run('ols', 2, x_transform='boxcox', y_transform='boxcox', min_obs=min_count)
+    bestf = {}
+    bestm = {}
+    combos = set(combinations(x_names, n_ind))
+    for c in combos:
+        xi = list(c)
+        set2 = pd.concat([g_data1, r_data1[xi]], axis=1).dropna()
+        if len(set2) < min_count:
+            continue
+        X = set2[xi].values
+        y = set2[g].values
+        f2 = f_regression(X, y)
+        bestf.update({c: round(f2[0][0], 1)})
+        m2 = mutual_info_regression(X, y)
+        bestm.update({c: round(m2[0], 3)})
 
-    ## Save
-    results_dict.update({g: {1: ols1, 2: ols2, 3: ols3}})
+
+
+
+#    ## regressions!
+#    ols = LM(r_data1, g_data1)
+#    ols1 = ols.ols(1, log_x=False, log_y=False, min_obs=min_count)
+#    ols2 = ols.ols(2, log_x=False, log_y=False, min_obs=min_count)
+#    ols3 = ols.ols(3, log_x=False, log_y=False, min_obs=min_count)
+#
+#    ## Save
+#    results_dict.update({g: {1: ols1, 2: ols2, 3: ols3}})
 
 
 ### Produce summary table
@@ -197,15 +309,93 @@ winner.name = 'winner'
 res_df['winner'] = winner
 
 
-### Save data
-file_path = os.path.join(export_dir, export_summ1)
-res_df.to_csv(file_path)
 
 
 
 
-##################################################
-### Testing
+
+
+
+
+
+
+
+
+
+
+
+
+x = '67001'
+
+set2 = set1[[g, x]].dropna()
+
+X = set2[x].copy().values.reshape(-1, 1)
+y = set2[g].copy().values
+
+f1 = f_classif(X, y)
+f2 = f_regression(X, y)
+pyplot.show()
+
+
+g1 = GaussianProcessRegressor().fit(X, y)
+
+x1min = np.min(X.T[0])
+x1max = np.max(X.T[0])
+x2min = np.min(X.T[1])
+x2max = np.max(X.T[1])
+
+x1 = np.atleast_2d(np.linspace(x1min, x1max, 100)).T
+x2 = np.atleast_2d(np.linspace(x2min, x2max, 100)).T
+
+x = np.concatenate((x1, x2), axis=1)
+
+y_pred, sigma = g1.predict(x, return_std=True)
+
+h1 = HuberRegressor().fit(X, y)
+y_pred = h1.predict(x)
+
+l1 = LinearRegression().fit(X, y)
+y_pred = l1.predict(x)
+
+x = np.atleast_2d(np.linspace(0, 0.1, 100)).T
+
+
+fig = plt.figure()
+plt.plot(X, y, 'r.', markersize=10, label=u'Observations')
+plt.plot(x, y_pred, 'b-', label=u'Prediction')
+#plt.fill(np.concatenate([x, x[::-1]]),
+#         np.concatenate([y_pred - 1.9600 * sigma,
+#                        (y_pred + 1.9600 * sigma)[::-1]]),
+#         alpha=.5, fc='b', ec='None', label='95% confidence interval')
+plt.xlabel('$x$')
+plt.ylabel('$f(x)$')
+#plt.ylim(-10, 20)
+plt.legend(loc='upper left')
+pyplot.show()
+
+
+
+
+
+data = sm.datasets.longley.load()
+data.exog = sm.add_constant(data.exog)
+results = sm.RLM(data.endog, data.exog).fit()
+A = np.identity(len(results.params))
+A = A[1:,:]
+print(results.f_test(A))
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

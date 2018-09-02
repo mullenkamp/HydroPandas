@@ -2038,6 +2038,91 @@ get_sites_mtypes(server, database, 'water level', sites)
 d1 = get_ts_data(server, database, 'water level', sites)
 
 
+#########################################
+### TS analysis
+
+import os
+import pandas as pd
+from pdsql import mssql
+import statsmodels as sm
+from pandas.tools.plotting import autocorrelation_plot
+
+server = 'sql2012test01'
+database = 'hydro'
+ts_table = 'TSDataNumericDaily'
+
+sites = ['69302']
+datasets = [5]
+
+tsdata1 = mssql.rd_sql(server, database, ts_table, ['ExtSiteID', 'DatasetTypeID', 'DateTime', 'Value'], where_col={'ExtSiteID': sites, 'DatasetTypeID': datasets})
+tsdata1.DateTime = pd.to_datetime(tsdata1.DateTime)
+
+tsdata2 = tsdata1.drop(['ExtSiteID', 'DatasetTypeID'], axis=1).set_index('DateTime').Value
+
+auto
+
+m1 = sm.tsa.ar_model.AR(tsdata2, freq='D')
+f1 = m1.fit(m1)
+
+m1 = sm.tsa.arima_model.ARIMA(tsdata2, freq='D', order=(2, 1, 2))
+f1 = m1.fit(m1)
+
+from sklearn.datasets import load_iris
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import chi2
+iris = load_iris()
+X, y = iris.data, iris.target
+X.shape
+
+X_new = SelectKBest(chi2, k=2).fit_transform(X, y)
+X_new.shape
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
