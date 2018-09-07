@@ -577,6 +577,23 @@ inner join DataCode on ds.DataCodeID = DataCode.DataCodeID
 inner join DataProvider on ds.DataProviderID = DataProvider.DataProviderID
 where DatasetTypeName is null
 
+select distinct crc_status
+from CrcAllo
+
+select count(ExtSiteID)
+from Hydro.dbo.TSDataNumericDaily
+where DatasetTypeID in (9, 12) and Value is null
+
+select *
+from Hydro.dbo.TSDataNumericDaily
+where DatasetTypeID in (9, 12)
+order by [DateTime] DESC
+
+
+
+
+
+
 
 
 
