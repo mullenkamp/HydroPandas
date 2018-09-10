@@ -30,8 +30,8 @@ hts = 'WaterUse.hts'
 #
 #hts_dsn = r'H:\Data\WaterUSeAll.dsn'
 
-export_dir = r'E:\ecan\local\Projects\requests\suz\2018-08-23'
-export1 = 'rdr_rwl_usage_data_2018-08-29.csv'
+export_dir = r'E:\ecan\local\Projects\requests\suz\2018-09-10'
+export1 = 'rdr_rwl_usage_data_2018-09-10.csv'
 
 
 ############################################
@@ -45,9 +45,6 @@ tsdata1.DateTime = pd.to_datetime(tsdata1.DateTime)
 tsdata2 = tsdata1[tsdata1.DateTime >= '2005-01-01']
 
 grp1 = tsdata2.groupby(['ExtSiteID', 'DatasetTypeID'])
-
-grp1.min()
-grp1.max()
 
 flow1 = tsdata2[tsdata2.DatasetTypeID == 5].copy()
 vol1 = tsdata2[tsdata2.DatasetTypeID == 9].copy()

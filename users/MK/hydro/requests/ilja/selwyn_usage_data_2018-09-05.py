@@ -22,6 +22,7 @@ crc_table = 'CrcAllo'
 datasets = [9, 12]
 #cwms = ['kaikoura']
 catch_group = ['Selwyn River']
+#cwms = ['Selwyn - Waihora']
 #rdr_site = 'J36/0016-M1'
 
 base_url = 'http://wateruse.ecan.govt.nz'
@@ -38,7 +39,7 @@ years = {'2016-01-01': '2016-06-30', '2017-01-01': '2017-06-30', '2018-01-01': '
 
 export_dir = r'E:\ecan\local\Projects\requests\Ilja\2018-09-05'
 #export1 = 'selwyn_usage_data_2018-09-06.csv'
-export2 = 'selwyn_allo_usage_summary_2018-09-06.csv'
+export2 = 'selwyn_allo_usage_summary_2018-09-10.csv'
 
 
 def grp_ts_agg(df, grp_col, ts_col, freq_code):
@@ -79,6 +80,8 @@ def grp_ts_agg(df, grp_col, ts_col, freq_code):
 
 ## Pull out recorder data
 sites1 = mssql.rd_sql(server, database, sites_table, ['ExtSiteID'], where_col={'CatchmentGroupName': catch_group}).ExtSiteID.tolist()
+
+#sites1 = mssql.rd_sql(server, database, sites_table, ['ExtSiteID'], where_col={'CwmsName': cwms}).ExtSiteID.tolist()
 
 crc = mssql.rd_sql(server, database, crc_table).drop('mod_date', axis=1)
 crc.to_date = pd.to_datetime(crc.to_date, errors='coerce')
