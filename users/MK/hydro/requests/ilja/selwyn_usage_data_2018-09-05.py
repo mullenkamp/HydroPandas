@@ -7,6 +7,8 @@ Created on Thu Aug 23 15:47:54 2018
 import os
 import pandas as pd
 from pdsql import mssql
+import geopandas as gpd
+import gistools.vector as vec
 
 ############################################
 ### Parameters
@@ -25,21 +27,26 @@ catch_group = ['Selwyn River']
 #cwms = ['Selwyn - Waihora']
 #rdr_site = 'J36/0016-M1'
 
+s1_shp = r'E:\ecan\shared\GIS_base\vector\cpw\S1.shp'
+sheff_shp = r'E:\ecan\shared\GIS_base\vector\cpw\Sheffield.shp'
+
 base_url = 'http://wateruse.ecan.govt.nz'
 hts = 'WaterUse.hts'
 
-from_date = '2015-07-01'
+from_date = '2014-07-01'
 to_date = '2018-06-30'
 
-years = {'2016-01-01': '2016-06-30', '2017-01-01': '2017-06-30', '2018-01-01': '2018-06-30'}
+years = {'2015-01-01': '2015-06-30', '2016-01-01': '2016-06-30', '2017-01-01': '2017-06-30', '2018-01-01': '2018-06-30'}
 
 #rdr_hts = [r'H:\Data\Annual\ending_2016\ending_2016.dsn', r'H:\Data\Annual\ending_2017\ending_2017.dsn', r'H:\Data\Annual\ending_2018\ending_20128.dsn']
 #
 #hts_dsn = r'H:\Data\WaterUSeAll.dsn'
 
 export_dir = r'E:\ecan\local\Projects\requests\Ilja\2018-09-05'
-#export1 = 'selwyn_usage_data_2018-09-06.csv'
-export2 = 'selwyn_allo_usage_summary_2018-09-10.csv'
+export1 = 'cpw_crc_usage_data_2018-09-11.csv'
+export2 = 'cpw_allo_usage_summary_2018-09-11.csv'
+export3 = 'cpw_crc_wap_usage_data_2018-09-11.csv'
+
 
 
 def grp_ts_agg(df, grp_col, ts_col, freq_code):
@@ -78,10 +85,21 @@ def grp_ts_agg(df, grp_col, ts_col, freq_code):
 ############################################
 ### Extract data
 
+cpw_s1 = gpd.read_file(s1_shp)
+cpw_sheff = gpd.read_file(sheff_shp)
+cpw = pd.concat([cpw_s1, cpw_sheff])
+
+
 ## Pull out recorder data
-sites1 = mssql.rd_sql(server, database, sites_table, ['ExtSiteID'], where_col={'CatchmentGroupName': catch_group}).ExtSiteID.tolist()
+#sites1 = mssql.rd_sql(server, database, sites_table, ['ExtSiteID'], where_col={'CatchmentGroupName': catch_group}).ExtSiteID.tolist()
 
 #sites1 = mssql.rd_sql(server, database, sites_table, ['ExtSiteID'], where_col={'CwmsName': cwms}).ExtSiteID.tolist()
+
+sites1 = mssql.rd_sql(server, database, sites_table, ['ExtSiteID', 'NZTMX', 'NZTMY'])
+sites2 = sites1[sites1.ExtSiteID.str.contains('[A-Z]+\d+/\d+')].copy()
+sites3 = vec.xy_to_gpd('ExtSiteID', 'NZTMX', 'NZTMY', sites2)
+
+sites4 = vec.sel_sites_poly(sites3, cpw)
 
 crc = mssql.rd_sql(server, database, crc_table).drop('mod_date', axis=1)
 crc.to_date = pd.to_datetime(crc.to_date, errors='coerce')
@@ -89,7 +107,7 @@ crc.from_date = pd.to_datetime(crc.from_date)
 
 crc1 = crc[crc.use_type.str.contains('Irrigation') & crc.to_date.notnull()]
 
-crc_wap = mssql.rd_sql(server, database, crc_wap_table, ['crc', 'take_type', 'allo_block', 'wap', 'in_sw_allo'], where_col={'wap': sites1})
+crc_wap = mssql.rd_sql(server, database, crc_wap_table, ['crc', 'take_type', 'allo_block', 'wap', 'in_sw_allo'], where_col={'wap': sites4.ExtSiteID.tolist()})
 crc_wap1 = crc_wap[(crc_wap.take_type == 'Take Groundwater')]
 
 crc2 = crc1[crc1.crc.isin(crc_wap1.crc)]
@@ -116,6 +134,9 @@ c1 = crc_wap2.groupby(['year', 'wap']).crc.count()
 dups = c1[c1 > 1]
 
 tsdata4 = pd.merge(crc_wap2, tsdata3, on=['year', 'wap'])
+count1 = tsdata4.groupby(['year', 'wap']).crc.transform('count')
+
+tsdata4['Value'] = (tsdata4['Value']/count1).round()
 
 usage1 = tsdata4.groupby(['year']).Value.sum()
 usage1.name = 'Usage (m3)'
@@ -132,7 +153,61 @@ all1.index.name = 'Year End'
 
 all1.to_csv(os.path.join(export_dir, export2))
 
+tsdata5 = tsdata4.groupby(['crc', 'year']).Value.sum().reset_index()
+
+crc_usage1 = pd.merge(crc4, tsdata5, on=['crc', 'year'], how='left')
+crc_usage1.rename(columns={'feav': 'allocation_m3', 'Value': 'usage_m3'}, inplace=True)
+crc_usage2 = crc_usage1.set_index(['year', 'crc'])
+
+crc_usage2.to_csv(os.path.join(export_dir, export1))
 
 #ml4 = ws.measurement_list(base_url, hts, rdr_site)
+
+crc_wap_usage1 = pd.merge(tsdata4, crc4, on=['crc', 'year'])
+count2 = crc_wap_usage1.groupby(['year', 'crc']).wap.transform('count')
+crc_wap_usage1['feav'] = (crc_wap_usage1['feav']/count2).round()
+crc_wap_usage1.rename(columns={'feav': 'allocation_m3', 'Value': 'usage_m3'}, inplace=True)
+sites5 = sites2.rename(columns={'ExtSiteID': 'wap'})
+
+crc_wap_usage2 = pd.merge(crc_wap_usage1, sites5, on='wap', how='left')
+crc_wap_usage3 = crc_wap_usage2.set_index(['year', 'crc', 'wap'])
+
+crc_wap_usage3.to_csv(os.path.join(export_dir, export3))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
