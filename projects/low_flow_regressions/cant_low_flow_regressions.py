@@ -8,14 +8,12 @@ import numpy as np
 import pandas as pd
 from pdsql import mssql
 import os
-from hydropandas.tools.general.spatial.vector import xy_to_gpd, sel_sites_poly
 import geopandas as gpd
 from shapely.geometry import Point
-import pickle
 from hydrolm.lm import LM
 from seaborn import regplot
 import matplotlib.pyplot as plt
-from statsmodels import robust
+from gistools.vector import sel_sites_poly
 
 plt.ioff()
 

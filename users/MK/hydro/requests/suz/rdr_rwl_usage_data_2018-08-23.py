@@ -8,7 +8,6 @@ import os
 import pandas as pd
 from pdsql import mssql
 from hilltoppy import web_service as ws
-from hilltoppy import hilltop
 
 ############################################
 ### Parameters

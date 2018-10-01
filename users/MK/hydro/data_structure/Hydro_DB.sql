@@ -582,12 +582,112 @@ from CrcAllo
 
 select count(ExtSiteID)
 from Hydro.dbo.TSDataNumericDaily
-where DatasetTypeID in (9, 12) and Value is null
+where DatasetTypeID in (9, 12) and Value is null and [DateTime] > '2018-09-10'
 
 select *
 from Hydro.dbo.TSDataNumericDaily
 where DatasetTypeID in (9, 12)
 order by [DateTime] DESC
+
+select *
+from hydro.dbo.HydroLog
+where extsystem = 'hilltop usage' and runresult = 'pass'
+order by RunTimeStart DESC
+
+select *
+from Hydro.dbo.TSDataNumericDaily
+where DatasetTypeID in (9, 12) and Value is null and [DateTime] > '2018-08-01'
+order by [DateTime] DESC
+
+select *
+from Hydro.dbo.TSDataNumericDaily
+where ExtSiteID = 'BU25/5051' and [DateTime] > '2018-08-01'
+order by [DateTime] DESC
+
+select [date], COUNT(site) as number_of_sites
+from Hydro.dbo.LowFlowRestrSite
+where site_type = 'LowFlow' and flow_method in ('Correlated from Telem', 'Gauged', 'Manually Calculated', 'Visually Gauged')
+group by [date]
+order by [date] DESC
+
+select site
+from Hydro.dbo.LowFlowRestrSite
+where [date] = '2018-09-11'
+
+select site
+from Hydro.dbo.LowFlowRestrSite
+where [date] = '2018-09-12'
+
+
+select distinct flow_method
+from Hydro.dbo.LowFlowRestrSite
+
+ALTER TABLE Hydro.dbo.LowFlowRestrSite
+ALTER COLUMN restr_category varchar(19)
+
+select distinct ExtSiteID
+from Hydro.dbo.TSDataNumericDailySumm
+where DatasetTypeID < 10 or DatasetTypeID > 1000 and ExtSiteID > 200000 and ExtSiteID < 1000000
+
+ALTER TABLE Hydro.dbo.ExternalSite
+add SourceType varchar(29)
+
+select [DateTime], DATEADD(hour, DATEDIFF(hour, 0, [DateTime]) + 1, 0) AS date
+from Hydro.dbo.TSDataNumericHourly
+where ExtSiteID = '69607' and DatasetTypeID = 5
+
+select *
+from Hydro.dbo.TSDataNumericHourly
+where ExtSiteID = '69607' and DatasetTypeID = 5
+
+--update Hydro.dbo.TSDataNumericDaily
+--set [DateTime] = cast(DATEADD(day, DATEDIFF(day, 0, [DateTime]) - 1, 0) AS date)
+--where DatasetTypeID in (9, 12)
+
+--update Hydro.dbo.TSDataNumericHourly WITH(TABLOCK)
+--set [DateTime] = DATEADD(hour, DATEDIFF(hour, 0, [DateTime]) + 1, 0)
+--WHERE DatasetTypeID in (1, 2, 3)
+--
+--update Hydro.dbo.TSDataNumericHourly WITH(TABLOCK)
+--set [DateTime] = DATEADD(hour, DATEDIFF(hour, 0, [DateTime]) + 1, 0)
+--WHERE DatasetTypeID in (7, 8, 13, 17, 1636, 1637, 1638, 4557, 4558, 4559, 4569, 4570, 4571)
+
+--update Hydro.dbo.TSDataNumericHourly WITH(TABLOCK)
+--set [DateTime] = DATEADD(hour, DATEDIFF(hour, 0, [DateTime]) + 1, 0)
+--WHERE DatasetTypeID = 4
+
+--update Hydro.dbo.TSDataNumericHourly WITH(TABLOCK)
+--set [DateTime] = DATEADD(hour, DATEDIFF(hour, 0, [DateTime]) + 1, 0)
+--WHERE DatasetTypeID = 5
+
+--update Hydro.dbo.TSDataNumericHourly WITH(TABLOCK)
+--set [DateTime] = DATEADD(hour, DATEDIFF(hour, 0, [DateTime]) + 1, 0)
+--WHERE DatasetTypeID = 6
+
+--update Hydro.dbo.TSDataNumericHourly WITH(TABLOCK)
+--set [DateTime] = DATEADD(hour, DATEDIFF(hour, 0, [DateTime]) + 1, 0)
+--WHERE DatasetTypeID in (10, 11, 12, 424)
+
+--update Hydro.dbo.TSDataNumericHourly WITH(TABLOCK)
+--set [DateTime] = DATEADD(hour, DATEDIFF(hour, 0, [DateTime]) + 1, 0)
+--WHERE DatasetTypeID in (6, 14, 15, 16)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

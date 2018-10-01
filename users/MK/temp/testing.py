@@ -2077,29 +2077,45 @@ X.shape
 X_new = SelectKBest(chi2, k=2).fit_transform(X, y)
 X_new.shape
 
+for index, i in enumerate(a):
+    plt.plot(df.iloc[index][0], df.iloc[index][1], marker='.', linestyle='None', markersize=4, color='r')
+plt.show()
+
+
+plt.plot(df['index'], df['data'], marker='.', linestyle='None', markersize=12, color='r')
+
+
+series2 = series_new.shift(1).dropna()
+series2.index = series2.index + pd.DateOffset(minutes=-1)
+series3 = pd.concat([series_new, series2]).sort_index().dropna()
+
+series3.plot.area(ylim=[0, 10])
+series.plot(marker='.', linestyle='None', markersize=12, color='r')
+
+series2 = series.shift(1).dropna()
+series2.index = series2.index + pd.DateOffset(minutes=-1)
+series3 = pd.concat([series, series2]).sort_index().dropna()
+
+series3.plot.area(ylim=[0, 10])
+series.plot(marker='.', linestyle='None', markersize=12, color='r')
+
+series2 = series.shift(-1).dropna()
+series2.index = series2.index + pd.DateOffset(minutes=1)
+series3 = pd.concat([series, series2]).sort_index().dropna()
+
+series3.plot.area(ylim=[0, 10])
+series.plot(marker='.', linestyle='None', markersize=12, color='r')
+
+series.plot(ylim=[0, 10])
+series.plot(marker='.', linestyle='None', markersize=12, color='r')
 
 
 
 
 
+2017-11-24T00:00:00
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+2018-09-04T00:00:00
 
 
 
