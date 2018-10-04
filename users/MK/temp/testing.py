@@ -2112,10 +2112,18 @@ series.plot(marker='.', linestyle='None', markersize=12, color='r')
 
 
 
+########################################
+### pyhydrotel testing
 
-2017-11-24T00:00:00
+from pyhydrotel import get_ts_data
 
-2018-09-04T00:00:00
+server = 'sql2012prod04'
+database = 'hydrotel'
+
+id1 = ['168526']
+mtypes = ['Flow', 'Wilcos Flow']
+tsdata = get_ts_data(server, database, mtypes, id1, resample_code='T', period=15)
+
 
 
 
