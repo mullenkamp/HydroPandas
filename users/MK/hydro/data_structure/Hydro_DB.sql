@@ -625,6 +625,9 @@ from Hydro.dbo.LowFlowRestrSite
 ALTER TABLE Hydro.dbo.LowFlowRestrSite
 ALTER COLUMN restr_category varchar(19)
 
+ALTER TABLE Hydro.dbo.LowFlowRestrSiteBand
+add op_flag varchar(9)
+
 select distinct ExtSiteID
 from Hydro.dbo.TSDataNumericDailySumm
 where DatasetTypeID < 10 or DatasetTypeID > 1000 and ExtSiteID > 200000 and ExtSiteID < 1000000
@@ -672,23 +675,52 @@ where ExtSiteID = '69607' and DatasetTypeID = 5
 --set [DateTime] = DATEADD(hour, DATEDIFF(hour, 0, [DateTime]) + 1, 0)
 --WHERE DatasetTypeID in (6, 14, 15, 16)
 
+select *
+from hydro.dbo.CrcAllo
+where crc = 'CRC183510'
+
+select count(distinct crc)
+from Hydro.dbo.CrcAllo
+where crc_status like '%issue%' and crc in 
+	(select distinct crc
+	from Hydro.dbo.CrcWapAllo
+	where wap in 
+		(select distinct ExtSiteID
+		from Hydro.dbo.TSDataNumericDailySumm
+		where datasettypeid in (9, 12)))
+
+select count(distinct crc)
+from Hydro.dbo.CrcAllo
+where crc_status like '%issue%'
+
+select count(distinct ExtSiteID)
+	from Hydro.dbo.TSDataNumericDailySumm
+	where datasettypeid in (9, 12) AND
+	
+
+select count(distinct wap)
+from Hydro.dbo.CrcWapAllo
+where crc in (
+	select distinct crc
+	from Hydro.dbo.CrcAllo
+	where crc_status like '%issue%')
+	and
+	wap in (select distinct ExtSiteID
+	from Hydro.dbo.TSDataNumericDailySumm
+	where datasettypeid in (9, 12))
 
 
+select *
+from Hydro.dbo.TSDataNumericDailySumm
+where DatasetTypeID = 24
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+select *
+from Hydro.dbo.TSDataNumericDailySumm
+where ExtSiteID in (
+	select ExtSiteID
+	from Hydro.dbo.ExternalSite
+	where CwmsName = 'Orari-Temuka-Opihi-Pareora')
+	and DatasetTypeID in (24, 25, 38)
 
 
 

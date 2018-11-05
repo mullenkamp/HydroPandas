@@ -42,7 +42,7 @@ qual_codes = [200, 400, 500, 520, 600]
 
 export_dir = r'E:\ecan\shared\projects\gw_regressions'
 fig_sub_dir = 'plots'
-export_summ1 = 'summary_2018-09-17.csv'
+export_summ1 = 'summary_2018-10-12.csv'
 
 ############################################
 ### Extract summary data and determine the appropriate sites to use

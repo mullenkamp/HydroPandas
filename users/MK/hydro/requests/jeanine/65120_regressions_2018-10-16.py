@@ -27,7 +27,6 @@ ts_summ_table = 'TSDataNumericDailySumm'
 lf_table = 'LowFlowRestrSite'
 sites_table = 'ExternalSite'
 
-lf_date = '2018-05-28'
 recent_date = '2018-01-01'
 min_date = '2000-01-01'
 min_count = 8
@@ -41,9 +40,11 @@ man_datasets = [8, 1637, 4558, 4564, 4570]
 
 qual_codes = [200, 400, 500, 520, 600]
 
-export_dir = r'E:\ecan\shared\projects\low_flow_regressions'
+site = '65120'
+
+export_dir = r'E:\ecan\local\Projects\requests\jeanine\2018-10-16'
 fig_sub_dir = 'plots'
-export_summ1 = 'summary_2018-08-27.csv'
+export_summ1 = 'summary_2018-10-16.csv'
 
 ############################################
 ### Extract summary data and determine the appropriate sites to use
@@ -54,32 +55,13 @@ rec_summ_data.ToDate = pd.to_datetime(rec_summ_data.ToDate)
 
 rec_sites = rec_summ_data[(rec_summ_data.ToDate > recent_date)]
 
-### Extract low flow sites
-
-lf_sites = mssql.rd_sql(server, database, lf_table, ['site', 'flow_method', 'min_trig', 'max_trig'], where_col={'date': [lf_date], 'site_type': ['LowFlow'], 'flow_method': ['Correlated from Telem', 'Gauged', 'Manually Calculated', 'Visually Gauged']})
-lf_sites.rename(columns={'site': 'ExtSiteID'}, inplace=True)
-
-man_summ_data = mssql.rd_sql(server, database, ts_summ_table, where_col={'DatasetTypeID': man_datasets})
-man_summ_data.FromDate = pd.to_datetime(man_summ_data.FromDate)
-man_summ_data.ToDate = pd.to_datetime(man_summ_data.ToDate)
-
-lf_gauge_sites = pd.merge(man_summ_data, lf_sites, on='ExtSiteID')
-
-gauge_sites1 = lf_gauge_sites[lf_gauge_sites.Count >= min_count].copy()
-
-## Remove sites that are also recorders
-
-gauge_sites = gauge_sites1[~gauge_sites1.ExtSiteID.isin(rec_sites.ExtSiteID.unique())]
-
-## Summaries of bad sites
-
-mis_lf_gauge_sites = lf_sites[~lf_sites.ExtSiteID.isin(man_summ_data.ExtSiteID)]
-less_than_10_lf_sites = lf_gauge_sites[lf_gauge_sites.Count < min_count]
-
 ## Get a full list of sites to retrieve site data for
 
 all_sites = set(rec_sites.ExtSiteID.tolist())
-all_sites.update(gauge_sites.ExtSiteID.tolist())
+all_sites.update([site])
+
+rec_sites = all_sites.copy()
+rec_sites.remove(site)
 
 ###########################################
 ### Get site data
@@ -89,18 +71,15 @@ site_xy = mssql.rd_sql(server, database, sites_table, ['ExtSiteID', 'ExtSiteName
 geometry = [Point(xy) for xy in zip(site_xy['NZTMX'], site_xy['NZTMY'])]
 site_xy1 = gpd.GeoDataFrame(site_xy['ExtSiteID'], geometry=geometry, crs=2193)
 
-gauge_xy = site_xy1[site_xy1.ExtSiteID.isin(gauge_sites.ExtSiteID)].set_index('ExtSiteID').copy()
-rec_xy = site_xy1[site_xy1.ExtSiteID.isin(rec_sites.ExtSiteID)].set_index('ExtSiteID').copy()
+gauge_xy = site_xy1[site_xy1.ExtSiteID.isin([site])].set_index('ExtSiteID').copy()
+rec_xy = site_xy1[site_xy1.ExtSiteID.isin(rec_sites)].set_index('ExtSiteID').copy()
 
 ###########################################
 ### Iterate through the low flow sites
 
 results_dict = {}
-for g in gauge_sites.ExtSiteID.tolist():
+for g in gauge_xy.index:
     print(g)
-
-    ## Max trig
-    max_trig = gauge_sites[gauge_sites.ExtSiteID == g].max_trig.tolist()[0]
 
     ## Determine recorder sites within search distance
     gauge_loc = gauge_xy.loc[[g]].buffer(search_dis)
@@ -111,7 +90,6 @@ for g in gauge_sites.ExtSiteID.tolist():
     g_data = mssql.rd_sql(server, database, ts_daily_table, ['ExtSiteID', 'DateTime', 'Value'], where_col={'DatasetTypeID': man_datasets, 'ExtSiteID': [g], 'QualityCode': qual_codes}, from_date=min_date, date_col='DateTime')
     g_data.DateTime = pd.to_datetime(g_data.DateTime)
     g_data.loc[g_data.Value <= 0, 'Value'] = np.nan
-    g_data.loc[g_data.Value > max_trig*5, 'Value'] = np.nan
     r_data = mssql.rd_sql(server, database, ts_daily_table, ['ExtSiteID', 'DateTime', 'Value'], where_col={'DatasetTypeID': rec_datasets, 'ExtSiteID': near_rec_sites.index.tolist(), 'QualityCode': qual_codes}, from_date=min_date, date_col='DateTime')
     r_data.DateTime = pd.to_datetime(r_data.DateTime)
     r_data.loc[r_data.Value <= 0, 'Value'] = np.nan
@@ -127,22 +105,12 @@ for g in gauge_sites.ExtSiteID.tolist():
 
     ## regressions!
     lm1 = LM(r_data1, g_data1)
-    ols1 = lm1.run('ols', 1, x_transform=None, y_transform=None, min_obs=min_count)
     ols1_log = lm1.run('ols', 1, x_transform='log', y_transform='log', min_obs=min_count)
-    ols1_bc = lm1.run('ols', 1, x_transform='boxcox', y_transform='boxcox', min_obs=min_count)
-#    rlm1 = lm1.run('rlm', 1, x_transform=None, y_transform=None, min_obs=min_count)
-#    rlm1_log = lm1.run('rlm', 1, x_transform='log', y_transform='log', min_obs=min_count)
-#    rlm1_bc = lm1.run('rlm', 1, x_transform='boxcox', y_transform='boxcox', min_obs=min_count)
-
-#    rlm3_bc = lm1.run('rlm', 3, x_transform='boxcox', y_transform='boxcox', min_obs=min_count)
-    ols2 = lm1.run('ols', 2, x_transform=None, y_transform=None, min_obs=min_count)
-    ols3 = lm1.run('ols', 3, x_transform=None, y_transform=None, min_obs=min_count)
+    ols2_log = lm1.run('ols', 2, x_transform='log', y_transform='log', min_obs=min_count)
     ols3_log = lm1.run('ols', 3, x_transform='log', y_transform='log', min_obs=min_count)
-    ols3_bc = lm1.run('ols', 3, x_transform='boxcox', y_transform='boxcox', min_obs=min_count)
-    ols2_bc = lm1.run('ols', 2, x_transform='boxcox', y_transform='boxcox', min_obs=min_count)
 
     ## Save
-    results_dict.update({g: {1: ols1, 2: ols2, 3: ols3}})
+    results_dict.update({g: {1: ols1_log, 2: ols2_log, 3: ols3_log}})
 
 
 ### Produce summary table
@@ -161,8 +129,8 @@ for s in range(1, 4):
                 nrmse1 = model1.nrmse()[i]
                 adjr2 = round(model1.sm[i].rsquared_adj, 3)
                 nobs = model1.sm[i].nobs
-                y_range = model1.sm_xy[i]['y'].max() - model1.sm_xy[i]['y'].min()
-                dep_sites = model1.sm_xy[i]['x'].columns.tolist()
+                y_range = model1.sm_xy[i]['y_orig'].max() - model1.sm_xy[i]['y_orig'].min()
+                dep_sites = model1.sm_xy[i]['x_orig'].columns.tolist()
                 fvalue = round(model1.sm[i].fvalue, 3)
                 fpvalue = round(model1.sm[i].f_pvalue, 3)
                 params1 = model1.sm[i].params.round(5).tolist()
@@ -196,7 +164,7 @@ res_df['winner'] = winner
 
 ### Save data
 file_path = os.path.join(export_dir, export_summ1)
-res_df.to_csv(file_path)
+res_df.reset_index().to_csv(file_path, index=False)
 
 
 

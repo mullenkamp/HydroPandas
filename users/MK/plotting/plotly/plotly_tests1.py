@@ -9,6 +9,7 @@ import plotly.offline as py
 import plotly.graph_objs as go
 from datetime import datetime
 import pandas as pd
+import numpy as np
 #pd.core.common.is_list_like = pd.api.types.is_list_like
 #
 #import pandas_datareader.data as web
@@ -97,14 +98,21 @@ layout = go.Layout(
 
 fig = dict(data=data, layout=layout)
 
-py.plot(fig, filename='Montreal Mapbox')
+py.plot(fig, filename=r'E:\ecan\git\HydroPandas\users\MK\plotting\plotly\Montreal-Mapbox.html')
 
+#######################
 
+x = np.random.randn(1000)
+y = np.random.randn(1000) + 1
 
+data = [
+    go.Histogram2dContour(
+        x=x,
+        y=y
+    )
+]
 
-
-
-
+py.plot(data, filename='Example 2D Histogram Contour')
 
 
 
