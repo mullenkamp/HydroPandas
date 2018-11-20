@@ -2126,16 +2126,65 @@ tsdata = get_ts_data(server, database, mtypes, id1, resample_code='T', period=15
 
 
 
+#######################################
+### Pandas datareader
+
+import pandas as pd
+from pdsql import mssql
+pd.core.common.is_list_like = pd.api.types.is_list_like
+
+from pandas_datareader import fred
+
+gdp = fred.FredReader(['GCEC96', 'GPDIC96'], start='2000-01-01').read()
 
 
+server = 'sql2012test01'
+database = 'Hydro'
+table = 'LowFlowRestrSite'
+site_table = 'ExternalSite'
+
+date = '2018-11-19'
+
+lf_sites = mssql.rd_sql(server, database, table, where_col={'date': [date]})
+
+lf_sites1 = lf_sites.site.unique().tolist()
+
+all_sites = mssql.rd_sql(server, database, site_table)
 
 
+all_sites[all_sites.ExtSiteID.isin(lf_sites1)]
 
 
+[s for s in lf_sites1 if s not in all_sites.ExtSiteID.tolist()]
 
+all_sites[all_sites.ExtSiteID == '70813']
 
+###################################################
+### Hilltop-py examples
 
+from hilltoppy import web_service as ws
 
+base_url = 'http://wateruse.ecan.govt.nz'
+hts = 'WQAll.hts'
+site = 'SQ31045'
+measurement = 'Total Phosphorus'
+from_date = '1983-11-22'
+to_date = '2018-04-13'
+dtl_method = 'trend'
+
+sites_out1 = ws.site_list(base_url, hts)
+
+sites_out2 = ws.site_list(base_url, hts, location=True)
+
+meas_df = ws.measurement_list(base_url, hts, site)
+
+tsdata = ws.get_data(base_url, hts, site, measurement, from_date=from_date, to_date=to_date)
+
+tsdata2, extra2 = ws.get_data(base_url, hts, site, measurement, parameters=True)
+
+tsdata3 = ws.get_data(base_url, hts, site, 'WQ Sample')
+
+ws.build_url(base_url, hts, 'GetData', site, 'WQ Sample')
 
 
 

@@ -4,7 +4,7 @@ Misc functions.
 """
 from __future__ import print_function
 from re import search, IGNORECASE, findall
-import patoolib, fnmatch, os
+import fnmatch, os
 from datetime import datetime
 import pandas as pd
 import numpy as np

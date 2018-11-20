@@ -38,8 +38,8 @@ from_date = '2012-07-01'
 to_date = '2018-06-30'
 
 export_dir = r'E:\ecan\local\Projects\requests\suz\2018-10-29'
-export1 = 'crc_usage_summary_2018-11-05.csv'
-export2 = 'swaz_usage_2018-10-29.csv'
+export1 = 'crc_usage_summary_2018-11-15.csv'
+export2 = 'swaz_usage_2018-11-15.csv'
 
 
 def grp_ts_agg(df, grp_col, ts_col, freq_code):
@@ -100,6 +100,10 @@ crc_wap1a = pd.merge(crc_wap1, sites2, on=['wap'])
 
 crc_wap2 = pd.merge(allo3, crc_wap1a[['crc', 'take_type', 'allo_block', 'wap', summ_col]], on=['crc', 'take_type', 'allo_block'])
 
+count0 = crc_wap2.groupby(['crc', 'take_type', 'allo_block', 'year']).crc.transform('count')
+
+crc_wap2['feav'] = (crc_wap2['feav']/count0).round()
+
 tsdata1 = mssql.rd_sql(server, database, ts_table, ['ExtSiteID', 'DatasetTypeID', 'DateTime', 'Value'], where_col={'ExtSiteID': crc_wap2.wap.unique().tolist(), 'DatasetTypeID': datasets}, from_date=from_date, to_date=to_date, date_col='DateTime')
 tsdata1.DateTime = pd.to_datetime(tsdata1.DateTime)
 
@@ -112,7 +116,6 @@ tsdata4 = pd.merge(crc_wap2, tsdata3, on=['year', 'wap', 'take_type'], how='left
 count1 = tsdata4.groupby(['year', 'wap']).crc.transform('count')
 
 tsdata4['Value'] = (tsdata4['Value']/count1).round()
-tsdata4['feav'] = (tsdata4['feav']/count1).round()
 
 tsdata5 = tsdata4[~(tsdata4.Value > (tsdata4.feav*1.8))]
 
@@ -182,4 +185,36 @@ td1 = wb.get_data(base_url, hts, site, 'Compliance Volume', from_date, to_date)
 td2 = td1.reset_index().drop(['Site', 'Measurement'], axis=1).set_index('DateTime')
 td2.idxmax()
 td2.plot()
+
+
+swaz = 'Mt Harding'
+
+d1 = tsdata5[tsdata5.SwazName == swaz].copy()
+d2 = d1.groupby(['crc', 'year']).sum()
+
+d2.to_csv(os.path.join(export_dir, 'test5.csv'))
+
+
+d2.loc[(slice(None), slice(None), 'CRC169504'), :]
+
+d2.loc['CRC169504']
+
+tsdata4[tsdata4.crc == 'CRC169504']
+
+tsdata4a = tsdata4.copy()
+
+tsdata4a['wap_count'] = tsdata4.groupby(['year', 'wap']).crc.transform('count')
+
+tsdata4a[tsdata4a.crc == 'CRC169504']
+
+c1 = tsdata4.groupby(['year', 'wap']).crc.count()
+
+tsdata4a[tsdata4a.wap == 'BY20/0089']
+
+
+all1.loc[(slice(None), 'Take Surface Water', 'Mt Harding'), :]
+
+allo2[allo2.crc == 'CRC169502']
+
+crc_wap2[crc_wap2.crc.isin(['CRC012123', 'CRC169502'])]
 
