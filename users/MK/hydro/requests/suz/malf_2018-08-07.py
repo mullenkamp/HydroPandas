@@ -16,6 +16,7 @@ from pyhydllp import hyd
 server = 'sql2012test01'
 database = 'hydro'
 ts_table = 'TSDataNumericDaily'
+ts_summ_table = 'TSDataNumericDaily'
 
 ini_path = r'\\fileservices02\ManagedShares\Data\Hydstra\prod\hyd'
 dll_path = r'\\fileservices02\ManagedShares\Data\Hydstra\prod\hyd\sys\run'

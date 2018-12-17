@@ -22,15 +22,15 @@ hydro_db = 'hydro'
 sites_table = 'ExternalSite'
 
 from_date = '2018-01-01'
-to_date = '2018-11-14'
+to_date = '2018-11-27'
 
 names_entered = ['RileyB', 'PeterMa']
 
 cols = ['RiverSiteIndex', 'Date', 'Party', 'LogonIdEntered', 'EnterDate']
 
 output_path = r'E:\ecan\local\Projects\requests\helen\2018-11-14'
-output1 = 'gaugers_2018-11-15.csv'
-output2 = 'gaugers_count_2018-11-15.csv'
+output1 = 'gaugers_2018-11-27.csv'
+output2 = 'gaugers_count_2018-11-27.csv'
 
 #####################################
 ### Run query

@@ -2186,6 +2186,106 @@ tsdata3 = ws.get_data(base_url, hts, site, 'WQ Sample')
 
 ws.build_url(base_url, hts, 'GetData', site, 'WQ Sample')
 
+#######################################
+### Long records
+
+import pandas as pd
+from pdsql import mssql
+
+pd.options.display.max_columns = 10
+
+server = 'sql2012test01'
+database = 'hydro'
+ts_table = 'TSDataNumericDaily'
+ts_summ_table = 'TSDataNumericDailySumm'
+
+dstype = 22
+
+summ1 = mssql.rd_sql(server, database, ts_summ_table)
+summ1.FromDate = pd.to_datetime(summ1.FromDate)
+summ1.ToDate = pd.to_datetime(summ1.ToDate)
+
+days1 = summ1.ToDate - summ1.FromDate
+
+summ1['days'] = days1
+
+summ2 = summ1[summ1.DatasetTypeID == dstype]
+
+max1 = summ2.sort_values('days', ascending=False)
+
+#site1 = max1.iloc[0].ExtSiteID
+
+for s in range(6):
+    site1 = max1.iloc[s].ExtSiteID
+    data1 = mssql.rd_sql(server, database, ts_table, ['DateTime', 'Value'], where_col={'ExtSiteID': [site1], 'DatasetTypeID': [dstype]})
+    data1.DateTime = pd.to_datetime(data1.DateTime)
+
+    data2 = data1.set_index('DateTime').Value
+
+    #data2.resample('A').mean().plot()
+    data2.rolling(365, center=True).mean().plot()
+
+#############################################
+### All medians
+
+import pandas as pd
+from pdsql import mssql
+
+pd.options.display.max_columns = 10
+
+server = 'sql2012test01'
+database = 'hydro'
+ts_table = 'TSDataNumericDaily'
+ts_summ_table = 'TSDataNumericDailySumm'
+site_table = 'ExternalSite'
+
+dstypes = [5, 1521]
+
+summ1 = mssql.rd_sql(server, database, ts_summ_table, where_col={'DatasetTypeID': dstypes})
+summ1.FromDate = pd.to_datetime(summ1.FromDate)
+summ1.ToDate = pd.to_datetime(summ1.ToDate)
+
+days1 = summ1.ToDate - summ1.FromDate
+
+summ1['days'] = days1.dt.days
+
+summ2 = summ1[summ1.days > 10*365].copy()
+
+tsdata1 = mssql.rd_sql(server, database, ts_table, ['ExtSiteID', 'DateTime', 'Value'], where_col={'ExtSiteID': summ2.ExtSiteID.unique().tolist(), 'DatasetTypeID': dstypes})
+
+tsdata2 = tsdata1.groupby(['ExtSiteID']).Value.describe().reset_index()
+
+sites1 = mssql.rd_sql(server, database, site_table, ['ExtSiteID', 'NZTMX', 'NZTMY'], where_col={'ExtSiteID': summ2.ExtSiteID.unique().tolist()})
+
+tsdata3 = pd.merge(sites1, tsdata2, on='ExtSiteID')
+
+tsdata3.to_csv(r'E:\ecan\local\Projects\requests\jeanine\2018-12-02\recorder_stats.csv', index=False)
+
+###########################################
+### Low flows check
+
+import pandas as pd
+from pdsql import mssql
+
+pd.options.display.max_columns = 10
+
+server = 'sql2012test01'
+db = 'hydro'
+sites_table = 'ExternalSite'
+lf_site_table = 'LowFlowRestrSite'
+lf_site_band_table = 'LowFlowRestrSiteBand'
+lf_crc_table = 'LowFlowRestrSiteBandCrc'
+
+date = '2018-12-17'
+
+sites1 = mssql.rd_sql(server, db, lf_site_table, from_date=date, date_col='date')
+
+sites_bands1 = mssql.rd_sql(server, db, lf_site_band_table, from_date=date, date_col='date')
+
+sites_bands1[(sites_bands1.flow <= sites_bands1.min_trig) & (sites_bands1.band_allo == 100) & (sites_bands1.op_flag == '')]
+
+
+
 
 
 

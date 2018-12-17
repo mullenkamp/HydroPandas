@@ -178,31 +178,29 @@ restr_count1 = pd.concat([no_restr, partial_restr, full_restr], axis=1)
 
 restr_count1['sum_days'] = restr_count1['no_restr_days'] + restr_count1['partial_restr_days'] + restr_count1['full_restr_days']
 
-#mean_restr = grp1['flow_restr'].mean().round(2)
-#mean_restr.name = 'restr_perc'
-#
-#ann_restr = pd.concat([restr_count1, mean_restr], axis=1)
+mean_restr = grp1['allo_perc'].mean().round(2)
+mean_restr.name = 'allo_perc'
 
-ann_restr = restr_count1.copy()
+ann_restr = pd.concat([restr_count1, mean_restr], axis=1)
 
 ## Monthly
-#grp1 = flow10.groupby(['flow_type', 'plan', 'Site', 'allo_block', pd.Grouper(freq='M')])
-#
-#full_restr = grp1.apply(lambda x: (x.flow_restr == 0).sum())
-#full_restr.name = 'full_restr_days'
-#partial_restr = grp1.apply(lambda x: ((x.flow_restr > 0) & (x.flow_restr < 100)).sum())
-#partial_restr.name = 'partial_restr_days'
-#no_restr = grp1.apply(lambda x: ((x.flow_restr == 100)).sum())
-#no_restr.name = 'no_restr_days'
-#
-#restr_count1 = pd.concat([no_restr, partial_restr, full_restr], axis=1)
-#
-#restr_count1['sum_days'] = restr_count1['no_restr_days'] + restr_count1['partial_restr_days'] + restr_count1['full_restr_days']
-#
-#mean_restr = grp1['flow_restr'].mean().round(2)
-#mean_restr.name = 'restr_perc'
-#
-#mon_restr = pd.concat([restr_count1, mean_restr], axis=1)
+grp1 = flow10.groupby(['plan', 'Site', 'allo_block', pd.Grouper(freq='M')])
+
+full_restr = grp1.apply(lambda x: (x.allo_perc == 0).sum())
+full_restr.name = 'full_restr_days'
+partial_restr = grp1.apply(lambda x: ((x.allo_perc > 0) & (x.allo_perc < 100)).sum())
+partial_restr.name = 'partial_restr_days'
+no_restr = grp1.apply(lambda x: ((x.allo_perc == 100)).sum())
+no_restr.name = 'no_restr_days'
+
+restr_count1 = pd.concat([no_restr, partial_restr, full_restr], axis=1)
+
+restr_count1['sum_days'] = restr_count1['no_restr_days'] + restr_count1['partial_restr_days'] + restr_count1['full_restr_days']
+
+mean_restr = grp1['allo_perc'].mean().round(2)
+mean_restr.name = 'allo_perc'
+
+mon_restr = pd.concat([restr_count1, mean_restr], axis=1)
 
 #################################################
 ### Export
@@ -210,7 +208,7 @@ ann_restr = restr_count1.copy()
 flow10.to_csv(os.path.join(base_dir, export_big_flow_csv))
 flow7.to_csv(os.path.join(base_dir, export_flow_csv), header=True)
 trigs.to_csv(os.path.join(base_dir, export_trigs_csv), index=False)
-#mon_restr.to_csv(os.path.join(base_dir, export_mon_restr_csv))
+mon_restr.to_csv(os.path.join(base_dir, export_mon_restr_csv))
 ann_restr.to_csv(os.path.join(base_dir, export_ann_restr_csv))
 
 

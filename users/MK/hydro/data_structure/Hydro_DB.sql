@@ -722,12 +722,16 @@ where ExtSiteID in (
 	where CwmsName = 'Orari-Temuka-Opihi-Pareora')
 	and DatasetTypeID in (24, 25, 38)
 
+alter table Hydro.dbo.LowFlowRestrSite
+add mod_date datetime not null default getdate()
 
+alter table Hydro.dbo.LowFlowRestrSiteBand
+add mod_date datetime not null default getdate()
 
+alter table Hydro.dbo.LowFlowRestrSiteBandCrc
+add mod_date datetime not null default getdate()
 
-
-
-
-
+select distinct restr_category
+from LowFlowRestrSite
 
 	
