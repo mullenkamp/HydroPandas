@@ -5,6 +5,7 @@ Created on Thu Aug 23 15:47:54 2018
 @author: MichaelEK
 """
 import os
+import numpy as np
 import pandas as pd
 from pdsql import mssql
 from allotools import allocation_ts
@@ -24,12 +25,12 @@ crc_wap_table = 'CrcWapAllo'
 crc_table = 'CrcAllo'
 
 #sites = ['J36/0016', 'K37/3262', '69302']
-datasets = {9: 'Take Surface Water', 12: 'Take Groundwater'}
+datasets = {12: 'Take Groundwater'}
 #cwms = ['kaikoura']
-catch_group = ['Ashburton River']
-#cwms = ['Selwyn - Waihora']
+#catch_group = ['Ashburton River']
+cwms = ['Christchurch - West Melton', 'Banks Peninsula']
 #rdr_site = 'J36/0016-M1'
-summ_col = 'SwazName'
+summ_col = 'CwmsName'
 
 #base_url = 'http://wateruse.ecan.govt.nz'
 #hts = 'WaterUse.hts'
@@ -37,10 +38,11 @@ summ_col = 'SwazName'
 from_date = '2012-07-01'
 to_date = '2018-06-30'
 
-export_dir = r'E:\ecan\local\Projects\requests\suz\2018-12-17'
-export1 = 'crc_usage_summary_2018-12-17.csv'
-export2 = 'swaz_usage_2018-12-17.csv'
-export3 = 'swaz_usage_pivot_2018-12-17.csv'
+export_dir = r'E:\ecan\local\Projects\requests\the_press\2019-01-25'
+export1 = 'crc_usage_summary_2019-01-25.csv'
+export2 = 'crc_feav_usage_2019-01-25.csv'
+#export2 = 'swaz_usage_2018-12-17.csv'
+#export3 = 'swaz_usage_pivot_2018-12-17.csv'
 
 
 def grp_ts_agg(df, grp_col, ts_col, freq_code):
@@ -86,16 +88,16 @@ allo2.rename(columns={'date': 'year', 'allo': 'feav'}, inplace=True)
 ############################################
 ### Extract data
 
-sites1 = mssql.rd_sql(server, database, sites_table, ['ExtSiteID', 'CatchmentGroupName', summ_col], where_col={'CatchmentGroupName': catch_group})
+sites1 = mssql.rd_sql(server, database, sites_table, ['ExtSiteID', summ_col], where_col={summ_col: cwms})
 
-crc = mssql.rd_sql(server, database, crc_table).drop('mod_date', axis=1)
+crc = mssql.rd_sql(server, database, crc_table, where_col={'in_gw_allo': [True], 'take_type': ['Take Groundwater']}).drop('mod_date', axis=1)
 crc = crc.replace({'use_type': allocation_ts.param.use_type_dict})
 
-allo3 = pd.merge(allo2, crc[['crc', 'take_type', 'allo_block', 'use_type']], on=['crc', 'take_type', 'allo_block'], how='left')
+allo3 = pd.merge(allo2, crc[['crc', 'take_type', 'allo_block']], on=['crc', 'take_type', 'allo_block'])
 
-crc_wap = mssql.rd_sql(server, database, crc_wap_table, ['crc', 'take_type', 'allo_block', 'wap', 'in_sw_allo'])
-crc_wap1 = crc_wap[((crc_wap.take_type == 'Take Surface Water') & (crc_wap.in_sw_allo)) | (crc_wap.take_type == 'Take Groundwater')]
-crc_wap1 = crc_wap1[crc_wap1.take_type.isin(list(datasets.values()))].copy()
+crc_wap = mssql.rd_sql(server, database, crc_wap_table, ['crc', 'take_type', 'allo_block', 'wap'])
+crc_wap1 = crc_wap[(crc_wap.take_type == 'Take Groundwater')]
+#crc_wap1 = crc_wap1[crc_wap1.take_type.isin(list(datasets.values()))].copy()
 
 
 sites2 = sites1.rename(columns={'ExtSiteID': 'wap'})
@@ -144,87 +146,102 @@ all1.index.name = 'Year End'
 
 all1.to_csv(os.path.join(export_dir, export1))
 
-### Daily usage by SWAZ
+### Agg by crc
 
-swaz1 = pd.merge(tsdata1, sites1, on='ExtSiteID')
-swaz1.replace({'DatasetTypeID': datasets}, inplace=True)
-swaz1.rename(columns={'DatasetTypeID': 'take_type'}, inplace=True)
+crc_agg = tsdata5.groupby(['crc', 'year'])[['feav', 'Value']].sum()
+crc_agg.loc[crc_agg['Value'] == 0, 'Value'] = np.nan
 
-swaz2 = swaz1.groupby(['SwazName', 'take_type',  'DateTime']).Value.sum().round()
-swaz2.name = 'Usage (m3)'
+crc_agg.groupby(level='year').sum()
 
-swaz2.to_csv(os.path.join(export_dir, export2), header=True)
+crc_agg1 = crc_agg[crc_agg.Value.notnull()].copy()
+crc_agg1.groupby(level='year').sum()
 
-swaz3 = swaz2.unstack([0, 1])
+crc_agg.rename(columns={'Value': 'Usage (m3)', 'feav': 'feav (m3)'}, inplace=True)
 
-swaz3.to_csv(os.path.join(export_dir, export3), header=True)
-
-
-### Extra checks
-
-big1 = swaz2.groupby(level=['SwazName']).quantile(0.97) * 2
-
-for name, val in swaz2.groupby(level=['SwazName']):
-    count1 = val[val > big1[name]]
-    print(count1)
-
-tsdata8 = tsdata1.groupby(['ExtSiteID', 'DateTime']).Value.sum().round()
-tsdata8.name = 'Usage (m3)'
-
-big1 = tsdata8.groupby(level=['ExtSiteID']).quantile(0.97) * 2
-
-for name, val in tsdata8.groupby(level=['ExtSiteID']):
-    count1 = val[val > big1[name]]
-    print(count1)
+crc_agg.to_csv(os.path.join(export_dir, export2))
 
 
-#################################################
-
-sites = ('K36/0927', 'K36/0854', 'K36/1000', 'K37/0792', 'K37/1442', 'K37/1725', 'K37/2034', 'K37/2238', 'K37/2239', 'K37/2893', 'K37/2894', 'K37/3582', 'L37/0239', 'L37/1265', 'L37/1430')
-
-from_date = '2016-06-15'
-to_date = '2016-07-15'
-
-site = 'K36/1000-M1'
-
-mtypes = wb.measurement_list(base_url, hts, site)
-mtypes
-
-td1 = wb.get_data(base_url, hts, site, 'Compliance Volume', from_date, to_date)
-
-td2 = td1.reset_index().drop(['Site', 'Measurement'], axis=1).set_index('DateTime')
-td2.idxmax()
-td2.plot()
-
-
-swaz = 'Mt Harding'
-
-d1 = tsdata5[tsdata5.SwazName == swaz].copy()
-d2 = d1.groupby(['crc', 'year']).sum()
-
-d2.to_csv(os.path.join(export_dir, 'test5.csv'))
-
-
-d2.loc[(slice(None), slice(None), 'CRC169504'), :]
-
-d2.loc['CRC169504']
-
-tsdata4[tsdata4.crc == 'CRC169504']
-
-tsdata4a = tsdata4.copy()
-
-tsdata4a['wap_count'] = tsdata4.groupby(['year', 'wap']).crc.transform('count')
-
-tsdata4a[tsdata4a.crc == 'CRC169504']
-
-c1 = tsdata4.groupby(['year', 'wap']).crc.count()
-
-tsdata4a[tsdata4a.wap == 'BY20/0089']
-
-
-all1.loc[(slice(None), 'Take Surface Water', 'Mt Harding'), :]
-
-allo2[allo2.crc == 'CRC169502']
-
-crc_wap2[crc_wap2.crc.isin(['CRC012123', 'CRC169502'])]
+#### Daily usage by SWAZ
+#
+#swaz1 = pd.merge(tsdata1, sites1, on='ExtSiteID')
+#swaz1.replace({'DatasetTypeID': datasets}, inplace=True)
+#swaz1.rename(columns={'DatasetTypeID': 'take_type'}, inplace=True)
+#
+#swaz2 = swaz1.groupby(['SwazName', 'take_type',  'DateTime']).Value.sum().round()
+#swaz2.name = 'Usage (m3)'
+#
+#swaz2.to_csv(os.path.join(export_dir, export2), header=True)
+#
+#swaz3 = swaz2.unstack([0, 1])
+#
+#swaz3.to_csv(os.path.join(export_dir, export3), header=True)
+#
+#
+#### Extra checks
+#
+#big1 = swaz2.groupby(level=['SwazName']).quantile(0.97) * 2
+#
+#for name, val in swaz2.groupby(level=['SwazName']):
+#    count1 = val[val > big1[name]]
+#    print(count1)
+#
+#tsdata8 = tsdata1.groupby(['ExtSiteID', 'DateTime']).Value.sum().round()
+#tsdata8.name = 'Usage (m3)'
+#
+#big1 = tsdata8.groupby(level=['ExtSiteID']).quantile(0.97) * 2
+#
+#for name, val in tsdata8.groupby(level=['ExtSiteID']):
+#    count1 = val[val > big1[name]]
+#    print(count1)
+#
+#
+##################################################
+#
+#sites = ('K36/0927', 'K36/0854', 'K36/1000', 'K37/0792', 'K37/1442', 'K37/1725', 'K37/2034', 'K37/2238', 'K37/2239', 'K37/2893', 'K37/2894', 'K37/3582', 'L37/0239', 'L37/1265', 'L37/1430')
+#
+#from_date = '2016-06-15'
+#to_date = '2016-07-15'
+#
+#site = 'K36/1000-M1'
+#
+#mtypes = wb.measurement_list(base_url, hts, site)
+#mtypes
+#
+#td1 = wb.get_data(base_url, hts, site, 'Compliance Volume', from_date, to_date)
+#
+#td2 = td1.reset_index().drop(['Site', 'Measurement'], axis=1).set_index('DateTime')
+#td2.idxmax()
+#td2.plot()
+#
+#
+#swaz = 'Mt Harding'
+#
+#d1 = tsdata5[tsdata5.SwazName == swaz].copy()
+#d2 = d1.groupby(['crc', 'year']).sum()
+#
+#d2.to_csv(os.path.join(export_dir, 'test5.csv'))
+#
+#
+#d2.loc[(slice(None), slice(None), 'CRC169504'), :]
+#
+#d2.loc['CRC169504']
+#
+#tsdata4[tsdata4.crc == 'CRC169504']
+#
+#tsdata4a = tsdata4.copy()
+#
+#tsdata4a['wap_count'] = tsdata4.groupby(['year', 'wap']).crc.transform('count')
+#
+#tsdata4a[tsdata4a.crc == 'CRC169504']
+#
+#c1 = tsdata4.groupby(['year', 'wap']).crc.count()
+#
+#tsdata4a[tsdata4a.wap == 'BY20/0089']
+#
+#
+#all1.loc[(slice(None), 'Take Surface Water', 'Mt Harding'), :]
+#
+#allo2[allo2.crc == 'CRC169502']
+#
+#crc_wap2[crc_wap2.crc.isin(['CRC012123', 'CRC169502'])]
 

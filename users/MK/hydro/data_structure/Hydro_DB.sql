@@ -734,4 +734,417 @@ add mod_date datetime not null default getdate()
 select distinct restr_category
 from LowFlowRestrSite
 
+select distinct Owner
+from ExternalSite
+
+update ExternalSite
+set SiteID = NULL
+
+CREATE TABLE Site (
+       SiteID int NOT NULL,
+       NZTMX int not null,
+       NZTMY int not null,
+       Altitude float,
+       PRIMARY KEY (SiteID)
+)
+
+create view vDatasetTypeNamesAll as
+select DatasetTypeID, Feature, MeasurementType, CollectionType, DataCode, DataProvider
+from DatasetType
+inner join Feature on DatasetType.FeatureID = Feature.FeatureID
+INNER join MeasurementType on DatasetType.MTypeID = MeasurementType.MTypeID
+inner join CollectionType on DatasetType.CTypeID = CollectionType.CTypeID
+inner join DataCode on DatasetType.DataCodeID = DataCode.DataCodeID
+inner join DataProvider on DataProvider.DataProviderID = DatasetType.DataProviderID
+
+DELETE
+from TSDataNumeric
+where datasettypeid in (
+7,
+8,
+13,
+17,
+1636,
+1637,
+1638,
+4557,
+4558,
+4559,
+4563,
+4564,
+4565,
+4569,
+4570,
+4571)
+
+DELETE
+from TSDataNumericDaily
+where datasettypeid in (
+7,
+8,
+13,
+17,
+1636,
+1637,
+1638,
+4557,
+4558,
+4559,
+4563,
+4564,
+4565,
+4569,
+4570,
+4571)
+
+DELETE
+from TSDataNumericHourly
+where datasettypeid in (
+7,
+8,
+13,
+17,
+1636,
+1637,
+1638,
+4557,
+4558,
+4559,
+4563,
+4564,
+4565,
+4569,
+4570,
+4571)
+
+
+DELETE
+from TSDataNumericSumm
+
+DELETE
+from TSDataNumericHourlySumm
+
+DELETE
+from TSDataNumericDailySumm
+
+DELETE
+from TSDataNumeric
+where DatasetTypeID = 13
+
+DELETE
+from TSDataNumericHourly
+where DatasetTypeID = 13
+
+DELETE
+from TSDataNumericDaily
+where DatasetTypeID = 13
+
+
+SELECT ExtSiteID, DatasetTypeID, Median = AVG(1.0 * Value)
+FROM
+(
+    SELECT s.ExtSiteID, s.DatasetTypeID, s.Value,  rn = ROW_NUMBER() OVER 
+      (PARTITION BY s.ExtSiteID, s.DatasetTypeID ORDER BY s.Value), c.c
+    FROM dbo.TSDataNumeric AS s
+    INNER JOIN 
+    (
+      SELECT ExtSiteID, DatasetTypeID, c = COUNT(*) 
+      FROM dbo.TSDataNumeric
+      GROUP BY ExtSiteID, DatasetTypeID
+    ) AS c
+    ON s.ExtSiteID = c.ExtSiteID and 
+    s.DatasetTypeID = c.DatasetTypeID
+    where ModDate >= '2019-01-01' and 
+      	Value is not NULL
+) AS x
+WHERE rn IN ((c + 1)/2, (c + 2)/2)
+GROUP BY ExtSiteID, DatasetTypeID;
+
+SELECT ExtSiteID, DatasetTypeID, Median = AVG(1.0 * Value)
+FROM
+(
+    SELECT s.ExtSiteID, s.DatasetTypeID, s.Value,  rn = ROW_NUMBER() OVER 
+      (PARTITION BY s.ExtSiteID, s.DatasetTypeID ORDER BY s.Value), c.c
+    FROM dbo.TSDataNumeric AS s
+    INNER JOIN 
+    (
+      SELECT ExtSiteID, DatasetTypeID, c = COUNT(*) 
+      FROM dbo.TSDataNumeric
+      GROUP BY ExtSiteID, DatasetTypeID
+    ) AS c
+    ON s.ExtSiteID = c.ExtSiteID and 
+    s.DatasetTypeID = c.DatasetTypeID
+) AS x
+WHERE rn IN ((c + 1)/2, (c + 2)/2)
+GROUP BY ExtSiteID, DatasetTypeID;
+
+
+select tsdata.ExtSiteID,
+	tsdata.DatasetTypeID,
+	min(tsdata.Value) as Min,
+	avg(tsdata.Value) as Mean,
+	max(tsdata.Value) as Max,
+	count(tsdata.Value) as Count,
+	min(tsdata.[DateTime]) as FromDate,
+	max(tsdata.[DateTime]) as ToDate
+into #summ
+from TSDataNumeric as tsdata
+inner join
+	(select distinct ExtSiteID, DatasetTypeID
+	 from TSDataNumeric
+	 where ModDate >= '1900-01-01') as set1
+on tsdata.ExtSiteID = set1.ExtSiteID
+and tsdata.DatasetTypeID = set1.DatasetTypeID
+where tsdata.Value is not NULL
+group by tsdata.ExtSiteID, tsdata.DatasetTypeID
+
+
+select #summ.[ExtSiteID], #summ.[DatasetTypeID], #summ.[Min], #med.[Median], #summ.[Mean], 
+	#summ.[Max], #summ.[Count], #summ.[FromDate], #summ.[ToDate]
+from #summ
+inner join #med
+	on #summ.ExtSiteID = #med.ExtSiteID
+	and #summ.DatasetTypeID = #med.DatasetTypeID
+
+drop table #summ
+drop table #med
+	
+
+
+CREATE TABLE TSDataNumericSumm (
+       ExtSiteID varchar(29) NOT NULL FOREIGN KEY REFERENCES ExternalSite(ExtSiteID),
+       DatasetTypeID int not null FOREIGN KEY REFERENCES DatasetType(DatasetTypeID),
+	     Min float not null,
+       	 Median float not null,
+	     Mean float not null,
+	     Max float not null,
+	     Count float not null,
+	     FromDate datetime not null,
+	     ToDate datetime not null,
+       ModDate datetime not null default getdate(),
+       PRIMARY KEY (ExtSiteID, DatasetTypeID)
+)
+
+CREATE TABLE TSDataNumericHourlySumm (
+       ExtSiteID varchar(29) NOT NULL FOREIGN KEY REFERENCES ExternalSite(ExtSiteID),
+       DatasetTypeID int not null FOREIGN KEY REFERENCES DatasetType(DatasetTypeID),
+	     Min float not null,
+         Median float not null,
+	     Mean float not null,
+	     Max float not null,
+	     Count float not null,
+	     FromDate datetime not null,
+	     ToDate datetime not null,
+       ModDate datetime not null default getdate(),
+       PRIMARY KEY (ExtSiteID, DatasetTypeID)
+)
+
+CREATE TABLE TSDataNumericDailySumm (
+       ExtSiteID varchar(29) NOT NULL FOREIGN KEY REFERENCES ExternalSite(ExtSiteID),
+       DatasetTypeID int not null FOREIGN KEY REFERENCES DatasetType(DatasetTypeID),
+	     Min float no- null,-
+         Median float not null,
+	     Mean float not null,
+	     Max float not null,
+	     Count float not null,
+	     FromDate date not null,
+	     ToDate date not null,
+       ModDate datetime not null default getdate(),
+       PRIMARY KEY (ExtSiteID, DatasetTypeID)
+)
+
+
+SELECT ExtSiteID, DatasetTypeID, Median = AVG(1.0 * Value)
+FROM
+(
+    SELECT s.ExtSiteID, s.DatasetTypeID, s.Value,  rn = ROW_NUMBER() OVER
+      (PARTITION BY s.ExtSiteID, s.DatasetTypeID ORDER BY s.Value), c.c
+    FROM TSDataNumericDaily AS s
+    INNER JOIN
+    (
+      SELECT ExtSiteID, DatasetTypeID, c = COUNT(*)
+      FROM TSDataNumericDaily GROUP BY ExtSiteID, DatasetTypeID
+    ) AS c
+    ON s.ExtSiteID = c.ExtSiteID and
+    s.DatasetTypeID = c.DatasetTypeID
+    where s.Value is not NULL
+    and s.ExtSiteID in (SELECT distinct ExtSiteID
+			FROM TSDataNumericDaily
+			where ModDate >= '2019-01-24')
+) AS x
+WHERE rn IN ((c + 1)/2, (c + 2)/2)
+GROUP BY ExtSiteID, DatasetTypeID
+
+
+SELECT distinct ExtSiteID
+FROM TSDataNumericDaily
+where ModDate >= '2019-01-24' and
+   Value is not NULL
+
+select tsdata.ExtSiteID,
+	tsdata.DatasetTypeID,
+	min(tsdata.Value) as Min,
+	avg(tsdata.Value) as Mean,
+	max(tsdata.Value) as Max,
+	count(tsdata.Value) as Count,
+	min(tsdata.[DateTime]) as FromDate,
+	max(tsdata.[DateTime]) as ToDate
+from TSDataNumericDaily as tsdata
+inner join
+	(select distinct ExtSiteID, DatasetTypeID
+	 from TSDataNumericDaily
+	 where ModDate >= '2019-01-24') as set1
+on tsdata.ExtSiteID = set1.ExtSiteID
+and tsdata.DatasetTypeID = set1.DatasetTypeID
+where tsdata.Value is not NULL
+group by tsdata.ExtSiteID, tsdata.DatasetTypeID
+
+select tsdata.ExtSiteID,
+	tsdata.DatasetTypeID,
+	min(tsdata.Value) as Min,
+	avg(tsdata.Value) as Mean,
+	max(tsdata.Value) as Max,
+	count(tsdata.Value) as Count,
+	min(tsdata.[DateTime]) as FromDate,
+	max(tsdata.[DateTime]) as ToDate
+from TSDataNumericDaily as tsdata
+where tsdata.Value is not NULL AND
+	ExtSiteID in (SELECT distinct ExtSiteID
+		FROM TSDataNumericDaily
+		where ModDate >= '2019-01-24')
+group by tsdata.ExtSiteID, tsdata.DatasetTypeID
+
+
+SELECT	d.ExtSiteID, d.DatasetTypeID, w.Median
+FROM
+(
+  SELECT ExtSiteID, DatasetTypeID, COUNT(*) AS y
+  FROM TSDataNumericDaily
+  GROUP BY ExtSiteID, DatasetTypeID
+) AS d
+CROSS APPLY
+(
+  SELECT AVG(0E + Value)
+  FROM
+  (
+    SELECT z.Value
+     FROM TSDataNumericDaily AS z
+     WHERE z.ExtSiteID = d.ExtSiteID AND
+     	z.DatasetTypeID = d.DatasetTypeID
+     ORDER BY z.Value
+     OFFSET (d.y - 1) / 2 ROWS
+     FETCH NEXT 2 - d.y % 2 ROWS ONLY
+  ) AS f
+) AS w(Median);
+
+
+SELECT ExtSiteID, DatasetTypeID,
+    PERCENTILE_CONT(0.5) 
+        WITHIN GROUP (ORDER BY Value)
+        OVER (PARTITION BY ExtSiteID, DatasetTypeID) AS Median
+FROM TSDataNumericDaily
+where Value is not NULL
+    and ExtSiteID in (SELECT distinct ExtSiteID
+			FROM TSDataNumericDaily
+			where ModDate >= '2019-01-24')
+ORDER BY ExtSiteID, DatasetTypeID
+
+SELECT ExtSiteID, DatasetTypeID, Median = MAX(Median)
+FROM
+(
+   SELECT ExtSiteID, DatasetTypeID, Median = PERCENTILE_CONT(0.5) WITHIN GROUP 
+     (ORDER BY Value) OVER (PARTITION BY ExtSiteID, DatasetTypeID)
+   FROM TSDataNumericDaily
+   where ExtSiteID in (SELECT distinct ExtSiteID
+			FROM TSDataNumericDaily
+			where ModDate >= '2019-01-24')
+) 
+AS x
+GROUP BY ExtSiteID, DatasetTypeID;
+
+
+SELECT ExtSiteID, DatasetTypeID, Median = AVG(1.0 * Value)
+FROM
+(
+    SELECT s.ExtSiteID, s.DatasetTypeID, s.Value,  rn = ROW_NUMBER() OVER
+      (PARTITION BY s.ExtSiteID, s.DatasetTypeID ORDER BY s.Value), c.c
+    FROM TSDataNumericDaily AS s
+    INNER JOIN
+    (
+      SELECT ExtSiteID, DatasetTypeID, c = COUNT(*)
+      FROM TSDataNumericDaily GROUP BY ExtSiteID, DatasetTypeID
+    ) AS c
+    ON s.ExtSiteID = c.ExtSiteID and
+    s.DatasetTypeID = c.DatasetTypeID
+    where s.Value is not NULL and
+        s.ExtSiteID in (SELECT distinct ExtSiteID
+			FROM TSDataNumericDaily
+			where ModDate >= '2019-01-24')
+) AS x
+WHERE rn IN ((c + 1)/2, (c + 2)/2)
+GROUP BY ExtSiteID, DatasetTypeID
+
+DELETE
+from TSDataNumericDaily
+where DatasetTypeID in (19,21,23,25,26,27,29,31,33)
+
+DELETE
+from TSDataNumericDailySumm
+where DatasetTypeID in (19,21,23,25,26,27,29,31,33)
+
+select *
+from TSdatanumericdaily
+where ExtSiteID = '71136' and 
+	datasettypeid = 5
+
+
+SELECT COLUMN_NAME
+FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+WHERE OBJECTPROPERTY(OBJECT_ID(CONSTRAINT_SCHEMA + '.' + QUOTENAME(CONSTRAINT_NAME)), 'IsPrimaryKey') = 1
+AND TABLE_NAME = 'ExternalSite' AND TABLE_SCHEMA = 'Schema'
+
+SELECT * FROM sys.objects
+WHERE type = 'PK' 
+AND  parent_object_id = OBJECT_ID ('ExternalSite')
+
+SELECT ORDINAL_POSITION AS [index], COLUMN_NAME AS name FROM Hydro.INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+WHERE TABLE_NAME = 'CrcAllo' AND CONSTRAINT_NAME LIKE 'PK%'
+order by [index]
+
+
+SELECT * FROM Hydro.INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+WHERE TABLE_NAME = 'consents_gw_envts_2018_02_23' AND CONSTRAINT_NAME LIKE 'PK%'
+
+select*
+from Hydro.dbo.CrcAllo
+where (crc, take_type, allo_block) in (('CRC000002', 'Take Surface Water', 'A'))
+
+
+DELETE
+from USM.dbo.SiteAttribute
+
+DELETE
+from USM.dbo.Site
+
+DELETE
+from USM.dbo.SiteMaster
+
+DELETE
+from USM.dbo.SyncRunDate
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	

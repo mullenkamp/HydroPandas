@@ -11,6 +11,8 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import geopandas as gpd
+from pyproj import Proj, transform
+from pycrsx.utils import convert_crs
 from gistools import vector
 from shapely.geometry import Point
 
@@ -34,6 +36,20 @@ gdf1.columns = ['precip', 'geometry']
 #gdf2 = gdf1.to_crs(epsg=2193)
 
 gdf1.to_file(os.path.join(base_dir, 'test_ms_df.shp'))
+
+from_crs = '+proj=lcc +lat_1=-30.0 +lat_2=-60.0 +lat_0=-50.288826 +lon_0=161.85754 +R=6370000.0 +no_defs'
+from_crs = '+proj=lcc +lat_1=-60 +lat_2=-30 +lat_0=-60 +lon_0=167.5 +x_0=211921 +y_0=-1221320 +a=6367470 +b=6367470 +no_defs'
+
+to_crs = 4326
+
+
+from_crs1 = Proj(convert_crs(from_crs, pass_str=True), preserve_units=True)
+to_crs1 = Proj(convert_crs(to_crs, pass_str=True), preserve_units=True)
+
+transform(from_crs1, to_crs1, 0, 0)
+transform(from_crs1, to_crs1, 4000, 4000)
+transform(from_crs1, to_crs1, 2068000, 1684000)
+
 
 
 def to_proj4(nc):
@@ -65,7 +81,7 @@ def to_proj4(nc):
     return proj4
 
 
-def proc_metservice_nc(nc, lat_coord='south_north', lon_coord='west_east', time_coord='Time', time_var='Times', export_dir=None):
+def proc_metservice_nc(nc, lat_coord='south_north', lon_coord='west_east', time_coord='time', time_var='time', export_dir=None):
     """
     Function to process MetService netcdf files so that it is actually complete. The function adds in the appropriate coordinate arrays for the data and resaves the file with '_corr" added to the end of the name.
 
@@ -99,8 +115,8 @@ def proc_metservice_nc(nc, lat_coord='south_north', lon_coord='west_east', time_
 
     nlat = x1.dims[lat_coord]
     nlon = x1.dims[lon_coord]
-    x_res = int(x1.attrs['DX'])
-    y_res = int(x1.attrs['DY'])
+    x_res = int(x1.attrs['dx_m'])
+    y_res = int(x1.attrs['dy_m'])
 
     lat = np.arange(nlat, dtype='int32') * y_res
     lon = np.arange(nlon, dtype='int32') * x_res
@@ -115,7 +131,7 @@ def proc_metservice_nc(nc, lat_coord='south_north', lon_coord='west_east', time_
     x3 = x2.rename({time_coord: 'time', lat_coord: 'y', lon_coord: 'x'})
 
     ### Calc hourly precip rate
-    df = x3['ACPR'].to_dataframe().reset_index()
+    df = x3['precipitation_amount'].to_dataframe().reset_index()
     precip = ACPR_to_rate(df, 'y', 'x')
 
     ### Remove the first time step (as there is no data for it)

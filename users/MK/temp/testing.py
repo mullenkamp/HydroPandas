@@ -2285,6 +2285,77 @@ sites_bands1 = mssql.rd_sql(server, db, lf_site_band_table, from_date=date, date
 sites_bands1[(sites_bands1.flow <= sites_bands1.min_trig) & (sites_bands1.band_allo == 100) & (sites_bands1.op_flag == '')]
 
 
+###########################################
+### benchmarking
+
+from pdsql import mssql
+
+ts9 = mssql.rd_sql('sql2012test01', 'Hydro', 'TSDataNumeric')
+
+ts9.groupby(['ExtSiteID', 'DatasetTypeID']).Value.mean()
+
+###########################################
+### Hydrotel
+
+from pyhydrotel import get_sites_mtypes, get_ts_data
+
+server = 'sql2012prod04'
+database = 'hydrotel'
+mtypes = ['rainfall']
+site = '328711'
+sites = [site]
+from_date = '2019-01-28 15:00'
+to_date = '2019-01-28 16:00'
+resample_code = None
+
+
+get_sites_mtypes('sql2012prod04', 'hydrotel', sites=sites)
+
+ts_data1 = get_ts_data('sql2012prod04', 'hydrotel', 'rainfall', [site], '2019-01-28 15:00', '2019-01-28 16:00', resample_code=None)
+
+##########################################
+### mssql
+
+import pandas as pd
+from pdsql.mssql import update_from_difference, update_table_rows, del_table_rows, rd_sql
+
+pd.options.display.max_columns = 10
+
+server = 'sql2012dev01'
+database = 'hydro'
+table = 'CrcAllo'
+
+t1 = rd_sql(server, database, table)
+
+df = t1.loc[0:2, ['crc', 'take_type', 'allo_block', 'max_rate_crc']]
+
+df.loc[0, 'max_rate_crc'] = 5
+
+up1 = update_from_difference(df, server, database, table, mod_date_col='mod_date')
+up1 = update_from_difference(df, server, database, table, on=['crc', 'take_type', 'allo_block'], mod_date_col='mod_date')
+
+del_table_rows(server, database, table, pk_df=df.drop('max_rate_crc', axis=1))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
