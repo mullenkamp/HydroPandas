@@ -1113,7 +1113,7 @@ order by [index]
 
 
 SELECT * FROM Hydro.INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-WHERE TABLE_NAME = 'consents_gw_envts_2018_02_23' AND CONSTRAINT_NAME LIKE 'PK%'
+WHERE TABLE_NAME = 'consents_gw_envts_2018_02_23' AND CONSTRAINT_NAME LIKE '%PK%'
 
 select*
 from Hydro.dbo.CrcAllo
@@ -1132,18 +1132,34 @@ from USM.dbo.SiteMaster
 DELETE
 from USM.dbo.SyncRunDate
 
+ALTER TABLE Hydro.dbo.LowFlowRestrSite
+ADD PRIMARY KEY (site, date);
 
+ALTER TABLE Hydro.dbo.LowFlowRestrSite
+DROP CONSTRAINT LowFlowRestrSite_PK
 
+select *
+from Hydro.dbo.CrcWapAllo
+where crc = 'CRC180837'
 
+select *
+from Hydro.dbo.CrcAllo
+where crc = 'CRC180837'
 
+select sum(Value)
+from Hydro.dbo.TSDataNumericDaily
+where ExtSiteID = 'K36/0912' and 
+[DateTime] >= '2017-07-01'
 
+select ExtSiteID, count(ExtSiteID) as [count]
+from Hydro.dbo.TSDataNumericDailySumm
+where DatasetTypeID in (9, 12)
+group by ExtSiteID
+order by [count] desc
 
-
-
-
-
-
-
+select *
+from Hydro.dbo.TSDataNumericDaily
+where ExtSiteID = 'J40/0719'
 
 
 

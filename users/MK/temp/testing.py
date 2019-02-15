@@ -2336,10 +2336,21 @@ up1 = update_from_difference(df, server, database, table, on=['crc', 'take_type'
 
 del_table_rows(server, database, table, pk_df=df.drop('max_rate_crc', axis=1))
 
+###########################################
+### Hash stuff
+import hashlib
 
+np.random.seed(42)
+arr = np.random.choice(['foo', 'bar', 42], size=(3,3))
+df = pd.DataFrame(arr)
+print(arr)
+print(df)
+print(hashlib.sha256(arr.tobytes()).hexdigest())
+print(hashlib.sha256(df.values.tobytes()).hexdigest())
 
-
-
+hash(arr.tobytes())
+hash(df.values.tostring())
+hash(str(arr))
 
 
 
