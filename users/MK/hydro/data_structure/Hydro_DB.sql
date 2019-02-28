@@ -1161,6 +1161,8 @@ select *
 from Hydro.dbo.TSDataNumericDaily
 where ExtSiteID = 'J40/0719'
 
-
+SELECT COLUMN_NAME 
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = 'CrcWapAllo' AND TABLE_SCHEMA='dbo'
 
 	

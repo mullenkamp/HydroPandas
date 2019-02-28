@@ -2338,10 +2338,13 @@ del_table_rows(server, database, table, pk_df=df.drop('max_rate_crc', axis=1))
 
 ###########################################
 ### Hash stuff
+
+import pandas as pd
+import numpy as np
 import hashlib
 
 np.random.seed(42)
-arr = np.random.choice(['foo', 'bar', 42], size=(3,3))
+arr = np.random.choice([0.23, 4.003, 42.111], size=(10,3))
 df = pd.DataFrame(arr)
 print(arr)
 print(df)
@@ -2349,10 +2352,20 @@ print(hashlib.sha256(arr.tobytes()).hexdigest())
 print(hashlib.sha256(df.values.tobytes()).hexdigest())
 
 hash(arr.tobytes())
-hash(df.values.tostring())
+hash(df.values.tobytes())
 hash(str(arr))
 
+##########################################
+### hilltop testing
 
+import hilltoppy
+from hilltoppy import web_service as ws
+from hilltoppy.web_service import measurement_list, site_list
+
+base_url = 'http://testwateruse.ecan.govt.nz'
+hts = 'RiverRecorderEcanDaily.hts'
+
+sites_out1 = ws.site_list(base_url, hts)
 
 
 
