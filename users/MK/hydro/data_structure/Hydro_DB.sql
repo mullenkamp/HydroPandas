@@ -1165,4 +1165,26 @@ SELECT COLUMN_NAME
 FROM INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_NAME = 'CrcWapAllo' AND TABLE_SCHEMA='dbo'
 
+select *
+from Hydro.dbo.TSDataNumericDailySumm
+where ExtSiteID in (select ExtSiteID from Hydro.dbo.ExternalSite where extSiteName like 'waikuku stream%')
+
+select ExtSiteID, [DateTime], Value
+from Hydro.dbo.TSDataNumericDaily
+where ExtSiteID in ('66417', '66409', '389') AND
+	DatasetTypeID = 8
+
+	
+--DELETE
+--from hydro.dbo.HilltopUsageSiteDataLog
+--where hts_file like '%broken%'
+--	
+--DELETE
+--from hydro.dbo.HilltopUsageSiteDataLog
+--where date = '2019-03-04'
+	
+select distinct ExtSiteID, DatasetTypeID
+from hydro.dbo.TSDataNumericDaily
+	
+	
 	

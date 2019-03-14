@@ -22,6 +22,7 @@ sites_table = 'ExternalSite'
 lf_band_table = 'LowFlowRestrSiteBand'
 lf_crc_table = 'LowFlowRestrSiteBandCrc'
 crc_table = 'CrcAllo'
+crc_wap_table = 'CrcWapAllo'
 
 sel_dict = {'CatchmentGroupName': ['Hurunui River', 'Waiau River']}
 

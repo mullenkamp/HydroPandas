@@ -1,0 +1,2 @@
+conda install -y pandas spyder xarray plotly dash numexpr bottleneck scipy sqlalchemy pyodbc pytables seaborn requests jupyter geopandas scikit-learn ETo hilltop-py pyhydllp gistools HydroLM hydrointerp nasadap pyhydrotel EcanAlloUsageTools
+pause
