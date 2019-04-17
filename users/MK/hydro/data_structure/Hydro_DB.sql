@@ -1186,5 +1186,13 @@ where ExtSiteID in ('66417', '66409', '389') AND
 select distinct ExtSiteID, DatasetTypeID
 from hydro.dbo.TSDataNumericDaily
 	
+select distinct SwazName
+from hydro.dbo.ExternalSite
+where SwazGroupName like 'ashburton%'
+
+alter table Hydro.dbo.LowFlowRestrSite
+add db_read_log varchar(150)
+
+
 	
 	

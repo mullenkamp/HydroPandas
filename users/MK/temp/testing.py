@@ -2371,6 +2371,134 @@ sites_out1 = ws.site_list(base_url, hts)
 
 s1 = 'BU25/5035'
 
+############################################
+### NIWA SOS
+
+from owslib.sos import SensorObservationService as sos
+from owslib.ows import OperationsMetadata
+from owslib.fes import FilterCapabilities
+
+service = sos('https://hydro-sos.niwa.co.nz/?service=SOS', version='2.0.0')
+
+for content in sorted(service.contents):
+    print(content)
+
+id1 = service.identification
+
+get_foi=service.get_operation_by_name('GetFeatureOfInterest')
+
+try:
+    x = unicode('test')
+    for x in sorted(get_foi.parameters['featureOfInterest']['values']):
+        print(x.encode('utf8'))
+except:
+    for x in sorted(get_foi.parameters['featureOfInterest']['values']):
+        print(x)
+
+get_obs=service.get_operation_by_name('GetObservation')
+get_obs.parameters['responseFormat']['values']
+
+getcap=service.get_operation_by_name('GetCapabilities')
+isinstance(getcap, OperationsMetadata)
+
+getcap.constraints
+getcap.parameters
+getcap.methods
+
+contents = service.contents
+
+station = contents['HG.Master@15341']
+
+response = service.get_observation()
+
+getdesc=service.get_operation_by_name('describesensor')
+
+######################################################
+### python course sample data
+
+from pdsql import mssql
+
+server = 'edwtest01'
+database = 'hydro'
+site_table = 'ExternalSite'
+ts_table = 'TSDataNumericDaily'
+cols = ['ExtSiteID', 'DateTime', 'Value']
+from_date = '1980-07-01'
+to_date = '2017-06-30'
+dataset_type = 5
+export_path = r'E:\ecan\git\edu\EcanPythonCourse2019\jupyter\effective-pandas\sample_data2.csv'
+
+sites = ['69614', '69618', '71104']
+
+
+tsdata1 = mssql.rd_sql(server, database, ts_table, cols, where_in={'ExtSiteID': sites, 'DatasetTypeID': [dataset_type]}, from_date=from_date, to_date=to_date, date_col='DateTime')
+
+tsdata2 = tsdata1.pivot_table('Value', 'DateTime', 'ExtSiteID')
+
+tsdata2.to_csv(export_path)
+
+#######################################
+### Pyproj
+
+from pyproj import CRS, Proj, Transformer
+
+epsg1 = 4326
+epsg2 = 2193
+
+x1 = 173.2996473
+y1 = -40.60674803
+
+x2 = 1625350
+y2 = 5504853
+
+crs1 = CRS.from_epsg(epsg1)
+crs2 = CRS.from_epsg(epsg2)
+
+trans1 = Transformer.from_crs(crs1, crs2)
+
+set1a = trans1.transform(y1, x1)
+
+trans2 = Transformer.from_crs(crs2, crs1)
+
+set2a = trans2.transform(y2, x2)
+
+
+#######################################
+### Hydstra site owner
+
+hy_sites['Owner'] = hy_sites['Owner'].str.strip().str.lower()
+hy_sites['OrgCode'] = hy_sites['OrgCode'].str.strip().str.lower()
+
+hy_sites.Owner.unique()
+hy_sites.OrgCode.unique()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
