@@ -1194,5 +1194,27 @@ alter table Hydro.dbo.LowFlowRestrSite
 add db_read_log varchar(150)
 
 
-	
+CREATE TABLE TSDataNumericMonthly (
+       ExtSiteID varchar(29) NOT NULL FOREIGN KEY REFERENCES ExternalSite(ExtSiteID),
+       DatasetTypeID int not null FOREIGN KEY REFERENCES DatasetType(DatasetTypeID),
+       DateTime date not null,
+       Value float,
+       QualityCode int FOREIGN KEY REFERENCES QualityCode(QualityCode) default 200,
+       ModDate datetime not null default getdate(),
+       PRIMARY KEY (ExtSiteID, DatasetTypeID, Datetime)
+)
+
+CREATE TABLE TSDataNumericMonthlySumm (
+       ExtSiteID varchar(29) NOT NULL FOREIGN KEY REFERENCES ExternalSite(ExtSiteID),
+       DatasetTypeID int not null FOREIGN KEY REFERENCES DatasetType(DatasetTypeID),
+	     Min float not null,
+       Median float not null,
+	     Mean float not null,
+	     Max float not null,
+	     Count float not null,
+	     FromDate date not null,
+	     ToDate date not null,
+       ModDate datetime not null default getdate(),
+       PRIMARY KEY (ExtSiteID, DatasetTypeID)
+)
 	
