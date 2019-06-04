@@ -1,9 +1,0 @@
-DataProviderID,DataProvider,SystemID,Description
-1,ECan,Hydrotel,ECan internal Hydrotel system
-2,ECan,Hydstra,ECan internal Hydstra system
-3,ECan,Bgauging,Bgauging/Henry
-4,ECan,Wells,Wells db
-5,ECan,Hilltop,ECan internal Hilltop system
-6,NIWA,,NIWA data
-7,Aqualinc,,Aqualinc data
-8,ECan,Squalarc,ECan internal Squalarc

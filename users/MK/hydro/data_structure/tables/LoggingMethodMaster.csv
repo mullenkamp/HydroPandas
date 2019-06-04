@@ -1,4 +1,0 @@
-LoggingMethodID,LoggingMethodName,Description
-1,discrete,A discrete instantaneous measurement
-2,sum,An accumulated sum since the last measurement
-3,mean,An aggregated mean since the last measurement

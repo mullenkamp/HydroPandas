@@ -1,4 +1,0 @@
-MSourceID,MSourceLongName,MSourceShortName,Description
-1,Recorder,rec,Data collected and measured via an automatic recording device
-2,Manual Field,mfield,Data collected and measured manually
-3,Manual Lab,mlab,"Data collected in the field, but measured in the lab"

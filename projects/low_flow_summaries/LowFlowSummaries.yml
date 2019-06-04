@@ -1,9 +1,0 @@
-name: LowFlowSumm
-channels:
-- conda-forge
-- mullenkamp
-- defaults
-dependencies:
-- python=3.6
-- pandas
-- pdsql
