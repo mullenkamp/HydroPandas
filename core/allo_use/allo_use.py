@@ -2,6 +2,9 @@
 """
 Functions for allocation and usage processing.
 """
+import numpy as np
+import pandas as pd
+from hydropandas.io.tools.mssql import rd_sql
 
 ##################################################
 #### Data processing functions
@@ -555,6 +558,28 @@ def wqn10(irr1):
 
     return(irr2)
 
+
+def wap_sw_gw(server='SQL2012PROD03', database='DataWarehouse', table='D_ACC_Act_Water_TakeWaterWAPAlloc', wap_col='WAP', take_type_col='Activity'):
+    """
+    Function to determine which WAP is SW and GW.
+    """
+    allo_wap = rd_sql(col_names=[take_type_col, wap_col], server=server, database=database, table=table, rename_cols=['take_type', 'wap'])
+    allo_wap = allo_wap[allo_wap.wap != 'Migration: Not Classified'].copy()
+    allo_wap['wap'] = allo_wap['wap'].str.strip().str.upper()
+    list_names1 = allo_wap['wap'].str.findall('[A-Z]+\d\d/\d\d\d\d')
+    names_len_bool = list_names1.apply(lambda x: len(x)) == 1
+    names2 = allo_wap['wap'].copy()
+    names2[names_len_bool] = list_names1[names_len_bool].apply(lambda x: x[0])
+    names2[~names_len_bool] = np.nan
+    allo_wap['wap'] = names2
+    allo_wap2 = allo_wap.dropna().drop_duplicates()
+    allo_wap3 = allo_wap2.sort_values('take_type').drop_duplicates(subset='wap', keep='last').copy()
+    return allo_wap3
+
+
+
+
+##################################################
 ### Usage
 
 

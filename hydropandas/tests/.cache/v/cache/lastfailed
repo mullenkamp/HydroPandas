@@ -1,0 +1,15 @@
+{
+  "test_indexing.py": true,
+  "test_indexing.py::test_sel_ts[None-False-None-66-river_flow_disc_qc]": true,
+  "test_indexing.py::test_sel_ts[None-False-None-sites0-river_flow_cont_qc]": true,
+  "test_indexing.py::test_sel_ts[None-False-require1-sites0-river_flow_cont_qc]": true,
+  "test_indexing.py::test_sel_ts[None-True-None-66-river_flow_disc_qc]": true,
+  "test_indexing.py::test_sel_ts[None-True-None-sites0-river_flow_cont_qc]": true,
+  "test_indexing.py::test_sel_ts[None-True-require1-sites0-river_flow_cont_qc]": true,
+  "test_indexing.py::test_sel_ts[W-False-None-66-river_flow_disc_qc]": true,
+  "test_indexing.py::test_sel_ts[W-False-None-sites0-river_flow_cont_qc]": true,
+  "test_indexing.py::test_sel_ts[W-False-require1-sites0-river_flow_cont_qc]": true,
+  "test_indexing.py::test_sel_ts[W-True-None-66-river_flow_disc_qc]": true,
+  "test_indexing.py::test_sel_ts[W-True-None-sites0-river_flow_cont_qc]": true,
+  "test_indexing.py::test_sel_ts[W-True-require1-sites0-river_flow_cont_qc]": true
+}

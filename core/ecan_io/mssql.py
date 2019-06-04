@@ -383,6 +383,158 @@ def write_sql(df, server, database, table, dtype_dict, primary_keys=None, foreig
         raise err
 
 
+def write_sql(df, server, database, table, dtype_dict, primary_keys=None, foreign_keys=None, foreign_table=None, create_table=True, drop_table=False, del_rows_dict=None, output_stmt=False):
+    """
+    Function to write pandas dataframes to mssql server tables. Must have write permissions to database!
+
+    Parameters
+    ----------
+    df : DataFrame
+        DataFrame to be saved.
+    server : str
+        The server name. e.g.: 'SQL2012PROD03'
+    database : str
+        The specific database within the server. e.g.: 'LowFlows'
+    table : str
+        The specific table within the database. e.g.: 'LowFlowSiteRestrictionDaily'
+    dtype_dict : dict of str
+        Dictionary of df columns to the associated sql data type. Examples below.
+    primary_keys : str or list of str
+        Index columns to define uniqueness in the data structure.
+    foreign_keys : str or list of str
+        Columns to link to another table in the same database.
+    foreign_table: str
+        The table in the same database with the identical foreign key(s).
+    create_table : bool
+        Should a new table be created or should it be appended to an existing table?
+    drop_table : bool
+        If the table already exists, should it be dropped?
+    output_stmt : bool
+        Should the SQL statements be outputted to a dictionary?
+
+    Returns
+    -------
+    if output_stmt is True then dict else None
+
+    dtype strings for matching python data types to SQL
+    ---------------------------------------------------
+    str: 'VARCHAR(19)'
+
+    date: 'DATE'
+
+    datetime: "DATETIME'
+
+    float: 'NUMERIC(10, 1)' or 'FLOAT'
+
+    int: 'INT'
+    """
+
+    #### Parameters and functions
+    py_sql = {'NUMERIC': float, 'DATE': str, 'DATETIME': str, 'INT': 'int32', 'smallint': 'int32', 'date': str, 'varchar': str, 'float': float, 'datetime': str, 'VARCHAR': str, 'FLOAT': float, 'smalldatetime': str, 'decimal': float}
+
+    def chunker(seq, size):
+        return ([seq[pos:pos + size] for pos in range(0, len(seq), size)])
+
+    #### Make sure the df has the correct dtypes
+    if len(dtype_dict) != len(df.columns):
+        raise ValueError('dtype_dict must have the same number of keys as columns in df.')
+    if not all(df.columns.isin(dtype_dict.keys())):
+        raise ValueError('dtype_dict must have the same column names as the columns in the df.')
+
+    df1 = df.copy()
+
+    for i in df.columns:
+        dtype1 = dtype_dict[i]
+        if (dtype1 == 'DATE') | (dtype1 == 'DATETIME'):
+            time1 = to_datetime(df[i]).dt.isoformat(' ')
+            df1.loc[:, i] = time1
+        elif 'VARCHAR' in dtype1:
+            try:
+                df1.loc[:, i] = df.loc[:, i].astype(str).str.replace('\'', '')
+            except:
+                df1.loc[:, i] = df.loc[:, i].str.encode('utf-8', 'ignore').str.replace('\'', '')
+        elif 'NUMERIC' in dtype1:
+            df1.loc[:, i] = df.loc[:, i].astype(float)
+        elif 'decimal' in dtype1:
+            df1.loc[:, i] = df.loc[:, i].astype(float)
+        elif not dtype1 in py_sql.keys():
+            raise ValueError('dtype must be one of ' + str(py_sql.keys()))
+        else:
+            df1.loc[:, i] = df.loc[:, i].astype(py_sql[dtype1])
+
+    #### Convert df to set of tuples to be ingested by sql
+    list1 = df1.values.tolist()
+    tup1 = [str(tuple(i)) for i in list1]
+    tup2 = chunker(tup1, 1000)
+
+    #### Primary keys
+    if isinstance(primary_keys, str):
+        primary_keys = [primary_keys]
+    if isinstance(primary_keys, list):
+        key_stmt = ", Primary key (" + ", ".join(primary_keys) + ")"
+    else:
+        key_stmt = ""
+
+    #### Foreign keys
+    if isinstance(foreign_keys, str):
+        foreign_keys = [foreign_keys]
+    if isinstance(foreign_keys, list):
+        fkey_stmt = ", Foreign key (" + ", ".join(foreign_keys) + ") " + "References " + foreign_table + "(" + ", ".join(foreign_keys) + ")"
+    else:
+        fkey_stmt = ""
+
+    #### Initial create table and insert statements
+    d1 = [str(i) + ' ' + dtype_dict[i] for i in df.columns]
+    d2 = ', '.join(d1)
+    tab_create_stmt = "create table " + table + " (" + d2 + key_stmt + fkey_stmt + ")"
+    columns1 = str(tuple(df1.columns.tolist())).replace('\'', '')
+    insert_stmt1 = "insert into " + table + " " + columns1 + " values "
+
+    conn = connect(server, database=database)
+    cursor = conn.cursor()
+    stmt_dict = {}
+    try:
+
+        #### Drop table if it exists
+        if drop_table:
+            drop_stmt = "IF OBJECT_ID(" + str([str(table)])[1:-1] + ", 'U') IS NOT NULL DROP TABLE " + table
+            cursor.execute(drop_stmt)
+            conn.commit()
+            stmt_dict.update({'drop_stmt': drop_stmt})
+
+        #### Create table in database
+        if create_table:
+            cursor.execute(tab_create_stmt)
+            conn.commit()
+            stmt_dict.update({'tab_create_stmt': tab_create_stmt})
+
+        #### Delete rows
+        if isinstance(del_rows_dict, dict):
+            del_where_list = sql_where_stmts(**del_rows_dict)
+            del_rows_stmt = "DELETE FROM " + table + " WHERE " + " AND ".join(del_where_list)
+            cursor.execute(del_rows_stmt)
+            conn.commit()
+
+        #### Insert data into table
+        for i in range(len(tup2)):
+            rows = ",".join(tup2[i])
+            insert_stmt2 = insert_stmt1 + rows
+            cursor.execute(insert_stmt2)
+            stmt_dict.update({'insert' + str(i+1): insert_stmt2})
+        conn.commit()
+
+        #### Close everything!
+        cursor.close()
+        conn.close()
+
+        if output_stmt:
+            return stmt_dict
+    except Exception as err:
+        conn.rollback()
+        conn.close()
+        raise err
+
+
 def sql_where_stmts(where_col=None, where_val=None, where_op='AND', from_date=None, to_date=None, date_col=None):
     """
     Function to take various input parameters and convert them to a list of where statements for SQL.
@@ -425,7 +577,7 @@ def sql_where_stmts(where_col=None, where_val=None, where_op='AND', from_date=No
     if isinstance(from_date, str):
         from_date1 = to_datetime(from_date, errors='coerce')
         if isinstance(from_date1, Timestamp):
-            from_date2 = from_date1.strftime('%Y-%m-%d')
+            from_date2 = from_date1.isoformat().split('T')[0]
             where_from_date = date_col + " >= " + from_date2.join(['\'', '\''])
         else:
             where_from_date = ''
@@ -435,7 +587,7 @@ def sql_where_stmts(where_col=None, where_val=None, where_op='AND', from_date=No
     if isinstance(to_date, str):
         to_date1 = to_datetime(to_date, errors='coerce')
         if isinstance(to_date1, Timestamp):
-            to_date2 = to_date1.strftime('%Y-%m-%d')
+            to_date2 = to_date1.isoformat().split('T')[0]
             where_to_date = date_col + " <= " + to_date2.join(['\'', '\''])
         else:
             where_to_date = ''

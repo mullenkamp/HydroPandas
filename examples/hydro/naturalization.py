@@ -8,9 +8,9 @@ Template script for naturalisation and misc stats.
 """
 
 from pandas import read_table, DataFrame, concat, merge, Timedelta, datetime, to_datetime, DateOffset, date_range, Timestamp, read_csv, to_numeric
-from core.misc import printf
-from core.ts.sw import stream_nat, flow_stats, malf7d
-from core.ts.plot import hydrograph_plot
+from hydropandas.tools.river.ts.naturalisation import stream_nat
+from hydropandas.tools.river.ts.stats import flow_stats, malf7d
+from hydropandas.plotting.river.sw import hydrograph_plot
 
 ############################################
 #### Parameters

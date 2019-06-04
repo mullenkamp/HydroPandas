@@ -63,7 +63,7 @@ feature_df = DataFrame(feature_list, columns=['FeatureLongName', 'FeatureShortNa
 feature_df.set_index('FeatureShortName', inplace=True)
 
 mtype_df = DataFrame(mtype_list, columns=['MTypeLongName', 'MTypeShortName', 'MTypeGroup', 'Units', 'Description'])
-mtype_df.set_index('MtypeShortName', inplace=True)
+mtype_df.set_index('MTypeShortName', inplace=True)
 
 msource_df = DataFrame(msource_list, columns=['MSourceLongName', 'MSourceShortName', 'Description'])
 msource_df.set_index('MSourceShortName', inplace=True)
@@ -84,6 +84,8 @@ resample_fun = OrderedDict((' / '.join(i), resample_mtype_fun[i[1]]) for i in fi
 
 all_hydro_ids = DataFrame(fields_list, index=CategoricalIndex(hydro_ids.keys()), dtype='category')
 all_hydro_ids.columns = ['feature', 'mtype', 'stype', 'qtype']
+
+all_mtypes = ['river_flow_cont_qc', 'river_flow_disc_qc', 'river_wl_cont_qc', 'aq_wl_cont_qc', 'aq_wl_disc_qc', 'atmos_precip_cont_qc', 'river_flow_cont_raw', 'atmos_precip_cont_raw', 'river_wl_cont_raw', 'aq_wl_cont_raw', 'usage']
 
 ######################################
 ### The main class

@@ -11,7 +11,7 @@ Created on Mon Sep 25 11:10:04 2017
 
 def _get_vars(dict1):
     v1 = [i for i in dict1 if '__' not in i]
-    return(v1)
+    return v1
 
 ##################################################################
 ### Class dictionary containers
